@@ -1,0 +1,17 @@
+{
+  "_comment": "玩家初始配置。后续多角色时拆分为 characters/*.json。",
+  "player": {
+    "id": "ember_exile",
+    "name": "余烬流亡者",
+    "max_hp": 72,
+    "starting_hp": 72,
+    "max_energy": 3,
+    "starting_momentum": 0,
+    "momentum_max": 6,
+    "starting_gold": 99,
+    "potion_slots": 2,
+    "design_note": "第一个角色偏均衡，能体验攻击、护甲、势能和状态污染。",
+    "balance_note": "72 生命略高于常见卡牌肉鸽起始值，用于抵消早期 UI 和数值未完全打磨的挫败。",
+    "potion_slots_note": "初始 2 个药水槽，低于成熟版本常见 3 槽，方便 MVP 阶段观察药水对战斗难度的影响。"
+  }
+}

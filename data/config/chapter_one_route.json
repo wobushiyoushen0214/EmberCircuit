@@ -1,0 +1,57 @@
+{
+  "_comment": "第一章 MVP 线性路线。完整版会替换为分叉地图生成器；当前先保证普通战斗、篝火、商店、精英和 Boss 的流程完整。",
+  "route_design_note": "路线长度控制在 8 个节点，适合 15 到 25 分钟的早期 Demo。篝火放在精英前后，给玩家学习恢复/升级决策。",
+  "nodes": [
+    {
+      "type": "combat",
+      "name": "煤烟巡逻队",
+      "encounter_id": "intro_patrol",
+      "design_note": "第一场教学战，敌人意图清晰，伤害压力适中。"
+    },
+    {
+      "type": "campfire",
+      "name": "裂炉营地",
+      "design_note": "第一场战斗后给玩家第一次升级或恢复选择。"
+    },
+    {
+      "type": "combat",
+      "name": "污染实验室",
+      "encounter_id": "polluted_lab",
+      "design_note": "引入状态污染与目标优先级。"
+    },
+    {
+      "type": "event",
+      "name": "破裂反应炉",
+      "event_id": "broken_reactor",
+      "design_note": "第一章第一个问号事件，提供风险收益选择。"
+    },
+    {
+      "type": "shop",
+      "name": "灰市商人",
+      "design_note": "在牌组开始变化后提供购买和删卡决策。"
+    },
+    {
+      "type": "combat",
+      "name": "铁壳检查站",
+      "encounter_id": "iron_checkpoint",
+      "design_note": "高护甲战斗，检验玩家是否已有破甲、持续伤害或爆发方案。"
+    },
+    {
+      "type": "elite",
+      "name": "执行者伏击",
+      "encounter_id": "executor_elite",
+      "design_note": "精英节点，胜利后给遗物，形成构筑奖励。"
+    },
+    {
+      "type": "campfire",
+      "name": "炉前整备",
+      "design_note": "Boss 前最后一次恢复或升级。"
+    },
+    {
+      "type": "boss",
+      "name": "炉心礼拜堂",
+      "encounter_id": "chapter_one_boss",
+      "design_note": "第一章 Boss，胜利后完成当前 MVP 跑团。"
+    }
+  ]
+}

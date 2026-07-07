@@ -1,0 +1,343 @@
+{
+  "_comment": "第一章问号事件数据。事件选择采用确定性效果，方便测试和平衡；后续可加入权重和随机结果。",
+  "schema_note": "choices[].effects 支持 gain_gold、lose_hp、heal_percent、add_card、gain_relic、gain_potion、remove_first_non_starter_card。",
+  "events": [
+    {
+      "id": "broken_reactor",
+      "name": "破裂反应炉",
+      "body": "一台废弃反应炉仍在低声轰鸣。灰烬从裂缝里喷出，里面也许还有可用的炉芯币。",
+      "design_note": "第一个风险收益事件，让玩家在生命和经济之间做选择。",
+      "balance_note": "35 金币接近普通战斗奖励，但 6 点生命损失在第一章有实际压力。",
+      "choices": [
+        {
+          "id": "scavenge",
+          "label": "搜刮炉芯",
+          "description": "获得 35 金币，失去 6 点生命。",
+          "effects": [
+            { "type": "gain_gold", "amount": 35 },
+            { "type": "lose_hp", "amount": 6 }
+          ]
+        },
+        {
+          "id": "stabilize",
+          "label": "稳定余烬",
+          "description": "恢复 15% 最大生命。",
+          "effects": [
+            { "type": "heal_percent", "amount": 15 }
+          ]
+        },
+        {
+          "id": "extract",
+          "label": "抽取组件",
+          "description": "获得遗物“沉重齿轮”。",
+          "effects": [
+            { "type": "gain_relic", "relic_id": "heavy_gear" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ash_archive",
+      "name": "灰烬档案馆",
+      "body": "一排烧焦的金属书页记录着旧时代的战斗姿态。你只能带走其中一页。",
+      "design_note": "构筑修正事件，提供删卡或拿功能卡的选择。",
+      "balance_note": "删卡很强，因此只能删除第一张非初始牌；如果没有目标则没有效果。",
+      "choices": [
+        {
+          "id": "study_defense",
+          "label": "学习防御回路",
+          "description": "将“防御回路”加入牌组。",
+          "effects": [
+            { "type": "add_card", "card_id": "defensive_loop" }
+          ]
+        },
+        {
+          "id": "study_attack",
+          "label": "学习热链",
+          "description": "将“热链”加入牌组。",
+          "effects": [
+            { "type": "add_card", "card_id": "heat_chain" }
+          ]
+        },
+        {
+          "id": "burn_records",
+          "label": "烧毁冗余记录",
+          "description": "移除牌组中第一张非初始牌。",
+          "effects": [
+            { "type": "remove_first_non_starter_card", "amount": 1 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "coolant_cache",
+      "name": "冷却剂暗格",
+      "body": "墙内暗格保存着几支仍然低温的冷却剂。标签已经脱落，但瓶身没有裂纹。",
+      "design_note": "把药水作为问号房奖励引入路线层，帮助玩家在精英前获得一次性资源。",
+      "balance_note": "守护补剂偏防御，冷却小瓶偏保命；玩家需要在战斗容错和长期生命之间取舍。",
+      "choices": [
+        {
+          "id": "take_guard",
+          "label": "拿走守护补剂",
+          "description": "获得药水“守护补剂”。",
+          "effects": [
+            { "type": "gain_potion", "potion_id": "guard_tonic" }
+          ]
+        },
+        {
+          "id": "take_coolant",
+          "label": "拿走冷却小瓶",
+          "description": "获得药水“冷却小瓶”。",
+          "effects": [
+            { "type": "gain_potion", "potion_id": "coolant_phial" }
+          ]
+        },
+        {
+          "id": "drink_now",
+          "label": "现场调和",
+          "description": "恢复 12% 最大生命。",
+          "effects": [
+            { "type": "heal_percent", "amount": 12 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "soot_market",
+      "name": "煤烟黑市",
+      "body": "戴着过滤面具的商贩摊开一块油布。货物都是真的，价格也都不干净。",
+      "design_note": "经济向事件，让玩家在即时金币、一次性资源和牌组压缩之间选择。",
+      "balance_note": "金币选择带生命代价；删卡不收金币但只移除第一张非初始牌。",
+      "choices": [
+        {
+          "id": "sell_blood",
+          "label": "出售血样",
+          "description": "获得 45 金币，失去 8 点生命。",
+          "effects": [
+            { "type": "gain_gold", "amount": 45 },
+            { "type": "lose_hp", "amount": 8 }
+          ]
+        },
+        {
+          "id": "buy_smoke",
+          "label": "换取烟幕",
+          "description": "失去 4 点生命，获得药水“烟幕安瓿”。",
+          "effects": [
+            { "type": "lose_hp", "amount": 4 },
+            { "type": "gain_potion", "potion_id": "smoke_ampoule" }
+          ]
+        },
+        {
+          "id": "clean_pack",
+          "label": "清理背包",
+          "description": "移除牌组中第一张非初始牌。",
+          "effects": [
+            { "type": "remove_first_non_starter_card", "amount": 1 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ember_memorial",
+      "name": "余烬纪念碑",
+      "body": "倒塌的纪念碑下压着一块温热的铭牌。触摸它时，旧战场的记忆涌了上来。",
+      "design_note": "提供防御构筑、恢复和删卡三种低波动路线。",
+      "balance_note": "治疗比例低于篝火；删卡仍受第一张非初始牌限制。",
+      "choices": [
+        {
+          "id": "take_oath",
+          "label": "记下誓言",
+          "description": "将“余烬壁垒”加入牌组。",
+          "effects": [
+            { "type": "add_card", "card_id": "ember_wall" }
+          ]
+        },
+        {
+          "id": "rest",
+          "label": "短暂休整",
+          "description": "恢复 18% 最大生命。",
+          "effects": [
+            { "type": "heal_percent", "amount": 18 }
+          ]
+        },
+        {
+          "id": "leave_weight",
+          "label": "放下旧负担",
+          "description": "移除牌组中第一张非初始牌。",
+          "effects": [
+            { "type": "remove_first_non_starter_card", "amount": 1 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pressure_trial",
+      "name": "压力试炼舱",
+      "body": "一间自动试炼舱仍能运转。完成测试能得到奖励，失败的部位则会留下淤青。",
+      "design_note": "强化势能主题，给玩家爆发牌或势能药水。",
+      "balance_note": "高收益选项附带生命损失；药水选项强度较低但无牌组污染。",
+      "choices": [
+        {
+          "id": "overclock",
+          "label": "接受超压测试",
+          "description": "失去 7 点生命，将“终末压强”加入牌组。",
+          "effects": [
+            { "type": "lose_hp", "amount": 7 },
+            { "type": "add_card", "card_id": "final_pressure" }
+          ]
+        },
+        {
+          "id": "calibrate",
+          "label": "校准势能",
+          "description": "获得药水“聚焦饮剂”。",
+          "effects": [
+            { "type": "gain_potion", "potion_id": "focus_draught" }
+          ]
+        },
+        {
+          "id": "read_logs",
+          "label": "读取记录",
+          "description": "将“压力探针”加入牌组。",
+          "effects": [
+            { "type": "add_card", "card_id": "pressure_probe" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "slag_shrine",
+      "name": "熔渣神龛",
+      "body": "熔渣凝成的神龛散发着暗红色光。它回应牺牲，也回应贪婪。",
+      "design_note": "提供高风险稀有遗物、稀有攻击和保守金币三条路线。",
+      "balance_note": "稀有遗物选项代价高；稀有牌选项代价中等；金币选项无风险但收益低。",
+      "choices": [
+        {
+          "id": "offer_blood",
+          "label": "献上鲜血",
+          "description": "失去 12 点生命，获得遗物“空白契约”。",
+          "effects": [
+            { "type": "lose_hp", "amount": 12 },
+            { "type": "gain_relic", "relic_id": "blank_contract" }
+          ]
+        },
+        {
+          "id": "take_bomb",
+          "label": "取走熔渣",
+          "description": "失去 5 点生命，将“熔渣炸弹”加入牌组。",
+          "effects": [
+            { "type": "lose_hp", "amount": 5 },
+            { "type": "add_card", "card_id": "slag_bomb" }
+          ]
+        },
+        {
+          "id": "scrape_gold",
+          "label": "刮下余料",
+          "description": "获得 22 金币。",
+          "effects": [
+            { "type": "gain_gold", "amount": 22 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lost_caravan",
+      "name": "失联运输队",
+      "body": "运输队的车厢横在路中央。车轮还在空转，货箱里的货物散落一地。",
+      "design_note": "提供药水、金币和通用过牌三类低复杂度奖励。",
+      "balance_note": "发条注射器是强力回合资源，因此放在单一选项里，不额外给金币。",
+      "choices": [
+        {
+          "id": "open_medkit",
+          "label": "打开急救箱",
+          "description": "获得药水“发条注射器”。",
+          "effects": [
+            { "type": "gain_potion", "potion_id": "clockwork_injector" }
+          ]
+        },
+        {
+          "id": "take_coins",
+          "label": "收集炉芯币",
+          "description": "获得 30 金币。",
+          "effects": [
+            { "type": "gain_gold", "amount": 30 }
+          ]
+        },
+        {
+          "id": "take_pack",
+          "label": "拆下电池包",
+          "description": "将“电池包”加入牌组。",
+          "effects": [
+            { "type": "add_card", "card_id": "battery_pack" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sealed_gate",
+      "name": "封锁闸门",
+      "body": "一扇旧闸门挡住捷径。控制台还亮着，但每次尝试都会释放一阵热浪。",
+      "design_note": "围绕破盾、防守和直接绕行提供选择。",
+      "balance_note": "破盾楔是中等强度遗物，配 9 点生命代价；防守牌选项代价更低。",
+      "choices": [
+        {
+          "id": "force_gate",
+          "label": "强行开闸",
+          "description": "失去 9 点生命，获得遗物“破盾楔”。",
+          "effects": [
+            { "type": "lose_hp", "amount": 9 },
+            { "type": "gain_relic", "relic_id": "shield_break_wedge" }
+          ]
+        },
+        {
+          "id": "brace",
+          "label": "架设护盾",
+          "description": "失去 4 点生命，将“熔铸镀层”加入牌组。",
+          "effects": [
+            { "type": "lose_hp", "amount": 4 },
+            { "type": "add_card", "card_id": "smelt_plating" }
+          ]
+        },
+        {
+          "id": "detour",
+          "label": "绕路",
+          "description": "没有效果。",
+          "effects": []
+        }
+      ]
+    },
+    {
+      "id": "furnace_confessor",
+      "name": "炉边忏悔者",
+      "body": "一个自称忏悔者的人守在炉边。他愿意替你承担一段过去，也愿意教你如何把过去烧成武器。",
+      "design_note": "把删卡、能力牌和状态污染构筑放在同一事件内。",
+      "balance_note": "删卡无额外收益；能力牌偏长期；污染构筑给强牌但附带生命代价。",
+      "choices": [
+        {
+          "id": "confess",
+          "label": "说出旧名",
+          "description": "移除牌组中第一张非初始牌。",
+          "effects": [
+            { "type": "remove_first_non_starter_card", "amount": 1 }
+          ]
+        },
+        {
+          "id": "learn_prayer",
+          "label": "学习炉祷",
+          "description": "将“炉火祷言”加入牌组。",
+          "effects": [
+            { "type": "add_card", "card_id": "furnace_prayer" }
+          ]
+        },
+        {
+          "id": "accept_tithe",
+          "label": "接受灰烬什一税",
+          "description": "失去 6 点生命，将“灰烬什一税”加入牌组。",
+          "effects": [
+            { "type": "lose_hp", "amount": 6 },
+            { "type": "add_card", "card_id": "ash_tithe" }
+          ]
+        }
+      ]
+    }
+  ]
+}

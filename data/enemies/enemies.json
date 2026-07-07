@@ -1,0 +1,206 @@
+{
+  "_comment": "EmberCircuit 第一章敌人数据。普通敌人 8 个、精英 2 个、Boss 1 个。actions 按顺序循环，确保 MVP 可预测并方便测试。",
+  "schema_note": "intent 只用于 UI 展示；effects 是实际结算。两者必须保持一致。",
+  "enemies": [
+    {
+      "id": "soot_raider",
+      "name": "煤烟盗兵",
+      "tier": "normal",
+      "max_hp": 32,
+      "sprite_key": "placeholder_soot_raider",
+      "actions": [
+        { "id": "knife", "intent": { "type": "attack", "amount": 7, "hits": 1 }, "effects": [ { "type": "damage", "amount": 7, "target": "player" } ] },
+        { "id": "guard", "intent": { "type": "block", "amount": 6 }, "effects": [ { "type": "block", "amount": 6, "target": "self" } ] },
+        { "id": "heavy_knife", "intent": { "type": "attack", "amount": 10, "hits": 1 }, "effects": [ { "type": "damage", "amount": 10, "target": "player" } ] }
+      ],
+      "design_note": "第一只标准敌人，测试玩家对攻击和防御意图的理解。",
+      "balance_note": "32 生命能在 3 到 5 回合内解决，伤害不致命。",
+      "intent_note": "攻击、防御、重攻击循环，方便玩家学习节奏。"
+    },
+    {
+      "id": "ash_hound",
+      "name": "灰烬猎犬",
+      "tier": "normal",
+      "max_hp": 26,
+      "sprite_key": "placeholder_ash_hound",
+      "actions": [
+        { "id": "bite_chain", "intent": { "type": "attack", "amount": 4, "hits": 2 }, "effects": [ { "type": "damage", "amount": 4, "hits": 2, "target": "player" } ] },
+        { "id": "howl", "intent": { "type": "debuff", "status": "weak", "amount": 1 }, "effects": [ { "type": "apply_status", "target": "player", "status": "weak", "amount": 1 } ] },
+        { "id": "bite", "intent": { "type": "attack", "amount": 9, "hits": 1 }, "effects": [ { "type": "damage", "amount": 9, "target": "player" } ] }
+      ],
+      "design_note": "多段攻击敌人，检验玩家是否重视护甲。",
+      "balance_note": "生命偏低，但多段伤害对低护甲回合惩罚明显。",
+      "intent_note": "弱化后接攻击，让玩家提前规划。"
+    },
+    {
+      "id": "plague_alchemist",
+      "name": "瘟疫炼金师",
+      "tier": "normal",
+      "max_hp": 38,
+      "sprite_key": "placeholder_plague_alchemist",
+      "actions": [
+        { "id": "acid", "intent": { "type": "attack_debuff", "amount": 6, "status": "vulnerable" }, "effects": [ { "type": "damage", "amount": 6, "target": "player" }, { "type": "apply_status", "target": "player", "status": "vulnerable", "amount": 1 } ] },
+        { "id": "pollute", "intent": { "type": "status_card", "card_id": "searing_wound" }, "effects": [ { "type": "create_card", "target": "player", "card_id": "searing_wound", "destination": "discard", "amount": 1 } ] },
+        { "id": "hide", "intent": { "type": "block", "amount": 9 }, "effects": [ { "type": "block", "amount": 9, "target": "self" } ] }
+      ],
+      "design_note": "状态污染敌人，让玩家体验牌堆变脏的压力。",
+      "balance_note": "直接伤害较低，但长期威胁来自灼伤和易伤。",
+      "intent_note": "污染回合不造成伤害，给玩家进攻窗口。"
+    },
+    {
+      "id": "iron_shell_guard",
+      "name": "铁壳守卫",
+      "tier": "normal",
+      "max_hp": 46,
+      "sprite_key": "placeholder_iron_shell_guard",
+      "actions": [
+        { "id": "brace", "intent": { "type": "block", "amount": 12 }, "effects": [ { "type": "block", "amount": 12, "target": "self" } ] },
+        { "id": "bash", "intent": { "type": "attack", "amount": 11, "hits": 1 }, "effects": [ { "type": "damage", "amount": 11, "target": "player" } ] },
+        { "id": "brace_more", "intent": { "type": "block", "amount": 16 }, "effects": [ { "type": "block", "amount": 16, "target": "self" } ] }
+      ],
+      "design_note": "高护甲敌人，鼓励易伤、灼烧和爆发。",
+      "balance_note": "生命和护甲都高，但攻击频率低。",
+      "intent_note": "防御回合很明显，玩家可以决定是否转向积累资源。"
+    },
+    {
+      "id": "bomb_mite",
+      "name": "爆裂炉虫",
+      "tier": "normal",
+      "max_hp": 22,
+      "sprite_key": "placeholder_bomb_mite",
+      "actions": [
+        { "id": "tick", "intent": { "type": "buff", "status": "strength", "amount": 2 }, "effects": [ { "type": "apply_status", "target": "self", "status": "strength", "amount": 2 } ] },
+        { "id": "burst", "intent": { "type": "attack", "amount": 14, "hits": 1 }, "effects": [ { "type": "damage", "amount": 14, "target": "player" } ] }
+      ],
+      "design_note": "低生命高威胁目标，训练玩家优先级判断。",
+      "balance_note": "如果不及时处理，第二回合压力明显。",
+      "intent_note": "强化后爆发循环。"
+    },
+    {
+      "id": "thorn_shield",
+      "name": "刺盾兵",
+      "tier": "normal",
+      "max_hp": 36,
+      "sprite_key": "placeholder_thorn_shield",
+      "actions": [
+        { "id": "spikes", "intent": { "type": "block_buff", "amount": 8, "status": "thorn" }, "effects": [ { "type": "block", "amount": 8, "target": "self" }, { "type": "apply_status", "target": "self", "status": "thorn", "amount": 1 } ] },
+        { "id": "shield_bash", "intent": { "type": "attack", "amount": 8, "hits": 1 }, "effects": [ { "type": "damage", "amount": 8, "target": "player" } ] }
+      ],
+      "design_note": "反伤敌人，后续用于测试多段攻击风险。",
+      "balance_note": "当前 MVP 先实现为普通护甲加攻击，反伤标记保留给下一阶段。",
+      "intent_note": "防御和攻击交替。"
+    },
+    {
+      "id": "corrupted_acolyte",
+      "name": "腐化学徒",
+      "tier": "normal",
+      "max_hp": 34,
+      "sprite_key": "placeholder_corrupted_acolyte",
+      "actions": [
+        { "id": "chant", "intent": { "type": "buff", "status": "strength", "amount": 1 }, "effects": [ { "type": "apply_status", "target": "self", "status": "strength", "amount": 1 } ] },
+        { "id": "lash", "intent": { "type": "attack", "amount": 6, "hits": 2 }, "effects": [ { "type": "damage", "amount": 6, "hits": 2, "target": "player" } ] },
+        { "id": "curse", "intent": { "type": "debuff", "status": "frail", "amount": 1 }, "effects": [ { "type": "apply_status", "target": "player", "status": "frail", "amount": 1 } ] }
+      ],
+      "design_note": "成长型敌人，惩罚拖延。",
+      "balance_note": "基础伤害一般，但力量叠起来后危险。",
+      "intent_note": "强化、多段、脆弱循环。"
+    },
+    {
+      "id": "ember_wraith",
+      "name": "余烬游魂",
+      "tier": "normal",
+      "max_hp": 30,
+      "sprite_key": "placeholder_ember_wraith",
+      "actions": [
+        { "id": "burn_touch", "intent": { "type": "debuff", "status": "burn", "amount": 3 }, "effects": [ { "type": "apply_status", "target": "player", "status": "burn", "amount": 3 } ] },
+        { "id": "phase_hit", "intent": { "type": "attack", "amount": 10, "hits": 1 }, "effects": [ { "type": "damage", "amount": 10, "target": "player" } ] },
+        { "id": "fade", "intent": { "type": "block", "amount": 10 }, "effects": [ { "type": "block", "amount": 10, "target": "self" } ] }
+      ],
+      "design_note": "持续伤害敌人，测试玩家处理回合压力的能力。",
+      "balance_note": "生命低，状态伤害可通过快速击杀规避。",
+      "intent_note": "灼烧、攻击、防御循环。"
+    },
+    {
+      "id": "twinblade_executor",
+      "name": "双刃执行者",
+      "tier": "elite",
+      "max_hp": 86,
+      "sprite_key": "placeholder_twinblade_executor",
+      "actions": [
+        { "id": "double_cut", "intent": { "type": "attack", "amount": 7, "hits": 2 }, "effects": [ { "type": "damage", "amount": 7, "hits": 2, "target": "player" } ] },
+        { "id": "mark", "intent": { "type": "attack_debuff", "amount": 8, "status": "vulnerable" }, "effects": [ { "type": "damage", "amount": 8, "target": "player" }, { "type": "apply_status", "target": "player", "status": "vulnerable", "amount": 1 } ] },
+        { "id": "execute", "intent": { "type": "attack", "amount": 18, "hits": 1 }, "effects": [ { "type": "damage", "amount": 18, "target": "player" } ] }
+      ],
+      "design_note": "第一章精英，测试防御连续性和爆发击杀窗口。",
+      "balance_note": "高伤害但无自我防御，允许激进构筑竞速。",
+      "intent_note": "双击、标记、处决循环，易伤后大攻击很危险。"
+    },
+    {
+      "id": "furnace_colossus",
+      "name": "熔炉巨像",
+      "tier": "elite",
+      "max_hp": 104,
+      "sprite_key": "placeholder_furnace_colossus",
+      "actions": [
+        { "id": "armor_up", "intent": { "type": "block", "amount": 18 }, "effects": [ { "type": "block", "amount": 18, "target": "self" } ] },
+        { "id": "ground_slam", "intent": { "type": "attack", "amount": 16, "hits": 1 }, "effects": [ { "type": "damage", "amount": 16, "target": "player" } ] },
+        { "id": "heat_wave", "intent": { "type": "attack_debuff", "amount": 10, "status": "burn" }, "effects": [ { "type": "damage", "amount": 10, "target": "player" }, { "type": "apply_status", "target": "player", "status": "burn", "amount": 4 } ] }
+      ],
+      "design_note": "高生命高护甲精英，检验长线构筑和破甲能力。",
+      "balance_note": "伤害峰值低于执行者，但防御厚，拖长战斗。",
+      "intent_note": "护甲、重击、热浪循环。"
+    },
+    {
+      "id": "forge_bishop",
+      "name": "熔炉主教",
+      "tier": "boss",
+      "max_hp": 240,
+      "sprite_key": "placeholder_forge_bishop",
+      "actions": [
+        { "id": "sermon", "intent": { "type": "buff", "status": "strength", "amount": 2 }, "effects": [ { "type": "apply_status", "target": "self", "status": "strength", "amount": 2 } ] },
+        { "id": "cinder_rain", "intent": { "type": "attack", "amount": 5, "hits": 4 }, "effects": [ { "type": "damage", "amount": 5, "hits": 4, "target": "player" } ] },
+        { "id": "brand", "intent": { "type": "status_card", "card_id": "searing_wound" }, "effects": [ { "type": "create_card", "target": "player", "card_id": "searing_wound", "destination": "discard", "amount": 2 } ] },
+        { "id": "sanctuary", "intent": { "type": "block", "amount": 24 }, "effects": [ { "type": "block", "amount": 24, "target": "self" } ] },
+        { "id": "judgement", "intent": { "type": "attack", "amount": 28, "hits": 1 }, "effects": [ { "type": "damage", "amount": 28, "target": "player" } ] }
+      ],
+      "phases": [
+        {
+          "id": "second_sermon",
+          "name": "第二布道",
+          "hp_percent_below": 66,
+          "phase_note": "生命降至 66% 以下时触发。Boss 获得护甲和少量力量，然后切换为更密集的多段攻击循环。",
+          "on_enter_effects": [
+            { "type": "block", "amount": 16, "target": "self" },
+            { "type": "apply_status", "target": "self", "status": "strength", "amount": 1 },
+            { "type": "create_card", "target": "player", "card_id": "searing_wound", "destination": "discard", "amount": 1 }
+          ],
+          "actions": [
+            { "id": "cinder_cross", "intent": { "type": "attack", "amount": 6, "hits": 4 }, "effects": [ { "type": "damage", "amount": 6, "hits": 4, "target": "player" } ] },
+            { "id": "second_brand", "intent": { "type": "status_card", "card_id": "searing_wound", "amount": 2 }, "effects": [ { "type": "create_card", "target": "player", "card_id": "searing_wound", "destination": "discard", "amount": 2 } ] },
+            { "id": "iron_sanctuary", "intent": { "type": "block_buff", "amount": 30, "status": "strength" }, "effects": [ { "type": "block", "amount": 30, "target": "self" }, { "type": "apply_status", "target": "self", "status": "strength", "amount": 1 } ] },
+            { "id": "second_judgement", "intent": { "type": "attack", "amount": 32, "hits": 1 }, "effects": [ { "type": "damage", "amount": 32, "target": "player" } ] }
+          ]
+        },
+        {
+          "id": "final_rite",
+          "name": "终末礼拜",
+          "hp_percent_below": 33,
+          "phase_note": "生命降至 33% 以下时触发。Boss 获得大量力量并进入终局高压循环，要求玩家尽快完成斩杀。",
+          "on_enter_effects": [
+            { "type": "apply_status", "target": "self", "status": "strength", "amount": 3 },
+            { "type": "create_card", "target": "player", "card_id": "searing_wound", "destination": "discard", "amount": 2 }
+          ],
+          "actions": [
+            { "id": "final_rain", "intent": { "type": "attack", "amount": 7, "hits": 5 }, "effects": [ { "type": "damage", "amount": 7, "hits": 5, "target": "player" } ] },
+            { "id": "ashen_edict", "intent": { "type": "debuff", "status": "vulnerable", "amount": 1 }, "effects": [ { "type": "apply_status", "target": "player", "status": "vulnerable", "amount": 1 }, { "type": "create_card", "target": "player", "card_id": "searing_wound", "destination": "discard", "amount": 2 } ] },
+            { "id": "profane_shield", "intent": { "type": "block_buff", "amount": 36, "status": "strength" }, "effects": [ { "type": "block", "amount": 36, "target": "self" }, { "type": "apply_status", "target": "self", "status": "strength", "amount": 1 } ] },
+            { "id": "last_judgement", "intent": { "type": "attack", "amount": 40, "hits": 1 }, "effects": [ { "type": "damage", "amount": 40, "target": "player" } ] }
+          ]
+        }
+      ],
+      "design_note": "第一章 Boss，综合考验持续防御、状态污染和爆发窗口。",
+      "balance_note": "240 生命用于完整版第一章 Boss；两段转阶段会提高后半场压力，但每次转阶段都会重置行动循环，玩家可读性高。",
+      "intent_note": "基础阶段为强化、多段、污染、防御、重击循环；66% 后进入更紧凑循环；33% 后进入终局高压循环。"
+    }
+  ]
+}

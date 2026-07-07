@@ -1,0 +1,43 @@
+{
+  "_comment": "分叉地图生成配置。当前作为后端测试和下一阶段地图 UI 的输入，不替代 MVP 线性路线。",
+  "chapter_one": {
+    "seed": 1707,
+    "layers": 8,
+    "min_nodes_per_layer": 2,
+    "max_nodes_per_layer": 4,
+    "design_note": "8 层地图适合第一章 Demo。每层 2 到 4 个节点，保证路线选择但不压迫 UI。",
+    "fixed_layers": {
+      "0": ["combat"],
+      "2": ["event", "combat"],
+      "3": ["shop", "combat"],
+      "5": ["elite", "campfire"],
+      "6": ["campfire"],
+      "7": ["boss"]
+    },
+    "node_weights": {
+      "combat": 45,
+      "event": 18,
+      "shop": 10,
+      "campfire": 14,
+      "elite": 13
+    },
+    "encounter_by_type": {
+      "combat": ["intro_patrol", "polluted_lab", "iron_checkpoint"],
+      "elite": ["executor_elite"],
+      "boss": ["chapter_one_boss"]
+    },
+    "event_pool": [
+      "broken_reactor",
+      "ash_archive",
+      "coolant_cache",
+      "soot_market",
+      "ember_memorial",
+      "pressure_trial",
+      "slag_shrine",
+      "lost_caravan",
+      "sealed_gate",
+      "furnace_confessor"
+    ],
+    "balance_note": "精英和篝火在后半段更常见，避免玩家在没有构筑之前过早遇到精英。"
+  }
+}

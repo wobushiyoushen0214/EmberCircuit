@@ -1,0 +1,28 @@
+{
+  "_comment": "跑团经济和平衡常量。所有价格和比例先放这里，避免硬编码在 UI 或战斗脚本里。",
+  "campfire": {
+    "heal_percent_of_max_hp": 30,
+    "heal_note": "篝火休息恢复最大生命的 30%。早期版本不做递减惩罚，确保玩家能稳定测试后续节点。",
+    "upgrade_limit": 1,
+    "upgrade_note": "每个篝火只能升级 1 张牌。升级通过牌组条目追加 + 表示。"
+  },
+  "shop": {
+    "remove_card_price": 50,
+    "remove_card_note": "删卡价格初始 50。当前 MVP 不做递增，后续完整商店应每次删卡后涨价。",
+    "card_prices": {
+      "common": 50,
+      "uncommon": 75,
+      "rare": 110
+    },
+    "potion_prices": {
+      "common": 35,
+      "uncommon": 55,
+      "rare": 80
+    },
+    "price_note": "价格按稀有度定档。普通卡价格低于一场普通战斗金币收益的三倍，保证玩家在商店有实际选择。"
+  },
+  "potion_reward": {
+    "combat_drop_count": 1,
+    "combat_drop_note": "MVP 阶段每场战斗在有空药水槽时提供 1 个药水奖励选项，先保证系统可测；后续再改为概率掉落。"
+  }
+}

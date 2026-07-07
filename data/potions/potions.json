@@ -1,0 +1,111 @@
+{
+  "_comment": "EmberCircuit 第一批药水数据。药水是一次性战斗资源，跑团层只保存 potion id，战斗层按 effects 解析。",
+  "schema_note": "target: enemy / self / all_enemies / none。effects 支持 damage、block、draw、gain_energy、gain_momentum、apply_status、heal。",
+  "drop_note": "MVP 阶段普通战斗胜利后若有空槽位，会提供 1 个药水奖励选项；商店固定刷新 2 个药水。",
+  "potions": [
+    {
+      "id": "volatile_vial",
+      "name": "挥发瓶",
+      "rarity": "common",
+      "target": "enemy",
+      "description": "对一名敌人造成 12 点伤害。",
+      "effects": [
+        { "type": "damage", "amount": 12 }
+      ],
+      "design_note": "最直观的斩杀药水，用来缩短早期战斗。",
+      "balance_note": "12 点不吃能量，约等于一张中等攻击牌；一次性使用使其不会破坏长期牌组平衡。",
+      "implementation_note": "由 CombatState.use_potion 的 damage 分支结算。"
+    },
+    {
+      "id": "guard_tonic",
+      "name": "守护补剂",
+      "rarity": "common",
+      "target": "self",
+      "description": "获得 12 点护甲。",
+      "effects": [
+        { "type": "block", "amount": 12 }
+      ],
+      "design_note": "应急防御药水，帮助玩家扛过精英或 Boss 的尖峰回合。",
+      "balance_note": "12 护甲高于一张基础防御，但不能循环，也不进入弃牌堆。",
+      "implementation_note": "由 CombatState.use_potion 的 block 分支结算，并会触发获得护甲相关遗物。"
+    },
+    {
+      "id": "steam_cell",
+      "name": "蒸汽电池",
+      "rarity": "common",
+      "target": "self",
+      "description": "获得 2 点能量。",
+      "effects": [
+        { "type": "gain_energy", "amount": 2 }
+      ],
+      "design_note": "爆发回合启动器，让高费牌和抽牌药水形成组合。",
+      "balance_note": "2 能量只在当前回合有效；药水槽限制能控制上限。",
+      "implementation_note": "复用 CombatState 的能量获得逻辑。"
+    },
+    {
+      "id": "focus_draught",
+      "name": "聚焦饮剂",
+      "rarity": "common",
+      "target": "self",
+      "description": "获得 3 点势能。",
+      "effects": [
+        { "type": "gain_momentum", "amount": 3 }
+      ],
+      "design_note": "服务 EmberCircuit 的原创势能机制，给玩家一次临时构筑补强。",
+      "balance_note": "3 势能能立刻点亮部分牌，但受到势能上限约束。",
+      "implementation_note": "复用 CombatState 的势能获得逻辑。"
+    },
+    {
+      "id": "spark_bomb",
+      "name": "火星爆弹",
+      "rarity": "uncommon",
+      "target": "all_enemies",
+      "description": "对所有敌人造成 8 点伤害。",
+      "effects": [
+        { "type": "damage", "amount": 8, "target": "all_enemies" }
+      ],
+      "design_note": "小怪群应对工具，降低早期 AOE 牌不足时的挫败。",
+      "balance_note": "单体效率低于挥发瓶，多目标收益明显。",
+      "implementation_note": "由 damage 的 all_enemies target 结算。"
+    },
+    {
+      "id": "clockwork_injector",
+      "name": "发条注射器",
+      "rarity": "uncommon",
+      "target": "self",
+      "description": "抽 3 张牌。",
+      "effects": [
+        { "type": "draw", "amount": 3 }
+      ],
+      "design_note": "解决关键回合缺牌问题，和能量药水形成自然组合。",
+      "balance_note": "抽 3 强度高，但不提供能量；需要玩家提前规划。",
+      "implementation_note": "复用 CombatState.draw_cards。"
+    },
+    {
+      "id": "smoke_ampoule",
+      "name": "烟幕安瓿",
+      "rarity": "uncommon",
+      "target": "all_enemies",
+      "description": "给予所有敌人 2 层虚弱。",
+      "effects": [
+        { "type": "apply_status", "target": "all_enemies", "status": "weak", "amount": 2 }
+      ],
+      "design_note": "防御型控制药水，适合敌人多段攻击回合。",
+      "balance_note": "虚弱按回合衰减，2 层能覆盖一个危险敌方回合但不会永久压制。",
+      "implementation_note": "复用状态添加逻辑；状态中文名来自 statuses.json。"
+    },
+    {
+      "id": "coolant_phial",
+      "name": "冷却小瓶",
+      "rarity": "rare",
+      "target": "self",
+      "description": "恢复 10 点生命。",
+      "effects": [
+        { "type": "heal", "amount": 10 }
+      ],
+      "design_note": "稀有保命资源，允许玩家在路线中承担更多风险。",
+      "balance_note": "战斗内回血强度很高，因此稀有度设为 rare，商店价格也更高。",
+      "implementation_note": "由 CombatState.use_potion 的 heal 分支结算，不能超过最大生命。"
+    }
+  ]
+}

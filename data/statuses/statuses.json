@@ -1,0 +1,68 @@
+{
+  "_comment": "战斗状态词条数据。CombatState 使用 id 做逻辑判断，UI 使用 name/description 显示说明。",
+  "statuses": [
+    {
+      "id": "vulnerable",
+      "name": "易伤",
+      "description": "受到的攻击伤害提高 50%。",
+      "stack_rule": "按层数保存；当前 MVP 未做回合末自动衰减，后续会补持续时间系统。",
+      "balance_note": "易伤用于制造爆发窗口，不能过多来源叠加。"
+    },
+    {
+      "id": "weak",
+      "name": "虚弱",
+      "description": "造成的攻击伤害降低 25%。",
+      "stack_rule": "按层数保存；当前 MVP 未做回合末自动衰减。",
+      "balance_note": "用于降低高段数攻击的效率。"
+    },
+    {
+      "id": "frail",
+      "name": "脆弱",
+      "description": "获得的护甲降低 25%。",
+      "stack_rule": "按层数保存；当前 MVP 未做回合末自动衰减。",
+      "balance_note": "对防御流构筑形成压力。"
+    },
+    {
+      "id": "burn",
+      "name": "灼烧",
+      "description": "回合开始时受到等同层数的生命伤害，然后层数 -1。",
+      "stack_rule": "线性叠加，回合开始自然衰减。",
+      "balance_note": "慢速持续伤害，主要用于穿透高护甲敌人。"
+    },
+    {
+      "id": "strength",
+      "name": "力量",
+      "description": "攻击每段伤害提高等同层数的数值。",
+      "stack_rule": "线性叠加。",
+      "balance_note": "多段攻击收益更高，需要控制来源。"
+    },
+    {
+      "id": "counter_pressure",
+      "name": "反压姿态",
+      "description": "每次获得护甲时，对随机敌人造成 2 点伤害。",
+      "stack_rule": "能力状态，通常不叠加多层。",
+      "balance_note": "护甲反击流的构筑开关。"
+    },
+    {
+      "id": "counter_pressure_plus",
+      "name": "反压姿态+",
+      "description": "每次获得护甲时，对随机敌人造成 3 点伤害。",
+      "stack_rule": "升级能力状态。",
+      "balance_note": "升级后的护甲反击核心。"
+    },
+    {
+      "id": "plating",
+      "name": "熔铸镀层",
+      "description": "每次获得护甲时额外获得等同层数的护甲。",
+      "stack_rule": "线性叠加。",
+      "balance_note": "防御构筑长期收益来源。"
+    },
+    {
+      "id": "thorn",
+      "name": "尖刺",
+      "description": "预留状态。后续用于受到攻击时反伤。",
+      "stack_rule": "当前 MVP 只显示，不结算反伤。",
+      "balance_note": "后续用于惩罚无脑多段攻击。"
+    }
+  ]
+}

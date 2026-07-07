@@ -1,0 +1,57 @@
+{
+  "_comment": "MVP 遭遇配置。当前主场景默认读取 intro_patrol，后续地图系统会按节点类型抽取。",
+  "encounters": [
+    {
+      "id": "intro_patrol",
+      "name": "煤烟巡逻队",
+      "tier": "normal",
+      "enemy_ids": [ "soot_raider", "ash_hound" ],
+      "gold_reward": 18,
+      "card_reward_count": 3,
+      "design_note": "第一场测试战，包含一个标准敌人和一个多段攻击敌人。",
+      "balance_note": "总生命 58，适合初始牌组在 4 到 6 回合内完成。"
+    },
+    {
+      "id": "polluted_lab",
+      "name": "污染实验室",
+      "tier": "normal",
+      "enemy_ids": [ "plague_alchemist", "bomb_mite" ],
+      "gold_reward": 22,
+      "card_reward_count": 3,
+      "design_note": "状态污染加限时威胁，训练目标优先级。",
+      "balance_note": "炼金师长期压力，炉虫短期压力。"
+    },
+    {
+      "id": "iron_checkpoint",
+      "name": "铁壳检查站",
+      "tier": "normal",
+      "enemy_ids": [ "iron_shell_guard", "thorn_shield" ],
+      "gold_reward": 24,
+      "card_reward_count": 3,
+      "design_note": "高护甲战斗，要求破甲、灼烧或爆发。",
+      "balance_note": "敌人输出偏低，但拖延会消耗玩家资源。"
+    },
+    {
+      "id": "executor_elite",
+      "name": "执行者伏击",
+      "tier": "elite",
+      "enemy_ids": [ "twinblade_executor" ],
+      "gold_reward": 42,
+      "card_reward_count": 3,
+      "relic_reward": true,
+      "design_note": "第一章攻击型精英。",
+      "balance_note": "高伤害低防御，允许进攻竞速。"
+    },
+    {
+      "id": "chapter_one_boss",
+      "name": "炉心礼拜堂",
+      "tier": "boss",
+      "enemy_ids": [ "forge_bishop" ],
+      "gold_reward": 99,
+      "card_reward_count": 3,
+      "relic_reward": true,
+      "design_note": "第一章 Boss 测试综合构筑。",
+      "balance_note": "当前数据按完整版 Boss 设计，MVP 演示可在调试配置中降低生命。"
+    }
+  ]
+}

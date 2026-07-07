@@ -1,0 +1,106 @@
+{
+  "_comment": "EmberCircuit 第一批遗物数据。部分遗物在 MVP 中已实现，地图类遗物保留为后续系统接入。",
+  "starter_relics": [ "ember_bottle", "cracked_charm" ],
+  "relics": [
+    {
+      "id": "cracked_charm",
+      "name": "裂纹护符",
+      "rarity": "starter",
+      "description": "每场战斗第一回合多抽 1 张牌。",
+      "effects": [ { "trigger": "turn_start", "type": "draw", "amount": 1, "first_turn_only": true } ],
+      "design_note": "提高起手稳定性，降低新手挫败。",
+      "balance_note": "只在第一回合触发，不影响后续循环强度。",
+      "implementation_note": "已由 CombatState 的 turn_start 遗物事件支持。"
+    },
+    {
+      "id": "heavy_gear",
+      "name": "沉重齿轮",
+      "rarity": "common",
+      "description": "每回合第一次打出 2 费或更高费用的牌时，获得 1 点势能。",
+      "effects": [ { "trigger": "card_played", "type": "gain_momentum", "amount": 1, "min_card_cost": 2, "once_per_turn": true } ],
+      "design_note": "补偿高费牌的节奏损失。",
+      "balance_note": "每回合一次，避免 2 费牌构筑滚雪球过快。",
+      "implementation_note": "已支持 min_card_cost 和 once_per_turn。"
+    },
+    {
+      "id": "ember_bottle",
+      "name": "余烬瓶",
+      "rarity": "starter",
+      "description": "战斗开始时获得 3 点护甲。",
+      "effects": [ { "trigger": "combat_start", "type": "gain_block", "amount": 3 } ],
+      "design_note": "给新手第一回合容错。",
+      "balance_note": "3 点护甲只影响开局，不改变长期强度。",
+      "implementation_note": "已由 combat_start 遗物事件支持。"
+    },
+    {
+      "id": "war_drum_fragment",
+      "name": "战鼓残片",
+      "rarity": "common",
+      "description": "每回合每打出第 3 张攻击牌，抽 1 张牌。",
+      "effects": [ { "trigger": "card_played", "type": "draw", "amount": 1, "card_type": "attack", "every_n_attack_cards": 3 } ],
+      "design_note": "支持低费攻击连打。",
+      "balance_note": "要求三张攻击牌，避免任何构筑都无脑收益。",
+      "implementation_note": "已支持攻击牌计数。"
+    },
+    {
+      "id": "molten_core_ring",
+      "name": "熔芯戒指",
+      "rarity": "uncommon",
+      "description": "势能上限 +2。",
+      "effects": [ { "trigger": "setup", "type": "momentum_max_bonus", "amount": 2 } ],
+      "design_note": "拓展势能爆发上限。",
+      "balance_note": "只提升上限，不直接给资源。",
+      "implementation_note": "已在战斗初始化时支持。"
+    },
+    {
+      "id": "shield_break_wedge",
+      "name": "破盾楔",
+      "rarity": "uncommon",
+      "description": "每当敌人的护甲被击破，对其额外造成 4 点伤害。",
+      "effects": [ { "trigger": "enemy_block_broken", "type": "damage_broken_enemy", "amount": 4 } ],
+      "design_note": "奖励破甲和多段规划。",
+      "balance_note": "只有从有护甲打到无护甲时触发，频率有限。",
+      "implementation_note": "已支持 enemy_block_broken 事件。"
+    },
+    {
+      "id": "blank_contract",
+      "name": "空白契约",
+      "rarity": "rare",
+      "description": "每回合第一次打出 0 费牌时，获得 1 点能量。",
+      "effects": [ { "trigger": "card_played", "type": "gain_energy", "amount": 1, "card_cost_equals": 0, "once_per_turn": true } ],
+      "design_note": "强化 0 费构筑的爆发回合。",
+      "balance_note": "每回合一次，避免无限循环。",
+      "implementation_note": "已支持 card_cost_equals 和 once_per_turn。"
+    },
+    {
+      "id": "burn_needle",
+      "name": "灼烧针管",
+      "rarity": "rare",
+      "description": "每当一张灼伤被加入你的牌堆，对所有敌人造成 3 点伤害。",
+      "effects": [ { "trigger": "card_created", "type": "damage_all_enemies", "amount": 3, "card_id": "searing_wound" } ],
+      "design_note": "把负面状态污染转化为构筑方向。",
+      "balance_note": "触发需要主动或被动获得灼伤，不是稳定输出。",
+      "implementation_note": "已支持 card_created 事件。"
+    },
+    {
+      "id": "echo_stone",
+      "name": "回声石",
+      "rarity": "uncommon",
+      "description": "你的技能牌获得护甲时，额外获得 25% 护甲，向上取整。",
+      "effects": [ { "trigger": "setup", "type": "skill_block_bonus_percent", "amount": 25 } ],
+      "design_note": "强化防御构筑，但不影响攻击和能力。",
+      "balance_note": "只加成技能牌护甲，避免所有护甲来源都膨胀。",
+      "implementation_note": "已在 CombatState 结算 skill block 时支持。"
+    },
+    {
+      "id": "old_compass",
+      "name": "旧罗盘",
+      "rarity": "common",
+      "description": "地图上额外显示一个未知房间的真实类型。",
+      "effects": [ { "trigger": "map_generated", "type": "reveal_extra_unknown", "amount": 1 } ],
+      "design_note": "路线规划遗物，降低问号房风险。",
+      "balance_note": "不影响战斗强度，只影响路线信息。",
+      "implementation_note": "地图系统阶段实现；当前战斗 MVP 不触发。"
+    }
+  ]
+}
