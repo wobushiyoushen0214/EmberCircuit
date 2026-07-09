@@ -1,14 +1,15 @@
 {
   "_comment": "跑团经济和平衡常量。所有价格和比例先放这里，避免硬编码在 UI 或战斗脚本里。",
   "campfire": {
-    "heal_percent_of_max_hp": 30,
-    "heal_note": "篝火休息恢复最大生命的 30%。早期版本不做递减惩罚，确保玩家能稳定测试后续节点。",
+    "heal_percent_of_max_hp": 40,
+    "heal_note": "篝火休息恢复最大生命的 40%。当前调试版本不做递减惩罚，确保玩家能稳定测试后续节点。",
     "upgrade_limit": 1,
     "upgrade_note": "每个篝火只能升级 1 张牌。升级通过牌组条目追加 + 表示。"
   },
   "shop": {
     "remove_card_price": 50,
-    "remove_card_note": "删卡价格初始 50。当前 MVP 不做递增，后续完整商店应每次删卡后涨价。",
+    "remove_card_price_increase": 25,
+    "remove_card_note": "删卡价格初始 50，每次成功在商店删卡后本局后续删卡价格 +25。问号事件删卡不增加商店删卡价格。",
     "card_prices": {
       "common": 50,
       "uncommon": 75,
@@ -20,6 +21,29 @@
       "rare": 80
     },
     "price_note": "价格按稀有度定档。普通卡价格低于一场普通战斗金币收益的三倍，保证玩家在商店有实际选择。"
+  },
+  "reward_generation": {
+    "card_rarity_weights": {
+      "common": 65,
+      "uncommon": 28,
+      "rare": 7
+    },
+    "shop_card_rarity_weights": {
+      "common": 55,
+      "uncommon": 30,
+      "rare": 15
+    },
+    "relic_rarity_weights": {
+      "common": 50,
+      "uncommon": 35,
+      "rare": 15
+    },
+    "potion_rarity_weights": {
+      "common": 60,
+      "uncommon": 30,
+      "rare": 10
+    },
+    "weight_note": "战斗奖励偏向普通牌，商店略提高罕见/稀有牌权重；遗物和药水同样按稀有度权重抽取。生成逻辑不允许重复同一奖励选项。"
   },
   "potion_reward": {
     "combat_drop_count": 1,

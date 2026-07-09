@@ -485,6 +485,282 @@
       "upgrade_note": "降低生命代价。"
     },
     {
+      "id": "static_primer",
+      "name": "静电预充",
+      "cost": 0,
+      "type": "skill",
+      "rarity": "common",
+      "target": "self",
+      "character_ids": [ "arc_tinker" ],
+      "description": "获得 1 点势能。抽 1 张牌。消耗。",
+      "effects": [
+        { "type": "gain_momentum", "amount": 1 },
+        { "type": "draw", "amount": 1 }
+      ],
+      "exhaust": true,
+      "upgrade": { "cost": 0, "description": "获得 2 点势能。抽 1 张牌。消耗。", "effects": [ { "type": "gain_momentum", "amount": 2 }, { "type": "draw", "amount": 1 } ], "exhaust": true },
+      "design_note": "电弧工匠专属启动牌，用一次性 0 费资源把低费牌串起来。",
+      "balance_note": "0 费抽牌加资源必须消耗；未升级只给 1 势能，不足以单卡制造爆发。",
+      "upgrade_note": "提高势能获得量，强化爆发回合但仍保持消耗。"
+    },
+    {
+      "id": "arc_needles",
+      "name": "电弧针雨",
+      "cost": 1,
+      "type": "attack",
+      "rarity": "common",
+      "target": "enemy",
+      "character_ids": [ "arc_tinker" ],
+      "description": "造成 2 点伤害 4 次。",
+      "effects": [
+        { "type": "damage", "amount": 2, "hits": 4 }
+      ],
+      "upgrade": { "cost": 1, "description": "造成 3 点伤害 4 次。", "effects": [ { "type": "damage", "amount": 3, "hits": 4 } ] },
+      "design_note": "电弧工匠专属多段攻击，配合力量、易伤和低费连打遗物。",
+      "balance_note": "1 费 8 总伤害略高但受护甲影响明显；后期依赖增伤才有爆发感。",
+      "upgrade_note": "每段 +1，升级收益高，鼓励走多段构筑。"
+    },
+    {
+      "id": "capacitor_guard",
+      "name": "电容护幕",
+      "cost": 1,
+      "type": "skill",
+      "rarity": "common",
+      "target": "self",
+      "character_ids": [ "arc_tinker" ],
+      "description": "获得 5 点护甲。若你至少有 2 点势能，抽 1 张牌。",
+      "effects": [
+        { "type": "block", "amount": 5 },
+        { "type": "draw", "amount": 1, "requires_momentum_at_least": 2 }
+      ],
+      "upgrade": { "cost": 1, "description": "获得 7 点护甲。若你至少有 2 点势能，抽 1 张牌。", "effects": [ { "type": "block", "amount": 7 }, { "type": "draw", "amount": 1, "requires_momentum_at_least": 2 } ] },
+      "design_note": "电弧工匠专属防御过牌，把较低生命的风险转化为势能门槛管理。",
+      "balance_note": "无势能时只有 5 护甲偏弱；达成门槛后相当于防御润滑牌。",
+      "upgrade_note": "只提高护甲，不降低门槛，防止它成为无脑循环件。"
+    },
+    {
+      "id": "short_circuit",
+      "name": "短路跳线",
+      "cost": 0,
+      "type": "attack",
+      "rarity": "uncommon",
+      "target": "enemy",
+      "character_ids": [ "arc_tinker" ],
+      "description": "失去 1 点势能。造成 9 点伤害。",
+      "effects": [
+        { "type": "lose_momentum", "amount": 1 },
+        { "type": "damage", "amount": 9 }
+      ],
+      "upgrade": { "cost": 0, "description": "失去 1 点势能。造成 12 点伤害。", "effects": [ { "type": "lose_momentum", "amount": 1 }, { "type": "damage", "amount": 12 } ] },
+      "design_note": "电弧工匠专属势能换输出牌，让角色把小额势能转成即时节奏。",
+      "balance_note": "0 费 9 伤害强，但必须先有势能；势能不足时仍会暴露资源规划问题。",
+      "upgrade_note": "提高伤害，不降低势能成本，避免形成免费爆发。"
+    },
+    {
+      "id": "bottle_surge",
+      "name": "瓶装涌流",
+      "cost": 1,
+      "type": "skill",
+      "rarity": "uncommon",
+      "target": "self",
+      "character_ids": [ "arc_tinker" ],
+      "description": "获得 1 点能量。获得 2 点势能。消耗。",
+      "effects": [
+        { "type": "gain_energy", "amount": 1 },
+        { "type": "gain_momentum", "amount": 2 }
+      ],
+      "exhaust": true,
+      "upgrade": { "cost": 0, "description": "获得 1 点能量。获得 2 点势能。消耗。", "effects": [ { "type": "gain_energy", "amount": 1 }, { "type": "gain_momentum", "amount": 2 } ], "exhaust": true },
+      "design_note": "电弧工匠专属爆发按钮，呼应 3 药水槽和一次性节奏身份。",
+      "balance_note": "未升级净能量为 0，但转换成势能；升级后强度明显，所以保持消耗。",
+      "upgrade_note": "降为 0 费，形成高价值爆发升级目标。"
+    },
+    {
+      "id": "livewire_matrix",
+      "name": "带电矩阵",
+      "cost": 2,
+      "type": "power",
+      "rarity": "rare",
+      "target": "self",
+      "character_ids": [ "arc_tinker" ],
+      "description": "本场战斗中，你的攻击造成的伤害 +1。获得 1 点势能。",
+      "effects": [
+        { "type": "apply_status", "target": "self", "status": "strength", "amount": 1 },
+        { "type": "gain_momentum", "amount": 1 }
+      ],
+      "upgrade": { "cost": 1, "description": "本场战斗中，你的攻击造成的伤害 +1。获得 1 点势能。", "effects": [ { "type": "apply_status", "target": "self", "status": "strength", "amount": 1 }, { "type": "gain_momentum", "amount": 1 } ] },
+      "design_note": "电弧工匠专属长期成长牌，特别放大多段攻击和 0 费攻击密度。",
+      "balance_note": "2 费只给 1 力量较慢，附带 1 势能保证打出回合不完全亏节奏。",
+      "upgrade_note": "降费以匹配电弧工匠的高节奏身份。"
+    },
+    {
+      "id": "penitent_cut",
+      "name": "苦修斩",
+      "cost": 1,
+      "type": "attack",
+      "rarity": "starter",
+      "target": "enemy",
+      "character_ids": [ "pyre_ascetic" ],
+      "description": "造成 6 点伤害。施加 1 层灼烧。",
+      "effects": [
+        { "type": "damage", "amount": 6 },
+        { "type": "apply_status", "target": "enemy", "status": "burn", "amount": 1 }
+      ],
+      "upgrade": { "cost": 1, "description": "造成 8 点伤害。施加 1 层灼烧。", "effects": [ { "type": "damage", "amount": 8 }, { "type": "apply_status", "target": "enemy", "status": "burn", "amount": 1 } ] },
+      "design_note": "熔痕苦修者基础攻击，尽早让玩家看到灼烧是角色身份的一部分。",
+      "balance_note": "1 费 6 伤害偏低，用 1 层灼烧补长期价值，避免起手爆发过强。",
+      "upgrade_note": "提高直接伤害，不提高灼烧层数，控制持续伤害叠加速度。"
+    },
+    {
+      "id": "scar_guard",
+      "name": "炉痕守势",
+      "cost": 1,
+      "type": "skill",
+      "rarity": "starter",
+      "target": "self",
+      "character_ids": [ "pyre_ascetic" ],
+      "description": "获得 6 点护甲。获得 1 点势能。",
+      "effects": [
+        { "type": "block", "amount": 6 },
+        { "type": "gain_momentum", "amount": 1 }
+      ],
+      "upgrade": { "cost": 1, "description": "获得 9 点护甲。获得 1 点势能。", "effects": [ { "type": "block", "amount": 9 }, { "type": "gain_momentum", "amount": 1 } ] },
+      "design_note": "熔痕苦修者基础防御牌，用较低护甲换势能上限玩法的入口。",
+      "balance_note": "未升级 6 护甲仍低于纯防御牌，但能缓和第一章连续战斗掉血并保留势能入口。",
+      "upgrade_note": "只提高护甲，保持势能节奏稳定。"
+    },
+    {
+      "id": "kindle_pain",
+      "name": "痛燃",
+      "cost": 0,
+      "type": "skill",
+      "rarity": "starter",
+      "target": "self",
+      "character_ids": [ "pyre_ascetic" ],
+      "description": "失去 1 点生命。抽 1 张牌。获得 1 点势能。消耗。",
+      "effects": [
+        { "type": "damage_self", "amount": 1 },
+        { "type": "draw", "amount": 1 },
+        { "type": "gain_momentum", "amount": 1 }
+      ],
+      "exhaust": true,
+      "upgrade": { "cost": 0, "description": "抽 1 张牌。获得 1 点势能。消耗。", "effects": [ { "type": "draw", "amount": 1 }, { "type": "gain_momentum", "amount": 1 } ], "exhaust": true },
+      "design_note": "起始风险润滑牌，把自伤换手牌和势能的身份放在第一场战斗。",
+      "balance_note": "0 费抽牌必须消耗，并保留轻微生命代价，防止早期无限循环又不过度惩罚连续战斗。",
+      "upgrade_note": "移除生命代价，保留消耗限制。"
+    },
+    {
+      "id": "blood_kindling",
+      "name": "血火引燃",
+      "cost": 0,
+      "type": "skill",
+      "rarity": "common",
+      "target": "self",
+      "character_ids": [ "pyre_ascetic" ],
+      "description": "失去 2 点生命。获得 2 点势能。消耗。",
+      "effects": [
+        { "type": "damage_self", "amount": 2 },
+        { "type": "gain_momentum", "amount": 2 }
+      ],
+      "exhaust": true,
+      "upgrade": { "cost": 0, "description": "失去 1 点生命。获得 2 点势能。消耗。", "effects": [ { "type": "damage_self", "amount": 1 }, { "type": "gain_momentum", "amount": 2 } ], "exhaust": true },
+      "design_note": "熔痕苦修者专属普通启动牌，把生命直接转成爆发资源。",
+      "balance_note": "0 费 2 势能很强，因此必须消耗并保留生命代价。",
+      "upgrade_note": "降低生命代价，让升级成为高优先级但不增加资源上限。"
+    },
+    {
+      "id": "brand_strike",
+      "name": "烙印重击",
+      "cost": 1,
+      "type": "attack",
+      "rarity": "common",
+      "target": "enemy",
+      "character_ids": [ "pyre_ascetic" ],
+      "description": "造成 7 点伤害。施加 2 层灼烧。",
+      "effects": [
+        { "type": "damage", "amount": 7 },
+        { "type": "apply_status", "target": "enemy", "status": "burn", "amount": 2 }
+      ],
+      "upgrade": { "cost": 1, "description": "造成 9 点伤害。施加 2 层灼烧。", "effects": [ { "type": "damage", "amount": 9 }, { "type": "apply_status", "target": "enemy", "status": "burn", "amount": 2 } ] },
+      "design_note": "专属普通攻击，承接基础攻击的灼烧路线并提供更高单卡价值。",
+      "balance_note": "直接伤害中等，灼烧需要回合开始才结算，适合长线规划。",
+      "upgrade_note": "提高直接伤害，不提高灼烧层数。"
+    },
+    {
+      "id": "cauterize",
+      "name": "灼口封缄",
+      "cost": 1,
+      "type": "skill",
+      "rarity": "common",
+      "target": "self",
+      "character_ids": [ "pyre_ascetic" ],
+      "description": "获得 7 点护甲。获得 1 层灼烧。",
+      "effects": [
+        { "type": "block", "amount": 7 },
+        { "type": "apply_status", "target": "self", "status": "burn", "amount": 1 }
+      ],
+      "upgrade": { "cost": 1, "description": "获得 10 点护甲。获得 1 层灼烧。", "effects": [ { "type": "block", "amount": 10 }, { "type": "apply_status", "target": "self", "status": "burn", "amount": 1 } ] },
+      "design_note": "专属普通防御牌，把高效护甲和下一回合生命压力绑定。",
+      "balance_note": "7 护甲强于基础防御，但自带灼烧，不能无脑堆叠。",
+      "upgrade_note": "提高护甲，保留灼烧代价。"
+    },
+    {
+      "id": "wound_offering",
+      "name": "创口供品",
+      "cost": 1,
+      "type": "skill",
+      "rarity": "uncommon",
+      "target": "self",
+      "character_ids": [ "pyre_ascetic" ],
+      "description": "将 1 张灼伤加入手牌。抽 2 张牌。获得 1 点能量。消耗。",
+      "effects": [
+        { "type": "create_card", "card_id": "searing_wound", "destination": "hand", "amount": 1 },
+        { "type": "draw", "amount": 2 },
+        { "type": "gain_energy", "amount": 1 }
+      ],
+      "exhaust": true,
+      "upgrade": { "cost": 1, "description": "将 1 张灼伤加入手牌。抽 3 张牌。获得 1 点能量。消耗。", "effects": [ { "type": "create_card", "card_id": "searing_wound", "destination": "hand", "amount": 1 }, { "type": "draw", "amount": 3 }, { "type": "gain_energy", "amount": 1 } ], "exhaust": true },
+      "design_note": "专属非普通引擎牌，主动制造灼伤以触发苦修香炉和状态污染收益。",
+      "balance_note": "抽牌和返能很强，必须生成即时风险并消耗。",
+      "upgrade_note": "提高抽牌量，使状态污染构筑更稳定。"
+    },
+    {
+      "id": "scourge_sweep",
+      "name": "鞭焰横扫",
+      "cost": 2,
+      "type": "attack",
+      "rarity": "uncommon",
+      "target": "all_enemies",
+      "character_ids": [ "pyre_ascetic" ],
+      "description": "对所有敌人造成 8 点伤害。将 1 张灼伤加入弃牌堆。",
+      "effects": [
+        { "type": "damage", "amount": 8, "target": "all_enemies" },
+        { "type": "create_card", "card_id": "searing_wound", "destination": "discard", "amount": 1 }
+      ],
+      "upgrade": { "cost": 2, "description": "对所有敌人造成 11 点伤害。将 1 张灼伤加入弃牌堆。", "effects": [ { "type": "damage", "amount": 11, "target": "all_enemies" }, { "type": "create_card", "card_id": "searing_wound", "destination": "discard", "amount": 1 } ] },
+      "design_note": "专属群体攻击，把清场和污染收益合并成中费选择。",
+      "balance_note": "2 费 AOE 数值保守，依赖香炉或灼伤收益才能超过通用清场牌。",
+      "upgrade_note": "提高 AOE 伤害。"
+    },
+    {
+      "id": "white_flame_oath",
+      "name": "白焰誓约",
+      "cost": 2,
+      "type": "power",
+      "rarity": "rare",
+      "target": "self",
+      "character_ids": [ "pyre_ascetic" ],
+      "description": "本场战斗中，你的攻击造成的伤害 +1。将 1 张灼伤加入弃牌堆。",
+      "effects": [
+        { "type": "apply_status", "target": "self", "status": "strength", "amount": 1 },
+        { "type": "create_card", "card_id": "searing_wound", "destination": "discard", "amount": 1 }
+      ],
+      "upgrade": { "cost": 1, "description": "本场战斗中，你的攻击造成的伤害 +1。将 1 张灼伤加入弃牌堆。", "effects": [ { "type": "apply_status", "target": "self", "status": "strength", "amount": 1 }, { "type": "create_card", "card_id": "searing_wound", "destination": "discard", "amount": 1 } ] },
+      "design_note": "专属稀有能力牌，将长期攻击成长和灼伤收益绑定。",
+      "balance_note": "2 费 1 力量偏慢，生成灼伤可触发角色遗物但也污染牌堆。",
+      "upgrade_note": "降费提高打出窗口，而不增加力量层数。"
+    },
+    {
       "id": "searing_wound",
       "name": "灼伤",
       "cost": 0,

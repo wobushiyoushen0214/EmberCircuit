@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420" height="220" viewBox="0 0 420 220">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#140f12"/>
+      <stop offset="1" stop-color="#2f171b"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="45%" r="58%">
+      <stop offset="0" stop-color="#ff6a4a" stop-opacity="0.40"/>
+      <stop offset="0.62" stop-color="#ff6a4a" stop-opacity="0.12"/>
+      <stop offset="1" stop-color="#ff6a4a" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="metal" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#644246"/>
+      <stop offset="0.56" stop-color="#17181c"/>
+      <stop offset="1" stop-color="#080a0d"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff0c8"/>
+      <stop offset="1" stop-color="#ee6048"/>
+    </linearGradient>
+  </defs>
+  <rect width="420" height="220" rx="16" fill="url(#bg)"/>
+  <rect width="420" height="220" rx="16" fill="url(#glow)"/>
+  <path d="M0 164 L72 132 L136 148 L212 118 L286 146 L352 126 L420 154 V220 H0 Z" fill="#080a0c" opacity="0.46"/>
+  <g stroke-linejoin="round">
+
+  <path d="M22 176 C96 150 312 150 398 176 L398 220 L22 220 Z" fill="#050608" opacity="0.34"/>
+  <path d="M38 190 H382" stroke="#ee6048" stroke-width="5" stroke-linecap="round" opacity="0.48"/>
+  <path d="M54 34 H152 M268 34 H366 M54 198 H152 M268 198 H366" stroke="#bd604d" stroke-width="3" stroke-linecap="round" opacity="0.62"/>
+  <path d="M108 164 L136 78 L210 42 L284 78 L312 164 Z" fill="url(#metal)" stroke="#fff0c8" stroke-width="6"/>
+  <path d="M210 64 V148 M178 108 H242" stroke="#0b0e11" stroke-width="9" stroke-linecap="round"/>
+  <path d="M210 70 C186 100 234 112 206 146 C252 116 246 82 210 70 Z" fill="url(#accent)" opacity="0.88"/>
+  <path d="M126 174 H294" stroke="#ee6048" stroke-width="7" stroke-linecap="round"/>
+  </g>
+  <rect x="10" y="10" width="400" height="200" rx="12" fill="none" stroke="#bd604d" stroke-width="3" opacity="0.72"/>
+  <rect x="24" y="24" width="372" height="172" rx="9" fill="none" stroke="#101419" stroke-width="2" opacity="0.74"/>
+</svg>

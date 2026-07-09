@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#120f18"/>
+      <stop offset="1" stop-color="#301427"/>
+    </linearGradient>
+    <radialGradient id="aura" cx="50%" cy="45%" r="58%">
+      <stop offset="0" stop-color="#ff5d8b" stop-opacity="0.34"/>
+      <stop offset="0.58" stop-color="#ff5d8b" stop-opacity="0.10"/>
+      <stop offset="1" stop-color="#ff5d8b" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="metal" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#674155"/>
+      <stop offset="0.54" stop-color="#1b1a22"/>
+      <stop offset="1" stop-color="#0b0d0f"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffd8e6"/>
+      <stop offset="1" stop-color="#ff4f7b"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="256" height="256" rx="24" fill="url(#bg)"/>
+  <rect width="256" height="256" rx="24" fill="url(#aura)"/>
+  <path d="M38 218 C76 198 184 198 218 218 C192 235 72 236 38 218 Z" fill="#050607" opacity="0.42"/>
+  <path d="M28 52 H228 M28 204 H228" stroke="#965a76" stroke-width="2" opacity="0.22"/>
+  <path d="M54 30 L42 70 M202 30 L214 70 M44 186 L30 218 M212 186 L226 218" stroke="#965a76" stroke-width="3" opacity="0.28"/>
+
+  <g stroke-linejoin="round">
+
+  <path d="M128 42 C174 52 204 90 204 140 C204 188 170 218 128 230 C86 218 52 188 52 140 C52 90 82 52 128 42 Z" fill="url(#metal)" stroke="#08080a" stroke-width="6"/>
+  <path d="M88 128 C88 92 118 86 128 112 C138 86 168 92 168 128 C168 158 144 176 128 190 C112 176 88 158 88 128 Z" fill="#ff4f7b" opacity="0.76" stroke="#ffd8e6" stroke-width="4"/>
+  <circle cx="128" cy="144" r="20" fill="#170e16" stroke="#ffd8e6" stroke-width="4"/>
+  <path d="M128 122 V166 M106 144 H150" stroke="#ffd8e6" stroke-width="5" stroke-linecap="round"/>
+  <path d="M58 132 L24 114 M198 132 L232 114 M72 180 L42 210 M184 180 L214 210" stroke="#965a76" stroke-width="8" stroke-linecap="round"/>
+  <path d="M72 84 C104 58 152 58 184 84" stroke="#ffd8e6" stroke-width="7" stroke-linecap="round" opacity="0.66"/>
+  <path d="M86 218 H170" stroke="url(#accent)" stroke-width="9" stroke-linecap="round"/>
+  <circle cx="86" cy="100" r="6" fill="#ffd8e6" opacity="0.78"/>
+  <circle cx="170" cy="100" r="6" fill="#ffd8e6" opacity="0.78"/>
+  </g>
+  <rect x="9" y="9" width="238" height="238" rx="20" fill="none" stroke="#ba5f82" stroke-width="3" opacity="0.72"/>
+  <rect x="20" y="20" width="216" height="216" rx="16" fill="none" stroke="#111417" stroke-width="2" opacity="0.78"/>
+</svg>

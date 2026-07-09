@@ -20,6 +20,50 @@ func _init() -> void:
 	_check(combat.enemies.size() == 2, "intro encounter has two enemies")
 	_check(int(combat.player.get("energy", 0)) == 3, "player starts with 3 energy")
 
+	var challenge_player_data: Dictionary = player_data.duplicate(true)
+	challenge_player_data["challenge_modifiers"] = {
+		"enemy_hp_multiplier": 1.1,
+		"enemy_damage_multiplier": 1.1
+	}
+	var challenge_combat = CombatStateScript.new()
+	challenge_combat.setup(card_data, enemy_data, relic_data, encounter_data, challenge_player_data, "intro_patrol")
+	_check(int(challenge_combat.enemies[0].get("max_hp", 0)) > int(combat.enemies[0].get("max_hp", 0)), "challenge modifiers increase enemy max HP")
+	_check(challenge_combat._modified_enemy_damage(10) == 11, "challenge modifiers increase enemy damage")
+
+	var arc_player_data: Dictionary = player_data.duplicate(true)
+	arc_player_data["selected_character_id"] = "arc_tinker"
+	var arc_combat = CombatStateScript.new()
+	arc_combat.setup(card_data, enemy_data, relic_data, encounter_data, arc_player_data, "intro_patrol")
+	_check(str(arc_combat.player.get("name", "")) == "电弧工匠", "combat can load selected character name")
+	_check(int(arc_combat.player.get("max_hp", 0)) == 64, "combat can load selected character HP")
+	_check(arc_combat.owned_relic_ids.has("arc_capacitor"), "combat can load selected character starter relic")
+	_check(_combat_has_card(arc_combat, "spark_throw"), "combat can load selected character starter deck")
+	_check(int(arc_combat.player.get("momentum", 0)) >= 2, "combat applies selected character starting momentum and starter relic")
+
+	var arc_relic_combat = CombatStateScript.new()
+	arc_relic_combat.setup(card_data, enemy_data, relic_data, encounter_data, arc_player_data, "intro_patrol", ["spark_throw"], ["spark_coil"], 64)
+	arc_relic_combat.consume_feedback_events()
+	var momentum_before_arc_relic: int = int(arc_relic_combat.player.get("momentum", 0))
+	_check(arc_relic_combat.play_card(0, 0), "arc dedicated relic test can play a zero-cost card")
+	_check(int(arc_relic_combat.player.get("momentum", 0)) == momentum_before_arc_relic + 1, "spark coil grants momentum on first zero-cost card")
+
+	var pyre_player_data: Dictionary = player_data.duplicate(true)
+	pyre_player_data["selected_character_id"] = "pyre_ascetic"
+	var pyre_combat = CombatStateScript.new()
+	pyre_combat.setup(card_data, enemy_data, relic_data, encounter_data, pyre_player_data, "intro_patrol")
+	_check(str(pyre_combat.player.get("name", "")) == "熔痕苦修者", "combat can load pyre ascetic character name")
+	_check(int(pyre_combat.player.get("max_hp", 0)) == 66, "combat can load pyre ascetic HP")
+	_check(pyre_combat.owned_relic_ids.has("penitent_censer"), "combat can load pyre ascetic starter relic")
+	_check(_combat_has_card(pyre_combat, "penitent_cut"), "combat can load pyre ascetic starter deck")
+
+	var pyre_relic_combat = CombatStateScript.new()
+	pyre_relic_combat.setup(card_data, enemy_data, relic_data, encounter_data, pyre_player_data, "intro_patrol", ["wound_offering"], ["penitent_censer"], 66)
+	pyre_relic_combat.consume_feedback_events()
+	var pyre_enemy_hp_before: int = int(pyre_relic_combat.enemies[0].get("hp", 0))
+	_check(pyre_relic_combat.play_card(0, 0), "pyre starter relic test can play wound offering")
+	_check(int(pyre_relic_combat.enemies[0].get("hp", 0)) == pyre_enemy_hp_before - 2, "penitent censer damages enemies when searing wound is created")
+	_check(_combat_has_card(pyre_relic_combat, "searing_wound"), "wound offering creates a searing wound card")
+
 	var playable_index := _first_feedback_card(combat)
 	_check(playable_index >= 0, "opening hand has a card that emits combat feedback")
 	var played := combat.play_card(playable_index, 0)
@@ -52,20 +96,81 @@ func _init() -> void:
 	_check(_has_feedback_type(potion_feedback, "potion"), "using a potion emits potion feedback")
 	_check(_has_feedback_type(potion_feedback, "enemy_hit"), "damage potion emits enemy hit feedback")
 
+	var vulnerable_combat = CombatStateScript.new()
+	vulnerable_combat.setup(card_data, enemy_data, relic_data, encounter_data, player_data, "intro_patrol", ["heat_chain"], ["__test_no_relic__"], 72)
+	vulnerable_combat.consume_feedback_events()
+	var vulnerable_enemy: Dictionary = vulnerable_combat.enemies[0]
+	vulnerable_combat._add_status(vulnerable_enemy["statuses"], "vulnerable", 1)
+	var vulnerable_enemy_hp_before: int = int(vulnerable_enemy.get("hp", 0))
+	_check(vulnerable_combat.play_card(0, 0), "vulnerable test can play a multi-hit card")
+	_check(vulnerable_enemy_hp_before - int(vulnerable_enemy.get("hp", 0)) == 15, "vulnerable boosts every hit from one damage effect")
+	_check(vulnerable_combat._status_amount(vulnerable_enemy.get("statuses", {}), "vulnerable") == 0, "vulnerable is consumed after the next damage effect")
+
+	var weak_combat = CombatStateScript.new()
+	weak_combat.setup(card_data, enemy_data, relic_data, encounter_data, player_data, "intro_patrol", ["ember_strike"], ["__test_no_relic__"], 72)
+	weak_combat.consume_feedback_events()
+	var weak_enemy: Dictionary = weak_combat.enemies[0]
+	weak_combat._add_status(weak_combat.player["statuses"], "weak", 1)
+	var weak_enemy_hp_before: int = int(weak_enemy.get("hp", 0))
+	_check(weak_combat.play_card(0, 0), "weak test can play an attack")
+	_check(weak_enemy_hp_before - int(weak_enemy.get("hp", 0)) == 5, "weak reduces the next player damage effect")
+	_check(weak_combat._status_amount(weak_combat.player.get("statuses", {}), "weak") == 0, "player weak is consumed after attacking")
+
+	var frail_combat = CombatStateScript.new()
+	frail_combat.setup(card_data, enemy_data, relic_data, encounter_data, player_data, "intro_patrol", ["ash_guard"], ["__test_no_relic__"], 72)
+	frail_combat.consume_feedback_events()
+	frail_combat._add_status(frail_combat.player["statuses"], "frail", 1)
+	_check(frail_combat.play_card(0, 0), "frail test can play a block card")
+	_check(int(frail_combat.player.get("block", 0)) == 4, "frail reduces the next player block effect")
+	_check(frail_combat._status_amount(frail_combat.player.get("statuses", {}), "frail") == 0, "player frail is consumed after blocking")
+
+	var player_vulnerable_combat = CombatStateScript.new()
+	player_vulnerable_combat.setup(card_data, enemy_data, relic_data, encounter_data, player_data, "intro_patrol", ["ash_guard"], ["__test_no_relic__"], 72)
+	player_vulnerable_combat.consume_feedback_events()
+	player_vulnerable_combat._add_status(player_vulnerable_combat.player["statuses"], "vulnerable", 1)
+	var player_hp_before_vulnerable_hit: int = int(player_vulnerable_combat.player.get("hp", 0))
+	player_vulnerable_combat._resolve_enemy_effect(player_vulnerable_combat.enemies[0], {"type": "damage", "amount": 10, "hits": 2})
+	_check(player_hp_before_vulnerable_hit - int(player_vulnerable_combat.player.get("hp", 0)) == 30, "player vulnerable boosts every hit from one enemy damage effect")
+	_check(player_vulnerable_combat._status_amount(player_vulnerable_combat.player.get("statuses", {}), "vulnerable") == 0, "player vulnerable is consumed after the next incoming damage effect")
+
 	var boss_combat = CombatStateScript.new()
 	boss_combat.setup(card_data, enemy_data, relic_data, encounter_data, player_data, "chapter_one_boss", ["ash_guard"], [], 72)
 	boss_combat.consume_feedback_events()
 	var boss: Dictionary = boss_combat.enemies[0]
+	var second_phase_entry_block: int = _phase_entry_block_amount(enemy_data, "forge_bishop", "second_sermon")
 	_check(str(boss.get("phase_id", "")) == "", "boss starts without an active phase")
-	boss_combat._damage_enemy(boss, 85, {"name": "测试伤害", "ignore_player_modifiers": true})
+	var second_phase_target_hp: int = int(floor(float(int(boss.get("max_hp", 1))) * 0.50))
+	var second_phase_probe_damage: int = max(1, int(boss.get("hp", 1)) - second_phase_target_hp)
+	boss_combat._damage_enemy(boss, second_phase_probe_damage, {"name": "测试伤害", "ignore_player_modifiers": true})
 	_check(str(boss.get("phase_id", "")) == "second_sermon", "boss enters second phase below 66 percent HP")
 	_check(str(boss.get("current_action", {}).get("id", "")) == "cinder_cross", "boss phase resets intent to phase action loop")
-	_check(int(boss.get("block", 0)) >= 16, "boss phase entry applies block")
+	_check(int(boss.get("block", 0)) >= second_phase_entry_block, "boss phase entry applies block")
 	var phase_feedback: Array = boss_combat.consume_feedback_events()
 	_check(_has_feedback_type(phase_feedback, "phase"), "boss phase transition emits phase feedback")
-	boss_combat._damage_enemy(boss, 100, {"name": "测试伤害", "ignore_player_modifiers": true})
+	var final_phase_threshold: int = int(floor(float(int(boss.get("max_hp", 1))) * 0.33))
+	var final_phase_probe_damage: int = max(1, int(boss.get("hp", 1)) + int(boss.get("block", 0)) - final_phase_threshold + 1)
+	boss_combat._damage_enemy(boss, final_phase_probe_damage, {"name": "测试伤害", "ignore_player_modifiers": true})
 	_check(str(boss.get("phase_id", "")) == "final_rite", "boss enters final phase below 33 percent HP")
 	_check(str(boss.get("current_action", {}).get("id", "")) == "final_rain", "boss final phase uses final action loop")
+
+	var win_combat = CombatStateScript.new()
+	win_combat.setup(card_data, enemy_data, relic_data, encounter_data, player_data, "intro_patrol", ["ash_guard"], [], 72)
+	win_combat.consume_feedback_events()
+	for enemy in win_combat.enemies:
+		var enemy_dict: Dictionary = enemy
+		win_combat._damage_enemy(enemy_dict, 999, {"name": "测试斩杀", "ignore_player_modifiers": true})
+	win_combat._check_combat_end()
+	var win_feedback: Array = win_combat.consume_feedback_events()
+	_check(win_combat.phase == "won", "direct lethal damage can win combat")
+	_check(_has_feedback_type(win_feedback, "won"), "combat victory emits feedback")
+
+	var loss_combat = CombatStateScript.new()
+	loss_combat.setup(card_data, enemy_data, relic_data, encounter_data, player_data, "intro_patrol", ["ash_guard"], [], 1)
+	loss_combat.consume_feedback_events()
+	loss_combat.end_player_turn()
+	var loss_feedback: Array = loss_combat.consume_feedback_events()
+	_check(loss_combat.phase == "lost", "enemy turn can defeat player")
+	_check(_has_feedback_type(loss_feedback, "lost"), "combat defeat emits feedback")
 
 	print("Combat core smoke test passed.")
 	quit(0)
@@ -94,6 +199,29 @@ func _has_feedback_type(events: Array, event_type: String) -> bool:
 		if str(event_dict.get("type", "")) == event_type:
 			return true
 	return false
+
+func _combat_has_card(combat, card_id: String) -> bool:
+	for pile in [combat.hand, combat.draw_pile, combat.discard_pile, combat.exhaust_pile]:
+		for card in pile:
+			var card_dict: Dictionary = card
+			if str(card_dict.get("id", "")) == card_id:
+				return true
+	return false
+
+func _phase_entry_block_amount(enemy_data: Dictionary, enemy_id: String, phase_id: String) -> int:
+	for enemy in enemy_data.get("enemies", []):
+		var enemy_dict: Dictionary = enemy
+		if str(enemy_dict.get("id", "")) != enemy_id:
+			continue
+		for phase in enemy_dict.get("phases", []):
+			var phase_dict: Dictionary = phase
+			if str(phase_dict.get("id", "")) != phase_id:
+				continue
+			for effect in phase_dict.get("on_enter_effects", []):
+				var effect_dict: Dictionary = effect
+				if str(effect_dict.get("type", "")) == "block":
+					return int(effect_dict.get("amount", 0))
+	return 0
 
 func _check(condition: bool, message: String) -> void:
 	if not condition:

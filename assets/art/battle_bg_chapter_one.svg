@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="360" viewBox="0 0 960 360">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#101417"/>
+      <stop offset="0.48" stop-color="#231814"/>
+      <stop offset="1" stop-color="#090b0c"/>
+    </linearGradient>
+    <radialGradient id="furnaceGlow" cx="50%" cy="61%" r="46%">
+      <stop offset="0" stop-color="#f58a3a" stop-opacity="0.48"/>
+      <stop offset="0.34" stop-color="#a83f22" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#0b0d0e" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="floor" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2b2320"/>
+      <stop offset="1" stop-color="#0c0d0d"/>
+    </linearGradient>
+    <linearGradient id="metal" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4c4641"/>
+      <stop offset="0.5" stop-color="#252728"/>
+      <stop offset="1" stop-color="#111415"/>
+    </linearGradient>
+    <linearGradient id="emberLine" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#5a2419" stop-opacity="0"/>
+      <stop offset="0.45" stop-color="#f18a3d" stop-opacity="0.78"/>
+      <stop offset="1" stop-color="#5a2419" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="960" height="360" fill="url(#sky)"/>
+  <rect width="960" height="360" fill="url(#furnaceGlow)"/>
+
+  <g opacity="0.72">
+    <path d="M0 238 L104 206 L210 228 L306 188 L438 218 L536 174 L668 206 L780 172 L960 198 L960 360 L0 360 Z" fill="#121516"/>
+    <path d="M0 266 L126 244 L236 260 L360 226 L488 254 L628 222 L770 242 L960 212 L960 360 L0 360 Z" fill="#17100f"/>
+    <rect x="0" y="278" width="960" height="82" fill="url(#floor)"/>
+  </g>
+
+  <g opacity="0.82">
+    <rect x="56" y="76" width="56" height="166" rx="5" fill="url(#metal)"/>
+    <rect x="72" y="42" width="24" height="54" fill="#4a3a2e"/>
+    <rect x="826" y="62" width="70" height="176" rx="5" fill="url(#metal)"/>
+    <rect x="845" y="26" width="32" height="56" fill="#46342b"/>
+    <rect x="438" y="92" width="84" height="136" rx="6" fill="#202424"/>
+    <path d="M400 226 C420 154 540 154 560 226 Z" fill="#2b1a15" stroke="#6b3a25" stroke-width="4"/>
+    <path d="M430 222 C444 178 516 178 530 222 Z" fill="#f07d30" opacity="0.62"/>
+  </g>
+
+  <g fill="none" stroke-linecap="round" opacity="0.62">
+    <path d="M92 94 C210 126 278 84 390 112" stroke="#8b5d43" stroke-width="5"/>
+    <path d="M520 112 C636 74 736 134 858 88" stroke="#785039" stroke-width="5"/>
+    <path d="M112 222 C244 170 330 254 458 212 C596 168 700 250 842 202" stroke="#a26035" stroke-width="4"/>
+    <path d="M158 62 L132 190 M804 52 L786 190 M500 92 L474 220" stroke="#342d2a" stroke-width="9"/>
+  </g>
+
+  <g opacity="0.9">
+    <rect x="46" y="292" width="868" height="2" fill="#6b4932" opacity="0.78"/>
+    <rect x="0" y="320" width="960" height="2" fill="#2a2b2b"/>
+    <path d="M78 306 H260 M376 300 H582 M672 310 H844" stroke="url(#emberLine)" stroke-width="5" stroke-linecap="round"/>
+    <g fill="#e8792d" opacity="0.78">
+      <circle cx="184" cy="288" r="2.2"/>
+      <circle cx="406" cy="302" r="1.8"/>
+      <circle cx="536" cy="290" r="2.4"/>
+      <circle cx="742" cy="286" r="2"/>
+      <circle cx="820" cy="314" r="1.7"/>
+    </g>
+  </g>
+
+  <rect x="18" y="18" width="924" height="324" fill="none" stroke="#6a4934" stroke-width="2" opacity="0.42"/>
+  <rect x="34" y="34" width="892" height="292" fill="none" stroke="#1f2425" stroke-width="2" opacity="0.76"/>
+</svg>

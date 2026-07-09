@@ -52,6 +52,110 @@
       "relic_reward": true,
       "design_note": "第一章 Boss 测试综合构筑。",
       "balance_note": "当前数据按完整版 Boss 设计，MVP 演示可在调试配置中降低生命。"
+    },
+    {
+      "id": "storm_patrol",
+      "name": "电弧巡礼队",
+      "tier": "normal",
+      "enemy_ids": [ "volt_cultist", "glass_sentinel" ],
+      "gold_reward": 32,
+      "card_reward_count": 3,
+      "design_note": "第二章开局遭遇，组合多段伤害与高护甲。",
+      "balance_note": "总生命 116，要求玩家拥有比第一章更稳定的输出和防御。"
+    },
+    {
+      "id": "null_workshop",
+      "name": "虚空修补间",
+      "tier": "normal",
+      "enemy_ids": [ "null_mender", "volt_cultist" ],
+      "gold_reward": 34,
+      "card_reward_count": 3,
+      "design_note": "状态污染与成长压力混合，测试牌组厚度和抽牌质量。",
+      "balance_note": "直接伤害低于风暴巡逻，但污染会拖长战斗并放大第二章压力。"
+    },
+    {
+      "id": "glass_procession",
+      "name": "玻璃仪仗队",
+      "tier": "normal",
+      "enemy_ids": [ "glass_sentinel", "null_mender" ],
+      "gold_reward": 36,
+      "card_reward_count": 3,
+      "design_note": "高护甲和污染结合，检验破盾与持续输出。",
+      "balance_note": "比第一章普通战更长，奖励金币也相应上调。"
+    },
+    {
+      "id": "rust_colossus_elite",
+      "name": "锈蚀巨构",
+      "tier": "elite",
+      "enemy_ids": [ "rust_colossus" ],
+      "gold_reward": 58,
+      "card_reward_count": 3,
+      "relic_reward": true,
+      "design_note": "第二章精英，承担高护甲成长和多段爆发检查。",
+      "balance_note": "单体 148 生命，适合测试第一章成型构筑是否能处理第二章精英。"
+    },
+    {
+      "id": "chapter_two_boss",
+      "name": "云端王庭",
+      "tier": "boss",
+      "enemy_ids": [ "storm_archon" ],
+      "gold_reward": 125,
+      "card_reward_count": 3,
+      "relic_reward": true,
+      "design_note": "第二章 Boss，测试多段防御、脆弱管理和终局斩杀能力。",
+      "balance_note": "作为第二章终点，生命和伤害显著高于第一章 Boss。"
+    },
+    {
+      "id": "void_archive",
+      "name": "虚空档案",
+      "tier": "normal",
+      "enemy_ids": [ "void_scribe", "core_mimic" ],
+      "gold_reward": 42,
+      "card_reward_count": 3,
+      "design_note": "第三章普通遭遇，混合状态污染、多段和虚弱。",
+      "balance_note": "总生命 100，用于第三章调试基线；污染、护甲和多段伤害已压低。"
+    },
+    {
+      "id": "gravity_bridge",
+      "name": "重力桥",
+      "tier": "normal",
+      "enemy_ids": [ "gravity_lancer", "void_scribe" ],
+      "gold_reward": 44,
+      "card_reward_count": 3,
+      "design_note": "第三章高压遭遇，脆弱、灼烧和重击交替出现。",
+      "balance_note": "总生命 104，用于第三章调试基线；保留脆弱与灼烧压力，但不应在满血开局直接截断。"
+    },
+    {
+      "id": "core_mirror",
+      "name": "核心镜像",
+      "tier": "normal",
+      "enemy_ids": [ "core_mimic", "gravity_lancer" ],
+      "gold_reward": 46,
+      "card_reward_count": 3,
+      "design_note": "第三章输出检查遭遇，双敌人都能制造明显回合压力。",
+      "balance_note": "总生命 104，奖励金币略高，作为当前第三章普通战上限。"
+    },
+    {
+      "id": "singularity_elite",
+      "name": "奇点骑士",
+      "tier": "elite",
+      "enemy_ids": [ "singularity_knight" ],
+      "gold_reward": 72,
+      "card_reward_count": 3,
+      "relic_reward": true,
+      "design_note": "第三章精英，用高护甲、力量成长和易伤重击检查最终章构筑。",
+      "balance_note": "100 生命用于第三章精英调试基线，后续随卡池成熟回调。"
+    },
+    {
+      "id": "chapter_three_boss",
+      "name": "回路核心",
+      "tier": "boss",
+      "enemy_ids": [ "nexus_heart" ],
+      "gold_reward": 0,
+      "card_reward_count": 0,
+      "relic_reward": false,
+      "design_note": "当前完整跑团最终 Boss，击败后进入跑团完成状态。",
+      "balance_note": "作为最终战不再发放后续路线奖励；后续商业化版本可替换为正式结局结算。"
     }
   ]
 }

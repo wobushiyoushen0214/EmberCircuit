@@ -1,6 +1,6 @@
 {
-  "_comment": "第一章问号事件数据。事件选择采用确定性效果，方便测试和平衡；后续可加入权重和随机结果。",
-  "schema_note": "choices[].effects 支持 gain_gold、lose_hp、heal_percent、add_card、gain_relic、gain_potion、remove_first_non_starter_card。",
+  "_comment": "第一章问号事件数据。事件选择支持确定性效果、条件和权重随机结果。",
+  "schema_note": "choices[].effects 支持 gain_gold、lose_hp、heal_percent、add_card、gain_relic、gain_potion、remove_first_non_starter_card；choices[].conditions 支持 min_gold、min_hp、has_empty_potion_slot、has_removable_card、missing_relic、has_relic、deck_contains_card、event_not_completed；choices[].random_results[] 支持 weight 和 effects。",
   "events": [
     {
       "id": "broken_reactor",
@@ -30,6 +30,9 @@
           "id": "extract",
           "label": "抽取组件",
           "description": "获得遗物“沉重齿轮”。",
+          "conditions": [
+            { "type": "missing_relic", "relic_id": "heavy_gear" }
+          ],
           "effects": [
             { "type": "gain_relic", "relic_id": "heavy_gear" }
           ]
@@ -63,6 +66,9 @@
           "id": "burn_records",
           "label": "烧毁冗余记录",
           "description": "移除牌组中第一张非初始牌。",
+          "conditions": [
+            { "type": "has_removable_card" }
+          ],
           "effects": [
             { "type": "remove_first_non_starter_card", "amount": 1 }
           ]
@@ -80,6 +86,9 @@
           "id": "take_guard",
           "label": "拿走守护补剂",
           "description": "获得药水“守护补剂”。",
+          "conditions": [
+            { "type": "has_empty_potion_slot" }
+          ],
           "effects": [
             { "type": "gain_potion", "potion_id": "guard_tonic" }
           ]
@@ -88,6 +97,9 @@
           "id": "take_coolant",
           "label": "拿走冷却小瓶",
           "description": "获得药水“冷却小瓶”。",
+          "conditions": [
+            { "type": "has_empty_potion_slot" }
+          ],
           "effects": [
             { "type": "gain_potion", "potion_id": "coolant_phial" }
           ]
@@ -122,6 +134,9 @@
           "id": "buy_smoke",
           "label": "换取烟幕",
           "description": "失去 4 点生命，获得药水“烟幕安瓿”。",
+          "conditions": [
+            { "type": "has_empty_potion_slot" }
+          ],
           "effects": [
             { "type": "lose_hp", "amount": 4 },
             { "type": "gain_potion", "potion_id": "smoke_ampoule" }
@@ -131,6 +146,9 @@
           "id": "clean_pack",
           "label": "清理背包",
           "description": "移除牌组中第一张非初始牌。",
+          "conditions": [
+            { "type": "has_removable_card" }
+          ],
           "effects": [
             { "type": "remove_first_non_starter_card", "amount": 1 }
           ]
@@ -164,6 +182,9 @@
           "id": "leave_weight",
           "label": "放下旧负担",
           "description": "移除牌组中第一张非初始牌。",
+          "conditions": [
+            { "type": "has_removable_card" }
+          ],
           "effects": [
             { "type": "remove_first_non_starter_card", "amount": 1 }
           ]
@@ -190,6 +211,9 @@
           "id": "calibrate",
           "label": "校准势能",
           "description": "获得药水“聚焦饮剂”。",
+          "conditions": [
+            { "type": "has_empty_potion_slot" }
+          ],
           "effects": [
             { "type": "gain_potion", "potion_id": "focus_draught" }
           ]
@@ -215,6 +239,10 @@
           "id": "offer_blood",
           "label": "献上鲜血",
           "description": "失去 12 点生命，获得遗物“空白契约”。",
+          "conditions": [
+            { "type": "min_hp", "amount": 13 },
+            { "type": "missing_relic", "relic_id": "blank_contract" }
+          ],
           "effects": [
             { "type": "lose_hp", "amount": 12 },
             { "type": "gain_relic", "relic_id": "blank_contract" }
@@ -243,6 +271,7 @@
       "id": "lost_caravan",
       "name": "失联运输队",
       "body": "运输队的车厢横在路中央。车轮还在空转，货箱里的货物散落一地。",
+      "one_time": true,
       "design_note": "提供药水、金币和通用过牌三类低复杂度奖励。",
       "balance_note": "发条注射器是强力回合资源，因此放在单一选项里，不额外给金币。",
       "choices": [
@@ -250,6 +279,9 @@
           "id": "open_medkit",
           "label": "打开急救箱",
           "description": "获得药水“发条注射器”。",
+          "conditions": [
+            { "type": "has_empty_potion_slot" }
+          ],
           "effects": [
             { "type": "gain_potion", "potion_id": "clockwork_injector" }
           ]
@@ -257,9 +289,25 @@
         {
           "id": "take_coins",
           "label": "收集炉芯币",
-          "description": "获得 30 金币。",
-          "effects": [
-            { "type": "gain_gold", "amount": 30 }
+          "description": "打开散落货箱，随机获得金币或药水。",
+          "random_seed": "lost_caravan_cargo",
+          "random_results": [
+            {
+              "id": "coin_cache",
+              "label": "炉芯币暗格",
+              "weight": 70,
+              "effects": [
+                { "type": "gain_gold", "amount": 30 }
+              ]
+            },
+            {
+              "id": "volatile_pack",
+              "label": "易碎药箱",
+              "weight": 30,
+              "effects": [
+                { "type": "gain_potion", "potion_id": "volatile_vial" }
+              ]
+            }
           ]
         },
         {
@@ -283,6 +331,10 @@
           "id": "force_gate",
           "label": "强行开闸",
           "description": "失去 9 点生命，获得遗物“破盾楔”。",
+          "conditions": [
+            { "type": "min_hp", "amount": 10 },
+            { "type": "missing_relic", "relic_id": "shield_break_wedge" }
+          ],
           "effects": [
             { "type": "lose_hp", "amount": 9 },
             { "type": "gain_relic", "relic_id": "shield_break_wedge" }
@@ -316,6 +368,9 @@
           "id": "confess",
           "label": "说出旧名",
           "description": "移除牌组中第一张非初始牌。",
+          "conditions": [
+            { "type": "has_removable_card" }
+          ],
           "effects": [
             { "type": "remove_first_non_starter_card", "amount": 1 }
           ]
@@ -335,6 +390,245 @@
           "effects": [
             { "type": "lose_hp", "amount": 6 },
             { "type": "add_card", "card_id": "ash_tithe" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "arc_workbench",
+      "name": "电弧工作台",
+      "character_ids": [ "arc_tinker" ],
+      "body": "一张临时工作台上摆着电容夹、烧焦线圈和几枚还能点亮的保险针。你的工具臂自动弹出，等待改装指令。",
+      "design_note": "电弧工匠专属构筑事件，提供启动牌、爆发牌和药水三类节奏资源。",
+      "balance_note": "免费选项只给低强度启动牌；爆发牌附带生命损失；药水选项受药水槽限制。",
+      "choices": [
+        {
+          "id": "prime_loop",
+          "label": "预充回路",
+          "description": "将“静电预充”加入牌组。",
+          "effects": [
+            { "type": "add_card", "card_id": "static_primer" }
+          ]
+        },
+        {
+          "id": "bottle_surge",
+          "label": "封装涌流",
+          "description": "失去 5 点生命，将“瓶装涌流”加入牌组。",
+          "effects": [
+            { "type": "lose_hp", "amount": 5 },
+            { "type": "add_card", "card_id": "bottle_surge" }
+          ]
+        },
+        {
+          "id": "pocket_cell",
+          "label": "拆下蒸汽电池",
+          "description": "获得药水“蒸汽电池”。",
+          "conditions": [
+            { "type": "has_empty_potion_slot" }
+          ],
+          "effects": [
+            { "type": "gain_potion", "potion_id": "steam_cell" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "livewire_nest",
+      "name": "裸线巢",
+      "character_ids": [ "arc_tinker" ],
+      "body": "一团失控裸线像巢一样挂在天花板上。普通人只会被电焦，但你的电容器正在和它低声共振。",
+      "design_note": "电弧工匠专属风险事件，强化多段攻击、低生命防御或稀有能力路线。",
+      "balance_note": "稀有能力需要生命门槛和较高生命代价；普通选项提供较温和的卡组修正。",
+      "choices": [
+        {
+          "id": "harvest_needles",
+          "label": "采集电弧针",
+          "description": "失去 4 点生命，将“电弧针雨”加入牌组。",
+          "effects": [
+            { "type": "lose_hp", "amount": 4 },
+            { "type": "add_card", "card_id": "arc_needles" }
+          ]
+        },
+        {
+          "id": "insulate",
+          "label": "编织绝缘幕",
+          "description": "将“电容护幕”加入牌组。",
+          "effects": [
+            { "type": "add_card", "card_id": "capacitor_guard" }
+          ]
+        },
+        {
+          "id": "install_matrix",
+          "label": "植入带电矩阵",
+          "description": "失去 8 点生命，将“带电矩阵”加入牌组。",
+          "conditions": [
+            { "type": "min_hp", "amount": 9 }
+          ],
+          "effects": [
+            { "type": "lose_hp", "amount": 8 },
+            { "type": "add_card", "card_id": "livewire_matrix" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "capacitor_gambit",
+      "name": "电容赌局",
+      "character_ids": [ "arc_tinker" ],
+      "body": "灰市角落里，一名赌徒把三枚电容放在桌上。规则很简单：过载、短路，或者把多余的旧件当作赌注。",
+      "design_note": "电弧工匠专属牌组修正事件，在删卡、短路输出和药水爆发之间提供选择。",
+      "balance_note": "删卡选项需要已有可删目标；短路牌用生命换高节奏；药水选项受槽位限制。",
+      "choices": [
+        {
+          "id": "short_bet",
+          "label": "押注短路",
+          "description": "失去 3 点生命，将“短路跳线”加入牌组。",
+          "effects": [
+            { "type": "lose_hp", "amount": 3 },
+            { "type": "add_card", "card_id": "short_circuit" }
+          ]
+        },
+        {
+          "id": "trade_old_part",
+          "label": "押上旧件",
+          "description": "移除牌组中第一张非初始牌，然后将“静电预充”加入牌组。",
+          "conditions": [
+            { "type": "has_removable_card" }
+          ],
+          "effects": [
+            { "type": "remove_first_non_starter_card", "amount": 1 },
+            { "type": "add_card", "card_id": "static_primer" }
+          ]
+        },
+        {
+          "id": "take_spark_bomb",
+          "label": "拿走火花炸弹",
+          "description": "获得药水“火花炸弹”。",
+          "conditions": [
+            { "type": "has_empty_potion_slot" }
+          ],
+          "effects": [
+            { "type": "gain_potion", "potion_id": "spark_bomb" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "scar_chapel",
+      "name": "熔痕礼拜室",
+      "character_ids": [ "pyre_ascetic" ],
+      "body": "白焰在旧礼拜室的地砖缝里缓慢燃烧。墙上刻着被划掉的名字，每一道划痕都像一张还没抽到的灼伤。",
+      "design_note": "熔痕苦修者专属构筑事件，提供启动牌、引擎牌和治疗三类路线。",
+      "balance_note": "治疗选项不给卡牌；引擎牌需要生命代价；启动牌作为低风险选择。",
+      "choices": [
+        {
+          "id": "take_kindling",
+          "label": "取走血火",
+          "description": "将“血火引燃”加入牌组。",
+          "effects": [
+            { "type": "add_card", "card_id": "blood_kindling" }
+          ]
+        },
+        {
+          "id": "swear_oath",
+          "label": "宣读白焰誓约",
+          "description": "失去 7 点生命，将“白焰誓约”加入牌组。",
+          "conditions": [
+            { "type": "min_hp", "amount": 8 }
+          ],
+          "effects": [
+            { "type": "lose_hp", "amount": 7 },
+            { "type": "add_card", "card_id": "white_flame_oath" }
+          ]
+        },
+        {
+          "id": "bind_wounds",
+          "label": "缝合旧伤",
+          "description": "恢复 16% 最大生命。",
+          "effects": [
+            { "type": "heal_percent", "amount": 16 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "red_wick_altar",
+      "name": "赤芯祭台",
+      "character_ids": [ "pyre_ascetic" ],
+      "body": "一截红色烛捻插在冷却的炉灰里。它没有火焰，却能把每一次灼伤都变成敌人身上的裂口。",
+      "design_note": "熔痕苦修者专属遗物事件，围绕灼伤触发、删卡和群体攻击做取舍。",
+      "balance_note": "赤芯烛捻需要生命代价和缺失遗物条件；删卡选项仍需已有可删目标。",
+      "choices": [
+        {
+          "id": "light_wick",
+          "label": "点燃赤芯",
+          "description": "失去 6 点生命，获得遗物“赤芯烛捻”。",
+          "conditions": [
+            { "type": "min_hp", "amount": 7 },
+            { "type": "missing_relic", "relic_id": "red_wick" }
+          ],
+          "effects": [
+            { "type": "lose_hp", "amount": 6 },
+            { "type": "gain_relic", "relic_id": "red_wick" }
+          ]
+        },
+        {
+          "id": "burn_old_vow",
+          "label": "焚毁旧誓",
+          "description": "移除牌组中第一张非初始牌，然后将“创口供品”加入牌组。",
+          "conditions": [
+            { "type": "has_removable_card" }
+          ],
+          "effects": [
+            { "type": "remove_first_non_starter_card", "amount": 1 },
+            { "type": "add_card", "card_id": "wound_offering" }
+          ]
+        },
+        {
+          "id": "take_scourge",
+          "label": "取走鞭焰",
+          "description": "将“鞭焰横扫”加入牌组。",
+          "effects": [
+            { "type": "add_card", "card_id": "scourge_sweep" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "white_flame_branding",
+      "name": "白焰烙印仪",
+      "character_ids": [ "pyre_ascetic" ],
+      "body": "一台仍在运转的烙印仪对准你的掌心。它能烙下更大的势能回路，也能把伤口临时封住。",
+      "design_note": "熔痕苦修者专属成长事件，提供稀有遗物、稳定防御和灼烧攻击三条路线。",
+      "balance_note": "稀有遗物需要较高生命门槛；普通牌选项不额外索取生命，避免事件过度惩罚。",
+      "choices": [
+        {
+          "id": "take_brand",
+          "label": "接受白焰烙印",
+          "description": "失去 10 点生命，获得遗物“白焰烙印”。",
+          "conditions": [
+            { "type": "min_hp", "amount": 11 },
+            { "type": "missing_relic", "relic_id": "white_flame_brand" }
+          ],
+          "effects": [
+            { "type": "lose_hp", "amount": 10 },
+            { "type": "gain_relic", "relic_id": "white_flame_brand" }
+          ]
+        },
+        {
+          "id": "seal_cut",
+          "label": "封住创口",
+          "description": "将“灼口封缄”加入牌组。",
+          "effects": [
+            { "type": "add_card", "card_id": "cauterize" }
+          ]
+        },
+        {
+          "id": "mark_enemy",
+          "label": "练习烙印",
+          "description": "将“烙印重击”加入牌组。",
+          "effects": [
+            { "type": "add_card", "card_id": "brand_strike" }
           ]
         }
       ]

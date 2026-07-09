@@ -17,11 +17,23 @@ func _init() -> void:
 	view.set_map_state(generated, available, completed, "")
 	_check(view.get_node_button_count() == _node_count(layers), "map view creates one button per node")
 	_check(view.get_available_button_count() == 1, "map view tracks available buttons")
+	_check(view.get_icon_button_count() == view.get_node_button_count(), "map view assigns an icon to every node button")
 
 	var selected: Array[String] = []
 	view.node_selected.connect(func(node_id: String) -> void:
 		selected.append(node_id)
 	)
+	var previewed: Array[String] = []
+	view.node_previewed.connect(func(node_id: String) -> void:
+		previewed.append(node_id)
+	)
+	view._on_node_button_previewed(start_id)
+	_check(previewed.size() == 1 and previewed[0] == start_id, "map node preview emits signal")
+	_check(view.last_previewed_node_id == start_id, "map view records last previewed node")
+	var successor_ids: Array[String] = _successor_ids(generated, start_id)
+	view.set_preview_node(start_id, successor_ids)
+	_check(view.previewed_node_id == start_id, "map view stores active preview node")
+	_check(view.get_previewed_successor_count() == successor_ids.size(), "map view stores active preview successors")
 	view._on_node_button_pressed(start_id)
 	_check(selected.size() == 1 and selected[0] == start_id, "available map node emits selection")
 
@@ -47,6 +59,14 @@ func _first_unavailable_node_id(layers: Array, start_id: String) -> String:
 			if node_id != start_id:
 				return node_id
 	return ""
+
+func _successor_ids(graph: Dictionary, node_id: String) -> Array[String]:
+	var result: Array[String] = []
+	for edge in graph.get("edges", []):
+		var edge_dict: Dictionary = edge
+		if str(edge_dict.get("from", "")) == node_id:
+			result.append(str(edge_dict.get("to", "")))
+	return result
 
 func _check(condition: bool, message: String) -> void:
 	if not condition:

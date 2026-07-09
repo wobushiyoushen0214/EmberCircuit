@@ -1,0 +1,125 @@
+{
+  "_comment": "局外档案和成就配置。condition.type 由 Main.gd 的 _achievement_condition_met() 解释；所有成就必须带设计和实现注释，方便后续对接 Steam 成就。",
+  "achievements": [
+    {
+      "id": "first_ignition",
+      "name": "第一次点火",
+      "category": "progression",
+      "description": "开始第一局跑团。",
+      "condition": { "type": "runs_started_at_least", "amount": 1 },
+      "reward_note": "只作为新玩家完成首个入口动作的确认，不发放数值奖励。",
+      "design_note": "最低门槛成就，用来验证局外档案写入和成就提示链路。",
+      "implementation_note": "Main.gd 在 _start_new_run() 中增加 runs_started 后检查该条件。"
+    },
+    {
+      "id": "first_surgery",
+      "name": "第一次手术",
+      "category": "deckbuilding",
+      "description": "在商店移除一张牌。",
+      "condition": { "type": "cards_removed_at_least", "amount": 1 },
+      "reward_note": "提示玩家删卡是构筑效率的一部分，不发放数值奖励。",
+      "design_note": "鼓励玩家理解牌组厚度和关键牌抽取概率。",
+      "implementation_note": "Main.gd 在 _on_shop_remove_card_pressed() 成功后增加 cards_removed。"
+    },
+    {
+      "id": "boss_breaker",
+      "name": "Boss 断路器",
+      "category": "combat",
+      "description": "击败任意 Boss。",
+      "condition": { "type": "bosses_defeated_at_least", "amount": 1 },
+      "reward_note": "作为第一次跨过章节门槛的记录，不发放数值奖励。",
+      "design_note": "标记玩家已经理解基础战斗和地图风险回报。",
+      "implementation_note": "Main.gd 在完成 boss 节点时增加 bosses_defeated。"
+    },
+    {
+      "id": "lower_city_charted",
+      "name": "余烬下城测绘",
+      "category": "chapter",
+      "description": "完成第一章。",
+      "condition": { "type": "chapter_completed", "chapter_id": "chapter_one" },
+      "reward_note": "后续可用于解锁第一章图鉴条目。",
+      "design_note": "章节完成成就用于支撑局外档案的路线进度感。",
+      "implementation_note": "Main.gd 将 completed_chapter_ids 写入 profile.completed_chapters 后检查该条件。"
+    },
+    {
+      "id": "storm_tower_charted",
+      "name": "风暴高塔测绘",
+      "category": "chapter",
+      "description": "完成第二章。",
+      "condition": { "type": "chapter_completed", "chapter_id": "chapter_two" },
+      "reward_note": "后续可用于解锁第二章图鉴条目。",
+      "design_note": "确认玩家能稳定通过中期敌人和第二章 Boss。",
+      "implementation_note": "Main.gd 将 completed_chapter_ids 写入 profile.completed_chapters 后检查该条件。"
+    },
+    {
+      "id": "circuit_closed",
+      "name": "回路闭合",
+      "category": "victory",
+      "description": "完成三章完整跑团。",
+      "condition": { "type": "runs_completed_at_least", "amount": 1 },
+      "reward_note": "后续可用于开启挑战模式入口。",
+      "design_note": "完整通关成就是当前版本的主线完成标记。",
+      "implementation_note": "Main.gd 在最终跑团完成时增加 runs_completed。"
+    },
+    {
+      "id": "ember_exile_mark",
+      "name": "流亡者印记",
+      "category": "character",
+      "description": "使用余烬流亡者完成完整跑团。",
+      "condition": { "type": "character_completed", "character_id": "ember_exile" },
+      "reward_note": "后续可用于展示角色通关印章和外观。",
+      "design_note": "按角色记录通关，支持后续多角色长期目标。",
+      "implementation_note": "Main.gd 在最终跑团完成时写入 profile.character_completions。"
+    },
+    {
+      "id": "arc_tinker_mark",
+      "name": "工匠印记",
+      "category": "character",
+      "description": "使用电弧工匠完成完整跑团。",
+      "condition": { "type": "character_completed", "character_id": "arc_tinker" },
+      "reward_note": "后续可用于展示角色通关印章和外观。",
+      "design_note": "验证第二角色的完整流程和角色专属结局。",
+      "implementation_note": "Main.gd 在最终跑团完成时写入 profile.character_completions。"
+    },
+    {
+      "id": "pyre_ascetic_mark",
+      "name": "苦修者印记",
+      "category": "character",
+      "description": "使用熔痕苦修者完成完整跑团。",
+      "condition": { "type": "character_completed", "character_id": "pyre_ascetic" },
+      "reward_note": "后续可用于展示角色通关印章和外观。",
+      "design_note": "验证高风险自伤角色的完整流程和角色专属结局。",
+      "implementation_note": "Main.gd 在最终跑团完成时写入 profile.character_completions。"
+    },
+    {
+      "id": "challenge_one_clear",
+      "name": "加固敌群清除",
+      "category": "challenge",
+      "description": "完成挑战 1 或更高等级。",
+      "condition": { "type": "challenge_completed_at_least", "amount": 1 },
+      "reward_note": "后续可用于解锁挑战通关徽章。",
+      "design_note": "标记玩家已完成第一档进阶难度，开始进入长期挑战循环。",
+      "implementation_note": "Main.gd 在完整通关时写入 profile.stats.best_challenge_level_completed。"
+    },
+    {
+      "id": "challenge_two_clear",
+      "name": "灼热开局清除",
+      "category": "challenge",
+      "description": "完成挑战 2 或更高等级。",
+      "condition": { "type": "challenge_completed_at_least", "amount": 2 },
+      "reward_note": "后续可用于解锁挑战通关徽章。",
+      "design_note": "标记玩家已能在较低生命容错下完成三章跑团。",
+      "implementation_note": "Main.gd 在完整通关时写入 profile.stats.best_challenge_level_completed。"
+    },
+    {
+      "id": "challenge_three_clear",
+      "name": "高压意图清除",
+      "category": "challenge",
+      "description": "完成挑战 3。",
+      "condition": { "type": "challenge_completed_at_least", "amount": 3 },
+      "reward_note": "当前最高挑战通关标记。",
+      "design_note": "标记玩家完成当前版本最高本地挑战等级。",
+      "implementation_note": "Main.gd 在完整通关时写入 profile.stats.best_challenge_level_completed。"
+    }
+  ]
+}

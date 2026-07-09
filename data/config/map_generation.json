@@ -1,10 +1,13 @@
 {
-  "_comment": "分叉地图生成配置。当前作为后端测试和下一阶段地图 UI 的输入，不替代 MVP 线性路线。",
+  "_comment": "分叉地图生成配置。chapter_sequence 决定跑团章节顺序；每章可独立配置节点、遭遇和事件池。",
+  "chapter_sequence": ["chapter_one", "chapter_two", "chapter_three"],
   "chapter_one": {
+    "name": "第一章：余烬下城",
     "seed": 1707,
     "layers": 8,
     "min_nodes_per_layer": 2,
     "max_nodes_per_layer": 4,
+    "unique_events": true,
     "design_note": "8 层地图适合第一章 Demo。每层 2 到 4 个节点，保证路线选择但不压迫 UI。",
     "fixed_layers": {
       "0": ["combat"],
@@ -36,8 +39,110 @@
       "slag_shrine",
       "lost_caravan",
       "sealed_gate",
-      "furnace_confessor"
+      "furnace_confessor",
+      "arc_workbench",
+      "livewire_nest",
+      "capacitor_gambit",
+      "scar_chapel",
+      "red_wick_altar",
+      "white_flame_branding"
     ],
     "balance_note": "精英和篝火在后半段更常见，避免玩家在没有构筑之前过早遇到精英。"
+  },
+  "chapter_two": {
+    "name": "第二章：风暴高塔",
+    "seed": 2707,
+    "layers": 9,
+    "min_nodes_per_layer": 2,
+    "max_nodes_per_layer": 4,
+    "unique_events": true,
+    "design_note": "第二章比第一章多 1 层，节点更偏向精英和事件，用来承接第一章成型构筑。",
+    "fixed_layers": {
+      "0": ["combat"],
+      "2": ["event", "combat", "combat"],
+      "3": ["shop", "event", "campfire"],
+      "5": ["elite", "combat", "campfire"],
+      "7": ["campfire"],
+      "8": ["boss"]
+    },
+    "node_weights": {
+      "combat": 36,
+      "event": 20,
+      "shop": 9,
+      "campfire": 17,
+      "elite": 18
+    },
+    "encounter_by_type": {
+      "combat": ["storm_patrol", "null_workshop", "glass_procession"],
+      "elite": ["rust_colossus_elite"],
+      "boss": ["chapter_two_boss"]
+    },
+    "event_pool": [
+      "ash_archive",
+      "coolant_cache",
+      "soot_market",
+      "ember_memorial",
+      "pressure_trial",
+      "slag_shrine",
+      "lost_caravan",
+      "sealed_gate",
+      "furnace_confessor",
+      "broken_reactor",
+      "arc_workbench",
+      "livewire_nest",
+      "capacitor_gambit",
+      "scar_chapel",
+      "red_wick_altar",
+      "white_flame_branding"
+    ],
+    "balance_note": "第二章战斗池更硬；第 3 层加入篝火候选并略降精英权重，避免连续战斗在中段篝火前过早压死普通路线。"
+  },
+  "chapter_three": {
+    "name": "第三章：回路核心",
+    "seed": 3707,
+    "layers": 10,
+    "min_nodes_per_layer": 2,
+    "max_nodes_per_layer": 4,
+    "unique_events": true,
+    "design_note": "第三章是当前跑团的最终章，层数更长，精英权重更高，并以最终 Boss 结束。",
+    "fixed_layers": {
+      "0": ["combat"],
+      "2": ["event", "combat", "elite", "campfire"],
+      "4": ["shop", "combat", "event"],
+      "6": ["elite", "combat", "campfire"],
+      "8": ["campfire"],
+      "9": ["boss"]
+    },
+    "node_weights": {
+      "combat": 39,
+      "event": 20,
+      "shop": 8,
+      "campfire": 21,
+      "elite": 12
+    },
+    "encounter_by_type": {
+      "combat": ["void_archive", "gravity_bridge", "core_mirror"],
+      "elite": ["singularity_elite"],
+      "boss": ["chapter_three_boss"]
+    },
+    "event_pool": [
+      "ash_archive",
+      "coolant_cache",
+      "soot_market",
+      "ember_memorial",
+      "pressure_trial",
+      "slag_shrine",
+      "lost_caravan",
+      "sealed_gate",
+      "furnace_confessor",
+      "broken_reactor",
+      "arc_workbench",
+      "livewire_nest",
+      "capacitor_gambit",
+      "scar_chapel",
+      "red_wick_altar",
+      "white_flame_branding"
+    ],
+    "balance_note": "最终章节点更长；当前调试基线降低随机精英权重、提高篝火权重，并在第 2 层提供早期篝火候选，避免纯数值压死非最优构筑。"
   }
 }

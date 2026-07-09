@@ -1,5 +1,6 @@
 {
-  "_comment": "玩家初始配置。后续多角色时拆分为 characters/*.json。",
+  "_comment": "玩家/角色初始配置。player 保留为旧代码和旧存档兼容字段；characters 是正式多角色数据源。",
+  "default_character_id": "ember_exile",
   "player": {
     "id": "ember_exile",
     "name": "余烬流亡者",
@@ -10,8 +11,154 @@
     "momentum_max": 6,
     "starting_gold": 99,
     "potion_slots": 2,
+    "starting_potions": [],
+    "reward_pool_tags": [ "shared", "ember_exile" ],
+    "starter_deck_ids": [
+      "ember_strike",
+      "ember_strike",
+      "ember_strike",
+      "ember_strike",
+      "ember_strike",
+      "ash_guard",
+      "ash_guard",
+      "ash_guard",
+      "ash_guard",
+      "cooling_breath"
+    ],
+    "starter_relic_ids": [ "ember_bottle", "cracked_charm" ],
+    "ending": {
+      "victory_title": "最终胜利：余烬流亡者关闭了回路核心",
+      "epilogue": "炉心的余温在装甲缝隙中慢慢熄灭。流亡者没有回头，只把最后一枚余烬瓶留在核心门前，作为仍有人能走出下城的证明。",
+      "completion_mark": "局外记录：余烬流亡者通关印记",
+      "meta_unlocks": [
+        "角色档案：余烬流亡者终局记录",
+        "起始遗物外观：冷却余烬瓶"
+      ]
+    },
+    "archetype_note": "均衡型角色，覆盖攻击、防御、势能积累和基础过牌。",
     "design_note": "第一个角色偏均衡，能体验攻击、护甲、势能和状态污染。",
     "balance_note": "72 生命略高于常见卡牌肉鸽起始值，用于抵消早期 UI 和数值未完全打磨的挫败。",
     "potion_slots_note": "初始 2 个药水槽，低于成熟版本常见 3 槽，方便 MVP 阶段观察药水对战斗难度的影响。"
-  }
+  },
+  "characters": [
+    {
+      "id": "ember_exile",
+      "name": "余烬流亡者",
+      "max_hp": 72,
+      "starting_hp": 72,
+      "max_energy": 3,
+      "starting_momentum": 0,
+      "momentum_max": 6,
+      "starting_gold": 99,
+      "potion_slots": 2,
+      "starting_potions": [],
+      "reward_pool_tags": [ "shared", "ember_exile" ],
+      "starter_deck_ids": [
+        "ember_strike",
+        "ember_strike",
+        "ember_strike",
+        "ember_strike",
+        "ember_strike",
+        "ash_guard",
+        "ash_guard",
+        "ash_guard",
+        "ash_guard",
+        "cooling_breath"
+      ],
+      "starter_relic_ids": [ "ember_bottle", "cracked_charm" ],
+      "ending": {
+        "victory_title": "最终胜利：余烬流亡者关闭了回路核心",
+        "epilogue": "炉心的余温在装甲缝隙中慢慢熄灭。流亡者没有回头，只把最后一枚余烬瓶留在核心门前，作为仍有人能走出下城的证明。",
+        "completion_mark": "局外记录：余烬流亡者通关印记",
+        "meta_unlocks": [
+          "角色档案：余烬流亡者终局记录",
+          "起始遗物外观：冷却余烬瓶"
+        ]
+      },
+      "archetype_note": "均衡型角色，覆盖攻击、防御、势能积累和基础过牌。",
+      "design_note": "默认角色。牌组简单、容错较高，适合验证主流程和平衡基线。",
+      "balance_note": "5 攻击、4 防御、1 过牌是最稳的起手结构；两个弱启动遗物降低第一章随机波动。",
+      "implementation_note": "同时保留在 player 字段，保证旧测试、旧存档和旧 CombatState 调用仍能读取。"
+    },
+    {
+      "id": "arc_tinker",
+      "name": "电弧工匠",
+      "max_hp": 64,
+      "starting_hp": 64,
+      "max_energy": 3,
+      "starting_momentum": 1,
+      "momentum_max": 5,
+      "starting_gold": 88,
+      "potion_slots": 3,
+      "starting_potions": [],
+      "reward_pool_tags": [ "shared", "arc_tinker" ],
+      "starter_deck_ids": [
+        "spark_throw",
+        "spark_throw",
+        "spark_throw",
+        "spark_throw",
+        "pressure_probe",
+        "pressure_probe",
+        "soot_step",
+        "soot_step",
+        "forge_focus",
+        "cooling_breath"
+      ],
+      "starter_relic_ids": [ "arc_capacitor", "insulated_battery" ],
+      "ending": {
+        "victory_title": "最终胜利：电弧工匠重写了回路核心",
+        "epilogue": "核心没有熄灭，而是被重接成一条安静的蓝色回路。电弧工匠收起仍在发烫的工具臂，新的电容阵列开始为下城供电。",
+        "completion_mark": "局外记录：电弧工匠通关印记",
+        "meta_unlocks": [
+          "角色档案：电弧工匠终局记录",
+          "挑战变体：过载工具台",
+          "起始遗物外观：蓝弧电容"
+        ]
+      },
+      "archetype_note": "节奏型角色，依赖 0 费攻击、轻量过牌和药水槽优势寻找爆发窗口。",
+      "design_note": "第二名可玩角色，用更低生命、更低势能上限和更多药水槽制造与默认角色不同的节奏。",
+      "balance_note": "起手 4 张 0 费攻击让早期输出更顺；电弧电容和绝缘电池提供第一回合势能/护甲，抵消 64 生命的低容错。",
+      "implementation_note": "使用现有卡牌池实现，先验证多角色数据管线；后续可补专属卡池与专属事件。"
+    },
+    {
+      "id": "pyre_ascetic",
+      "name": "熔痕苦修者",
+      "max_hp": 66,
+      "starting_hp": 66,
+      "max_energy": 3,
+      "starting_momentum": 0,
+      "momentum_max": 7,
+      "starting_gold": 92,
+      "potion_slots": 2,
+      "starting_potions": [],
+      "reward_pool_tags": [ "shared", "pyre_ascetic" ],
+      "starter_deck_ids": [
+        "penitent_cut",
+        "penitent_cut",
+        "penitent_cut",
+        "penitent_cut",
+        "scar_guard",
+        "scar_guard",
+        "scar_guard",
+        "scar_guard",
+        "kindle_pain",
+        "cooling_breath"
+      ],
+      "starter_relic_ids": [ "penitent_censer", "ash_rosary" ],
+      "ending": {
+        "victory_title": "最终胜利：熔痕苦修者净化了回路核心",
+        "epilogue": "核心燃起的不是毁灭性的炉火，而是一圈安静的白焰。熔痕苦修者把最后一张灼伤投入火中，听见下城的忏悔声终于归于沉默。",
+        "completion_mark": "局外记录：熔痕苦修者通关印记",
+        "meta_unlocks": [
+          "角色档案：熔痕苦修者终局记录",
+          "挑战变体：白焰忏悔室",
+          "起始遗物外观：苦修香炉"
+        ]
+      },
+      "archetype_note": "高风险角色，利用灼伤、自伤和灼烧把负面状态转化为爆发节奏。",
+      "design_note": "第三名可玩角色，验证状态牌污染、自伤资源和持续伤害构筑的完整角色管线。",
+      "balance_note": "66 生命、强化后的苦修香炉和灰烬念珠让角色保留高风险定位但拥有基本开局容错；7 点势能上限给爆发规划空间，但需要主动承担灼伤和自伤。",
+      "implementation_note": "复用 create_card、damage_self、burn、card_created 和角色专属奖励过滤，不新增战斗解释器语义。"
+    }
+  ]
 }

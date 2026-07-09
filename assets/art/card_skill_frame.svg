@@ -1,7 +1,32 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="220" height="320" viewBox="0 0 220 320">
-  <rect width="220" height="320" rx="14" fill="#1d2728"/>
-  <rect x="10" y="10" width="200" height="300" rx="10" fill="#254a4d" stroke="#7ad0c7" stroke-width="4"/>
-  <circle cx="34" cy="34" r="20" fill="#f4c66b"/>
-  <rect x="28" y="78" width="164" height="104" rx="8" fill="#1c2026"/>
-  <rect x="24" y="204" width="172" height="78" rx="8" fill="#26383a"/>
+  <defs>
+    <linearGradient id="outer" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1f4658"/>
+      <stop offset="0.55" stop-color="#14242d"/>
+      <stop offset="1" stop-color="#0b1014"/>
+    </linearGradient>
+    <linearGradient id="inner" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2a6070"/>
+      <stop offset="0.45" stop-color="#172b35"/>
+      <stop offset="1" stop-color="#0d1218"/>
+    </linearGradient>
+    <radialGradient id="shieldGlow" cx="52%" cy="42%" r="56%">
+      <stop offset="0" stop-color="#9cefff" stop-opacity="0.46"/>
+      <stop offset="0.38" stop-color="#3aa6bd" stop-opacity="0.24"/>
+      <stop offset="1" stop-color="#0d1218" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="220" height="320" rx="16" fill="url(#outer)"/>
+  <rect x="8" y="8" width="204" height="304" rx="13" fill="url(#inner)" stroke="#68d6e6" stroke-width="3"/>
+  <rect x="15" y="15" width="190" height="290" rx="10" fill="none" stroke="#0a2a33" stroke-width="2"/>
+  <circle cx="34" cy="34" r="21" fill="#b7f4ff" stroke="#174653" stroke-width="3"/>
+  <path d="M34 22 L45 28 V39 C45 47 39 52 34 55 C29 52 23 47 23 39 V28 Z" fill="#12323b"/>
+  <rect x="26" y="75" width="168" height="108" rx="10" fill="#121922" stroke="#2f8294" stroke-width="2"/>
+  <rect x="31" y="80" width="158" height="98" rx="8" fill="url(#shieldGlow)"/>
+  <path d="M110 88 L154 108 V136 C154 160 132 174 110 182 C88 174 66 160 66 136 V108 Z" fill="#9decff" opacity="0.24" stroke="#bdf8ff" stroke-width="5"/>
+  <path d="M76 140 C94 126 126 126 144 140" fill="none" stroke="#e7feff" stroke-width="6" stroke-linecap="round" opacity="0.84"/>
+  <path d="M58 110 H88 M132 110 H164 M88 164 H132" stroke="#4fc1d7" stroke-width="4" stroke-linecap="round" opacity="0.78"/>
+  <rect x="24" y="204" width="172" height="78" rx="9" fill="#1b242b" stroke="#285461" stroke-width="2"/>
+  <path d="M34 224 H186 M34 246 H154 M34 268 H172" stroke="#68d6e6" stroke-width="4" stroke-linecap="round" opacity="0.52"/>
+  <path d="M20 18 L54 18 M166 18 L200 18 M20 302 L54 302 M166 302 L200 302" stroke="#9cefff" stroke-width="3" stroke-linecap="round" opacity="0.78"/>
 </svg>

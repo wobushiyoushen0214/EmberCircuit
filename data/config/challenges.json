@@ -1,0 +1,70 @@
+{
+  "_comment": "挑战等级配置。level 0 是普通模式；更高等级通过 profile.stats.best_challenge_level_completed 逐级解锁。modifiers 由 Main.gd 和 CombatState.gd 解释。",
+  "unlock_rule": {
+    "type": "complete_previous_level",
+    "description": "完整通关普通模式后解锁挑战 1；完整通关挑战 N 后解锁挑战 N+1。",
+    "implementation_note": "Main.gd 根据 profile.stats.runs_completed 和 best_challenge_level_completed 计算可选最高等级。"
+  },
+  "levels": [
+    {
+      "level": 0,
+      "name": "普通模式",
+      "short_name": "普通",
+      "description": "标准三章跑团，没有额外惩罚。",
+      "modifiers": {
+        "enemy_hp_multiplier": 1.0,
+        "enemy_damage_multiplier": 1.0,
+        "player_starting_hp_loss": 0
+      },
+      "reward_note": "用于解锁挑战模式和基础通关档案。",
+      "design_note": "保持当前主线平衡基线，作为后续挑战等级的对照组。",
+      "balance_note": "不改变战斗数值，避免影响新玩家首局体验。",
+      "implementation_note": "Main.gd 会把 level 0 作为默认选择。"
+    },
+    {
+      "level": 1,
+      "name": "挑战 1：加固敌群",
+      "short_name": "挑战 1",
+      "description": "敌人最大生命提高 10%。",
+      "modifiers": {
+        "enemy_hp_multiplier": 1.1,
+        "enemy_damage_multiplier": 1.0,
+        "player_starting_hp_loss": 0
+      },
+      "reward_note": "完成后解锁挑战 2。",
+      "design_note": "第一档只延长战斗，迫使玩家提升输出效率，不直接惩罚防御判断。",
+      "balance_note": "10% 生命提升足以让低输出构筑多承受 1 到 2 次敌人意图，但不会改变单回合伤害阈值。",
+      "implementation_note": "CombatState.gd 在加载遭遇时按 enemy_hp_multiplier 提高敌人 hp 和 max_hp。"
+    },
+    {
+      "level": 2,
+      "name": "挑战 2：灼热开局",
+      "short_name": "挑战 2",
+      "description": "敌人最大生命提高 10%，玩家开局失去 6 点生命。",
+      "modifiers": {
+        "enemy_hp_multiplier": 1.1,
+        "enemy_damage_multiplier": 1.0,
+        "player_starting_hp_loss": 6
+      },
+      "reward_note": "完成后解锁挑战 3。",
+      "design_note": "第二档压缩生命容错，强化地图路线、篝火和药水选择的价值。",
+      "balance_note": "6 点生命约等于第一章一次小失误，能制造压力但不应迫使固定开局路线。",
+      "implementation_note": "Main.gd 在开局 run_hp 上扣除 player_starting_hp_loss，并通过存档记录当前挑战等级。"
+    },
+    {
+      "level": 3,
+      "name": "挑战 3：高压意图",
+      "short_name": "挑战 3",
+      "description": "敌人最大生命提高 10%，敌人攻击伤害提高 10%，玩家开局失去 6 点生命。",
+      "modifiers": {
+        "enemy_hp_multiplier": 1.1,
+        "enemy_damage_multiplier": 1.1,
+        "player_starting_hp_loss": 6
+      },
+      "reward_note": "当前最高挑战等级，后续版本会继续扩展。",
+      "design_note": "第三档同时压迫输出和防御，作为当前本地挑战上限。",
+      "balance_note": "10% 敌人伤害会让多段攻击和易伤回合更危险，但仍保留通过护甲和药水修正的空间。",
+      "implementation_note": "CombatState.gd 在解析敌人 damage 效果时应用 enemy_damage_multiplier。"
+    }
+  ]
+}

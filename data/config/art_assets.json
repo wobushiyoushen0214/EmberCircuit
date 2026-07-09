@@ -1,0 +1,749 @@
+{
+  "_comment": "EmberCircuit 美术资源清单。asset_path 是当前可加载资源，slot_path 是未来正式资源的稳定替换槽位；这些字段只影响表现层，不参与战斗数值结算。",
+  "schema_note": "Main.gd 优先读取本文件；缺失时回退到旧硬编码路径。数据完整性测试会校验每张卡、每个遗物和每瓶药水都有可加载 asset_path 与替换说明。",
+  "card_type_frames": {
+    "attack": "res://assets/art/card_attack_frame.svg",
+    "skill": "res://assets/art/card_skill_frame.svg",
+    "power": "res://assets/art/card_power_frame.svg",
+    "status": "res://assets/art/card_skill_frame.svg",
+    "curse": "res://assets/art/card_power_frame.svg",
+    "default": "res://assets/art/card_skill_frame.svg"
+  },
+  "card_type_frame_notes": {
+    "attack": "攻击牌使用更硬朗的边框，强调直接伤害和命中反馈。",
+    "skill": "技能牌使用冷色护盾边框，强调防御、抽牌和资源调整。",
+    "power": "能力牌使用回路边框，提示长期规则改变。",
+    "status": "状态牌暂用技能框，正式版应改为明显的负面/临时牌模板。",
+    "curse": "诅咒牌暂用能力框，正式版应改为更强警示的腐蚀模板。",
+    "default": "未知类型使用默认框，避免新增卡牌类型时 UI 失去图标。"
+  },
+  "fallbacks": {
+    "card_art": "res://assets/art/card_skill_frame.svg",
+    "relic_icon": "res://assets/art/relic_placeholder.svg",
+    "potion_icon": "res://assets/art/potion_placeholder.svg",
+    "event_art": "res://assets/art/event_default.svg",
+    "battle_background": "res://assets/art/battle_bg_chapter_one.svg"
+  },
+  "battle_background_slots": [
+    {
+      "id": "chapter_one",
+      "asset_path": "res://assets/art/battle_bg_chapter_one.svg",
+      "slot_path": "res://assets/art/backgrounds/battle_bg_chapter_one.svg",
+      "design_note": "第一章战斗背景表现余烬工坊和炉渣地面，强调低温余火、烟尘和工业遗迹。",
+      "replacement_note": "正式图应保持中低对比度，敌人轮廓和红色攻击意图必须优先可读。",
+      "implementation_note": "Main.gd 按 current_chapter_id 从本槽位加载背景，只影响敌人舞台表现层。"
+    },
+    {
+      "id": "chapter_two",
+      "asset_path": "res://assets/art/battle_bg_chapter_two.svg",
+      "slot_path": "res://assets/art/backgrounds/battle_bg_chapter_two.svg",
+      "design_note": "第二章战斗背景表现带电塔楼和冷色导线，区分于第一章的余烬工坊。",
+      "replacement_note": "正式图可使用更多青蓝电弧，但不要和玩家势能 HUD 或技能牌边框混成同一视觉层。",
+      "implementation_note": "章节切换后 UI 会重新解析当前章节背景，不参与地图生成或战斗结算。"
+    },
+    {
+      "id": "chapter_three",
+      "asset_path": "res://assets/art/battle_bg_chapter_three.svg",
+      "slot_path": "res://assets/art/backgrounds/battle_bg_chapter_three.svg",
+      "design_note": "第三章战斗背景表现回路核心和虚空化结构，作为最终章的压迫感来源。",
+      "replacement_note": "正式图应保留敌人底部安全读区，避免高亮纹路穿过生命和意图文本。",
+      "implementation_note": "最终 Boss 与普通第三章战斗共用该章节背景，后续可扩展到遭遇级背景。"
+    }
+  ],
+  "event_art_slots": [
+    {
+      "id": "broken_reactor",
+      "asset_path": "res://assets/art/events/event_broken_reactor.svg",
+      "slot_path": "res://assets/art/events/event_broken_reactor.svg",
+      "design_note": "破裂反应炉插图应突出裂开的炉芯、喷出的灰烬和风险收益感。",
+      "replacement_note": "正式图要把危险热源放在插图中心，但不要使用过亮红色压过事件按钮。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 事件插图；未来正式插画仍保持同一 slot_path，事件选择和结算继续由 events 数据驱动。"
+    },
+    {
+      "id": "ash_archive",
+      "asset_path": "res://assets/art/events/event_ash_archive.svg",
+      "slot_path": "res://assets/art/events/event_ash_archive.svg",
+      "design_note": "灰烬档案馆插图应表现烧焦金属书页和可选择的战斗记录。",
+      "replacement_note": "书页形状要清楚，避免看起来像普通商店货架。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 事件插图；未来正式插画仍保持同一 slot_path，事件选择和结算继续由 events 数据驱动。"
+    },
+    {
+      "id": "coolant_cache",
+      "asset_path": "res://assets/art/events/event_coolant_cache.svg",
+      "slot_path": "res://assets/art/events/event_coolant_cache.svg",
+      "design_note": "冷却剂暗格插图应表现墙内低温药剂和隐藏补给。",
+      "replacement_note": "冷色药剂要和战斗背景区分，瓶身轮廓保持可读。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 事件插图；未来正式插画仍保持同一 slot_path，事件选择和结算继续由 events 数据驱动。"
+    },
+    {
+      "id": "soot_market",
+      "asset_path": "res://assets/art/events/event_soot_market.svg",
+      "slot_path": "res://assets/art/events/event_soot_market.svg",
+      "design_note": "煤烟黑市插图应表现油布摊位、过滤面具商贩和灰市交易气氛。",
+      "replacement_note": "画面需保持暗色市场感，不要变成正式商店界面插图。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 事件插图；未来正式插画仍保持同一 slot_path，事件选择和结算继续由 events 数据驱动。"
+    },
+    {
+      "id": "ember_memorial",
+      "asset_path": "res://assets/art/events/event_ember_memorial.svg",
+      "slot_path": "res://assets/art/events/event_ember_memorial.svg",
+      "design_note": "余烬纪念碑插图应表现倒塌铭牌和旧战场记忆。",
+      "replacement_note": "纪念碑轮廓要稳重，避免和神龛事件混淆。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 事件插图；未来正式插画仍保持同一 slot_path，事件选择和结算继续由 events 数据驱动。"
+    },
+    {
+      "id": "pressure_trial",
+      "asset_path": "res://assets/art/events/event_pressure_trial.svg",
+      "slot_path": "res://assets/art/events/event_pressure_trial.svg",
+      "design_note": "压力试炼舱插图应表现自动测试舱、压力阀和危险校准。",
+      "replacement_note": "机械舱体应有明确入口，强调试炼而非普通战斗。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 事件插图；未来正式插画仍保持同一 slot_path，事件选择和结算继续由 events 数据驱动。"
+    },
+    {
+      "id": "slag_shrine",
+      "asset_path": "res://assets/art/events/event_slag_shrine.svg",
+      "slot_path": "res://assets/art/events/event_slag_shrine.svg",
+      "design_note": "熔渣神龛插图应表现暗红熔渣、供奉台和牺牲感。",
+      "replacement_note": "神龛红光不应和危险按钮混淆，边缘可用金属冷色压住亮度。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 事件插图；未来正式插画仍保持同一 slot_path，事件选择和结算继续由 events 数据驱动。"
+    },
+    {
+      "id": "lost_caravan",
+      "asset_path": "res://assets/art/events/event_lost_caravan.svg",
+      "slot_path": "res://assets/art/events/event_lost_caravan.svg",
+      "design_note": "失联运输队插图应表现横倒车厢、散落货箱和仍在空转的车轮。",
+      "replacement_note": "货箱和车轮要作为第一眼识别元素，支持随机货箱结果。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 事件插图；未来正式插画仍保持同一 slot_path，事件选择和结算继续由 events 数据驱动。"
+    },
+    {
+      "id": "sealed_gate",
+      "asset_path": "res://assets/art/events/event_sealed_gate.svg",
+      "slot_path": "res://assets/art/events/event_sealed_gate.svg",
+      "design_note": "封锁闸门插图应表现旧闸门、发热控制台和可绕行路线。",
+      "replacement_note": "闸门应横向占据画面，突出阻挡感。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 事件插图；未来正式插画仍保持同一 slot_path，事件选择和结算继续由 events 数据驱动。"
+    },
+    {
+      "id": "furnace_confessor",
+      "asset_path": "res://assets/art/events/event_furnace_confessor.svg",
+      "slot_path": "res://assets/art/events/event_furnace_confessor.svg",
+      "design_note": "炉边忏悔者插图应表现炉火旁的人影和被烧掉的旧名记录。",
+      "replacement_note": "人物轮廓保持克制，避免抢过事件文字和选择按钮。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 事件插图；未来正式插画仍保持同一 slot_path，事件选择和结算继续由 events 数据驱动。"
+    },
+    {
+      "id": "arc_workbench",
+      "asset_path": "res://assets/art/events/event_arc_workbench.svg",
+      "slot_path": "res://assets/art/events/event_arc_workbench.svg",
+      "design_note": "电弧工作台插图应表现电容夹、烧焦线圈和工具臂改装。",
+      "replacement_note": "使用电弧工匠的冷青色识别，但不应与战斗 HUD 混成一层。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 事件插图；未来正式插画仍保持同一 slot_path，事件选择和结算继续由 events 数据驱动。"
+    },
+    {
+      "id": "livewire_nest",
+      "asset_path": "res://assets/art/events/event_livewire_nest.svg",
+      "slot_path": "res://assets/art/events/event_livewire_nest.svg",
+      "design_note": "裸线巢插图应表现天花板上纠缠的带电裸线和危险共振。",
+      "replacement_note": "线缆层次要清楚，避免小尺寸下糊成噪点。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 事件插图；未来正式插画仍保持同一 slot_path，事件选择和结算继续由 events 数据驱动。"
+    },
+    {
+      "id": "capacitor_gambit",
+      "asset_path": "res://assets/art/events/event_capacitor_gambit.svg",
+      "slot_path": "res://assets/art/events/event_capacitor_gambit.svg",
+      "design_note": "电容赌局插图应表现桌面上的三枚电容和灰市赌局氛围。",
+      "replacement_note": "三枚电容应与三个选择形成隐喻，但不要加入文字说明。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 事件插图；未来正式插画仍保持同一 slot_path，事件选择和结算继续由 events 数据驱动。"
+    },
+    {
+      "id": "scar_chapel",
+      "asset_path": "res://assets/art/events/event_scar_chapel.svg",
+      "slot_path": "res://assets/art/events/event_scar_chapel.svg",
+      "design_note": "熔痕礼拜室插图应表现白焰、划掉的名字和旧礼拜室地砖。",
+      "replacement_note": "白焰亮度要受控，不能压过事件文字和选择按钮。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 事件插图；未来正式插画仍保持同一 slot_path，事件选择和结算继续由 events 数据驱动。"
+    },
+    {
+      "id": "red_wick_altar",
+      "asset_path": "res://assets/art/events/event_red_wick_altar.svg",
+      "slot_path": "res://assets/art/events/event_red_wick_altar.svg",
+      "design_note": "赤芯祭台插图应表现冷灰中的红色烛捻和低风险仪式感。",
+      "replacement_note": "烛捻应是第一视觉焦点，但不要像药水或普通火把。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 事件插图；未来正式插画仍保持同一 slot_path，事件选择和结算继续由 events 数据驱动。"
+    },
+    {
+      "id": "white_flame_branding",
+      "asset_path": "res://assets/art/events/event_white_flame_branding.svg",
+      "slot_path": "res://assets/art/events/event_white_flame_branding.svg",
+      "design_note": "白焰烙印仪插图应表现机械烙印臂、白焰回路和掌心风险。",
+      "replacement_note": "机械臂轮廓要清楚，避免与敌人攻击特效混淆。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 事件插图；未来正式插画仍保持同一 slot_path，事件选择和结算继续由 events 数据驱动。"
+    }
+  ],
+  "card_art_slots": [
+    {
+      "id": "ember_strike",
+      "asset_path": "res://assets/art/cards/card_ember_strike.svg",
+      "slot_path": "res://assets/art/cards/card_ember_strike.svg",
+      "design_note": "裂击是基础攻击牌，正式插画应表现灰烬刃劈开装甲的瞬间。",
+      "replacement_note": "保持费用、名称和描述区域清晰，插画主体不要压住左上角费用。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 插图；未来正式插画仍保持同一 slot_path，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
+    },
+    {
+      "id": "ash_guard",
+      "asset_path": "res://assets/art/cards/card_ash_guard.svg",
+      "slot_path": "res://assets/art/cards/card_ash_guard.svg",
+      "design_note": "余灰格挡是基础防御牌，正式插画应表现灰烬护幕或炉渣盾。",
+      "replacement_note": "防御牌插画亮度要低于敌人意图红光，避免干扰战斗判断。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 插图；未来正式插画仍保持同一 slot_path，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
+    },
+    {
+      "id": "cooling_breath",
+      "asset_path": "res://assets/art/cards/card_cooling_breath.svg",
+      "slot_path": "res://assets/art/cards/card_cooling_breath.svg",
+      "design_note": "冷却呼吸是低压恢复牌，正式插画应体现蒸汽降温和节奏重置。",
+      "replacement_note": "建议使用冷青色蒸汽，与余烬红色攻击牌区分。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 插图；未来正式插画仍保持同一 slot_path，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
+    },
+    {
+      "id": "chain_cut",
+      "asset_path": "res://assets/art/cards/card_chain_cut.svg",
+      "slot_path": "res://assets/art/cards/card_chain_cut.svg",
+      "design_note": "连锁斩强调连续命中，正式插画应表现链刃或多段切线。",
+      "replacement_note": "攻击轨迹要有方向感，便于和多段伤害反馈对应。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 插图；未来正式插画仍保持同一 slot_path，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
+    },
+    {
+      "id": "counter_pressure",
+      "asset_path": "res://assets/art/cards/card_counter_pressure.svg",
+      "slot_path": "res://assets/art/cards/card_counter_pressure.svg",
+      "design_note": "反压姿态是长期能力，正式插画应表现压力阀和反击架势。",
+      "replacement_note": "能力牌应有稳定、持续生效的视觉符号，不要像一次性攻击。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 插图；未来正式插画仍保持同一 slot_path，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
+    },
+    {
+      "id": "pierce_rivet",
+      "asset_path": "res://assets/art/cards/card_pierce_rivet.svg",
+      "slot_path": "res://assets/art/cards/card_pierce_rivet.svg",
+      "design_note": "穿甲铆钉应表现高速铆钉击穿护甲。",
+      "replacement_note": "主体应可在小图标中读出穿刺方向。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 插图；未来正式插画仍保持同一 slot_path，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
+    },
+    {
+      "id": "iron_sweep",
+      "asset_path": "res://assets/art/cards/card_iron_sweep.svg",
+      "slot_path": "res://assets/art/cards/card_iron_sweep.svg",
+      "design_note": "铁屑横扫是横向清场牌，正式插画应表现扇形铁屑或扫击。",
+      "replacement_note": "插画要强调范围，而不是单点突刺。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 插图；未来正式插画仍保持同一 slot_path，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
+    },
+    {
+      "id": "overheat",
+      "asset_path": "res://assets/art/cards/card_overheat.svg",
+      "slot_path": "res://assets/art/cards/card_overheat.svg",
+      "design_note": "过热应表现主动提高炉压的风险感。",
+      "replacement_note": "高温色可更强，但要保留技能牌边框的冷色识别。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 插图；未来正式插画仍保持同一 slot_path，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
+    },
+    {
+      "id": "shield_pulse",
+      "asset_path": "res://assets/art/cards/card_shield_pulse.svg",
+      "slot_path": "res://assets/art/cards/card_shield_pulse.svg",
+      "design_note": "护盾脉冲应表现圆形防御波纹。",
+      "replacement_note": "护盾边缘应清晰，便于和技能落点 VFX 形成一致语言。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 插图；未来正式插画仍保持同一 slot_path，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
+    },
+    {
+      "id": "soot_step",
+      "asset_path": "res://assets/art/cards/card_soot_step.svg",
+      "slot_path": "res://assets/art/cards/card_soot_step.svg",
+      "design_note": "煤烟步是节奏调整牌，正式插画应表现位移残影或烟幕脚步。",
+      "replacement_note": "避免画成纯攻击动作，保持机动/过牌识别。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 插图；未来正式插画仍保持同一 slot_path，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
+    },
+    {
+      "id": "forge_focus",
+      "asset_path": "res://assets/art/cards/card_forge_focus.svg",
+      "slot_path": "res://assets/art/cards/card_forge_focus.svg",
+      "design_note": "炉心聚焦应表现角色调校炉心、集中资源。",
+      "replacement_note": "建议保留中心光源，和势能资源图标建立关联。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 插图；未来正式插画仍保持同一 slot_path，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
+    },
+    {
+      "id": "spark_throw",
+      "asset_path": "res://assets/art/cards/card_spark_throw.svg",
+      "slot_path": "res://assets/art/cards/card_spark_throw.svg",
+      "design_note": "抛掷火星是轻攻击，正式插画应表现小型火星飞射。",
+      "replacement_note": "火星尺寸不要过大，保持普通牌低稀有度质感。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 插图；未来正式插画仍保持同一 slot_path，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
+    },
+    {
+      "id": "emergency_steam",
+      "asset_path": "res://assets/art/cards/card_emergency_steam.svg",
+      "slot_path": "res://assets/art/cards/card_emergency_steam.svg",
+      "design_note": "紧急蒸汽应表现瞬时泄压和防御爆发。",
+      "replacement_note": "可使用强白烟，但按钮内文字必须保持可读。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 插图；未来正式插画仍保持同一 slot_path，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
+    },
+    {
+      "id": "ember_wall",
+      "asset_path": "res://assets/art/cards/card_ember_wall.svg",
+      "slot_path": "res://assets/art/cards/card_ember_wall.svg",
+      "design_note": "余烬墙是高防御牌，正式插画应表现燃烧但稳定的屏障。",
+      "replacement_note": "屏障形状应比护盾脉冲更厚重。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 插图；未来正式插画仍保持同一 slot_path，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
+    },
+    {
+      "id": "violent_discharge",
+      "asset_path": "res://assets/art/cards/card_violent_discharge.svg",
+      "slot_path": "res://assets/art/cards/card_violent_discharge.svg",
+      "design_note": "暴烈放电应表现危险的能量外泄。",
+      "replacement_note": "高能光效应集中在插画区，避免压住费用和名称。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 插图；未来正式插画仍保持同一 slot_path，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
+    },
+    {
+      "id": "battery_pack",
+      "asset_path": "res://assets/art/cards/card_battery_pack.svg",
+      "slot_path": "res://assets/art/cards/card_battery_pack.svg",
+      "design_note": "蓄电背板应表现临时能源模块。",
+      "replacement_note": "建议加入电池形状，方便和电弧工匠流派联想。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 插图；未来正式插画仍保持同一 slot_path，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
+    },
+    {
+      "id": "heat_chain",
+      "asset_path": "res://assets/art/cards/card_heat_chain.svg",
+      "slot_path": "res://assets/art/cards/card_heat_chain.svg",
+      "design_note": "热链应表现燃烧链条或连锁热能。",
+      "replacement_note": "链条轮廓要清楚，区分于普通斩击。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 插图；未来正式插画仍保持同一 slot_path，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
+    },
+    {
+      "id": "defensive_loop",
+      "asset_path": "res://assets/art/cards/card_defensive_loop.svg",
+      "slot_path": "res://assets/art/cards/card_defensive_loop.svg",
+      "design_note": "防御回路应表现循环护盾或闭合线路。",
+      "replacement_note": "构图要体现循环，不只是单次格挡。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 插图；未来正式插画仍保持同一 slot_path，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
+    },
+    {
+      "id": "ignition",
+      "asset_path": "res://assets/art/cards/card_ignition.svg",
+      "slot_path": "res://assets/art/cards/card_ignition.svg",
+      "design_note": "点燃应表现状态启动和火势蔓延的前兆。",
+      "replacement_note": "作为技能牌，插画不要看起来像直接大伤害攻击。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 插图；未来正式插画仍保持同一 slot_path，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
+    },
+    {
+      "id": "smelt_plating",
+      "asset_path": "res://assets/art/cards/card_smelt_plating.svg",
+      "slot_path": "res://assets/art/cards/card_smelt_plating.svg",
+      "design_note": "熔铸镀层是防御能力，正式插画应表现装甲逐步增厚。",
+      "replacement_note": "使用稳重材质，和一次性格挡牌区分。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 插图；未来正式插画仍保持同一 slot_path，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
+    },
+    {
+      "id": "slag_bomb",
+      "asset_path": "res://assets/art/cards/card_slag_bomb.svg",
+      "slot_path": "res://assets/art/cards/card_slag_bomb.svg",
+      "design_note": "熔渣炸弹应表现不稳定的炉渣爆裂。",
+      "replacement_note": "爆炸范围要清楚，但不要遮挡文本区。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 插图；未来正式插画仍保持同一 slot_path，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
+    },
+    {
+      "id": "momentum_refund",
+      "asset_path": "res://assets/art/cards/card_momentum_refund.svg",
+      "slot_path": "res://assets/art/cards/card_momentum_refund.svg",
+      "design_note": "势能返还应表现能量回流到角色核心。",
+      "replacement_note": "建议使用回流箭头或回路闭合符号。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 插图；未来正式插画仍保持同一 slot_path，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
+    },
+    {
+      "id": "blast_gate",
+      "asset_path": "res://assets/art/cards/card_blast_gate.svg",
+      "slot_path": "res://assets/art/cards/card_blast_gate.svg",
+      "design_note": "爆压闸门应表现防线在压力中开启。",
+      "replacement_note": "稀有牌插画可以更复杂，但按钮小图仍需读出闸门轮廓。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 插图；未来正式插画仍保持同一 slot_path，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
+    },
+    {
+      "id": "final_pressure",
+      "asset_path": "res://assets/art/cards/card_final_pressure.svg",
+      "slot_path": "res://assets/art/cards/card_final_pressure.svg",
+      "design_note": "终压释放是高爆发攻击，正式插画应表现蓄压后的集中释放。",
+      "replacement_note": "稀有攻击应有更强中心冲击，但仍保持攻击牌红橙识别。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 插图；未来正式插画仍保持同一 slot_path，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
+    },
+    {
+      "id": "pressure_probe",
+      "asset_path": "res://assets/art/cards/card_pressure_probe.svg",
+      "slot_path": "res://assets/art/cards/card_pressure_probe.svg",
+      "design_note": "压力探针应表现测试性打击和弱点探测。",
+      "replacement_note": "插画可使用细线探针，区分于重型武器攻击。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 插图；未来正式插画仍保持同一 slot_path，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
+    },
+    {
+      "id": "cinder_patch",
+      "asset_path": "res://assets/art/cards/card_cinder_patch.svg",
+      "slot_path": "res://assets/art/cards/card_cinder_patch.svg",
+      "design_note": "余火修补应表现临时修复和微弱火光。",
+      "replacement_note": "治疗/修复符号要温和，避免误读为攻击。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 插图；未来正式插画仍保持同一 slot_path，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
+    },
+    {
+      "id": "furnace_prayer",
+      "asset_path": "res://assets/art/cards/card_furnace_prayer.svg",
+      "slot_path": "res://assets/art/cards/card_furnace_prayer.svg",
+      "design_note": "熔炉祷言是稀有能力，正式插画应表现机械教团仪式感。",
+      "replacement_note": "应突出长期增益的庄重感，而非瞬时爆炸。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 插图；未来正式插画仍保持同一 slot_path，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
+    },
+    {
+      "id": "ash_tithe",
+      "asset_path": "res://assets/art/cards/card_ash_tithe.svg",
+      "slot_path": "res://assets/art/cards/card_ash_tithe.svg",
+      "design_note": "灰烬献纳应表现以资源换取收益的仪式。",
+      "replacement_note": "插画需暗示代价，不要只表现奖励。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 插图；未来正式插画仍保持同一 slot_path，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
+    },
+    {
+      "id": "static_primer",
+      "asset_path": "res://assets/art/cards/card_static_primer.svg",
+      "slot_path": "res://assets/art/cards/card_static_primer.svg",
+      "design_note": "静电预充是电弧工匠专属准备牌，正式插画应表现电荷积蓄。",
+      "replacement_note": "使用蓝白电弧，与余烬角色牌形成角色差异。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 插图；未来正式插画仍保持同一 slot_path，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
+    },
+    {
+      "id": "arc_needles",
+      "asset_path": "res://assets/art/cards/card_arc_needles.svg",
+      "slot_path": "res://assets/art/cards/card_arc_needles.svg",
+      "design_note": "电弧针雨应表现多枚带电细针齐射。",
+      "replacement_note": "针雨方向要清晰，支持多段攻击联想。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 插图；未来正式插画仍保持同一 slot_path，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
+    },
+    {
+      "id": "capacitor_guard",
+      "asset_path": "res://assets/art/cards/card_capacitor_guard.svg",
+      "slot_path": "res://assets/art/cards/card_capacitor_guard.svg",
+      "design_note": "电容护幕应表现电容阵列生成防护层。",
+      "replacement_note": "突出电弧工匠的器械感，不要像普通盾牌。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 插图；未来正式插画仍保持同一 slot_path，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
+    },
+    {
+      "id": "short_circuit",
+      "asset_path": "res://assets/art/cards/card_short_circuit.svg",
+      "slot_path": "res://assets/art/cards/card_short_circuit.svg",
+      "design_note": "短路跳线应表现不稳定但精准的电击。",
+      "replacement_note": "画面应有短路火花，提示可能的连锁或爆发。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 插图；未来正式插画仍保持同一 slot_path，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
+    },
+    {
+      "id": "bottle_surge",
+      "asset_path": "res://assets/art/cards/card_bottle_surge.svg",
+      "slot_path": "res://assets/art/cards/card_bottle_surge.svg",
+      "design_note": "瓶装涌流应表现药剂或电荷瓶释放能量。",
+      "replacement_note": "应和药水图标有一定关联，但仍保持卡牌构图。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 插图；未来正式插画仍保持同一 slot_path，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
+    },
+    {
+      "id": "livewire_matrix",
+      "asset_path": "res://assets/art/cards/card_livewire_matrix.svg",
+      "slot_path": "res://assets/art/cards/card_livewire_matrix.svg",
+      "design_note": "带电矩阵是电弧工匠稀有能力，正式插画应表现矩阵线路接管战场。",
+      "replacement_note": "稀有能力应有较强层次，但避免遮挡文字。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 插图；未来正式插画仍保持同一 slot_path，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
+    },
+    {
+      "id": "penitent_cut",
+      "asset_path": "res://assets/art/cards/card_penitent_cut.svg",
+      "slot_path": "res://assets/art/cards/card_penitent_cut.svg",
+      "design_note": "苦修斩是熔痕苦修者基础攻击，正式插画应表现带白焰烙印的近身斩击。",
+      "replacement_note": "攻击轨迹应偏白焰/赤红，和电弧蓝色角色区分。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 插图；未来正式插画仍保持同一 slot_path，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
+    },
+    {
+      "id": "scar_guard",
+      "asset_path": "res://assets/art/cards/card_scar_guard.svg",
+      "slot_path": "res://assets/art/cards/card_scar_guard.svg",
+      "design_note": "炉痕守势是熔痕苦修者基础防御，正式插画应表现烙痕护盾和压抑火光。",
+      "replacement_note": "护盾形状要清楚，避免看起来像攻击牌。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 插图；未来正式插画仍保持同一 slot_path，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
+    },
+    {
+      "id": "kindle_pain",
+      "asset_path": "res://assets/art/cards/card_kindle_pain.svg",
+      "slot_path": "res://assets/art/cards/card_kindle_pain.svg",
+      "design_note": "痛燃是自伤润滑牌，正式插画应表现把伤口点燃成资源。",
+      "replacement_note": "画面需暗示代价，不能只表现收益光效。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 插图；未来正式插画仍保持同一 slot_path，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
+    },
+    {
+      "id": "blood_kindling",
+      "asset_path": "res://assets/art/cards/card_blood_kindling.svg",
+      "slot_path": "res://assets/art/cards/card_blood_kindling.svg",
+      "design_note": "血火引燃是专属启动牌，正式插画应表现血滴点亮炉火。",
+      "replacement_note": "血色使用要克制，保持项目整体工业奇幻方向。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 插图；未来正式插画仍保持同一 slot_path，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
+    },
+    {
+      "id": "brand_strike",
+      "asset_path": "res://assets/art/cards/card_brand_strike.svg",
+      "slot_path": "res://assets/art/cards/card_brand_strike.svg",
+      "design_note": "烙印重击是灼烧攻击，正式插画应表现烙印在敌甲上扩散。",
+      "replacement_note": "烙印符号需在小尺寸下可读。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 插图；未来正式插画仍保持同一 slot_path，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
+    },
+    {
+      "id": "cauterize",
+      "asset_path": "res://assets/art/cards/card_cauterize.svg",
+      "slot_path": "res://assets/art/cards/card_cauterize.svg",
+      "design_note": "灼口封缄是高效防御带代价，正式插画应表现烧灼封住裂口。",
+      "replacement_note": "应突出防御/修复而非直接治疗。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 插图；未来正式插画仍保持同一 slot_path，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
+    },
+    {
+      "id": "wound_offering",
+      "asset_path": "res://assets/art/cards/card_wound_offering.svg",
+      "slot_path": "res://assets/art/cards/card_wound_offering.svg",
+      "design_note": "创口供品是灼伤引擎牌，正式插画应表现把伤口作为供品投入白焰。",
+      "replacement_note": "需要清楚表达风险收益，避免误读为普通抽牌。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 插图；未来正式插画仍保持同一 slot_path，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
+    },
+    {
+      "id": "scourge_sweep",
+      "asset_path": "res://assets/art/cards/card_scourge_sweep.svg",
+      "slot_path": "res://assets/art/cards/card_scourge_sweep.svg",
+      "design_note": "鞭焰横扫是专属群体攻击，正式插画应表现白焰鞭扫过多个目标。",
+      "replacement_note": "范围感要强，但不要遮挡卡名和费用。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 插图；未来正式插画仍保持同一 slot_path，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
+    },
+    {
+      "id": "white_flame_oath",
+      "asset_path": "res://assets/art/cards/card_white_flame_oath.svg",
+      "slot_path": "res://assets/art/cards/card_white_flame_oath.svg",
+      "design_note": "白焰誓约是专属稀有能力，正式插画应表现白焰誓词和长期力量来源。",
+      "replacement_note": "能力牌应稳重，不要做成一次性攻击爆炸。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 插图；未来正式插画仍保持同一 slot_path，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
+    },
+    {
+      "id": "searing_wound",
+      "asset_path": "res://assets/art/cards/card_searing_wound.svg",
+      "slot_path": "res://assets/art/cards/card_searing_wound.svg",
+      "design_note": "灼伤是状态牌，正式插画应让玩家立刻识别为负面牌。",
+      "replacement_note": "正式版应替换为状态/负面卡模板，而不是普通技能牌框。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 插图；未来正式插画仍保持同一 slot_path，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
+    }
+  ],
+  "relic_icon_slots": [
+    {
+      "id": "cracked_charm",
+      "asset_path": "res://assets/art/relics/relic_cracked_charm.svg",
+      "slot_path": "res://assets/art/relics/relic_cracked_charm.svg",
+      "design_note": "裂纹护符是起始防御遗物，正式图标应表现破损但仍有效的护符。",
+      "replacement_note": "遗物图标需在 32px 下可读，外轮廓应明确。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 遗物图标；未来正式图标仍保持同一 slot_path，遗物触发逻辑继续由 relic 数据和 CombatState 结算。"
+    },
+    {
+      "id": "heavy_gear",
+      "asset_path": "res://assets/art/relics/relic_heavy_gear.svg",
+      "slot_path": "res://assets/art/relics/relic_heavy_gear.svg",
+      "design_note": "沉重齿轮应表现低速高扭矩的机械感。",
+      "replacement_note": "轮齿数量不要过密，避免小尺寸糊成圆形。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 遗物图标；未来正式图标仍保持同一 slot_path，遗物触发逻辑继续由 relic 数据和 CombatState 结算。"
+    },
+    {
+      "id": "ember_bottle",
+      "asset_path": "res://assets/art/relics/relic_ember_bottle.svg",
+      "slot_path": "res://assets/art/relics/relic_ember_bottle.svg",
+      "design_note": "余烬瓶是起始过牌遗物，正式图标应表现瓶中余火。",
+      "replacement_note": "瓶身轮廓应和药水类图标区分，强调遗物质感。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 遗物图标；未来正式图标仍保持同一 slot_path，遗物触发逻辑继续由 relic 数据和 CombatState 结算。"
+    },
+    {
+      "id": "arc_capacitor",
+      "asset_path": "res://assets/art/relics/relic_arc_capacitor.svg",
+      "slot_path": "res://assets/art/relics/relic_arc_capacitor.svg",
+      "design_note": "电弧电容是电弧工匠起始遗物，正式图标应表现电容核心。",
+      "replacement_note": "使用蓝白电弧形成角色识别。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 遗物图标；未来正式图标仍保持同一 slot_path，遗物触发逻辑继续由 relic 数据和 CombatState 结算。"
+    },
+    {
+      "id": "war_drum_fragment",
+      "asset_path": "res://assets/art/relics/relic_war_drum_fragment.svg",
+      "slot_path": "res://assets/art/relics/relic_war_drum_fragment.svg",
+      "design_note": "战鼓残片应表现节奏推进和战斗开场优势。",
+      "replacement_note": "碎片轮廓要明显，不要像普通圆盘。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 遗物图标；未来正式图标仍保持同一 slot_path，遗物触发逻辑继续由 relic 数据和 CombatState 结算。"
+    },
+    {
+      "id": "molten_core_ring",
+      "asset_path": "res://assets/art/relics/relic_molten_core_ring.svg",
+      "slot_path": "res://assets/art/relics/relic_molten_core_ring.svg",
+      "design_note": "熔芯戒指应表现高温环形核心。",
+      "replacement_note": "中心留空能增强戒指识别。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 遗物图标；未来正式图标仍保持同一 slot_path，遗物触发逻辑继续由 relic 数据和 CombatState 结算。"
+    },
+    {
+      "id": "shield_break_wedge",
+      "asset_path": "res://assets/art/relics/relic_shield_break_wedge.svg",
+      "slot_path": "res://assets/art/relics/relic_shield_break_wedge.svg",
+      "design_note": "破盾楔应表现楔形工具撬开护甲。",
+      "replacement_note": "楔形尖端方向要清楚，支持破盾联想。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 遗物图标；未来正式图标仍保持同一 slot_path，遗物触发逻辑继续由 relic 数据和 CombatState 结算。"
+    },
+    {
+      "id": "blank_contract",
+      "asset_path": "res://assets/art/relics/relic_blank_contract.svg",
+      "slot_path": "res://assets/art/relics/relic_blank_contract.svg",
+      "design_note": "空白契约应表现危险交易和未知代价。",
+      "replacement_note": "纸张或契约轮廓要在深色 UI 中可读。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 遗物图标；未来正式图标仍保持同一 slot_path，遗物触发逻辑继续由 relic 数据和 CombatState 结算。"
+    },
+    {
+      "id": "burn_needle",
+      "asset_path": "res://assets/art/relics/relic_burn_needle.svg",
+      "slot_path": "res://assets/art/relics/relic_burn_needle.svg",
+      "design_note": "灼烧针管应表现注射器和火焰状态。",
+      "replacement_note": "注意和药水注射器类图标保持差异。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 遗物图标；未来正式图标仍保持同一 slot_path，遗物触发逻辑继续由 relic 数据和 CombatState 结算。"
+    },
+    {
+      "id": "echo_stone",
+      "asset_path": "res://assets/art/relics/relic_echo_stone.svg",
+      "slot_path": "res://assets/art/relics/relic_echo_stone.svg",
+      "design_note": "回声石应表现重复触发或回响纹路。",
+      "replacement_note": "可用同心波纹，但轮廓需稳固。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 遗物图标；未来正式图标仍保持同一 slot_path，遗物触发逻辑继续由 relic 数据和 CombatState 结算。"
+    },
+    {
+      "id": "old_compass",
+      "asset_path": "res://assets/art/relics/relic_old_compass.svg",
+      "slot_path": "res://assets/art/relics/relic_old_compass.svg",
+      "design_note": "旧罗盘应表现路线选择和探索收益。",
+      "replacement_note": "指针形状要清楚，地图相关遗物要和战斗遗物区分。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 遗物图标；未来正式图标仍保持同一 slot_path，遗物触发逻辑继续由 relic 数据和 CombatState 结算。"
+    },
+    {
+      "id": "spark_coil",
+      "asset_path": "res://assets/art/relics/relic_spark_coil.svg",
+      "slot_path": "res://assets/art/relics/relic_spark_coil.svg",
+      "design_note": "火花线圈是电弧工匠专属遗物，正式图标应表现线圈放电。",
+      "replacement_note": "蓝白线圈应和电弧卡牌保持一致。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 遗物图标；未来正式图标仍保持同一 slot_path，遗物触发逻辑继续由 relic 数据和 CombatState 结算。"
+    },
+    {
+      "id": "insulated_battery",
+      "asset_path": "res://assets/art/relics/relic_insulated_battery.svg",
+      "slot_path": "res://assets/art/relics/relic_insulated_battery.svg",
+      "design_note": "绝缘电池应表现安全储能和防过载。",
+      "replacement_note": "电池轮廓应区别于药瓶和核心。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 遗物图标；未来正式图标仍保持同一 slot_path，遗物触发逻辑继续由 relic 数据和 CombatState 结算。"
+    },
+    {
+      "id": "micro_dynamo",
+      "asset_path": "res://assets/art/relics/relic_micro_dynamo.svg",
+      "slot_path": "res://assets/art/relics/relic_micro_dynamo.svg",
+      "design_note": "微型发电机是稀有电弧遗物，正式图标应表现小型发电核心。",
+      "replacement_note": "稀有遗物可以更亮，但不要超出遗物按钮边界。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 遗物图标；未来正式图标仍保持同一 slot_path，遗物触发逻辑继续由 relic 数据和 CombatState 结算。"
+    },
+    {
+      "id": "penitent_censer",
+      "asset_path": "res://assets/art/relics/relic_penitent_censer.svg",
+      "slot_path": "res://assets/art/relics/relic_penitent_censer.svg",
+      "design_note": "苦修香炉是熔痕苦修者起始遗物，正式图标应表现低矮香炉和白焰烟线。",
+      "replacement_note": "香炉轮廓需区别于药瓶，小尺寸下保留火焰识别。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 遗物图标；未来正式图标仍保持同一 slot_path，遗物触发逻辑继续由 relic 数据和 CombatState 结算。"
+    },
+    {
+      "id": "ash_rosary",
+      "asset_path": "res://assets/art/relics/relic_ash_rosary.svg",
+      "slot_path": "res://assets/art/relics/relic_ash_rosary.svg",
+      "design_note": "灰烬念珠应表现串珠、灰烬和短暂防护感。",
+      "replacement_note": "串珠数量不要过密，避免缩小时糊成一条线。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 遗物图标；未来正式图标仍保持同一 slot_path，遗物触发逻辑继续由 relic 数据和 CombatState 结算。"
+    },
+    {
+      "id": "red_wick",
+      "asset_path": "res://assets/art/relics/relic_red_wick.svg",
+      "slot_path": "res://assets/art/relics/relic_red_wick.svg",
+      "design_note": "赤芯烛捻应表现红色烛芯和灼伤转化输出的意象。",
+      "replacement_note": "烛芯主体应清楚，避免看起来像普通火花。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 遗物图标；未来正式图标仍保持同一 slot_path，遗物触发逻辑继续由 relic 数据和 CombatState 结算。"
+    },
+    {
+      "id": "white_flame_brand",
+      "asset_path": "res://assets/art/relics/relic_white_flame_brand.svg",
+      "slot_path": "res://assets/art/relics/relic_white_flame_brand.svg",
+      "design_note": "白焰烙印是稀有势能遗物，正式图标应表现掌心烙印和白焰回路。",
+      "replacement_note": "稀有图标可更亮，但需要保留清晰外轮廓。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 遗物图标；未来正式图标仍保持同一 slot_path，遗物触发逻辑继续由 relic 数据和 CombatState 结算。"
+    }
+  ],
+  "potion_icon_slots": [
+    {
+      "id": "volatile_vial",
+      "asset_path": "res://assets/art/potions/potion_volatile_vial.svg",
+      "slot_path": "res://assets/art/potions/potion_volatile_vial.svg",
+      "design_note": "挥发瓶是伤害药水，正式图标应表现红橙不稳定液体。",
+      "replacement_note": "瓶身外轮廓需清楚，和遗物瓶子保持差异。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 药水图标；未来正式图标仍保持同一 slot_path，药水效果继续由 potion 数据和 CombatState.use_potion 结算。"
+    },
+    {
+      "id": "guard_tonic",
+      "asset_path": "res://assets/art/potions/potion_guard_tonic.svg",
+      "slot_path": "res://assets/art/potions/potion_guard_tonic.svg",
+      "design_note": "守护补剂是防御药水，正式图标应表现蓝色护盾药液。",
+      "replacement_note": "防御药水颜色应偏冷，避免和伤害药水混淆。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 药水图标；未来正式图标仍保持同一 slot_path，药水效果继续由 potion 数据和 CombatState.use_potion 结算。"
+    },
+    {
+      "id": "steam_cell",
+      "asset_path": "res://assets/art/potions/potion_steam_cell.svg",
+      "slot_path": "res://assets/art/potions/potion_steam_cell.svg",
+      "design_note": "蒸汽电池是资源药水，正式图标应表现小型蒸汽罐。",
+      "replacement_note": "可使用金属罐外形，区别于玻璃瓶。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 药水图标；未来正式图标仍保持同一 slot_path，药水效果继续由 potion 数据和 CombatState.use_potion 结算。"
+    },
+    {
+      "id": "focus_draught",
+      "asset_path": "res://assets/art/potions/potion_focus_draught.svg",
+      "slot_path": "res://assets/art/potions/potion_focus_draught.svg",
+      "design_note": "聚焦饮剂应表现稳定心智或精准调校。",
+      "replacement_note": "颜色可偏紫/青，但不要和 Boss 阶段 VFX 混淆。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 药水图标；未来正式图标仍保持同一 slot_path，药水效果继续由 potion 数据和 CombatState.use_potion 结算。"
+    },
+    {
+      "id": "spark_bomb",
+      "asset_path": "res://assets/art/potions/potion_spark_bomb.svg",
+      "slot_path": "res://assets/art/potions/potion_spark_bomb.svg",
+      "design_note": "火星爆弹是范围伤害药水，正式图标应表现可投掷爆弹。",
+      "replacement_note": "轮廓应更像炸弹而不是普通药瓶。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 药水图标；未来正式图标仍保持同一 slot_path，药水效果继续由 potion 数据和 CombatState.use_potion 结算。"
+    },
+    {
+      "id": "clockwork_injector",
+      "asset_path": "res://assets/art/potions/potion_clockwork_injector.svg",
+      "slot_path": "res://assets/art/potions/potion_clockwork_injector.svg",
+      "design_note": "发条注射器应表现机械注射装置。",
+      "replacement_note": "细长轮廓要在 32px 下仍可辨认。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 药水图标；未来正式图标仍保持同一 slot_path，药水效果继续由 potion 数据和 CombatState.use_potion 结算。"
+    },
+    {
+      "id": "smoke_ampoule",
+      "asset_path": "res://assets/art/potions/potion_smoke_ampoule.svg",
+      "slot_path": "res://assets/art/potions/potion_smoke_ampoule.svg",
+      "design_note": "烟幕安瓿应表现灰色烟雾和玻璃安瓿。",
+      "replacement_note": "烟雾不能遮挡瓶身轮廓，否则小尺寸难以识别。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 药水图标；未来正式图标仍保持同一 slot_path，药水效果继续由 potion 数据和 CombatState.use_potion 结算。"
+    },
+    {
+      "id": "coolant_phial",
+      "asset_path": "res://assets/art/potions/potion_coolant_phial.svg",
+      "slot_path": "res://assets/art/potions/potion_coolant_phial.svg",
+      "design_note": "冷却小瓶是稀有恢复药水，正式图标应表现高价值冷却液。",
+      "replacement_note": "可用更亮的冷青色和金属封口体现稀有度。",
+      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 药水图标；未来正式图标仍保持同一 slot_path，药水效果继续由 potion 数据和 CombatState.use_potion 结算。"
+    }
+  ]
+}

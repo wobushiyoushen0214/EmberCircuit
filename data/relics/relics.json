@@ -33,6 +33,16 @@
       "implementation_note": "已由 combat_start 遗物事件支持。"
     },
     {
+      "id": "arc_capacitor",
+      "name": "电弧电容",
+      "rarity": "starter",
+      "description": "战斗开始时获得 1 点势能。",
+      "effects": [ { "trigger": "combat_start", "type": "gain_momentum", "amount": 1 } ],
+      "design_note": "电弧工匠的专属起始遗物，让其第一回合更容易启动低费连打和势能门槛牌。",
+      "balance_note": "只提供 1 点势能且不提高上限；与较低生命和较低势能上限配套，避免长期爆发超过默认角色。",
+      "implementation_note": "复用 CombatState 现有 combat_start / gain_momentum 遗物效果。"
+    },
+    {
       "id": "war_drum_fragment",
       "name": "战鼓残片",
       "rarity": "common",
@@ -96,11 +106,103 @@
       "id": "old_compass",
       "name": "旧罗盘",
       "rarity": "common",
-      "description": "地图上额外显示一个未知房间的真实类型。",
-      "effects": [ { "trigger": "map_generated", "type": "reveal_extra_unknown", "amount": 1 } ],
+      "description": "地图选择时额外开放 1 个同层候选节点。",
+      "effects": [ { "trigger": "map_choice", "type": "extra_route_option", "amount": 1 } ],
       "design_note": "路线规划遗物，降低问号房风险。",
-      "balance_note": "不影响战斗强度，只影响路线信息。",
-      "implementation_note": "地图系统阶段实现；当前战斗 MVP 不触发。"
+      "balance_note": "不影响战斗强度，只增加路线选择空间；当下一层没有额外节点时不触发。",
+      "implementation_note": "已由 Main.gd 在地图选择阶段扩展 available_node_ids。"
+    },
+    {
+      "id": "spark_coil",
+      "name": "火花线圈",
+      "rarity": "common",
+      "character_ids": [ "arc_tinker" ],
+      "description": "每回合第一次打出 0 费牌时，获得 1 点势能。",
+      "effects": [ { "trigger": "card_played", "type": "gain_momentum", "amount": 1, "card_cost_equals": 0, "once_per_turn": true } ],
+      "design_note": "电弧工匠专属遗物，强化 0 费攻击和静电预充的节奏身份。",
+      "balance_note": "每回合一次，只给势能不给能量；需要 0 费牌密度才能稳定触发。",
+      "implementation_note": "复用 card_played、card_cost_equals、once_per_turn 和 gain_momentum 遗物效果。"
+    },
+    {
+      "id": "insulated_battery",
+      "name": "绝缘电池",
+      "rarity": "uncommon",
+      "character_ids": [ "arc_tinker" ],
+      "description": "战斗开始时获得 4 点护甲和 1 点势能。",
+      "effects": [
+        { "trigger": "combat_start", "type": "gain_block", "amount": 4 },
+        { "trigger": "combat_start", "type": "gain_momentum", "amount": 1 }
+      ],
+      "design_note": "电弧工匠专属开局容错遗物，缓冲 64 生命带来的早期压力。",
+      "balance_note": "开局收益明确但不会随回合增长，适合低生命角色而不破坏长期强度。",
+      "implementation_note": "复用 combat_start 的 gain_block 和 gain_momentum 遗物效果。"
+    },
+    {
+      "id": "micro_dynamo",
+      "name": "微型发电机",
+      "rarity": "rare",
+      "character_ids": [ "arc_tinker" ],
+      "description": "势能上限 +1。每回合第一次打出 0 费牌时，获得 1 点能量。",
+      "effects": [
+        { "trigger": "setup", "type": "momentum_max_bonus", "amount": 1 },
+        { "trigger": "card_played", "type": "gain_energy", "amount": 1, "card_cost_equals": 0, "once_per_turn": true }
+      ],
+      "design_note": "电弧工匠专属稀有遗物，把低费连打升级为真正的爆发回合。",
+      "balance_note": "稀有度较高，能量收益每回合一次；势能上限只补 1，避免越过默认角色的爆发上限太多。",
+      "implementation_note": "复用 setup/momentum_max_bonus 与 card_played/gain_energy 遗物效果。"
+    },
+    {
+      "id": "penitent_censer",
+      "name": "苦修香炉",
+      "rarity": "starter",
+      "character_ids": [ "pyre_ascetic" ],
+      "description": "每当一张灼伤被加入你的牌堆，对所有敌人造成 2 点伤害。",
+      "effects": [
+        { "trigger": "card_created", "type": "damage_all_enemies", "amount": 2, "card_id": "searing_wound" }
+      ],
+      "design_note": "熔痕苦修者起始遗物，把负面状态牌转成极小但稳定的输出信号。",
+      "balance_note": "每张灼伤造成 2 点全体伤害，让状态污染卡能补足第一章输出，但仍需要主动承担灼伤污染。",
+      "implementation_note": "复用 card_created、card_id 条件和 damage_all_enemies 遗物效果。"
+    },
+    {
+      "id": "ash_rosary",
+      "name": "灰烬念珠",
+      "rarity": "common",
+      "character_ids": [ "pyre_ascetic" ],
+      "description": "战斗开始时获得 7 点护甲。",
+      "effects": [
+        { "trigger": "combat_start", "type": "gain_block", "amount": 7 }
+      ],
+      "design_note": "熔痕苦修者专属容错遗物，缓冲自伤和灼烧带来的早期血量压力。",
+      "balance_note": "只在战斗开始触发，数值约等于一张弱防御牌，专门缓冲连续战斗和自伤压力。",
+      "implementation_note": "复用 combat_start/gain_block 遗物效果。"
+    },
+    {
+      "id": "red_wick",
+      "name": "赤芯烛捻",
+      "rarity": "uncommon",
+      "character_ids": [ "pyre_ascetic" ],
+      "description": "每当一张灼伤被加入你的牌堆，对所有敌人造成 2 点伤害。",
+      "effects": [
+        { "trigger": "card_created", "type": "damage_all_enemies", "amount": 2, "card_id": "searing_wound" }
+      ],
+      "design_note": "强化状态污染构筑，让主动制造灼伤的卡牌获得更清晰的伤害回报。",
+      "balance_note": "比起始遗物更强，但仍要求玩家把灼伤放入牌堆并承担后续抽到它的风险。",
+      "implementation_note": "复用与苦修香炉相同的 card_created 触发路径。"
+    },
+    {
+      "id": "white_flame_brand",
+      "name": "白焰烙印",
+      "rarity": "rare",
+      "character_ids": [ "pyre_ascetic" ],
+      "description": "势能上限 +2。战斗开始时获得 1 点势能。",
+      "effects": [
+        { "trigger": "setup", "type": "momentum_max_bonus", "amount": 2 },
+        { "trigger": "combat_start", "type": "gain_momentum", "amount": 1 }
+      ],
+      "design_note": "熔痕苦修者专属稀有遗物，把高风险资源规划推向更大的爆发窗口。",
+      "balance_note": "只给 1 点开局势能，主要价值是上限；需要牌组支持才能转化为输出。",
+      "implementation_note": "复用 setup/momentum_max_bonus 与 combat_start/gain_momentum。"
     }
   ]
 }

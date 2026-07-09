@@ -26,6 +26,7 @@ var selected_encounter_id: String = "intro_patrol"
 var attack_cards_played_this_turn: int = 0
 var relic_used_this_turn: Dictionary = {}
 var skill_block_bonus_percent: int = 0
+var challenge_modifiers: Dictionary = {}
 
 func setup(
 	card_data: Dictionary,
@@ -43,12 +44,13 @@ func setup(
 	relics_by_id = DataLoaderScript.index_by_id(relic_data.get("relics", []))
 	encounters_by_id = DataLoaderScript.index_by_id(encounter_data.get("encounters", []))
 	selected_encounter_id = encounter_id
+	var player_config: Dictionary = _player_config_from_data(player_data)
+	challenge_modifiers = player_data.get("challenge_modifiers", {})
 	if relic_override.is_empty():
-		owned_relic_ids = relic_data.get("starter_relics", []).duplicate(true)
+		owned_relic_ids = player_config.get("starter_relic_ids", relic_data.get("starter_relics", [])).duplicate(true)
 	else:
 		owned_relic_ids = relic_override.duplicate(true)
 
-	var player_config: Dictionary = player_data.get("player", {})
 	var starting_hp: int = int(player_config.get("starting_hp", 72))
 	if player_hp_override >= 0:
 		starting_hp = player_hp_override
@@ -80,7 +82,7 @@ func setup(
 	_apply_setup_relics()
 	var deck_ids: Array = deck_override
 	if deck_ids.is_empty():
-		deck_ids = card_data.get("starter_deck", {}).get("cards", [])
+		deck_ids = player_config.get("starter_deck_ids", card_data.get("starter_deck", {}).get("cards", []))
 	_build_starting_deck(deck_ids)
 	_load_encounter(encounter_id)
 	_roll_enemy_intents()
@@ -88,6 +90,15 @@ func setup(
 	start_player_turn()
 	_apply_relics("combat_start", {})
 	emit_signal("changed")
+
+func _player_config_from_data(player_data: Dictionary) -> Dictionary:
+	var selected_character_id: String = str(player_data.get("selected_character_id", ""))
+	if not selected_character_id.is_empty():
+		for character in player_data.get("characters", []):
+			var character_dict: Dictionary = character
+			if str(character_dict.get("id", "")) == selected_character_id:
+				return character_dict
+	return player_data.get("player", {})
 
 func start_player_turn() -> void:
 	if phase == "won" or phase == "lost":
@@ -250,8 +261,8 @@ func _load_encounter(encounter_id: String) -> void:
 		enemies.append({
 			"id": data.get("id", enemy_id),
 			"name": data.get("name", enemy_id),
-			"hp": int(data.get("max_hp", 1)),
-			"max_hp": int(data.get("max_hp", 1)),
+			"hp": _modified_enemy_max_hp(data),
+			"max_hp": _modified_enemy_max_hp(data),
 			"block": 0,
 			"statuses": {},
 			"data": data,
@@ -322,7 +333,10 @@ func _resolve_card(card: Dictionary, target_index: int) -> void:
 				_resolve_player_damage_effect(card, effect, target_index)
 			"block":
 				var amount := _calculate_block_amount(card, effect)
+				var consumed_frail := _status_amount(player["statuses"], "frail") > 0
 				_gain_player_block(amount)
+				if consumed_frail:
+					_consume_status(player["statuses"], "frail", 1)
 			"draw":
 				draw_cards(int(effect.get("amount", 0)))
 			"gain_momentum":
@@ -355,13 +369,19 @@ func _resolve_potion_effect(potion: Dictionary, effect: Dictionary, target_index
 			if target_mode == "all_enemies":
 				for enemy in enemies:
 					if int(enemy.get("hp", 0)) > 0:
+						var consumed_vulnerable := _status_amount(enemy["statuses"], "vulnerable") > 0
 						for _i in range(hits):
 							_damage_enemy(enemy, amount, source)
+						if consumed_vulnerable:
+							_consume_status(enemy["statuses"], "vulnerable", 1)
 			else:
 				var enemy := _get_enemy_at(target_index)
 				if not enemy.is_empty():
+					var consumed_vulnerable := _status_amount(enemy["statuses"], "vulnerable") > 0
 					for _i in range(hits):
 						_damage_enemy(enemy, amount, source)
+					if consumed_vulnerable:
+						_consume_status(enemy["statuses"], "vulnerable", 1)
 		"block":
 			_gain_player_block(int(effect.get("amount", 0)))
 		"draw":
@@ -389,16 +409,26 @@ func _resolve_player_damage_effect(card: Dictionary, effect: Dictionary, target_
 		base_amount += int(player.get("momentum", 0)) * bonus_per_momentum
 
 	var target_mode := str(effect.get("target", card.get("target", "enemy")))
+	var consumed_player_weak := not bool(card.get("ignore_player_modifiers", false)) and _status_amount(player["statuses"], "weak") > 0
 	if target_mode == "all_enemies":
 		for enemy in enemies:
 			if int(enemy.get("hp", 0)) > 0:
+				var consumed_vulnerable := _status_amount(enemy["statuses"], "vulnerable") > 0
 				for _i in range(hits):
 					_damage_enemy(enemy, base_amount, card)
+				if consumed_vulnerable:
+					_consume_status(enemy["statuses"], "vulnerable", 1)
 	else:
 		var enemy := _get_enemy_at(target_index)
 		if not enemy.is_empty():
+			var consumed_vulnerable := _status_amount(enemy["statuses"], "vulnerable") > 0
 			for _i in range(hits):
 				_damage_enemy(enemy, base_amount, card)
+			if consumed_vulnerable:
+				_consume_status(enemy["statuses"], "vulnerable", 1)
+
+	if consumed_player_weak:
+		_consume_status(player["statuses"], "weak", 1)
 
 	if bool(effect.get("consume_momentum", false)):
 		_log("清空 %d 点势能。" % int(player.get("momentum", 0)))
@@ -409,8 +439,14 @@ func _resolve_enemy_effect(enemy: Dictionary, effect: Dictionary) -> void:
 	match effect_type:
 		"damage":
 			var hits := int(effect.get("hits", 1))
+			var consumed_enemy_weak := _status_amount(enemy.get("statuses", {}), "weak") > 0
+			var consumed_player_vulnerable := _status_amount(player["statuses"], "vulnerable") > 0
 			for _i in range(hits):
-				_damage_player(int(effect.get("amount", 0)), enemy)
+				_damage_player(_modified_enemy_damage(int(effect.get("amount", 0))), enemy)
+			if consumed_enemy_weak:
+				_consume_status(enemy["statuses"], "weak", 1)
+			if consumed_player_vulnerable:
+				_consume_status(player["statuses"], "vulnerable", 1)
 		"block":
 			enemy["block"] = int(enemy.get("block", 0)) + int(effect.get("amount", 0))
 			_log("%s 获得 %d 点护甲。" % [enemy.get("name", "敌人"), int(effect.get("amount", 0))])
@@ -436,6 +472,14 @@ func _calculate_block_amount(card: Dictionary, effect: Dictionary) -> int:
 	if _status_amount(player["statuses"], "frail") > 0:
 		amount = int(floor(float(amount) * 0.75))
 	return max(amount, 0)
+
+func _modified_enemy_max_hp(enemy_data: Dictionary) -> int:
+	var multiplier: float = max(0.1, float(challenge_modifiers.get("enemy_hp_multiplier", 1.0)))
+	return max(1, int(ceil(float(int(enemy_data.get("max_hp", 1))) * multiplier)))
+
+func _modified_enemy_damage(amount: int) -> int:
+	var multiplier: float = max(0.1, float(challenge_modifiers.get("enemy_damage_multiplier", 1.0)))
+	return max(0, int(ceil(float(amount) * multiplier)))
 
 func _gain_player_block(amount: int) -> void:
 	var plating := _status_amount(player["statuses"], "plating")
@@ -698,6 +742,15 @@ func _add_status(statuses: Dictionary, status: String, amount: int) -> void:
 	if status.is_empty() or amount == 0:
 		return
 	statuses[status] = int(statuses.get(status, 0)) + amount
+	if int(statuses[status]) <= 0:
+		statuses.erase(status)
+
+func _consume_status(statuses: Dictionary, status: String, amount: int = 1) -> void:
+	if status.is_empty() or amount <= 0:
+		return
+	if not statuses.has(status):
+		return
+	statuses[status] = max(0, int(statuses.get(status, 0)) - amount)
 	if int(statuses[status]) <= 0:
 		statuses.erase(status)
 

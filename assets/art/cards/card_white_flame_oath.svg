@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="220" height="160" viewBox="0 0 220 160">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#130f1b"/>
+      <stop offset="1" stop-color="#2b1738"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="45%" r="60%">
+      <stop offset="0" stop-color="#b36cff" stop-opacity="0.40"/>
+      <stop offset="0.58" stop-color="#b36cff" stop-opacity="0.12"/>
+      <stop offset="1" stop-color="#b36cff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="metal" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4b3a66"/>
+      <stop offset="0.54" stop-color="#181922"/>
+      <stop offset="1" stop-color="#080a0d"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff2c8"/>
+      <stop offset="1" stop-color="#ff6a4a"/>
+    </linearGradient>
+    <filter id="softGlow-white-flame-oath" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="2.2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="220" height="160" rx="16" fill="url(#bg)"/>
+  <rect width="220" height="160" rx="16" fill="url(#glow)"/>
+  <path d="M12 126 C48 108 172 108 208 126 L208 160 L12 160 Z" fill="#050608" opacity="0.34"/>
+  <rect x="25" y="59" width="18" height="49" rx="3" fill="#090c0f" opacity="0.28"/>
+  <rect x="68" y="61" width="18" height="47" rx="3" fill="#090c0f" opacity="0.28"/>
+  <rect x="112" y="44" width="18" height="64" rx="3" fill="#090c0f" opacity="0.28"/>
+  <rect x="160" y="41" width="18" height="67" rx="3" fill="#090c0f" opacity="0.28"/>
+  <path d="M18 34 H202 M24 128 H196" stroke="#b982f4" stroke-width="2" opacity="0.22"/>
+  <path d="M28 18 H78 M142 18 H192 M28 142 H78 M142 142 H192" stroke="#d8c36a" stroke-width="3" stroke-linecap="round" opacity="0.78"/>
+  <path d="M176 24 C162 42 188 46 174 64 C196 48 198 30 176 24 Z" fill="#fff0c8" opacity="0.80"/>
+  <g stroke-linejoin="round">
+
+  <path d="M110 28 L162 124 H58 Z" fill="url(#metal)" stroke="#a66df4" stroke-width="5"/>
+  <circle cx="110" cy="88" r="28" fill="none" stroke="url(#accent)" stroke-width="8" filter="url(#softGlow-white-flame-oath)"/>
+  <path d="M110 58 V118 M84 102 H136" stroke="#f0d8ff" stroke-width="5" stroke-linecap="round" opacity="0.82"/>
+  <path d="M58 132 H162" stroke="#a66df4" stroke-width="7" stroke-linecap="round"/>
+  <circle cx="110" cy="88" r="8" fill="#fff2c8"/>
+  </g>
+  <circle cx="28" cy="30" r="14" fill="#090c10" stroke="#b982f4" stroke-width="3" opacity="0.86"/>
+  <text x="28" y="35" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="#f2dcff">R</text>
+  <rect x="7" y="7" width="206" height="146" rx="13" fill="none" stroke="#b982f4" stroke-width="2.5" opacity="0.84"/>
+  <rect x="17" y="17" width="186" height="126" rx="9" fill="none" stroke="#11161a" stroke-width="2" opacity="0.76"/>
+</svg>

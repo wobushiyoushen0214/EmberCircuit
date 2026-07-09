@@ -9,13 +9,14 @@ static func generate(config: Dictionary) -> Dictionary:
 	var min_nodes: int = int(config.get("min_nodes_per_layer", 2))
 	var max_nodes: int = int(config.get("max_nodes_per_layer", 4))
 	var layers: Array = []
+	var used_event_ids: Dictionary = {}
 
 	for layer_index in range(layer_count):
 		var node_types: Array = _node_types_for_layer(config, layer_index, rng, min_nodes, max_nodes)
 		var layer_nodes: Array = []
 		for node_index in range(node_types.size()):
 			var node_type: String = str(node_types[node_index])
-			layer_nodes.append(_make_node(config, layer_index, node_index, node_type, rng))
+			layer_nodes.append(_make_node(config, layer_index, node_index, node_type, rng, used_event_ids))
 		layers.append(layer_nodes)
 
 	var edges: Array = _connect_layers(layers)
@@ -53,7 +54,7 @@ static func _weighted_node_type(weights: Dictionary, rng: RandomNumberGenerator)
 			return str(key)
 	return "combat"
 
-static func _make_node(config: Dictionary, layer_index: int, node_index: int, node_type: String, rng: RandomNumberGenerator) -> Dictionary:
+static func _make_node(config: Dictionary, layer_index: int, node_index: int, node_type: String, rng: RandomNumberGenerator, used_event_ids: Dictionary) -> Dictionary:
 	var node := {
 		"id": "L%d_N%d" % [layer_index, node_index],
 		"layer": layer_index,
@@ -69,9 +70,23 @@ static func _make_node(config: Dictionary, layer_index: int, node_index: int, no
 	elif node_type == "event":
 		var event_pool: Array = config.get("event_pool", [])
 		if not event_pool.is_empty():
-			node["event_id"] = event_pool[rng.randi_range(0, event_pool.size() - 1)]
+			var event_id: String = _pick_event_id(event_pool, rng, used_event_ids, bool(config.get("unique_events", true)))
+			node["event_id"] = event_id
+			used_event_ids[event_id] = true
 
 	return node
+
+static func _pick_event_id(event_pool: Array, rng: RandomNumberGenerator, used_event_ids: Dictionary, unique_events: bool) -> String:
+	var available: Array = []
+	if unique_events:
+		for event_id in event_pool:
+			var event_key: String = str(event_id)
+			if not used_event_ids.has(event_key):
+				available.append(event_key)
+	if available.is_empty():
+		for event_id in event_pool:
+			available.append(str(event_id))
+	return str(available[rng.randi_range(0, available.size() - 1)])
 
 static func _connect_layers(layers: Array) -> Array:
 	var edges: Array = []

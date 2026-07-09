@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="360" viewBox="0 0 960 360">
+  <defs>
+    <linearGradient id="towerSky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#09131b"/>
+      <stop offset="0.52" stop-color="#0e2028"/>
+      <stop offset="1" stop-color="#070a0d"/>
+    </linearGradient>
+    <radialGradient id="arcGlow" cx="52%" cy="34%" r="55%">
+      <stop offset="0" stop-color="#7be7ff" stop-opacity="0.34"/>
+      <stop offset="0.42" stop-color="#2d7ea8" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#031018" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2f5666"/>
+      <stop offset="0.5" stop-color="#162d37"/>
+      <stop offset="1" stop-color="#0a141a"/>
+    </linearGradient>
+    <linearGradient id="floor" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#17303a"/>
+      <stop offset="1" stop-color="#070b0e"/>
+    </linearGradient>
+  </defs>
+  <rect width="960" height="360" fill="url(#towerSky)"/>
+  <rect width="960" height="360" fill="url(#arcGlow)"/>
+
+  <g opacity="0.86">
+    <path d="M54 250 L120 90 L186 250 Z" fill="#111d24" stroke="#305566" stroke-width="4"/>
+    <path d="M778 250 L846 72 L914 250 Z" fill="#101b22" stroke="#284d60" stroke-width="4"/>
+    <rect x="430" y="50" width="98" height="200" rx="8" fill="url(#glass)" stroke="#4d8aa0" stroke-width="3"/>
+    <rect x="454" y="72" width="50" height="154" rx="8" fill="#071117" stroke="#69d8f4" stroke-width="2" opacity="0.66"/>
+    <path d="M480 84 L468 138 H492 L476 212 L522 128 H496 L512 84 Z" fill="#b8f7ff" opacity="0.86"/>
+  </g>
+
+  <g fill="none" stroke-linecap="round">
+    <path d="M120 104 C242 38 336 116 466 72 C596 28 686 120 844 82" stroke="#6bdcf1" stroke-width="4" opacity="0.72"/>
+    <path d="M152 152 C270 198 358 138 478 174 C600 210 716 150 840 190" stroke="#3983a0" stroke-width="5" opacity="0.55"/>
+    <path d="M78 226 C242 188 336 250 474 218 C636 182 736 242 900 206" stroke="#1f596f" stroke-width="7" opacity="0.68"/>
+    <path d="M184 58 L280 238 M780 46 L672 238 M478 50 L478 250" stroke="#1b3038" stroke-width="11" opacity="0.82"/>
+  </g>
+
+  <g opacity="0.86">
+    <path d="M0 260 L108 236 L224 250 L350 226 L486 246 L610 224 L760 242 L960 212 L960 360 L0 360 Z" fill="#0a1115"/>
+    <rect y="278" width="960" height="82" fill="url(#floor)"/>
+    <rect x="42" y="298" width="876" height="3" fill="#315464"/>
+    <rect x="0" y="326" width="960" height="2" fill="#0b171d"/>
+    <path d="M110 310 H296 M390 302 H570 M690 312 H840" stroke="#70e7ff" stroke-width="4" stroke-linecap="round" opacity="0.48"/>
+  </g>
+
+  <g fill="#9df5ff" opacity="0.86">
+    <circle cx="222" cy="112" r="2"/>
+    <circle cx="362" cy="88" r="1.8"/>
+    <circle cx="612" cy="92" r="2.2"/>
+    <circle cx="742" cy="132" r="1.8"/>
+    <circle cx="532" cy="202" r="2"/>
+  </g>
+  <rect x="18" y="18" width="924" height="324" fill="none" stroke="#2e596b" stroke-width="2" opacity="0.52"/>
+  <rect x="34" y="34" width="892" height="292" fill="none" stroke="#071117" stroke-width="2" opacity="0.72"/>
+</svg>

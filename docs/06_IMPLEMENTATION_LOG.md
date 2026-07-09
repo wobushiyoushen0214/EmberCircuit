@@ -1,5 +1,38 @@
 # 实现日志
 
+## 2026-07-09
+
+已完成：
+
+- 扩展 headless 平衡模拟器为完整跑团模拟：
+  - 支持 `--mode=campaign`。
+  - 模拟章节路线、战斗奖励、遗物奖励、药水奖励、商店、篝火、真实事件选择和事件效果。
+  - 报告会记录失败节点、样本路线、选牌/删卡/升级、获得遗物、获得/使用药水和事件选项。
+  - 第二章、第三章切章时会按主游戏逻辑恢复满生命。
+- 修复状态层数核心规则：
+  - `vulnerable`、`weak`、`frail` 改为消耗型层数，下一次相关受击、攻击或格挡生效后减少 1 层。
+  - 多段伤害在同一个伤害效果内完整享受易伤/虚弱修正。
+  - `burn` 继续按回合开始伤害并递减，`strength` 继续作为长期增益。
+  - 新增战斗核心测试覆盖易伤、虚弱、脆弱和玩家易伤的消耗语义。
+- 更新模拟器启发式评分：
+  - 来袭伤害估算现在识别玩家易伤、敌人虚弱和挑战伤害倍率。
+  - 伤害评分现在识别敌人易伤。
+  - 状态牌评分现在按目标威胁、Boss 血量和当前防御缺口估算。
+  - 篝火 AI 在 72% 生命以下更倾向休息。
+- 完成第一轮三章普通模式调试基线：
+  - 第一章 Boss `forge_bishop` 调整为 108 生命。
+  - 第二章 Boss `storm_archon` 调整为 100 生命调试基线。
+  - 第三章普通、精英和最终 Boss 全部下调到可采样完整跑团的调试强度。
+  - 篝火休息恢复提高到最大生命 40%。
+  - 第三章随机精英权重降低，篝火权重提高。
+- 最新普通模式 64 次完整跑团样本：
+  - 角色：余烬流亡者。
+  - 挑战：0 / 普通。
+  - 完整通关率：29.7%。
+  - 平均完成章节：1.75。
+  - 报告风险标记：0 个 flagged case。
+  - 报告路径：`/tmp/embercircuit_campaign_ember_c0_final_tuned.json`。
+
 ## 2026-07-07
 
 已完成：
@@ -90,13 +123,252 @@
   - 手牌按钮按攻击、技能、能力、状态/诅咒使用不同色系和卡框图标。
   - 药水槽按钮使用药水 SVG 图标和独立样式。
   - 通过 Godot headless import 生成 `potion_placeholder.svg.import` 和对应导入纹理。
+- 实现第一版战斗反馈事件流：
+  - `CombatState` 新增 `feedback_events` 队列和 `consume_feedback_events()`。
+  - 伤害、格挡、治疗、药水使用、敌人死亡、Boss 转阶段、胜利和失败都会产生结构化反馈事件。
+  - `Main.gd` 新增战斗反馈提示栏，按事件优先级显示最近的重要反馈。
+  - 非 headless 运行时反馈提示会有轻量缩放/淡出动画。
+- 强化战斗反馈表现映射：
+  - `Main.gd` 会记录敌人视觉节点索引，将 `enemy_hit`、`enemy_defeated` 和 `phase` 映射到目标局部闪烁。
+  - `player_hit`、`block` 和 `heal` 会映射到玩家状态栏闪烁。
+  - Boss 转阶段、胜利和失败会使用更高字号和更高提示栏高度，作为第一版强提示。
+  - UI 层新增 `last_feedback_audio_event`、`last_flash_target_id` 和 `last_feedback_visual_type`，便于 headless 自动化测试验证表现映射。
+- 扩展占位音频事件：
+  - 新增 `hit`、`block`、`heal`、`phase`、`victory`、`defeat` 临时音色。
+  - 反馈提示会按事件类型触发对应占位音效；headless 环境仍保持 no-op。
+- 实现第二版战斗手感反馈：
+  - `Main.gd` 新增不拦截输入的反馈浮层，用于承载漂浮战斗文字。
+  - `enemy_hit`、`player_hit`、`enemy_defeated`、`phase`、`won` 和 `lost` 会请求短暂 hit stop。
+  - 命中、玩家受击、击杀、Boss 转阶段和胜负结算会请求屏幕震动。
+  - 命中、格挡、治疗、击杀、Boss 转阶段和胜负结算会生成漂浮文字。
+  - UI 层新增 `last_hit_stop_duration`、`last_screen_shake_intensity` 和 `last_floating_text_count`，便于 headless 自动化测试验证表现请求。
+- 实现 Boss/胜负全屏强提示：
+  - `Main.gd` 新增 `cinematic_overlay`，作为不拦截输入的全屏提示层。
+  - Boss 转阶段、战斗胜利和战败会映射到全屏标题、副标题、半透明遮罩和动画提示。
+  - 全屏提示按 `phase`、`won`、`lost` 使用不同标题颜色和边框样式。
+  - UI 层新增 `last_cinematic_event_type`、`last_cinematic_title` 和 `last_cinematic_subtitle`，便于 headless 自动化测试验证强提示内容。
+- 实现第一版命中特效和 Boss 阶段角色动画：
+  - `enemy_hit`、`player_hit`、`enemy_defeated` 和 `phase` 会在反馈浮层生成短促冲击线特效。
+  - Boss 转阶段会驱动目标敌人美术和状态面板的脉冲缩放动画。
+  - 冲击线按命中、玩家受击、击破和转阶段使用不同颜色与射线数量。
+  - UI 层新增 `last_impact_effect_type`、`last_impact_effect_count` 和 `last_phase_animation_target_id`，便于 headless 自动化测试验证表现请求。
+- 升级问号事件系统：
+  - `choices[].conditions` 支持 `min_gold`、`min_hp`、`has_empty_potion_slot`、`has_removable_card`、`missing_relic`、`has_relic`、`deck_contains_card` 和 `event_not_completed`。
+  - 条件不满足的事件选项会在 UI 中禁用，并显示条件不足原因。
+  - `choices[].random_results[]` 支持带权重的随机结果，每个结果可配置独立效果。
+  - `lost_caravan` 已改为一次性事件，并使用随机货箱结果。
+  - 跑团状态和存档会记录 `completed_event_ids`。
+  - 地图生成配置新增 `unique_events`，生成问号节点时会优先避免重复事件。
+- 接入第二章跑团结构：
+  - `data/config/map_generation.json` 新增 `chapter_sequence`，当前顺序为第一章和第二章。
+  - `Main.gd` 新增 `current_chapter_id` 和 `completed_chapter_ids`，存档会记录当前章节和已完成章节。
+  - 第一章 Boss 后如果存在下一章，会自动生成下一章地图并进入第二章首个节点。
+  - 新增第二章普通敌人 `volt_cultist`、`glass_sentinel`、`null_mender`，第二章精英 `rust_colossus`，第二章 Boss `storm_archon`。
+  - 新增第二章普通遭遇、精英遭遇和 Boss 遭遇。
+  - 第二章地图为 9 层，使用独立遭遇池、事件池、固定层和节点权重。
+- 接入第三章和当前最终 Boss：
+  - `chapter_sequence` 扩展为第一章、第二章、第三章。
+  - 新增第三章普通敌人 `void_scribe`、`gravity_lancer`、`core_mimic`，第三章精英 `singularity_knight`，最终 Boss `nexus_heart`。
+  - 新增第三章普通遭遇、精英遭遇和最终 Boss 遭遇 `chapter_three_boss`。
+  - 第三章地图为 10 层，精英权重更高，并以最终 Boss 结束。
+  - 最终章 Boss 后会进入跑团完成状态，并记录第三章为已完成章节。
+- 实现第一版正式胜利结算：
+  - 跑团完成后显示“最终胜利：回路核心已关闭”。
+  - 结算面板会展示完成章节、最终生命、金币、遗物、药水和牌组类型统计。
+  - 结算面板会展示局外解锁，包括章节图鉴、挑战模式和通关印记。
+  - 结算界面提供“查看最终牌组”和“再来一局”按钮。
+  - UI 层新增 `last_run_completion_title`、`last_run_completion_summary` 和 `last_run_unlocks`，便于 headless 测试验证结局内容。
+- 实现第一版多角色管线：
+  - `data/config/player.json` 新增 `characters` 数据源，并保留 `player` 兼容字段。
+  - 新增第二角色“电弧工匠”：64 生命、1/5 初始势能、88 金币、3 药水槽、低费节奏起始牌组。
+  - 新增起始遗物 `arc_capacitor`，战斗开始时获得 1 点势能。
+  - `Main.gd` 支持以指定角色开始新跑团，并在跑团头部、地图、牌组和最终结算显示角色名。
+  - 存档会记录 `selected_character_id`，旧存档缺失该字段时回落到默认角色。
+  - `CombatState` 可直接从选中角色配置读取生命、势能、起始牌组和起始遗物。
+  - 新增 `assets/art/player_arc_tinker.svg` 作为第二角色占位立绘。
+- 实现第一版正式角色选择界面：
+  - 主场景启动后先进入角色选择，而不是直接进入默认角色战斗。
+  - 角色选择界面会从 `characters` 数据源生成角色按钮，展示立绘、定位、生命、能量、势能、药水槽、起始遗物和起始牌组 tooltip。
+  - “新跑团”和最终结算的“再来一局”会回到角色选择界面。
+  - 读档仍然直接恢复存档中的 `selected_character_id` 和跑团状态。
+  - 角色选择界面会禁用保存和牌组查看，避免写入空跑团存档。
+- 实现电弧工匠第一批专属卡池：
+  - 新增 `static_primer`、`arc_needles`、`capacitor_guard`、`short_circuit`、`bottle_surge` 和 `livewire_matrix` 6 张专属卡。
+  - 专属卡使用 `character_ids: ["arc_tinker"]` 标记，只进入电弧工匠的战斗奖励和商店卡池。
+  - `data/config/player.json` 新增 `reward_pool_tags`，为后续流派包、解锁包和挑战模式卡池保留扩展点。
+  - `Main.gd` 的 `_generate_card_rewards()` 会过滤 starter/status/curse，并按当前角色过滤专属卡。
+- 实现电弧工匠第一批专属事件：
+  - 新增 `arc_workbench`、`livewire_nest` 和 `capacitor_gambit` 3 个专属问号事件。
+  - 专属事件使用 `character_ids: ["arc_tinker"]` 标记。
+  - 三章 `event_pool` 均可列出专属事件，`Main.gd` 会在生成地图前按当前角色过滤事件池。
+  - 专属事件可以发放电弧工匠专属卡、药水或执行删卡换启动牌等角色化结果。
+- 实现电弧工匠第一批专属遗物：
+  - 新增 `spark_coil`、`insulated_battery` 和 `micro_dynamo` 3 个专属遗物。
+  - 专属遗物使用 `character_ids: ["arc_tinker"]` 标记，只进入电弧工匠的精英/Boss 遗物奖励池。
+  - `Main.gd` 的 `_generate_relic_rewards()` 会过滤 starter，并按当前角色过滤专属遗物。
+  - 专属遗物复用现有 `combat_start`、`setup` 和 `card_played` 遗物触发，不扩大战斗结算面。
+- 实现第一版角色化结局：
+  - `data/config/player.json` 的每个角色新增 `ending` 字段。
+  - 最终胜利标题、后日谈、通关印记和角色专属局外解锁改为从角色数据读取。
+  - 余烬流亡者和电弧工匠现在拥有不同的结局标题、后日谈和局外解锁。
+- 实现第一版地图节点详情和路线预览：
+  - `scripts/map/MapView.gd` 新增 `node_previewed(node_id)` 信号，节点 hover 或键盘 focus 时会发出预览请求。
+  - 地图选择界面会默认预览第一个可前往节点，避免玩家进入地图后只看到空白说明。
+  - 节点详情会显示节点类型、遭遇名称、敌人列表、遭遇设计注释、事件正文、商店删卡价格或篝火恢复比例。
+  - 路线预览会列出该节点完成后的后续可达节点，让玩家能提前判断路线分支价值。
+  - `Main.gd` 新增 `last_map_preview_node_id` 和 `last_map_preview_text`，便于 headless 测试验证 UI 预览内容。
+- 实现第一版地图表现强化：
+  - 新增 6 个地图节点 SVG 图标：普通战斗、精英、Boss、事件、商店和篝火。
+  - `MapView.gd` 会按节点类型加载图标，并为不同节点类型使用独立配色和边框。
+  - 预览中的节点和后续路线会在地图中高亮，和右侧节点详情文本保持同步。
+  - 节点 hover/focus 时会触发轻量缩放脉冲，作为第一版路线预览动效。
+  - 地图背景加入深色主题底和层级参考线，减少纯按钮列表感。
+  - `assets/art/README.md` 记录地图图标资产槽位和替换规则。
+- 补齐全敌人第一版占位美术：
+  - 为所有已配置敌人补齐独立 SVG 槽位，覆盖普通敌人、精英和 Boss。
+  - `Main.gd` 的敌人纹理加载支持按 `placeholder_xxx` 自动解析到 `assets/art/enemy_xxx.svg`，减少后续新增敌人时的硬编码映射。
+  - 保留旧的 `ENEMY_ART_PATHS` 显式映射作为兼容路径，缺失资产时仍回退到普通敌人或 Boss fallback。
+  - `assets/art/README.md` 将敌人美术记录为 `enemy_*.svg` 资产槽位，方便后续批量替换正式美术。
+- 实现第一版出牌轨迹表现层：
+  - 手牌 hover/focus 会根据卡牌效果判断目标，并在反馈浮层请求目标连线。
+  - 点击并成功出牌后会记录三点贝塞尔轨迹，从手牌位置飞向敌人、全体敌人中心或玩家状态区。
+  - 非 headless 运行时会生成临时卡牌飞行面板和短暂目标线；headless 测试环境只记录表现请求，不影响战斗结算。
+  - 新增 `last_card_preview_*`、`last_card_target_line_count`、`last_card_play_animation_count` 和 `last_card_play_trajectory_points`，用于验证表现层契约。
+  - 目标判定仍由 UI 表现层推导，实际伤害、格挡、状态和抽牌结算继续只由 `CombatState` 负责。
+- 实现第一版出牌类型差异化表现与音效同步：
+  - 新增 `data/config/vfx_profiles.json`，作为出牌 VFX 画像和音频事件的数据源。
+  - 出牌表现层新增 `attack_slash`、`skill_guard`、`power_pulse` 和 `card_default` 四类数据驱动画像。
+  - 攻击牌落点生成斩击线和碎裂短线，技能牌生成护盾脉冲和放射线，能力牌生成更大的能量环与放射线。
+  - 新增 `card_attack`、`card_skill` 和 `card_power` 占位音频事件，并由出牌表现画像同步触发。
+  - 新增 `last_card_effect_profile`、`last_card_particle_count` 和 `last_card_audio_event`，用于验证类型画像、粒子数量和音频映射。
+  - 保留 `card_play` 作为未知卡牌类型的 fallback 音效。
+  - 数据完整性测试会校验画像注释、颜色、粒子数量、音频事件引用和卡牌类型映射。
+- 实现第一版 VFX 贴图资源槽位：
+  - 新增 `assets/vfx/` 目录和 4 个可替换占位 SVG：攻击斩击、技能护盾、能力能量环和默认出牌脉冲。
+  - `data/config/vfx_profiles.json` 的每个画像新增 `sprite_path`、`sprite_scale` 和 `sprite_duration`。
+  - 出牌落点表现会按画像加载 `sprite_path`，在落点生成可淡出的 VFX 贴图，同时保留已有线条和脉冲粒子。
+  - UI 层新增 `last_card_vfx_asset_path` 和 `last_card_vfx_asset_loaded`，用于验证配置资源已被识别。
+  - `assets/vfx/README.md` 记录 VFX 素材槽位和替换规则。
+- 实现第一版反馈事件 VFX 画像：
+  - `data/config/vfx_profiles.json` 新增 `feedback_event_profiles`，将 `enemy_hit`、`player_hit`、`enemy_defeated` 和 `phase` 映射到数据画像。
+  - 新增 4 个反馈事件 VFX 占位 SVG：敌人受击、玩家受击、敌人击破和 Boss 阶段冲击。
+  - `_spawn_impact_effect()` 改为读取画像颜色、`sprite_path`、`ray_count` 和 `ray_length`，保留缺失配置时的旧 fallback。
+  - UI 层新增 `last_impact_vfx_profile`、`last_impact_vfx_asset_path`、`last_impact_vfx_asset_loaded` 和 `last_impact_ray_count`，用于验证反馈事件表现资源。
+- 实现第一版卡牌/遗物/药水美术资源清单：
+  - 新增 `data/config/art_assets.json`，集中登记卡牌类型框、全部 35 张卡牌、14 个遗物和 8 瓶药水的表现资源。
+  - 每个卡牌、遗物和药水槽位都包含当前可加载 `asset_path`、未来正式 `slot_path`、`design_note`、`replacement_note` 和 `implementation_note`。
+  - `Main.gd` 新增 `art_data` 读取和 `_card_art_path()`、`_relic_icon_path()`、`_potion_icon_path()` 等资源解析 helper。
+  - 手牌、卡牌奖励、商店卡牌、遗物奖励、药水奖励、商店药水和药水槽已改为读取美术资源清单；旧常量只作为 fallback。
+  - UI 层新增 `last_hand_card_art_path`、`last_reward_card_art_path`、`last_relic_icon_path` 和 `last_potion_icon_path` 等字段，用于验证资源确实被表现层加载。
+  - `assets/art/README.md` 和 `docs/04_ART_AUDIO_PIPELINE.md` 记录资源清单、替换槽位和正式素材替换规则。
+- 修复角色选择首屏 UI 可见性：
+  - `Main.gd` 新增深色背景、正文/标题文字颜色和日志面板底色，避免启动画面只呈现 Godot 默认灰底。
+  - 新增 `_set_page_regions()` 和 `_set_content_heights()`，在角色选择、战斗、地图、商店、事件、篝火和结算页显式切换主要区域，避免空的药水/敌人/手牌区域占位把角色按钮挤出首屏。
+  - 角色选择按钮放大为带立绘的角色卡，并记录 `last_character_button_icon_count`，用于验证角色立绘资源真正显示在可点击入口上。
+  - 角色选择页压缩角色档案日志高度并扩大角色按钮区，保证角色卡在第一屏可见。
+- 实现第一版全局按钮视觉统一：
+  - 新增 `_apply_button_skin()`、`_apply_card_button_skin()` 和 `_button_skin_palette()`，为主操作、普通操作、危险操作、事件、药水、遗物和卡牌按钮提供统一暗色皮肤。
+  - 主控制按钮、篝火按钮、商店按钮、事件选项、战斗奖励、最终结算按钮和牌组查看按钮都已套用统一样式，减少 Godot 默认按钮感。
+  - 卡牌相关按钮继续按攻击/技能/能力类型使用不同边框和底色，和已有手牌视觉保持一致。
+  - UI 层新增 `last_campfire_button_style_count`、`last_shop_button_style_count`、`last_event_choice_style_count` 和 `last_reward_button_style_count`，用于验证关键页面已生成带样式按钮。
+- 实现第一版战斗资源 HUD：
+  - 新增 `combat_hud_row`，在战斗页以独立信息块显示生命、护甲、能量、势能、抽牌堆、弃牌堆和消耗堆。
+  - `_refresh_combat()` 不再把所有资源塞进 `status_label` 长句，而是让状态栏只显示回合和阶段，资源变化由 HUD 承载。
+  - HUD 仍只读取 `CombatState` 的玩家状态和牌堆数量，不修改战斗数据源。
+  - UI 层新增 `last_combat_hud_text` 和 `last_combat_hud_block_count`，用于 headless 测试验证关键资源显示。
+- 实现第一版战斗舞台 UI 框架：
+  - 新增 `battle_board_panel`、`enemy_stage_panel`、`character_frame` 和 `hand_frame`，把玩家、战斗板、敌人舞台和手牌区从纯控件堆叠升级为明确分区。
+  - 战斗页药水槽改为紧凑侧栏按钮，按钮只显示药水名和使用状态，完整说明保留在 tooltip，避免长文本撑宽战斗区。
+  - 玩家受击/格挡反馈现在优先闪烁玩家面板，而不只闪烁状态文本。
+  - UI 层新增 `last_character_panel_style_applied`、`last_battle_board_style_applied`、`last_enemy_stage_style_applied` 和 `last_hand_frame_style_applied`，用于 headless 测试验证战斗 UI 框架已套用样式。
+- 修复战斗页首屏溢出：
+  - 战斗页标题、状态行、玩家面板、战斗板、日志和敌人面板改为紧凑高度，主要区域禁止在 `VBoxContainer` 中纵向吞掉剩余空间。
+  - 玩家行动阶段隐藏空奖励区，只有胜利/失败阶段才显示奖励区域，避免手牌和操作按钮被挤出窗口。
+  - 敌人舞台和战斗背景启用裁剪，防止背景图层覆盖或撑出父容器。
+  - UI 层新增 `last_combat_reward_region_visible` 和 `last_combat_layout_estimated_height`，用于 headless 测试验证战斗核心区域保持在首屏预算内。
+- 实现第一版结构化卡牌按钮：
+  - 手牌、战斗奖励、商店卡牌、篝火升级候选和牌组查看器预览卡内部新增费用角标、卡名、图像区、类型标签和描述区，不再依赖按钮多行纯文本展示。
+  - 卡面仍保留原 Button 交互，手牌 hover/focus 预览、点击出牌、奖励选择、商店购买、篝火升级、禁用状态和飞行动画目标不需要重写。
+  - 牌组查看器保留完整文字清单，同时在操作区显示前几张结构化卡牌预览，避免一次渲染完整牌组造成横向拥挤。
+  - 卡图继续从 `data/config/art_assets.json` 读取，当前使用占位类型框资源，未来可直接替换正式卡图。
+  - UI 层新增 `last_hand_card_layout_count`、`last_reward_card_layout_count`、`last_shop_card_layout_count`、`last_campfire_card_layout_count`、`last_deck_view_card_layout_count` 和对应卡图节点计数，用于 headless 测试验证可见卡面结构。
+- 实现第一版章节战斗背景管线：
+  - 新增三张章节战斗背景 SVG：`battle_bg_chapter_one.svg`、`battle_bg_chapter_two.svg` 和 `battle_bg_chapter_three.svg`。
+  - `data/config/art_assets.json` 新增 `battle_background_slots`，每章都有当前 `asset_path`、未来 `slot_path`、设计说明、替换说明和实现说明。
+  - 敌人舞台内部新增 `battle_background` 贴图层，`_refresh_combat()` 会按 `current_chapter_id` 加载对应背景。
+  - UI 层新增 `last_battle_background_chapter_id`、`last_battle_background_path` 和 `last_battle_background_loaded`，用于 headless 测试验证章节背景实际加载。
+- 实现第三可玩角色“熔痕苦修者”：
+  - `data/config/player.json` 新增 `pyre_ascetic`：66 生命、0/7 初始势能、92 金币、2 药水槽。
+  - 新增起始牌 `penitent_cut`、`scar_guard`、`kindle_pain`，奖励牌 `blood_kindling`、`brand_strike`、`cauterize`、`wound_offering`、`scourge_sweep` 和 `white_flame_oath`。
+  - 新增起始遗物 `penitent_censer`，以及专属遗物 `ash_rosary`、`red_wick` 和 `white_flame_brand`。
+  - 新增专属事件 `scar_chapel`、`red_wick_altar` 和 `white_flame_branding`，三章事件池均可列出这些事件，实际生成前按角色过滤。
+  - 新增 `assets/art/player_pyre_ascetic.svg` 占位立绘，并在 `data/config/art_assets.json` 登记熔痕苦修者专属卡、遗物和事件美术槽位。
+  - 熔痕苦修者结局包含独立最终胜利标题、后日谈、通关印记、“白焰忏悔室”挑战变体和起始遗物外观解锁。
+- 修复小窗口 UI 看不全问题：
+  - 主页面新增全局 `ScrollContainer` 和边距容器，任何页面总高度超过窗口时仍可滚动到完整内容。
+  - 顶部标题、跑团状态和状态说明改为单行省略，避免长文本换行把战斗区挤出屏幕。
+  - 底部控制按钮行改为横向滚动容器，窄窗口下不会把按钮裁到屏幕外。
+  - 角色选择卡、奖励卡、商店卡、事件面板和强提示面板会按 viewport 动态缩放。
+  - 战斗 HUD 信息块、药水侧栏和敌人面板会按可用宽度压缩；窄药水槽自动切换为图标模式，完整说明保留在 tooltip。
+  - 跑团测试新增 540x540 视口覆盖，验证角色选择、三药水槽战斗 HUD、敌人/药水行和事件故事面板都保持在可视或滚动区域内。
+- 实现第一版系统设置页：
+  - `SaveManager.gd` 新增 `user://ember_circuit_settings.json` 读写，不和跑团存档混用。
+  - 设置页可从底部“设置”按钮进入，并复用 `HFlowContainer + ScrollContainer` 的视口安全布局。
+  - 当前设置包含音频开关、主音量、震屏、受击顿帧、漂浮战斗文字和新手引导。
+  - `AudioManager.gd` 新增 `apply_settings()` 和 `master_volume`，音频开关与主音量会立即应用到事件音色。
+  - 战斗反馈层会读取设置；关闭震屏、受击顿帧或漂浮文字后，对应反馈请求不会产生。
+  - UI 层新增 `last_settings_*` 遥测字段，用于 headless 测试验证设置页、运行时设置和保存结果。
+- 实现第一版新手引导：
+  - 设置文件新增 `tutorial_enabled` 和 `tutorial_completed_steps`，引导开关和进度不写入跑团存档。
+  - 底部控制条新增“引导”按钮；有当前上下文提示时点击会完成该提示，没有当前提示时会打开完整引导页。
+  - 状态栏会显示当前阶段的一条短提示，tooltip 保留完整说明，不新增遮挡战斗区的大弹窗。
+  - 引导页列出角色选择、战斗回合、战斗奖励、地图、事件、商店、篝火、牌组、设置和结算 10 个步骤。
+  - 设置页新增新手引导开关和重置引导按钮。
+  - UI 层新增 `last_tutorial_*` 遥测字段，用于 headless 测试验证当前提示、引导页、完成进度和重置行为。
+- 实现第一版挑战等级系统：
+  - 新增 `data/config/challenges.json`，配置普通模式和挑战 1-3，并为每级写入奖励说明、设计说明、平衡说明和实现说明。
+  - `Main.gd` 新增角色选择页挑战选择器，普通完整通关后解锁挑战 1，之后按最高完成挑战逐级解锁。
+  - 跑团存档新增 `current_challenge_level`；局外档案新增 `best_challenge_level_completed` 和 `max_challenge_level_unlocked`。
+  - `CombatState.gd` 读取 `challenge_modifiers`，敌人生成时应用生命倍率，敌人行动结算时应用伤害倍率。
+  - `data/config/achievements.json` 新增挑战 1-3 通关成就，档案页会展示最高完成和已解锁挑战等级。
+- 修复角色选择页小屏横向溢出：
+  - 挑战等级按钮改为短可见文本，完整修正说明保留在日志和 tooltip。
+  - 角色选择卡不再依赖 Button 长文本和内置图标，改为按钮外壳内的头像、名称、定位、资源和起始遗物分区。
+  - 统一给普通按钮和卡牌按钮设置文本裁剪/省略和非扩展宽度，防止按钮文本反向撑大根 `ScrollContainer`。
+  - 新增 `tests/test_visual_bounds.gd`，在真实 SceneTree 的 390x640 宿主容器下验证角色选择、战斗页和地图页不会横向越界。
+- 实现第一版数据图鉴：
+  - 底部控制条新增“图鉴”入口，可从角色选择、战斗、地图、商店、事件、牌组和结算阶段打开。
+  - 图鉴覆盖卡牌、遗物、药水、敌人、事件和挑战等级 6 个分类，直接读取现有 JSON 数据和注释字段。
+  - 图鉴条目使用固定宽度结构化卡片，短摘要在卡面内显示，完整设计、平衡和实现注释放入 tooltip。
+  - 图鉴新增固定宽度搜索框和清空按钮，支持在当前分类内按名称、id、描述和注释搜索；事件分类会额外搜索选择摘要。
+  - 图鉴新增第一版筛选和排序：卡牌按类型/稀有度/角色范围/具体角色，遗物按稀有度/角色范围/具体角色，药水按稀有度/目标，敌人按阶级，事件按角色范围/具体角色/一次性，挑战按数值修正过滤。
+  - 图鉴复用全局滚动、`reward_scroll` 和 `HFlowContainer`，并记录 `last_compendium_*` 遥测字段用于 headless 测试。
+  - 跑团流程测试覆盖 6 个分类的条目数量、文本搜索、搜索清空、筛选条目数、具体角色筛选和排序状态；390x640 视觉边界测试覆盖图鉴卡片、搜索框、筛选按钮、具体角色筛选和排序按钮不横向越界。
+- 实现图鉴发现状态：
+  - `SaveManager.gd` 的 profile 新增 `discovered` 字段，覆盖 cards、relics、potions、enemies、events 和 challenges，并对旧档缺失字段做归一化。
+  - 新跑团会记录起始牌组、起始遗物、当前挑战等级和遭遇敌人；进入事件、刷新奖励、刷新商店、选择奖励、购买商店物品和事件发放内容都会写入发现记录。
+  - 图鉴摘要显示发现进度，所有分类新增 `已见` 和 `未见` 筛选，条目卡片使用短发现标签，避免小屏卡面被长文撑宽。
+  - 跑团流程测试覆盖新 profile 的未发现状态、开局后的卡牌/遗物/敌人/挑战发现、事件发现和发现筛选数量；存档测试覆盖发现记录去重和旧档兼容。
+- 实现图鉴未见详情隐藏：
+  - 图鉴默认处于 `详情：隐藏未见` 模式，未发现条目只显示 `未知卡牌`、`未知遗物`、`未知敌人` 等占位标题、短解锁说明和空图框。
+  - 未发现条目的真实名称、内部 id、描述、数值摘要、设计/平衡/实现注释和事件选择摘要不会进入卡面或 tooltip。
+  - 新增 `详情` 短按钮，可切换到 `详情：全显`，供开发和平衡检查继续查看完整数据。
+  - 默认隐藏模式下，搜索未发现条目的内部 id 或真实名称不会匹配；全显模式下恢复全字段搜索。
+  - 跑团流程测试覆盖新 profile 默认隐藏、未发现搜索不泄露、全显后恢复搜索；390x640 视觉边界测试覆盖 `详情` 切换按钮不横向越界。
 
 验证：
 
-- JSON 数据通过 `jq` 校验，包含药水数据。
+- JSON 数据通过 `jq` 校验，包含挑战等级配置。
 - Godot headless 战斗 smoke test 通过。
+- Godot headless 390x640 视觉边界 smoke test 通过。
 - Godot headless 主场景启动通过。
 - Godot headless 跑团流程 smoke test 通过。
+- Godot headless 跑团测试覆盖数据图鉴 6 个分类。
+- Godot headless 跑团测试覆盖数据图鉴文本搜索、筛选、具体角色筛选和排序状态。
+- Godot headless 跑团测试覆盖数据图鉴发现/未发现筛选和发现进度统计。
+- Godot headless 跑团测试覆盖数据图鉴未见详情隐藏和全显模式切换。
+- Godot headless 390x640 视觉边界测试覆盖图鉴发现筛选按钮不横向越界。
+- Godot headless 390x640 视觉边界测试覆盖图鉴 `详情` 切换按钮不横向越界。
 - Godot headless 存档 smoke test 通过。
 - Godot headless 地图生成 smoke test 通过。
 - Godot headless 地图视图 smoke test 通过。
@@ -108,11 +380,155 @@
 - Godot headless 跑团测试覆盖事件发放药水。
 - Godot headless 战斗测试覆盖 Boss 两段转阶段和阶段行动循环切换。
 - Godot headless 跑团测试覆盖敌人占位美术加载、手牌按钮样式和药水图标加载。
+- Godot headless 战斗测试覆盖伤害、药水、Boss 阶段、胜利和失败反馈事件。
+- Godot headless 跑团测试覆盖战斗反馈栏显示和 UI 消费伤害反馈事件。
+- Godot headless 跑团测试覆盖反馈音效映射和目标闪烁 id 记录。
+- Godot headless 音频测试覆盖反馈新增音效事件。
+- Godot headless 跑团测试覆盖反馈浮层、hit stop、屏幕震动和漂浮文字请求。
+- Godot headless 跑团测试覆盖 Boss 阶段全屏提示和胜利全屏提示。
+- Godot headless 跑团测试覆盖命中特效请求和 Boss 阶段角色动画目标。
+- Godot headless 跑团测试覆盖事件条件禁用、随机结果、一致性结果记录和一次性事件存档。
+- Godot headless 地图生成测试覆盖事件 id 去重。
+- Godot headless 数据完整性测试覆盖事件条件和随机结果引用。
+- Godot headless 跑团测试覆盖第一章 Boss 后进入第二章。
+- Godot headless 跑团测试覆盖第二章 Boss 后进入第三章，以及第三章 Boss 后完成跑团。
+- Godot headless 跑团测试覆盖最终胜利结算、局外解锁和结算操作按钮。
+- Godot headless 跑团测试覆盖电弧工匠角色化结局标题、后日谈、通关印记和角色专属解锁。
+- Godot headless 跑团测试覆盖地图节点默认预览、节点详情文本和后续可达路线预览。
+- Godot headless 地图视图测试覆盖 hover/focus 预览信号和最后预览节点记录。
+- Godot headless 地图视图测试覆盖地图节点图标加载、当前预览节点和预览后续路线数量。
+- Godot headless 跑团测试覆盖地图详情预览同步到地图路线高亮状态。
+- Godot headless 数据完整性测试覆盖每个敌人的 `sprite_key` 和对应 `enemy_*.svg` 资产存在性。
+- Godot headless 跑团测试确认战斗界面仍能加载敌人纹理并渲染敌人视觉面板。
+- Godot headless 跑团测试覆盖手牌预览目标线、成功出牌飞行动画请求、目标 id 记录和三点轨迹记录。
+- Godot headless 跑团测试覆盖出牌类型画像、粒子数量记录、类型音效映射，以及这些值来自 VFX 数据配置。
+- Godot headless 音频测试覆盖 `card_attack`、`card_skill` 和 `card_power` 新增事件。
+- Godot headless 数据完整性测试覆盖 `data/config/vfx_profiles.json` 的画像注释、颜色、粒子数量、音频事件和卡牌类型映射。
+- Godot headless 数据完整性测试覆盖每个 VFX 画像的 `sprite_path` 资源存在、缩放和持续时间。
+- Godot headless 跑团测试覆盖出牌时记录配置中的 VFX 贴图路径，并确认资源可加载。
+- Godot headless 数据完整性测试覆盖反馈事件到 VFX 画像的映射和反馈画像 `ray_count`。
+- Godot headless 跑团测试覆盖敌人受击和 Boss 阶段冲击使用配置中的 VFX 画像、贴图资源和射线数量。
+- Godot headless 数据完整性测试覆盖 `data/config/art_assets.json` 中所有卡牌、遗物、药水和问号事件插图资源槽位、当前 `asset_path`、未来 `slot_path` 和替换说明字段。
+- Godot headless 跑团测试覆盖手牌、商店卡牌、商店药水、遗物图标、药水槽和问号事件插图从美术资源清单加载资源。
+- Godot headless 跑团测试覆盖问号事件结构化事件面板：事件插图、事件标题、事件正文和选择数量均由事件数据与资源清单驱动。
+- Godot headless 跑团测试覆盖角色切换、第二角色起始牌组、起始遗物、药水槽和存档字段。
+- Godot headless 跑团测试覆盖启动角色选择、角色按钮生成和选择后开始跑团。
+- Godot headless 跑团测试覆盖角色选择页隐藏空战斗区域、角色卡在首屏高度内显示，并且三个角色卡加载立绘图标。
+- Godot headless 跑团测试覆盖手牌/药水图标断言实际执行，并覆盖篝火、事件和商店页面生成带样式按钮。
+- Godot headless 跑团测试覆盖战斗页结构化 HUD 显示生命、能量、势能和三类牌堆数量。
+- 修正跑团测试中一段被错误缩进到 `return` 后的断言，确保 HUD 和敌人 UI 断言实际执行。
+- Godot headless 跑团测试覆盖敌人意图徽章、徽章样式、徽章文本遥测，以及敌人面板的美术/意图/按钮三段结构。
+- Godot headless 跑团测试覆盖角色选择页隐藏战斗板/手牌框，以及战斗页玩家面板、战斗板、敌人舞台和手牌框均有样式。
+- Godot headless 跑团测试覆盖玩家摘要面板的常驻遗物图标栏，验证遗物图标从美术资源清单加载，tooltip 保留可读遗物说明。
+- Godot headless 跑团测试覆盖玩家行动阶段隐藏空奖励区、战斗板和日志使用紧凑高度，以及战斗页核心区域维持在首屏预算内。
+- Godot headless 跑团测试覆盖战斗页整页高度预算：标题、状态、玩家面板、战斗板、日志、手牌和底部按钮加总后不得超过 1280x720 基准视口。
+- Godot headless 跑团测试覆盖胜利奖励页隐藏战斗板，防止奖励卡、药水、遗物和继续按钮被战场区域挤出视口。
+- Godot headless 跑团测试覆盖角色选择页、地图页、商店页和胜利奖励页的视口预算，防止地图、日志、奖励按钮和底部控制条超出 1280x720 基准窗口。
+- 主 UI 已将奖励/商店/事件/牌组等操作区改为可换行 `HFlowContainer` 并包入垂直滚动容器；手牌区包入横向滚动容器，防止卡牌或按钮横向撑出屏幕。
+- Godot headless 跑团测试覆盖手牌、战斗奖励、商店卡牌、篝火升级候选和牌组查看器预览的结构化卡面；手牌额外验证可见费用角标、卡名、本地化类型标签和卡图节点。
+- Godot headless 跑团测试覆盖结构化卡面记录本地化稀有度，卡面类型行会显示类型和稀有度。
+- Godot headless 跑团测试覆盖战斗奖励和商店卡牌生成会记录稀有度结果，生成逻辑已从全池洗牌切片改为读取 `economy.reward_generation` 权重。
+- Godot headless 数据完整性测试覆盖卡牌奖励、商店卡牌、遗物和药水四组稀有度权重，要求普通/罕见/稀有权重为正且总和为 100。
+- Godot headless 跑团测试覆盖商店删卡价格递增：成功删卡会扣除当前价格、移除 1 张牌、增加本局商店删卡次数，并让下一次删卡价格上涨。
+- Godot headless 存档测试覆盖 `run_shop_remove_count` 字段，读档后商店删卡价格能延续本局递增状态。
+- Godot headless 数据完整性测试覆盖商店删卡基础价格、递增价格和对应平衡注释。
+- Godot headless 跑团测试覆盖药水槽、商店药水、战斗药水奖励和 Boss 遗物奖励的结构化图标物品布局与图标资源加载。
+- Godot headless 跑团测试覆盖第一章战斗背景加载，并验证第二章、第三章战斗会切换到对应章节背景。
+- Godot headless 数据完整性测试覆盖每个章节的 `battle_background_slots`、当前资源路径和未来正式替换槽位。
+- Godot headless 跑团测试覆盖电弧工匠专属卡进入其奖励池，并被默认角色奖励池排除。
+- Godot headless 跑团测试覆盖电弧工匠专属事件进入其地图事件池、默认角色排除这些事件，并验证专属事件发放专属卡。
+- Godot headless 跑团测试覆盖电弧工匠专属遗物进入其遗物奖励池，并被默认角色遗物奖励池排除。
+- Godot headless 跑团测试覆盖地图遗物 `old_compass` 进入默认遗物奖励池，并在地图选择阶段额外开放同层候选节点。
+- Godot headless 战斗测试覆盖 `CombatState` 直接读取选中角色配置。
+- Godot headless 战斗测试覆盖电弧工匠专属遗物 `spark_coil` 的 0 费牌触发效果。
+- Godot headless 跑团测试覆盖熔痕苦修者角色切换、起始牌组、起始遗物、立绘加载、专属卡/事件/遗物池过滤、专属事件发放专属卡和角色化结局解锁。
+- Godot headless 战斗测试覆盖熔痕苦修者专属遗物 `penitent_censer` 在创建灼伤时触发全体伤害。
+- Godot headless 跑团测试覆盖 540x540 小窗口布局预算，验证全局滚动、紧凑 HUD、药水侧栏、敌人行和事件面板不横向超出容器。
+- Godot headless 数据完整性测试覆盖至少 3 名角色，以及熔痕苦修者专属卡、专属事件、专属遗物和美术槽位引用。
+- Godot headless 数据完整性测试覆盖角色注释、起始牌组、起始遗物、默认角色引用、角色结局字段、卡牌注释、角色专属卡引用、角色专属事件引用和角色专属遗物引用。
+- Godot headless 地图生成测试覆盖章节序列中的每个章节。
+- Godot headless 数据完整性测试覆盖地图章节引用的遭遇和遭遇引用的敌人。
+- Godot headless 跑团测试覆盖角色选择页打开设置页、设置按钮布局、设置摘要、设置保存和关闭后返回原页面。
+- Godot headless 跑团测试覆盖禁用震屏、受击顿帧和漂浮文字后，敌人受击反馈不再请求这些表现，但仍保留命中 VFX。
+- Godot headless 存档测试覆盖设置文件保存、读取和音量归一化。
+- Godot headless 音频测试覆盖 `AudioManager.apply_settings()` 对音频开关和主音量的应用。
+- Godot headless 跑团测试覆盖角色选择上下文引导、完成当前提示、打开完整引导页、关闭引导页、设置页禁用/重置引导。
+- Godot headless 存档测试覆盖引导开关和 `tutorial_completed_steps` 去重归一化。
+- 修复小窗口下 UI 看不全的问题：
+  - 主页面内容宽度现在会预留垂直滚动条空间，避免根容器右侧被裁掉。
+  - 地图视图新增水平滚动容器，路线层数增加时地图本体可以横向滚动，不再把整页撑出窗口。
+  - 角色卡、事件面板、手牌宽度、HUD 信息块、药水栏、敌人面板和遗物栏按实际内容区自适应收缩。
+  - 遗物栏在窄窗口下减少展示数量并用 `+N` 汇总，避免挤压玩家摘要。
+  - 地图节点会按地图高度自适应缩放，并启用裁剪，防止节点画出地图区域。
+- Godot headless 跑团测试新增 compact 地图视口断言，验证地图处于水平滚动区域内，地图页高度和底部控制条保持在视口预算内。
+- 实现第一版局外档案和成就系统：
+  - 新增 `data/config/achievements.json`，配置 9 个第一批成就，覆盖开局、商店删卡、Boss 击败、章节完成、完整通关和三名角色通关。
+  - 每个成就都包含 `condition`、`reward_note`、`design_note` 和 `implementation_note`，为后续 Steam 成就和正式局外奖励留出数据槽位。
+  - `SaveManager.gd` 新增 `user://ember_circuit_profile.json` 的读取、保存和归一化，profile 与单局存档、设置文件分离。
+  - Profile 记录跑团开始、完整通关、Boss 击败、商店删卡、最高金币、最大牌组、完成章节、角色通关、已解锁成就和最近解锁。
+  - `Main.gd` 在开局、成功删卡、Boss 胜利、章节完成和完整通关时写入 profile 并检查成就解锁。
+  - 底部控制条新增“档案”按钮；档案页使用滚动安全奖励区显示统计摘要和成就卡，并在最终结算页提供“查看档案”入口。
+  - UI 层新增 `last_profile_*` 遥测字段，用于 headless 测试验证档案页、统计文本、成就数量和最近解锁。
+- Godot headless 存档测试覆盖 profile 保存、读取、统计恢复和数组去重归一化。
+- Godot headless 数据完整性测试覆盖成就配置数量、说明字段、条件类型、章节引用和角色引用。
+- Godot headless 跑团测试覆盖开局、商店删卡、Boss 击败、章节完成、完整通关和三名角色通关的 profile 统计与成就解锁。
+- 实现第一轮精修 SVG 美术替换：
+  - 三章战斗背景改为分层工业场景：余烬工坊、电弧塔楼和回路核心。
+  - 攻击、技能和能力卡框改为带类型识别的精修模板，分别突出斩击、护盾和回路核心。
+  - 三名角色立绘改为角色化剪影和独立色相，减少角色选择页的纯占位感。
+  - 全部普通敌人、精英和 Boss 敌人 SVG 改为带渐变、轮廓、武器/核心符号的统一暗色工业风格。
+  - 事件、遗物和药水共享图标升级为带光照和主体轮廓的第一版精修资源。
+- Godot headless 数据完整性测试新增 SVG 美术质量门槛：
+  - 校验角色立绘、敌人、卡框、章节背景、事件图、遗物图标和药水图标可读取。
+  - 校验关键 SVG 包含渐变光照和足够数量的图形层，防止首屏资源退回单色块。
+- 实现第一版全卡牌独立插图：
+  - 为当前 44 张配置卡牌生成 `assets/art/cards/card_*.svg`，覆盖共享卡、电弧工匠专属卡、熔痕苦修者专属卡和状态牌。
+  - 每张卡牌插图按类型、稀有度、角色流派和卡牌关键词生成不同构图，包含斩击、护盾、蒸汽、仪式、矩阵、瓶装涌流、电弧和白焰等图形语言。
+  - `data/config/art_assets.json` 的 `card_art_slots[].asset_path` 已从共用类型框切换到对应 `slot_path`，后续正式插画仍沿同一路径替换。
+  - 数据完整性测试现在会校验每张卡牌当前插图的 SVG 质量，防止回退到单色块或空文件。
+- 实现第一版遗物、药水和事件独立美术：
+  - 为当前 18 个配置遗物生成 `assets/art/relics/relic_*.svg`，覆盖通用遗物、电弧工匠专属遗物和熔痕苦修者专属遗物。
+  - 为当前 8 瓶配置药水生成 `assets/art/potions/potion_*.svg`，按伤害、防御、资源、爆弹、注射器、烟幕和冷却液区分瓶型与色相。
+  - 为当前 16 个配置问号事件生成 `assets/art/events/event_*.svg`，覆盖反应炉、档案馆、黑市、纪念碑、试炼舱、神龛、运输队、闸门和角色专属事件场景。
+  - `data/config/art_assets.json` 的 `relic_icon_slots[]`、`potion_icon_slots[]` 和 `event_art_slots[]` 已从共享 fallback 图切换到对应 `slot_path`。
+  - 数据完整性测试现在会校验每个遗物、药水和事件当前资源的 SVG 质量。
+- 实现第一版 WAV 音效资源管线：
+  - 新增 `tools/generate_audio_assets.py`，可重复生成确定性的第一版程序化 WAV 音效。
+  - 生成 19 个 `assets/audio/*.wav`，覆盖 UI、出牌、回合结束、奖励、药水、命中、格挡、治疗、Boss 阶段、胜利、失败、地图、篝火、商店、保存和错误提示。
+  - `AudioManager.gd` 新增 `event_stream_paths` 和 stream cache，优先加载 WAV；资源缺失时才回退运行时 tone。
+  - headless 测试环境也会解析并记录 stream 路径、加载状态和播放模式，避免真实音频设备阻塞。
+  - `assets/audio/README.md` 已更新为当前事件音频清单和正式替换规则。
+- Godot headless 音频测试覆盖每个音频事件的 WAV 资产存在性、stream 加载路径、fallback stream 和音频设置。
+- 实现第一版 BGM 资源管线：
+  - `tools/generate_audio_assets.py` 同时生成 10 个 `assets/audio/music/*_loop.wav`，覆盖菜单、地图、普通战斗、Boss、事件、商店、篝火、奖励、胜利和失败。
+  - `AudioManager.gd` 新增 `music_stream_paths`、music cache、`play_music_context()` 和 `stop_music()`，BGM WAV 会设置循环播放。
+  - `Main.gd` 根据页面和跑团节点切换音乐上下文：角色选择/设置/图鉴/档案使用 menu，地图使用 map，普通战斗使用 combat，Boss 使用 boss，事件/商店/篝火/奖励/胜败分别使用对应 loop。
+  - 设置页新增音乐开关和 BGM 音量按钮，设置独立保存并立即应用到 `AudioManager`。
+  - Godot headless 音频、数据完整性、跑团流程和存档测试覆盖 BGM 资源存在性、WAV 头、上下文 fallback、设置归一化和关键页面音乐上下文。
+- 实现第一版 headless 平衡模拟工具：
+  - 新增 `scripts/tools/BalanceSimulator.gd`，可直接加载现有卡牌、敌人、遗物、遭遇、角色和挑战数据。
+  - 模拟器通过 `CombatState.setup()`、`play_card()` 和 `end_player_turn()` 驱动真实战斗结算，不复制伤害、护甲、状态和遗物触发逻辑。
+  - 第一版 AI 使用可解释启发式：按敌人意图估算来袭伤害，优先补足护甲、斩杀高威胁敌人、打出资源/过牌/能力牌，并给自伤和灼伤污染负分。
+  - 每个角色、挑战等级和遭遇组合会输出胜率、死亡率、超时率、平均回合数、平均剩余生命、平均损血、平均移除敌方生命、平均出牌数和 `risk_flag`。
+  - 新增 `tools/run_balance_simulation.gd`，可用 headless 命令生成 JSON 报告，默认输出到 `/tmp/embercircuit_balance_report.json`。
+  - 新增 `tests/test_balance_simulator.gd`，覆盖报告结构、指标归一化、风险标记、确定性和 JSON 保存。
+  - 当前模型是“单场遭遇 + 初始牌组”基准，不等价于完整跑团胜率；后续应扩展为包含选牌、遗物、路线、商店、篝火和药水使用的完整跑团模拟。
+- 完成一轮完整跑团平衡模拟器修正与普通模式调试基线调优：
+  - `BalanceSimulator.gd` 的事件池现在按角色过滤，防止跨角色专属事件污染模拟结果。
+  - 事件删牌从“优先删除带 + 的牌”改为选择最低价值非初始卡，并优先保留升级牌。
+  - 事件删牌收益改为按被删卡价值动态评分，避免删除高价值升级牌仍被视为固定正收益。
+  - 商店模拟改为低血量优先补药水，再购买高价值卡，最后考虑删牌；低血且仍有空药水槽时会保留最低药水预算。
+  - 电弧工匠起始遗物加入 `insulated_battery`，补足低生命角色的第一回合容错。
+  - 熔痕苦修者提高起手容错：`scar_guard` 调为 6/9 护甲，`kindle_pain` 基础自伤降为 1 且升级后无自伤，`penitent_censer` 调为 2 点全体伤害，`ash_rosary` 调为 7 点开局护甲。
+  - 第一章 Boss `forge_bishop` 调为 100 HP，基础/二阶段重击 20，终局重击 22。
+  - 第二章第 3 层和第三章第 2 层加入篝火候选，后两章略降精英权重并提高篝火权重，形成更适合开发验证的普通模式路线。
+  - 最新三角色普通模式 64 次完整跑团报告：`/tmp/embercircuit_campaign_all_c0_route_relief.json`，平均通关率 29.7%，平均完成 1.81 章，0 个 flagged case。
 
 最新验证命令：
 
 ```bash
-jq empty data/cards/cards.json data/enemies/enemies.json data/relics/relics.json data/potions/potions.json data/encounters/encounters.json data/config/player.json data/config/economy.json data/config/chapter_one_route.json data/config/map_generation.json data/events/events.json data/statuses/statuses.json
+jq empty data/cards/cards.json data/enemies/enemies.json data/relics/relics.json data/potions/potions.json data/encounters/encounters.json data/config/player.json data/config/economy.json data/config/chapter_one_route.json data/config/map_generation.json data/config/art_assets.json data/config/vfx_profiles.json data/config/achievements.json data/config/challenges.json data/events/events.json data/statuses/statuses.json
+/Applications/Godot.app/Contents/MacOS/Godot --headless --path /Users/lizhiwei/localProj/EmberCircuit --script res://tests/test_visual_bounds.gd
 /Applications/Godot.app/Contents/MacOS/Godot --headless --path /Users/lizhiwei/localProj/EmberCircuit --script res://tests/test_combat_core.gd
 /Applications/Godot.app/Contents/MacOS/Godot --headless --path /Users/lizhiwei/localProj/EmberCircuit --script res://tests/test_run_flow.gd
 /Applications/Godot.app/Contents/MacOS/Godot --headless --path /Users/lizhiwei/localProj/EmberCircuit --script res://tests/test_save_manager.gd
@@ -120,11 +536,13 @@ jq empty data/cards/cards.json data/enemies/enemies.json data/relics/relics.json
 /Applications/Godot.app/Contents/MacOS/Godot --headless --path /Users/lizhiwei/localProj/EmberCircuit --script res://tests/test_map_view.gd
 /Applications/Godot.app/Contents/MacOS/Godot --headless --path /Users/lizhiwei/localProj/EmberCircuit --script res://tests/test_audio_manager.gd
 /Applications/Godot.app/Contents/MacOS/Godot --headless --path /Users/lizhiwei/localProj/EmberCircuit --script res://tests/test_data_integrity.gd
+/Applications/Godot.app/Contents/MacOS/Godot --headless --path /Users/lizhiwei/localProj/EmberCircuit --script res://tests/test_balance_simulator.gd
+/Applications/Godot.app/Contents/MacOS/Godot --headless --path /Users/lizhiwei/localProj/EmberCircuit --script res://tools/run_balance_simulation.gd -- --iterations=4 --max-turns=50 --output=/tmp/embercircuit_balance_report.json
 /Applications/Godot.app/Contents/MacOS/Godot --headless --path /Users/lizhiwei/localProj/EmberCircuit --quit-after 2
 ```
 
 下一步：
 
-- 增加战斗动画、受击反馈和更正式的卡牌/药水美术。
-- 增加 Boss 阶段专属表现反馈。
-- 增加事件系统条件和随机结果。
+- 增加更正式的卡牌/敌人/药水美术。
+- 增加更细的出牌轨迹、粒子和正式命中特效素材。
+- 基于 `/tmp/embercircuit_balance_report.json` 的风险标记继续拆分后期遭遇调参，或先扩展完整跑团级模拟，避免只用初始牌组误判第二/三章强度。
