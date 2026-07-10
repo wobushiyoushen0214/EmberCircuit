@@ -231,11 +231,11 @@
     },
     {
       "id": "counter_pressure",
-      "asset_path": "res://assets/art/cards/card_counter_pressure.svg",
+      "asset_path": "res://assets/art/generated/card_counter_pressure_v2_pc.png",
       "slot_path": "res://assets/art/cards/card_counter_pressure.svg",
       "design_note": "反压姿态是长期能力，正式插画应表现压力阀和反击架势。",
       "replacement_note": "能力牌应有稳定、持续生效的视觉符号，不要像一次性攻击。",
-      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 插图；未来正式插画仍保持同一 slot_path，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
+      "implementation_note": "当前 asset_path 接入 PC 生成 PNG，以压力盾、阀门和受控反击弧表现持续能力；slot_path 保留为资源槽标识，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
     },
     {
       "id": "pierce_rivet",

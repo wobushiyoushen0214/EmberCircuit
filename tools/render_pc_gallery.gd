@@ -86,6 +86,7 @@ func _run() -> void:
 	await _capture(scene, "24_intro_patrol_art_720p", _encounter_snapshot_setup("intro_patrol", "ember_exile"), DEFAULT_PC_SNAPSHOT_SIZE)
 	await _capture(scene, "25_executor_elite_art_720p", _encounter_snapshot_setup("executor_elite", "arc_tinker"), DEFAULT_PC_SNAPSHOT_SIZE)
 	await _capture(scene, "26_forge_bishop_art_720p", _encounter_snapshot_setup("chapter_one_boss", "pyre_ascetic"), DEFAULT_PC_SNAPSHOT_SIZE)
+	await _capture(scene, "27_power_card_frame_720p", Callable(self, "_setup_power_card_snapshot"), DEFAULT_PC_SNAPSHOT_SIZE)
 	_release_audio_streams()
 	print("Saved PC gallery snapshots to %s" % OUT_DIR)
 	quit(0)
@@ -163,6 +164,14 @@ func _setup_run_complete_snapshot(main) -> void:
 func _setup_draw_pile_snapshot(main) -> void:
 	main._on_character_selected("arc_tinker")
 	main._open_pile_view("draw")
+
+func _setup_power_card_snapshot(main) -> void:
+	main._on_character_selected("ember_exile")
+	var power_card: Dictionary = main.combat.cards_by_id.get("counter_pressure", {}).duplicate(true)
+	var attack_card: Dictionary = main.combat.cards_by_id.get("ember_strike", {}).duplicate(true)
+	var skill_card: Dictionary = main.combat.cards_by_id.get("ash_guard", {}).duplicate(true)
+	main.combat.hand = [attack_card, skill_card, power_card, power_card.duplicate(true), skill_card.duplicate(true)]
+	main._refresh_combat()
 
 func _setup_profile_progression_snapshot(main) -> void:
 	main.player_profile["forge_marks"] = 9

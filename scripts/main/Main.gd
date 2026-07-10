@@ -21,6 +21,11 @@ const CARD_FRAME_PATHS := {
 	"skill": "res://assets/art/card_skill_frame.svg",
 	"power": "res://assets/art/card_power_frame.svg"
 }
+const PC_CARD_MATERIAL_FRAME_PATHS := {
+	"attack": "res://assets/art/generated/ui/card_frames/card_frame_attack_v2_pc.png",
+	"skill": "res://assets/art/generated/ui/card_frames/card_frame_skill_v2_pc.png",
+	"power": "res://assets/art/generated/ui/card_frames/card_frame_power_v5_pc.png"
+}
 const POTION_ART_PATH := "res://assets/art/potion_placeholder.svg"
 const RELIC_ART_PATH := "res://assets/art/relic_placeholder.svg"
 const EVENT_ART_PATH := "res://assets/art/event_default.svg"
@@ -116,6 +121,10 @@ var monster_scaling_data: Dictionary = {}
 var level_tree_data: Dictionary = {}
 var raw_svg_texture_cache: Dictionary = {}
 var menu_backdrop_tween: Tween
+var screen_shake_tween: Tween
+var feedback_label_tween: Tween
+var cinematic_tween: Tween
+var stage_forecast_refresh_pending: bool = false
 
 var run_deck_ids: Array = []
 var run_relic_ids: Array = []
@@ -194,6 +203,14 @@ var battle_forecast_layer: Control
 var battle_foreground_layer: Control
 var player_stage_art: TextureRect
 var hand_frame: PanelContainer
+var hand_dock_row: HBoxContainer
+var hand_left_hud: VBoxContainer
+var hand_right_hud: VBoxContainer
+var hand_energy_panel: PanelContainer
+var hand_energy_value_label: Label
+var hand_draw_button: Button
+var hand_discard_button: Button
+var hand_exhaust_button: Button
 var hand_scroll: ScrollContainer
 var combat_hud_row: HBoxContainer
 var feedback_label: Label
@@ -264,6 +281,8 @@ var last_hand_card_art_path: String = ""
 var last_hand_card_art_loaded: bool = false
 var last_hand_card_layout_count: int = 0
 var last_hand_card_art_node_count: int = 0
+var last_hand_card_material_frame_count: int = 0
+var last_hand_dock_control_count: int = 0
 var last_hand_card_cost_texts: Array[String] = []
 var last_hand_card_type_texts: Array[String] = []
 var last_hand_card_name_texts: Array[String] = []
@@ -710,14 +729,34 @@ func _build_layout() -> void:
 
 	_add_generated_texture_background(hand_frame, UI_HAND_TRAY_PATH, 0.42)
 
+	hand_dock_row = HBoxContainer.new()
+	hand_dock_row.name = "HandDockRow"
+	hand_dock_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hand_dock_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	hand_dock_row.add_theme_constant_override("separation", 8)
+	hand_frame.add_child(hand_dock_row)
+
+	hand_left_hud = VBoxContainer.new()
+	hand_left_hud.name = "HandLeftHud"
+	hand_left_hud.custom_minimum_size = Vector2(72, 0)
+	hand_left_hud.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	hand_left_hud.alignment = BoxContainer.ALIGNMENT_CENTER
+	hand_left_hud.add_theme_constant_override("separation", 8)
+	hand_dock_row.add_child(hand_left_hud)
+
+	hand_energy_panel = _create_hand_energy_panel()
+	hand_left_hud.add_child(hand_energy_panel)
+	hand_draw_button = _create_hand_pile_button("draw", "抽牌堆", HUD_ICON_PATHS.get("抽牌", ""))
+	hand_left_hud.add_child(hand_draw_button)
+
 	hand_scroll = ScrollContainer.new()
 	hand_scroll.custom_minimum_size = Vector2(0, 140)
 	hand_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hand_scroll.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	hand_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	hand_scroll.clip_contents = true
 	hand_scroll.set("horizontal_scroll_mode", 1)
 	hand_scroll.set("vertical_scroll_mode", 0)
-	hand_frame.add_child(hand_scroll)
+	hand_dock_row.add_child(hand_scroll)
 
 	hand_row = HBoxContainer.new()
 	hand_row.custom_minimum_size = Vector2(0, 140)
@@ -726,6 +765,19 @@ func _build_layout() -> void:
 	hand_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	hand_row.add_theme_constant_override("separation", 6)
 	hand_scroll.add_child(hand_row)
+
+	hand_right_hud = VBoxContainer.new()
+	hand_right_hud.name = "HandRightHud"
+	hand_right_hud.custom_minimum_size = Vector2(72, 0)
+	hand_right_hud.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	hand_right_hud.alignment = BoxContainer.ALIGNMENT_CENTER
+	hand_right_hud.add_theme_constant_override("separation", 8)
+	hand_dock_row.add_child(hand_right_hud)
+
+	hand_discard_button = _create_hand_pile_button("discard", "弃牌堆", HUD_ICON_PATHS.get("弃牌", ""))
+	hand_right_hud.add_child(hand_discard_button)
+	hand_exhaust_button = _create_hand_pile_button("exhaust", "消耗堆", HUD_ICON_PATHS.get("消耗", ""))
+	hand_right_hud.add_child(hand_exhaust_button)
 
 	reward_scroll = ScrollContainer.new()
 	reward_scroll.custom_minimum_size = Vector2(0, 160)
@@ -2605,13 +2657,20 @@ func _apply_combat_layout_constraints(reward_visible: bool) -> void:
 		hand_frame.add_theme_stylebox_override("panel", _hand_frame_style())
 		hand_frame.custom_minimum_size = Vector2(0, hand_frame_height)
 		hand_frame.clip_contents = not _is_pc_layout()
+	if hand_dock_row != null:
+		hand_dock_row.custom_minimum_size = Vector2(0, hand_scroll_height)
+		hand_dock_row.add_theme_constant_override("separation", 8 if _is_pc_layout() else 0)
+	if hand_left_hud != null:
+		hand_left_hud.custom_minimum_size = Vector2(72.0 if _is_pc_layout() else 0.0, hand_scroll_height)
+	if hand_right_hud != null:
+		hand_right_hud.custom_minimum_size = Vector2(72.0 if _is_pc_layout() else 0.0, hand_scroll_height)
 	if hand_scroll != null:
 		hand_scroll.custom_minimum_size = Vector2(0, hand_scroll_height)
 		hand_scroll.clip_contents = not _is_pc_layout()
 	if hand_row != null:
 		var hand_width: float = _hand_required_width()
 		var hand_height: float = hand_scroll_height
-		var hand_row_width: float = max(_scroll_content_width(), hand_width) if _is_pc_layout() else hand_width
+		var hand_row_width: float = max(_hand_scroll_content_width(), hand_width) if _is_pc_layout() else hand_width
 		hand_row.custom_minimum_size = Vector2(hand_row_width, hand_height)
 		hand_row.size = Vector2(hand_row_width, hand_height)
 		hand_row.add_theme_constant_override("separation", _hand_card_gap())
@@ -2759,7 +2818,7 @@ func _hand_card_size() -> Vector2:
 	var card_count := 5
 	if combat != null:
 		card_count = max(1, combat.hand.size())
-	var available_width: float = _scroll_content_width()
+	var available_width: float = _hand_scroll_content_width()
 	var width: float = floor((available_width - float(card_count - 1) * float(_hand_card_gap())) / float(card_count))
 	width = clamp(width, 88.0, 154.0 if _is_pc_layout() else 136.0)
 	var target_height := 242.0 if _is_pc_layout() else 136.0
@@ -2777,7 +2836,7 @@ func _record_scroll_region_metrics() -> void:
 	last_reward_flow_available_width = _scroll_content_width()
 	last_reward_flow_required_width = _container_required_width(reward_row)
 	last_reward_flow_wrap_needed = last_reward_flow_required_width > last_reward_flow_available_width
-	last_hand_scroll_width = _scroll_content_width()
+	last_hand_scroll_width = _hand_scroll_content_width()
 	last_hand_required_width = _hand_required_width()
 	last_hand_horizontal_scroll_needed = last_hand_required_width > last_hand_scroll_width
 
@@ -2875,7 +2934,7 @@ func _potion_row_width() -> float:
 	return label_width + float(slots) * _potion_slot_button_size().x + float(max(0, slots)) * float(_potion_slot_gap())
 
 func _hud_block_width() -> float:
-	var entries := 8 if _is_pc_layout() else 7
+	var entries := 5 if _is_pc_layout() else 7
 	var gap := 6.0
 	var available_width: float = _scroll_content_width()
 	if _is_pc_layout():
@@ -2883,6 +2942,12 @@ func _hud_block_width() -> float:
 	var width: float = floor((available_width - float(entries - 1) * gap) / float(entries))
 	var minimum_width := 64.0 if available_width >= 420.0 else 38.0
 	return clamp(width, minimum_width, 112.0 if _is_pc_layout() else 98.0)
+
+func _hand_scroll_content_width() -> float:
+	var width: float = _scroll_content_width()
+	if _is_pc_layout():
+		width -= 72.0 * 2.0 + 16.0
+	return max(MIN_SAFE_CONTENT_WIDTH, width)
 
 func _estimated_control_height(control: Control) -> float:
 	if control == null:
@@ -5581,16 +5646,23 @@ func _refresh_combat_hud() -> void:
 	var momentum_max: int = int(combat.player.get("momentum_max", 0))
 	var entries: Array[Dictionary] = []
 	if _is_pc_layout():
-		entries.append({"label": "回合", "value": "%d · %s" % [combat.turn, _combat_phase_short_name()], "skin": "event"})
-	entries.append_array([
-		{"label": "生命", "value": "%d/%d" % [hp, max_hp], "skin": "danger"},
-		{"label": "护甲", "value": "%d" % block, "skin": "primary"},
-		{"label": "能量", "value": "%d/%d" % [energy, max_energy], "skin": "relic"},
-		{"label": "势能", "value": "%d/%d" % [momentum, momentum_max], "skin": "potion"},
-		{"label": "抽牌", "value": "%d" % combat.draw_pile.size(), "skin": "neutral"},
-		{"label": "弃牌", "value": "%d" % combat.discard_pile.size(), "skin": "neutral"},
-		{"label": "消耗", "value": "%d" % combat.exhaust_pile.size(), "skin": "event"}
-	])
+		entries.append_array([
+			{"label": "生命", "value": "%d/%d" % [hp, max_hp], "skin": "danger"},
+			{"label": "护甲", "value": "%d" % block, "skin": "primary"},
+			{"label": "金币", "value": "%d" % run_gold, "skin": "relic"},
+			{"label": "回合", "value": "%d · %s" % [combat.turn, _combat_phase_short_name()], "skin": "event"},
+			{"label": "势能", "value": "%d/%d" % [momentum, momentum_max], "skin": "potion"}
+		])
+	else:
+		entries.append_array([
+			{"label": "生命", "value": "%d/%d" % [hp, max_hp], "skin": "danger"},
+			{"label": "护甲", "value": "%d" % block, "skin": "primary"},
+			{"label": "能量", "value": "%d/%d" % [energy, max_energy], "skin": "relic"},
+			{"label": "势能", "value": "%d/%d" % [momentum, momentum_max], "skin": "potion"},
+			{"label": "抽牌", "value": "%d" % combat.draw_pile.size(), "skin": "neutral"},
+			{"label": "弃牌", "value": "%d" % combat.discard_pile.size(), "skin": "neutral"},
+			{"label": "消耗", "value": "%d" % combat.exhaust_pile.size(), "skin": "event"}
+		])
 	var text_parts: Array[String] = []
 	for entry in entries:
 		var entry_dict: Dictionary = entry
@@ -5605,6 +5677,130 @@ func _refresh_combat_hud() -> void:
 		combat_hud_row.add_child(spacer)
 		combat_hud_row.add_child(preserved_potion_row)
 	last_combat_hud_text = " | ".join(text_parts)
+	_refresh_pc_hand_dock_hud()
+
+func _create_hand_energy_panel() -> PanelContainer:
+	var panel := PanelContainer.new()
+	panel.name = "HandEnergyPanel"
+	panel.custom_minimum_size = Vector2(64, 74)
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.tooltip_text = "当前能量 / 最大能量"
+	panel.add_theme_stylebox_override("panel", _hand_dock_panel_style("relic", true))
+
+	var center := CenterContainer.new()
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(center)
+
+	var box := VBoxContainer.new()
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.alignment = BoxContainer.ALIGNMENT_CENTER
+	box.add_theme_constant_override("separation", 1)
+	center.add_child(box)
+
+	var icon := TextureRect.new()
+	icon.name = "HandEnergyIcon"
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	icon.custom_minimum_size = Vector2(30, 30)
+	icon.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.texture = _load_texture(_hud_icon_path("能量"))
+	icon.modulate = Color(1.0, 0.88, 0.42, 0.98)
+	box.add_child(icon)
+
+	hand_energy_value_label = Label.new()
+	hand_energy_value_label.name = "HandEnergyValue"
+	hand_energy_value_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hand_energy_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hand_energy_value_label.add_theme_font_size_override("font_size", 18)
+	hand_energy_value_label.add_theme_color_override("font_color", Color(1.0, 0.95, 0.72))
+	box.add_child(hand_energy_value_label)
+	return panel
+
+func _create_hand_pile_button(kind: String, title: String, icon_path: String) -> Button:
+	var button := Button.new()
+	button.name = "HandPileButton_%s" % kind
+	button.custom_minimum_size = Vector2(64, 56)
+	button.text = ""
+	button.clip_contents = true
+	button.tooltip_text = "%s\n点击查看" % title
+	button.add_theme_stylebox_override("normal", _hand_dock_button_style(false, false))
+	button.add_theme_stylebox_override("hover", _hand_dock_button_style(true, false))
+	button.add_theme_stylebox_override("pressed", _hand_dock_button_style(true, true))
+	button.pressed.connect(_open_pile_view.bind(kind))
+
+	var center := CenterContainer.new()
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	button.add_child(center)
+	var row := HBoxContainer.new()
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_theme_constant_override("separation", 4)
+	center.add_child(row)
+
+	var icon := TextureRect.new()
+	icon.name = "HandPileIcon"
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	icon.custom_minimum_size = Vector2(26, 26)
+	icon.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.texture = _load_texture(icon_path)
+	icon.modulate = Color(0.88, 0.92, 0.86, 0.96)
+	row.add_child(icon)
+
+	var count := Label.new()
+	count.name = "HandPileCount"
+	count.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	count.text = "0"
+	count.add_theme_font_size_override("font_size", 17)
+	count.add_theme_color_override("font_color", Color(0.98, 0.94, 0.82))
+	row.add_child(count)
+	return button
+
+func _refresh_pc_hand_dock_hud() -> void:
+	var visible: bool = _is_pc_layout() and combat != null and combat.phase != "won" and combat.phase != "lost"
+	if hand_left_hud != null:
+		hand_left_hud.visible = visible
+	if hand_right_hud != null:
+		hand_right_hud.visible = visible
+	last_hand_dock_control_count = 0
+	if not visible:
+		return
+	if hand_energy_value_label != null:
+		hand_energy_value_label.text = "%d/%d" % [int(combat.player.get("energy", 0)), int(combat.player.get("max_energy", 0))]
+		last_hand_dock_control_count += 1
+	_update_hand_pile_button(hand_draw_button, combat.draw_pile.size(), "抽牌堆")
+	_update_hand_pile_button(hand_discard_button, combat.discard_pile.size(), "弃牌堆")
+	_update_hand_pile_button(hand_exhaust_button, combat.exhaust_pile.size(), "消耗堆")
+
+func _update_hand_pile_button(button: Button, count: int, title: String) -> void:
+	if button == null:
+		return
+	var count_label := button.find_child("HandPileCount", true, false) as Label
+	if count_label != null:
+		count_label.text = str(count)
+	button.tooltip_text = "%s：%d 张\n点击查看" % [title, count]
+	last_hand_dock_control_count += 1
+
+func _hand_dock_panel_style(skin: String, emphasized: bool = false) -> StyleBoxFlat:
+	var palette: Dictionary = _button_skin_palette(skin)
+	var bg: Color = palette.get("bg", Color(0.12, 0.13, 0.14)).darkened(0.22)
+	var border: Color = palette.get("border", Color(0.64, 0.66, 0.62))
+	var style := _button_style(Color(bg.r, bg.g, bg.b, 0.90), Color(border.r, border.g, border.b, 0.92), 2 if emphasized else 1, 8)
+	style.shadow_color = Color(0, 0, 0, 0.54)
+	style.shadow_size = 4
+	return style
+
+func _hand_dock_button_style(hovered: bool, pressed: bool) -> StyleBoxFlat:
+	var bg := Color(0.055, 0.066, 0.070, 0.90)
+	var border := Color(0.42, 0.50, 0.48, 0.84)
+	if hovered:
+		bg = Color(0.085, 0.10, 0.10, 0.96)
+		border = Color(0.74, 0.82, 0.68, 0.96)
+	if pressed:
+		bg = bg.darkened(0.12)
+	var style := _button_style(bg, border, 1, 8)
+	style.shadow_color = Color(0, 0, 0, 0.48)
+	style.shadow_size = 3
+	return style
 
 func _add_hud_block(label_text: String, value_text: String, skin: String) -> void:
 	if _is_pc_layout():
@@ -6790,10 +6986,16 @@ func _pc_enemy_stage_art_scale(enemy: Dictionary) -> float:
 func _start_enemy_idle_motion(art: TextureRect, enemy_index: int) -> void:
 	if DisplayServer.get_name() == "headless" or not is_inside_tree():
 		return
+	var active_tween: Tween
+	if art.has_meta("idle_motion_tween"):
+		active_tween = art.get_meta("idle_motion_tween") as Tween
+	if active_tween != null and active_tween.is_valid():
+		return
 	var base_y: float = art.position.y
 	var amplitude: float = 2.5 + float(enemy_index % 2)
-	var duration: float = 1.35 + float(enemy_index) * 0.12
+	var duration: float = 1.65 + float(enemy_index) * 0.14
 	var tween := create_tween().bind_node(art).set_loops()
+	art.set_meta("idle_motion_tween", tween)
 	tween.tween_property(art, "position:y", base_y - amplitude, duration).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	tween.tween_property(art, "position:y", base_y + amplitude * 0.35, duration).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
@@ -6845,9 +7047,12 @@ func _queue_stage_forecast_refresh() -> void:
 		if _intent_projects_to_player(str(intent.get("type", ""))):
 			last_stage_forecast_beam_count += 1
 	if is_inside_tree() and DisplayServer.get_name() != "headless":
-		call_deferred("_refresh_stage_forecast_layer")
+		if not stage_forecast_refresh_pending:
+			stage_forecast_refresh_pending = true
+			call_deferred("_refresh_stage_forecast_layer")
 
 func _refresh_stage_forecast_layer() -> void:
+	stage_forecast_refresh_pending = false
 	if battle_forecast_layer == null or not is_instance_valid(battle_forecast_layer) or not is_inside_tree():
 		return
 	_clear_container(battle_forecast_layer)
@@ -6928,13 +7133,32 @@ func _add_stage_selection_reticle(enemy_rect: Rect2, intent_type: String) -> voi
 	if battle_forecast_layer == null:
 		return
 	var size: Vector2 = Vector2(clamp(enemy_rect.size.x * 0.74, 122.0, 230.0), clamp(enemy_rect.size.y * 0.76, 142.0, 224.0))
-	var reticle := PanelContainer.new()
+	var reticle := Control.new()
 	reticle.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	reticle.custom_minimum_size = size
 	reticle.size = size
 	reticle.position = Vector2(enemy_rect.position.x + enemy_rect.size.x * 0.5, enemy_rect.position.y + enemy_rect.size.y * 0.50) - size * 0.5
-	reticle.add_theme_stylebox_override("panel", _stage_selection_reticle_style(intent_type))
 	battle_forecast_layer.add_child(reticle)
+	var color: Color = _stage_forecast_color(intent_type)
+	var line_length: float = clamp(min(size.x, size.y) * 0.15, 18.0, 28.0)
+	var thickness := 2.0
+	var lines: Array[Rect2] = [
+		Rect2(Vector2(0, 0), Vector2(line_length, thickness)),
+		Rect2(Vector2(0, 0), Vector2(thickness, line_length)),
+		Rect2(Vector2(size.x - line_length, 0), Vector2(line_length, thickness)),
+		Rect2(Vector2(size.x - thickness, 0), Vector2(thickness, line_length)),
+		Rect2(Vector2(0, size.y - thickness), Vector2(line_length, thickness)),
+		Rect2(Vector2(0, size.y - line_length), Vector2(thickness, line_length)),
+		Rect2(Vector2(size.x - line_length, size.y - thickness), Vector2(line_length, thickness)),
+		Rect2(Vector2(size.x - thickness, size.y - line_length), Vector2(thickness, line_length))
+	]
+	for line_rect in lines:
+		var line := ColorRect.new()
+		line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		line.position = line_rect.position
+		line.size = line_rect.size
+		line.color = Color(color.r, color.g, color.b, 0.82)
+		reticle.add_child(line)
 
 func _add_stage_beam(start: Vector2, end: Vector2, intent_type: String) -> void:
 	if battle_forecast_layer == null:
@@ -7324,6 +7548,7 @@ func _refresh_hand() -> void:
 	hand_buttons_by_index.clear()
 	last_hand_card_layout_count = 0
 	last_hand_card_art_node_count = 0
+	last_hand_card_material_frame_count = 0
 	last_hand_card_cost_texts.clear()
 	last_hand_card_type_texts.clear()
 	last_hand_card_name_texts.clear()
@@ -7373,7 +7598,7 @@ func _add_structured_card_layout(button: Button, card: Dictionary, card_texture:
 		visible_type_text = "%s · %s" % [type_text, rarity_text]
 	var use_pc_full_art: bool = _is_pc_layout() and (telemetry_bucket == "hand" or button.custom_minimum_size.y >= 200.0)
 	if use_pc_full_art:
-		_add_pc_hand_card_layout(button, card, card_texture, card_type, card_name, cost_text, visible_type_text)
+		_add_pc_hand_card_layout(button, card, card_texture, card_type, card_name, cost_text, visible_type_text, telemetry_bucket)
 		_record_structured_card_layout(telemetry_bucket, card_texture != null, cost_text, type_text, card_name, rarity_text)
 		return
 	var compact: bool = (telemetry_bucket == "hand" and not _is_pc_layout()) or button.custom_minimum_size.y < 178.0
@@ -7496,8 +7721,10 @@ func _add_structured_card_layout(button: Button, card: Dictionary, card_texture:
 
 	_record_structured_card_layout(telemetry_bucket, card_texture != null, cost_text, type_text, card_name, rarity_text)
 
-func _add_pc_hand_card_layout(button: Button, card: Dictionary, card_texture: Texture2D, card_type: String, card_name: String, cost_text: String, visible_type_text: String) -> void:
+func _add_pc_hand_card_layout(button: Button, card: Dictionary, card_texture: Texture2D, card_type: String, card_name: String, cost_text: String, visible_type_text: String, telemetry_bucket: String) -> void:
 	button.clip_contents = true
+	var material_frame_texture: Texture2D = _load_texture(_pc_card_material_frame_path(card_type))
+	var has_material_frame: bool = material_frame_texture != null
 	var card_height: float = button.custom_minimum_size.y
 	var top_height: float = clamp(round(card_height * 0.18), 30.0, 38.0)
 	var desc_height: float = clamp(round(card_height * 0.40), 72.0, 86.0)
@@ -7505,10 +7732,10 @@ func _add_pc_hand_card_layout(button: Button, card: Dictionary, card_texture: Te
 
 	var root := MarginContainer.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
-	root.offset_left = 3
-	root.offset_top = 3
-	root.offset_right = -3
-	root.offset_bottom = -3
+	root.offset_left = 1 if has_material_frame else 3
+	root.offset_top = 1 if has_material_frame else 3
+	root.offset_right = -1 if has_material_frame else -3
+	root.offset_bottom = -1 if has_material_frame else -3
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	button.add_child(root)
 
@@ -7537,6 +7764,7 @@ func _add_pc_hand_card_layout(button: Button, card: Dictionary, card_texture: Te
 	left_rail.offset_left = 0.0
 	left_rail.offset_right = 7.0
 	left_rail.color = _pc_card_rail_color(card_type, true)
+	left_rail.visible = not has_material_frame
 	left_rail.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	stack.add_child(left_rail)
 
@@ -7549,6 +7777,7 @@ func _add_pc_hand_card_layout(button: Button, card: Dictionary, card_texture: Te
 	right_rail.offset_left = -6.0
 	right_rail.offset_right = 0.0
 	right_rail.color = Color(0.0, 0.0, 0.0, 0.40)
+	right_rail.visible = not has_material_frame
 	right_rail.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	stack.add_child(right_rail)
 
@@ -7561,6 +7790,7 @@ func _add_pc_hand_card_layout(button: Button, card: Dictionary, card_texture: Te
 	top_highlight.offset_top = 0.0
 	top_highlight.offset_bottom = 2.0
 	top_highlight.color = Color(1.0, 0.92, 0.70, 0.34)
+	top_highlight.visible = not has_material_frame
 	top_highlight.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	stack.add_child(top_highlight)
 
@@ -7576,6 +7806,7 @@ func _add_pc_hand_card_layout(button: Button, card: Dictionary, card_texture: Te
 	diagonal_glaze.offset_bottom = 120.0
 	diagonal_glaze.rotation = -0.18
 	diagonal_glaze.color = Color(1.0, 0.96, 0.80, 0.055)
+	diagonal_glaze.visible = not has_material_frame
 	diagonal_glaze.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	stack.add_child(diagonal_glaze)
 
@@ -7599,9 +7830,23 @@ func _add_pc_hand_card_layout(button: Button, card: Dictionary, card_texture: Te
 	bottom_scrim.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	stack.add_child(bottom_scrim)
 
+	if has_material_frame:
+		var material_frame := TextureRect.new()
+		material_frame.name = "CardMaterialFrame"
+		material_frame.set_anchors_preset(Control.PRESET_FULL_RECT)
+		material_frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		material_frame.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		material_frame.stretch_mode = TextureRect.STRETCH_SCALE
+		material_frame.texture = material_frame_texture
+		material_frame.modulate = Color(1.0, 1.0, 1.0, 0.96)
+		stack.add_child(material_frame)
+		if telemetry_bucket == "hand":
+			last_hand_card_material_frame_count += 1
+
 	var frame := PanelContainer.new()
 	frame.set_anchors_preset(Control.PRESET_FULL_RECT)
 	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	frame.visible = not has_material_frame
 	frame.add_theme_stylebox_override("panel", _pc_hand_card_frame_style(card_type))
 	stack.add_child(frame)
 
@@ -7610,7 +7855,7 @@ func _add_pc_hand_card_layout(button: Button, card: Dictionary, card_texture: Te
 	title_panel.anchor_top = 0.0
 	title_panel.anchor_right = 1.0
 	title_panel.anchor_bottom = 0.0
-	title_panel.offset_left = 26.0
+	title_panel.offset_left = 42.0 if has_material_frame else 26.0
 	title_panel.offset_top = 4.0
 	title_panel.offset_right = -8.0
 	title_panel.offset_bottom = top_height
@@ -8059,10 +8304,12 @@ func _refresh_feedback() -> void:
 	feedback_label.add_theme_stylebox_override("normal", _feedback_style(str(event.get("severity", "info"))))
 	feedback_label.modulate = Color(1, 1, 1, 1)
 	if is_inside_tree() and DisplayServer.get_name() != "headless":
-		var tween := create_tween()
+		if feedback_label_tween != null and feedback_label_tween.is_valid():
+			feedback_label_tween.kill()
+		feedback_label_tween = create_tween()
 		feedback_label.scale = Vector2(1.10, 1.10) if _is_strong_feedback(event_type) else Vector2(1.04, 1.04)
-		tween.tween_property(feedback_label, "scale", Vector2.ONE, 0.14)
-		tween.parallel().tween_property(feedback_label, "modulate", Color(1, 1, 1, 0.88), 0.46)
+		feedback_label_tween.tween_property(feedback_label, "scale", Vector2.ONE, 0.12)
+		feedback_label_tween.parallel().tween_property(feedback_label, "modulate", Color(1, 1, 1, 0.88), 0.36)
 
 func _apply_feedback_effects(events: Array, primary_event: Dictionary) -> void:
 	last_flash_target_id = ""
@@ -8153,11 +8400,13 @@ func _show_cinematic_prompt(event: Dictionary) -> void:
 	if DisplayServer.get_name() == "headless" or not is_inside_tree():
 		return
 	cinematic_panel.scale = Vector2(1.08, 1.08)
-	var tween := create_tween()
-	tween.tween_property(cinematic_panel, "scale", Vector2.ONE, 0.16).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	tween.tween_interval(_cinematic_hold_duration(event_type))
-	tween.tween_property(cinematic_overlay, "modulate", Color(1, 1, 1, 0), 0.22)
-	tween.tween_callback(Callable(self, "_hide_cinematic_prompt"))
+	if cinematic_tween != null and cinematic_tween.is_valid():
+		cinematic_tween.kill()
+	cinematic_tween = create_tween()
+	cinematic_tween.tween_property(cinematic_panel, "scale", Vector2.ONE, 0.14).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	cinematic_tween.tween_interval(_cinematic_hold_duration(event_type))
+	cinematic_tween.tween_property(cinematic_overlay, "modulate", Color(1, 1, 1, 0), 0.18)
+	cinematic_tween.tween_callback(Callable(self, "_hide_cinematic_prompt"))
 
 func _hide_cinematic_prompt() -> void:
 	if cinematic_overlay != null:
@@ -8290,10 +8539,16 @@ func _on_hand_card_hovered(index: int, hovered: bool) -> void:
 	var card_count: int = hand_row.get_child_count()
 	var base_rotation: float = _hand_card_base_rotation(index, card_count)
 	var rest_position: Vector2 = button.get_meta("hand_rest_position", button.position)
+	var active_tween: Tween
+	if button.has_meta("hand_hover_tween"):
+		active_tween = button.get_meta("hand_hover_tween") as Tween
+	if active_tween != null and active_tween.is_valid():
+		active_tween.kill()
 	if hovered:
 		button.set_meta("hand_hover_base_position", rest_position)
 		button.z_index = 80
 		var enter_tween := create_tween()
+		button.set_meta("hand_hover_tween", enter_tween)
 		enter_tween.tween_property(button, "scale", Vector2(1.045, 1.045), 0.13).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 		enter_tween.parallel().tween_property(button, "rotation_degrees", 0.0, 0.13).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 		enter_tween.parallel().tween_property(button, "position", rest_position + Vector2(0, -18), 0.13).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
@@ -8301,6 +8556,7 @@ func _on_hand_card_hovered(index: int, hovered: bool) -> void:
 		var base_position: Vector2 = button.get_meta("hand_hover_base_position", rest_position)
 		button.z_index = index
 		var exit_tween := create_tween()
+		button.set_meta("hand_hover_tween", exit_tween)
 		exit_tween.tween_property(button, "scale", Vector2.ONE, 0.12).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 		exit_tween.parallel().tween_property(button, "rotation_degrees", base_rotation, 0.12).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 		exit_tween.parallel().tween_property(button, "position", base_position, 0.12).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
@@ -8519,9 +8775,9 @@ func _request_card_play_visual(payload: Dictionary) -> void:
 	ghost.position = (points[0] as Vector2) - ghost.custom_minimum_size * 0.5
 	ghost.scale = Vector2(0.92, 0.92)
 	var tween := create_tween()
-	tween.tween_method(Callable(self, "_update_card_flight_position").bind(ghost, points, ghost.custom_minimum_size), 0.0, 1.0, 0.34).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	tween.parallel().tween_property(ghost, "scale", Vector2(0.42, 0.42), 0.34)
-	tween.parallel().tween_property(ghost, "modulate", Color(1, 1, 1, 0.12), 0.34)
+	tween.tween_method(Callable(self, "_update_card_flight_position").bind(ghost, points, ghost.custom_minimum_size), 0.0, 1.0, 0.27).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tween.parallel().tween_property(ghost, "scale", Vector2(0.46, 0.46), 0.27)
+	tween.parallel().tween_property(ghost, "modulate", Color(1, 1, 1, 0.16), 0.27)
 	tween.tween_callback(Callable(self, "_spawn_card_resolution_effect").bind(payload))
 	tween.tween_callback(Callable(ghost, "queue_free"))
 
@@ -8986,13 +9242,13 @@ func _control_center(control: Control) -> Vector2:
 func _feedback_hit_stop_duration(event: Dictionary) -> float:
 	match str(event.get("type", "")):
 		"enemy_hit", "player_hit":
-			return clamp(0.035 + float(int(event.get("amount", 0))) * 0.0015, 0.04, 0.09)
+			return clamp(0.024 + float(int(event.get("amount", 0))) * 0.0010, 0.028, 0.060)
 		"enemy_defeated":
-			return 0.10
+			return 0.070
 		"phase":
-			return 0.12
+			return 0.085
 		"won", "lost":
-			return 0.14
+			return 0.095
 		_:
 			return 0.0
 
@@ -9024,7 +9280,7 @@ func _request_hit_stop(duration: float) -> void:
 	_play_hit_stop(duration, hit_stop_ticket, Engine.time_scale)
 
 func _play_hit_stop(duration: float, ticket: int, restore_scale: float) -> void:
-	Engine.time_scale = min(restore_scale, 0.08)
+	Engine.time_scale = min(restore_scale, 0.28)
 	await get_tree().create_timer(duration, true, false, true).timeout
 	if ticket == hit_stop_ticket:
 		Engine.time_scale = restore_scale
@@ -9036,12 +9292,19 @@ func _request_screen_shake(intensity: float, duration: float) -> void:
 	if DisplayServer.get_name() == "headless" or not is_inside_tree() or root_box == null:
 		return
 	var base_position: Vector2 = root_box.position
+	if root_box.has_meta("screen_shake_origin"):
+		base_position = root_box.get_meta("screen_shake_origin") as Vector2
+	if screen_shake_tween != null and screen_shake_tween.is_valid():
+		screen_shake_tween.kill()
+		root_box.position = base_position
+	root_box.set_meta("screen_shake_origin", base_position)
 	var step: float = duration / 4.0
-	var tween := create_tween()
-	tween.tween_property(root_box, "position", base_position + Vector2(intensity, -intensity * 0.45), step)
-	tween.tween_property(root_box, "position", base_position + Vector2(-intensity * 0.80, intensity * 0.55), step)
-	tween.tween_property(root_box, "position", base_position + Vector2(intensity * 0.35, intensity * 0.35), step)
-	tween.tween_property(root_box, "position", base_position, step)
+	screen_shake_tween = create_tween()
+	screen_shake_tween.tween_property(root_box, "position", base_position + Vector2(intensity, -intensity * 0.45), step)
+	screen_shake_tween.tween_property(root_box, "position", base_position + Vector2(-intensity * 0.80, intensity * 0.55), step)
+	screen_shake_tween.tween_property(root_box, "position", base_position + Vector2(intensity * 0.35, intensity * 0.35), step)
+	screen_shake_tween.tween_property(root_box, "position", base_position, step)
+	screen_shake_tween.tween_callback(Callable(root_box, "remove_meta").bind("screen_shake_origin"))
 
 func _primary_feedback_event(events: Array) -> Dictionary:
 	var priority := {
@@ -10007,6 +10270,9 @@ func _card_frame_path(card_type: String) -> String:
 	if path.is_empty():
 		path = str(CARD_FRAME_PATHS.get("skill", ""))
 	return path
+
+func _pc_card_material_frame_path(card_type: String) -> String:
+	return str(PC_CARD_MATERIAL_FRAME_PATHS.get(card_type, ""))
 
 func _card_art_path(card: Dictionary) -> String:
 	var card_id: String = str(card.get("id", ""))

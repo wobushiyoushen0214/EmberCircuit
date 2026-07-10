@@ -379,13 +379,15 @@ func _run() -> void:
 		return
 	if not _check(main.map_generation_data.get("chapter_one", {}).get("event_pool", []).has("coolant_cache"), "map generation references expanded event pool"):
 		return
-	if not _check(main.combat_hud_row.visible and main.last_combat_hud_block_count >= 7, "combat renders structured resource HUD blocks"):
-		return
-	if not _check(main.last_combat_hud_text.contains("生命") and main.last_combat_hud_text.contains("能量") and main.last_combat_hud_text.contains("势能"), "combat HUD records primary player resources"):
-		return
-	if not _check(main.last_combat_hud_text.contains("抽牌") and main.last_combat_hud_text.contains("弃牌") and main.last_combat_hud_text.contains("消耗"), "combat HUD records card pile counts"):
-		return
 	if main._is_pc_layout():
+		if not _check(main.combat_hud_row.visible and main.last_combat_hud_block_count == 5, "PC combat keeps five long-lived resources in the top HUD"):
+			return
+		if not _check(main.last_combat_hud_text.contains("生命") and main.last_combat_hud_text.contains("金币") and main.last_combat_hud_text.contains("势能") and main.last_combat_hud_text.contains("回合"), "PC combat top HUD records long-lived battle status"):
+			return
+		if not _check(not main.last_combat_hud_text.contains("抽牌") and not main.last_combat_hud_text.contains("弃牌") and not main.last_combat_hud_text.contains("消耗"), "PC combat removes card piles from the top HUD"):
+			return
+		if not _check(main.last_hand_dock_control_count == 4 and main.hand_left_hud.visible and main.hand_right_hud.visible, "PC combat renders energy and pile controls beside the hand"):
+			return
 		var first_hud_block := main.combat_hud_row.get_child(0) as Control
 		if not _check(_has_generated_texture_background(first_hud_block), "PC combat HUD uses generated resource chip art"):
 			return
@@ -409,6 +411,13 @@ func _run() -> void:
 			return
 		main._close_pile_view(false)
 		if not _check(not main.pile_view_open and not main.pile_overlay.visible, "pile viewer closes without leaving a blocking overlay"):
+			return
+	else:
+		if not _check(main.combat_hud_row.visible and main.last_combat_hud_block_count >= 7, "compact combat renders structured resource HUD blocks"):
+			return
+		if not _check(main.last_combat_hud_text.contains("生命") and main.last_combat_hud_text.contains("能量") and main.last_combat_hud_text.contains("势能"), "compact combat HUD records primary player resources"):
+			return
+		if not _check(main.last_combat_hud_text.contains("抽牌") and main.last_combat_hud_text.contains("弃牌") and main.last_combat_hud_text.contains("消耗"), "compact combat HUD records card pile counts"):
 			return
 	if main._is_pc_layout():
 		if not _check(not main.title_label.visible and not main.run_label.visible and not main.status_label.visible, "PC combat hides page chrome to prioritize the battle stage"):
@@ -531,6 +540,8 @@ func _run() -> void:
 		if not _check(_pc_hand_card_uses_full_background(first_hand_button_cast), "PC hand card uses full-card art as the background"):
 			return
 		if not _check(_control_has_node_named(first_hand_button_cast, "CardRarityGem") and _control_has_node_named(first_hand_button_cast, "CardLeftRail"), "PC hand card renders physical card trim and rarity gem"):
+			return
+		if not _check(main.last_hand_card_material_frame_count == main.combat.hand.size() and _control_has_node_named(first_hand_button_cast, "CardMaterialFrame"), "PC hand cards load bitmap material frames"):
 			return
 	var first_hand_card: Dictionary = main.combat.hand[0]
 	if not _check(main.last_hand_card_cost_texts[0] == str(int(first_hand_card.get("cost", 0))), "hand card layout records visible cost badge"):
