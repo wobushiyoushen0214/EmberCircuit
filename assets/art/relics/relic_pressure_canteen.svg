@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="metal" x1="24" y1="12" x2="102" y2="116">
+      <stop offset="0%" stop-color="#d6e4dc"/>
+      <stop offset="42%" stop-color="#61716d"/>
+      <stop offset="100%" stop-color="#151b1b"/>
+    </linearGradient>
+    <linearGradient id="water" x1="33" y1="42" x2="91" y2="108">
+      <stop offset="0%" stop-color="#98f4ff" stop-opacity="0.92"/>
+      <stop offset="100%" stop-color="#0c5664" stop-opacity="0.78"/>
+    </linearGradient>
+    <radialGradient id="gaugeGlow" cx="50%" cy="48%" r="54%">
+      <stop offset="0%" stop-color="#fff2b8"/>
+      <stop offset="62%" stop-color="#cc7a2f"/>
+      <stop offset="100%" stop-color="#28140d"/>
+    </radialGradient>
+  </defs>
+  <rect width="128" height="128" rx="18" fill="#0e1113"/>
+  <path d="M24 88 C22 58 38 34 64 31 C91 35 107 60 102 91 C96 111 79 119 55 117 C36 114 27 104 24 88Z" fill="#071012" opacity="0.75"/>
+  <path d="M41 31 L87 31 L94 45 L94 101 C94 111 84 118 64 118 C44 118 34 111 34 101 L34 45Z" fill="url(#metal)"/>
+  <path d="M42 65 C55 58 75 59 88 67 L88 101 C86 108 77 112 64 112 C50 112 42 108 40 101Z" fill="url(#water)"/>
+  <rect x="49" y="18" width="30" height="17" rx="5" fill="#2d3738" stroke="#b8d6cf" stroke-width="3"/>
+  <path d="M52 18 L47 9 L81 9 L76 18Z" fill="#a56a33"/>
+  <circle cx="64" cy="55" r="20" fill="url(#gaugeGlow)" stroke="#e5cf91" stroke-width="4"/>
+  <circle cx="64" cy="55" r="13" fill="#1b2222"/>
+  <path d="M64 55 L74 47" stroke="#ffdc7c" stroke-width="4" stroke-linecap="round"/>
+  <path d="M55 61 A12 12 0 0 1 74 61" fill="none" stroke="#80e9e3" stroke-width="3"/>
+  <path d="M30 49 C18 53 15 68 26 76" fill="none" stroke="#768783" stroke-width="7" stroke-linecap="round"/>
+  <path d="M98 49 C110 53 113 68 102 76" fill="none" stroke="#768783" stroke-width="7" stroke-linecap="round"/>
+  <circle cx="43" cy="81" r="4" fill="#cbf7ff" opacity="0.84"/>
+  <circle cx="55" cy="75" r="3" fill="#cbf7ff" opacity="0.58"/>
+  <circle cx="83" cy="86" r="5" fill="#cbf7ff" opacity="0.48"/>
+  <path d="M42 99 C54 105 75 105 88 98" fill="none" stroke="#d8ffff" stroke-width="3" stroke-linecap="round" opacity="0.55"/>
+</svg>

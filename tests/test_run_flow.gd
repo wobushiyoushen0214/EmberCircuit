@@ -41,6 +41,13 @@ func _run() -> void:
 		return
 	if not _check(not main.settings_button.disabled, "character selection keeps settings available"):
 		return
+	if main._is_pc_layout():
+		if not _check(not main.end_turn_button.visible and not main.save_button.visible and not main.deck_button.visible, "PC character selection hides combat-only and run-only control buttons"):
+			return
+		if not _check(main.restart_button.visible and main.load_button.visible and main.profile_button.visible and main.compendium_button.visible and main.settings_button.visible, "PC character selection keeps only menu controls visible"):
+			return
+		if not _check(_control_has_texture_named(main.compendium_button, "MenuButtonIcon") and main.compendium_button.custom_minimum_size.x <= 92.0, "PC character selection renders compendium as a compact menu tool button"):
+			return
 	if not _check(main.last_challenge_button_count == 3 and main.last_challenge_level == 0 and main.last_challenge_unlocked_max == 0, "character selection shows locked base challenge selector"):
 		return
 	if not _check(main.last_challenge_summary.contains("普通模式"), "base challenge summary is readable"):
@@ -229,6 +236,10 @@ func _run() -> void:
 		return
 	if not _check(main.last_profile_summary.contains("档案统计") and main.last_profile_summary.contains("跑团开始"), "profile page shows readable run statistics"):
 		return
+	var active_run_character_id: String = main.selected_character_id
+	main._on_profile_character_pressed("arc_tinker")
+	if not _check(main.profile_character_id == "arc_tinker" and main.selected_character_id == active_run_character_id and main.last_profile_character_selector_count >= 3, "profile character tabs do not mutate the active run character"):
+		return
 	main._on_close_profile_pressed()
 	if not _check(not main.profile_open, "profile page closes back to current run"):
 		return
@@ -259,7 +270,7 @@ func _run() -> void:
 		return
 	if not _check(main.player_portrait != null and main.player_portrait.texture != null, "arc tinker portrait loads"):
 		return
-	if not _check(main.run_max_hp == 64 and main.run_hp == 64, "arc tinker HP loads from character data"):
+	if not _check(main.run_max_hp == 68 and main.run_hp == 68, "arc tinker HP loads from character data"):
 		return
 	if not _check(main.run_deck_ids.has("spark_throw") and main.run_deck_ids.has("pressure_probe"), "arc tinker starter deck loads from character data"):
 		return
@@ -295,7 +306,7 @@ func _run() -> void:
 		return
 	if not _check(main.player_portrait != null and main.player_portrait.texture != null, "pyre ascetic portrait loads"):
 		return
-	if not _check(main.run_max_hp == 66 and main.run_hp == 66, "pyre ascetic HP loads from character data"):
+	if not _check(main.run_max_hp == 70 and main.run_hp == 70, "pyre ascetic HP loads from character data"):
 		return
 	if not _check(main.run_deck_ids.has("penitent_cut") and main.run_deck_ids.has("kindle_pain"), "pyre ascetic starter deck loads from character data"):
 		return
@@ -374,10 +385,41 @@ func _run() -> void:
 		return
 	if not _check(main.last_combat_hud_text.contains("抽牌") and main.last_combat_hud_text.contains("弃牌") and main.last_combat_hud_text.contains("消耗"), "combat HUD records card pile counts"):
 		return
-	if not _check(main.character_frame.visible and main.last_character_panel_style_applied and main.character_frame.get_theme_stylebox("panel") != null, "combat renders a styled player panel"):
-		return
-	if not _check(main.relic_belt_row.visible and main.last_relic_belt_layout_count == min(main.run_relic_ids.size(), main._relic_belt_cap()), "player panel renders a compact relic icon belt"):
-		return
+	if main._is_pc_layout():
+		var first_hud_block := main.combat_hud_row.get_child(0) as Control
+		if not _check(_has_generated_texture_background(first_hud_block), "PC combat HUD uses generated resource chip art"):
+			return
+		if not _check(main.last_combat_hud_icon_node_count >= main.last_combat_hud_block_count, "PC combat HUD uses SVG icons instead of single-character badges"):
+			return
+		if not _check(_control_has_texture_named(first_hud_block, "HudIcon"), "PC combat first HUD block contains an icon texture"):
+			return
+		if not _check(main.last_combat_hud_text.contains("回合"), "PC combat HUD records turn and phase information"):
+			return
+		main._on_pile_hud_pressed("抽牌")
+		await process_frame
+		if not _check(main.pile_view_open and main.last_pile_view_visible and main.last_pile_view_kind == "draw", "PC combat draw pile HUD opens the pile viewer"):
+			return
+		if not _check(main.last_pile_view_tab_count == 3 and main.last_pile_view_card_count == main.combat.draw_pile.size(), "pile viewer renders tabs and the current draw pile count"):
+			return
+		if not _check(main.last_pile_view_art_node_count == main.last_pile_view_card_count, "pile viewer renders card artwork for every visible pile card"):
+			return
+		main._open_pile_view("discard")
+		await process_frame
+		if not _check(main.last_pile_view_kind == "discard" and main.last_pile_view_card_count == main.combat.discard_pile.size(), "pile viewer switches to the discard pile"):
+			return
+		main._close_pile_view(false)
+		if not _check(not main.pile_view_open and not main.pile_overlay.visible, "pile viewer closes without leaving a blocking overlay"):
+			return
+	if main._is_pc_layout():
+		if not _check(not main.title_label.visible and not main.run_label.visible and not main.status_label.visible, "PC combat hides page chrome to prioritize the battle stage"):
+			return
+		if not _check(not main.character_frame.visible and main.last_character_panel_style_applied and main.character_frame.get_theme_stylebox("panel") != null, "PC combat hides the redundant player panel while keeping its style configured"):
+			return
+	else:
+		if not _check(main.character_frame.visible and main.last_character_panel_style_applied and main.character_frame.get_theme_stylebox("panel") != null, "compact combat renders a styled player panel"):
+			return
+		if not _check(main.relic_belt_row.visible and main.last_relic_belt_layout_count == min(main.run_relic_ids.size(), main._relic_belt_cap()), "compact player panel renders a compact relic icon belt"):
+			return
 	if not _check(main.last_relic_belt_icon_node_count == main.last_relic_belt_layout_count and main.last_relic_icon_loaded, "relic belt loads relic icons from art manifest"):
 		return
 	if not _check(main._asset_loaded(main.last_relic_icon_path), "relic belt icon path is a valid resource"):
@@ -394,22 +436,35 @@ func _run() -> void:
 		return
 	if not _check(main.enemy_stage_panel.visible and main.last_enemy_stage_style_applied and main.enemy_stage_panel.get_theme_stylebox("panel") != null, "combat renders a styled enemy stage"):
 		return
+	if main._is_pc_layout():
+		if not _check(main.battle_forecast_layer != null and main.last_stage_forecast_marker_count >= main.combat.enemies.size(), "PC combat renders battlefield forecast markers"):
+			return
+		if not _check(main.last_stage_forecast_icon_count >= main.combat.enemies.size(), "PC combat renders visual intent icons"):
+			return
+		if not _check(main.battle_foreground_layer != null and main.last_stage_foreground_layer_count >= 4, "PC combat renders foreground depth shading over the battle stage"):
+			return
 	if not _check(main.hand_frame.visible and main.last_hand_frame_style_applied and main.hand_frame.get_theme_stylebox("panel") != null, "combat renders a styled hand frame"):
 		return
 	if not _check(main.hand_scroll.visible and main.hand_row.get_parent() == main.hand_scroll, "combat hand is constrained inside a horizontal scroll region"):
 		return
 	if not _check(not main.reward_row.visible and not main.last_combat_reward_region_visible, "player combat phase hides empty reward region"):
 		return
-	if not _check(main.last_combat_layout_estimated_height <= 700.0, "combat layout keeps core regions within first viewport budget"):
+	if not _check(main.last_combat_layout_estimated_height <= (720.0 if main._is_pc_layout() else 700.0), "combat layout keeps core regions within first viewport budget"):
 		return
 	if not _check(main.last_combat_layout_available_height >= 720.0, "combat layout reads the configured viewport height"):
 		return
 	if not _check(main.last_combat_layout_overflow <= 0.0 and main.last_combat_layout_total_height <= main.last_combat_layout_available_height, "combat layout keeps the full page inside the viewport"):
 		return
-	if not _check(main.battle_board_panel.custom_minimum_size.y <= 300.0 and main.log_label.custom_minimum_size.y <= 100.0, "combat layout uses compact board and log heights"):
-		return
-	if not _check(main.hand_frame.custom_minimum_size.y <= 150.0 and main.hand_row.custom_minimum_size.y <= 140.0, "combat layout uses a compact hand frame"):
-		return
+	if main._is_pc_layout():
+		if not _check(main.battle_board_panel.custom_minimum_size.y <= 430.0 and main.log_label.custom_minimum_size.y <= 40.0, "PC combat uses a large stage and compact log strip"):
+			return
+		if not _check(main.hand_frame.custom_minimum_size.y <= 230.0 and main.hand_row.custom_minimum_size.y <= 220.0, "PC combat keeps vertical hand cards inside the 720p budget"):
+			return
+	else:
+		if not _check(main.battle_board_panel.custom_minimum_size.y <= 300.0 and main.log_label.custom_minimum_size.y <= 100.0, "compact combat layout uses compact board and log heights"):
+			return
+		if not _check(main.hand_frame.custom_minimum_size.y <= 150.0 and main.hand_row.custom_minimum_size.y <= 140.0, "compact combat layout uses a compact hand frame"):
+			return
 	if not _check(main.enemy_row.get_child_count() == main.combat.enemies.size(), "combat renders one visual panel per enemy"):
 		return
 	if not _check(main.enemy_visuals_by_id.size() >= main.combat.enemies.size(), "combat indexes enemy visuals for feedback effects"):
@@ -425,24 +480,45 @@ func _run() -> void:
 	var first_enemy_panel = main.enemy_row.get_child(0)
 	if not _check(first_enemy_panel.get_child_count() >= 3, "enemy visual panel includes art, intent badge, and button"):
 		return
-	var first_enemy_art = first_enemy_panel.get_child(0)
-	var first_enemy_texture_rect := first_enemy_art as TextureRect
+	var first_enemy_texture_rect := first_enemy_panel.find_child("EnemyStageArt", true, false) as TextureRect
+	if first_enemy_texture_rect == null:
+		first_enemy_texture_rect = first_enemy_panel.get_child(0) as TextureRect
 	if not _check(first_enemy_texture_rect != null and first_enemy_texture_rect.texture != null, "enemy visual panel loads placeholder art"):
 		return
-	var first_enemy_badge := first_enemy_panel.get_child(1) as PanelContainer
+	var first_enemy_badge := first_enemy_panel.find_child("EnemyStageIntentBadge", true, false) as PanelContainer
+	if first_enemy_badge == null:
+		first_enemy_badge = first_enemy_panel.get_child(1) as PanelContainer
 	if not _check(first_enemy_badge != null and first_enemy_badge.get_theme_stylebox("panel") != null, "enemy visual panel renders a styled intent badge"):
 		return
-	var first_enemy_badge_label := first_enemy_badge.get_child(0) as Label
-	if not _check(first_enemy_badge_label != null and first_enemy_badge_label.text == main.last_enemy_intent_badge_texts[0], "enemy intent badge label mirrors telemetry"):
+	var first_enemy_badge_label_text := _first_label_text(first_enemy_badge)
+	if not _check(not first_enemy_badge_label_text.is_empty(), "enemy intent badge renders readable label text"):
 		return
+	if main._is_pc_layout():
+		var first_enemy_hit_area := first_enemy_panel.find_child("EnemyHitArea", true, false) as Button
+		if not _check(first_enemy_hit_area != null and first_enemy_hit_area.get_theme_stylebox("normal") != null, "PC enemy uses a styled full-body click target"):
+			return
+		var first_enemy_hp_plate := first_enemy_panel.find_child("EnemyHpPlate", true, false) as PanelContainer
+		if not _check(first_enemy_hp_plate != null and first_enemy_hp_plate.custom_minimum_size.y <= 30.0 and first_enemy_hp_plate.custom_minimum_size.x <= 160.0, "PC enemy health plate stays compact at the feet"):
+			return
 	if not _check(main.hand_row.get_child_count() == main.combat.hand.size(), "combat renders one styled hand button per card"):
 		return
+	if main._is_pc_layout():
+		if not _check(_has_generated_texture_background(main.hand_frame), "PC hand tray uses generated UI art"):
+			return
+		if not _check(_has_generated_texture_background(main.end_turn_button), "PC end-turn button uses generated UI art"):
+			return
+		if not _check(_control_has_texture_named(main.deck_button, "CompactButtonIcon") and _control_has_texture_named(main.settings_button, "CompactButtonIcon"), "PC combat utility buttons use HUD icons"):
+			return
 	var first_hand_button = main.hand_row.get_child(0)
 	var first_hand_button_cast := first_hand_button as Button
 	if not _check(first_hand_button_cast != null and first_hand_button_cast.get_theme_stylebox("normal") != null, "hand card button has a stylebox"):
 		return
-	if not _check(first_hand_button_cast.custom_minimum_size.y <= 140.0 and first_hand_button_cast.custom_minimum_size.x <= 136.0, "hand card button is sized for the visible combat viewport"):
-		return
+	if main._is_pc_layout():
+		if not _check(first_hand_button_cast.custom_minimum_size.y <= 220.0 and first_hand_button_cast.custom_minimum_size.x <= 170.0, "PC hand card button keeps a vertical card proportion in the visible combat viewport"):
+			return
+	else:
+		if not _check(first_hand_button_cast.custom_minimum_size.y <= 140.0 and first_hand_button_cast.custom_minimum_size.x <= 136.0, "compact hand card button is sized for the visible combat viewport"):
+			return
 	if not _check(main.last_hand_card_layout_count == main.combat.hand.size(), "hand card buttons use structured card layout"):
 		return
 	if not _check(main.last_hand_card_art_node_count == main.combat.hand.size() and main.last_hand_card_art_loaded, "hand card layout loads art manifest assets"):
@@ -451,6 +527,11 @@ func _run() -> void:
 		return
 	if not _check(first_hand_button_cast.get_child_count() >= 1 and first_hand_button_cast.get_child(0) is MarginContainer, "hand card button contains a visual layout root"):
 		return
+	if main._is_pc_layout():
+		if not _check(_pc_hand_card_uses_full_background(first_hand_button_cast), "PC hand card uses full-card art as the background"):
+			return
+		if not _check(_control_has_node_named(first_hand_button_cast, "CardRarityGem") and _control_has_node_named(first_hand_button_cast, "CardLeftRail"), "PC hand card renders physical card trim and rarity gem"):
+			return
 	var first_hand_card: Dictionary = main.combat.hand[0]
 	if not _check(main.last_hand_card_cost_texts[0] == str(int(first_hand_card.get("cost", 0))), "hand card layout records visible cost badge"):
 		return
@@ -460,19 +541,31 @@ func _run() -> void:
 		return
 	if not _check(main.last_hand_card_rarity_texts[0] == main._rarity_display_name(str(first_hand_card.get("rarity", ""))), "hand card layout records localized rarity"):
 		return
-	if not _check(main.potion_row.get_child_count() == main._max_potion_slots() + 1, "combat renders potion slots"):
+	var expected_potion_children: int = main._max_potion_slots() if main._is_pc_layout() else main._max_potion_slots() + 1
+	if not _check(main.potion_row.get_child_count() == expected_potion_children, "combat renders potion slots"):
 		return
-	var first_potion_button := main.potion_row.get_child(1) as Button
+	if main._is_pc_layout():
+		if not _check(main.potion_row.get_parent() == main.combat_hud_row, "PC combat keeps potion belt in the HUD instead of over the battlefield"):
+			return
+	var first_potion_index := 0 if main._is_pc_layout() else 1
+	var first_potion_button := main.potion_row.get_child(first_potion_index) as Button
 	if not _check(first_potion_button != null and first_potion_button.get_child_count() >= 1 and first_potion_button.get_child(0) is MarginContainer, "potion slot button contains a structured item layout"):
 		return
 	if not _check(main.last_potion_slot_layout_count == main._max_potion_slots(), "potion slots use structured item layouts"):
 		return
-	if not _check(main.last_potion_slot_icon_node_count == main.last_potion_slot_layout_count, "potion slot layouts load icon nodes"):
+	if main._is_pc_layout():
+		if not _check(main.last_potion_slot_icon_node_count <= main.last_potion_slot_layout_count, "PC empty potion sockets do not render fake potion icons"):
+			return
+	elif not _check(main.last_potion_slot_icon_node_count == main.last_potion_slot_layout_count, "potion slot layouts load icon nodes"):
 		return
 	if not _check(main.last_potion_icon_loaded and main._asset_loaded(main.last_potion_icon_path), "potion slot icon path loads from art manifest"):
 		return
-	if not _check(main.feedback_label.visible, "combat feedback label is visible after combat start feedback"):
-		return
+	if main._is_pc_layout():
+		if not _check(not main.feedback_label.visible and main.last_feedback_label_suppressed_for_stage, "PC combat replaces routine start feedback toast with stage effects"):
+			return
+	else:
+		if not _check(main.feedback_label.visible, "combat feedback label is visible after combat start feedback"):
+			return
 	if not _check(main.feedback_overlay != null and main.feedback_overlay.mouse_filter == Control.MOUSE_FILTER_IGNORE, "combat feedback overlay exists and ignores input"):
 		return
 	if not _check(main.cinematic_overlay != null and main.cinematic_overlay.mouse_filter == Control.MOUSE_FILTER_IGNORE, "cinematic overlay exists and ignores input"):
@@ -521,6 +614,8 @@ func _run() -> void:
 		return
 	if not _check(main.last_card_vfx_asset_loaded, "card flight loads configured vfx asset"):
 		return
+	if not _check(main.last_card_flight_uses_card_art, "card flight uses the played card art instead of a flat text tile"):
+		return
 
 	main.run_potion_ids = ["volatile_vial"]
 	var first_enemy_hp_before: int = int(main.combat.enemies[0].get("hp", 0))
@@ -529,8 +624,12 @@ func _run() -> void:
 		return
 	if not _check(int(main.combat.enemies[0].get("hp", 0)) == first_enemy_hp_before - 12, "main scene potion button applies combat effect"):
 		return
-	if not _check(main.feedback_label.visible and not main.feedback_label.text.is_empty(), "combat feedback label shows latest feedback"):
-		return
+	if main._is_pc_layout():
+		if not _check(not main.feedback_label.visible and main.last_feedback_label_suppressed_for_stage, "PC combat keeps routine damage feedback in battlefield VFX instead of a toast"):
+			return
+	else:
+		if not _check(main.feedback_label.visible and not main.feedback_label.text.is_empty(), "combat feedback label shows latest feedback"):
+			return
 	if not _check(_has_feedback_type(main.last_feedback_events, "enemy_hit"), "main scene consumes enemy hit feedback"):
 		return
 	if not _check(main.last_feedback_audio_event == "hit", "enemy hit feedback maps to hit audio event"):
@@ -628,8 +727,17 @@ func _run() -> void:
 	if not _check(main.last_feedback_audio_event == "victory", "victory feedback maps to victory audio"):
 		return
 
+	var gold_before_combat_reward: int = main.run_gold
 	main.combat.phase = "won"
 	main._refresh_combat()
+	if not _check(main.last_combat_gold_reward > 0 and main.run_gold == gold_before_combat_reward + main.last_combat_gold_reward, "combat reward grants configured gold once"):
+		return
+	if not _check(main.last_reward_gold_panel_count == 1, "combat reward screen renders a gold reward panel"):
+		return
+	var gold_after_combat_reward: int = main.run_gold
+	main._refresh_combat()
+	if not _check(main.run_gold == gold_after_combat_reward, "refreshing combat reward screen does not grant duplicate gold"):
+		return
 	if not _check(main.last_reward_card_layout_count == main.reward_options.size() and main.last_reward_card_layout_count > 0, "combat rewards use structured card layout"):
 		return
 	if not _check(main.last_reward_card_art_node_count == main.last_reward_card_layout_count and main.last_reward_card_art_loaded, "combat reward card layouts load art manifest assets"):
@@ -640,7 +748,15 @@ func _run() -> void:
 		return
 	if not _check(main.last_reward_potion_icon_node_count == main.last_reward_potion_layout_count, "combat potion reward layouts load icon nodes"):
 		return
-	var first_reward_card_button := main.reward_row.get_child(1) as Button
+	if not _check(main.last_reward_action_button_count >= 2, "combat reward screen uses structured action buttons"):
+		return
+	if not _check(main.last_reward_action_icon_node_count == main.last_reward_action_button_count, "combat reward action buttons load icon nodes"):
+		return
+	if main._is_pc_layout():
+		var reward_action_column := main.reward_row.get_node_or_null("RewardActionColumn") as VBoxContainer
+		if not _check(reward_action_column != null and reward_action_column.get_child_count() == main.last_reward_action_button_count, "PC combat reward actions share one dedicated command column"):
+			return
+	var first_reward_card_button := _first_structured_button(main.reward_row)
 	if not _check(first_reward_card_button != null and first_reward_card_button.get_child_count() >= 1 and first_reward_card_button.get_child(0) is MarginContainer, "combat reward card button contains a visual layout root"):
 		return
 	main._advance_to_next_node()
@@ -664,11 +780,17 @@ func _run() -> void:
 		return
 	if not _check(main.last_map_preview_text.contains("节点详情") and main.last_map_preview_text.contains("后续可达"), "map choice shows node detail preview"):
 		return
+	if not _check(main.last_map_preview_text.contains("风险：") and main.last_map_preview_text.contains("收益："), "map node preview shows risk and reward forecast"):
+		return
+	if not _check(not main.last_map_preview_risk_level.is_empty() and not main.last_map_preview_reward_summary.is_empty(), "map node preview records risk level and reward summary"):
+		return
 	if not _check(not main.last_map_preview_node_id.is_empty(), "map choice records default preview node"):
 		return
 	var preview_node_id: String = str(main.available_node_ids[0])
 	main._on_map_node_previewed(preview_node_id)
 	if not _check(main.last_map_preview_node_id == preview_node_id and main.log_label.text.contains("节点详情"), "map node preview updates detail panel"):
+		return
+	if not _check(main.log_label.text.contains("风险：") and main.log_label.text.contains("收益："), "map node preview keeps risk and reward visible in the log panel"):
 		return
 	if not _check(main.map_view.previewed_node_id == preview_node_id, "map node preview highlights the active route in map view"):
 		return
@@ -734,6 +856,11 @@ func _run() -> void:
 		return
 	if not _check(main.last_event_choice_style_count > 0, "event choices use styled buttons"):
 		return
+	if not _check(main.last_event_choice_layout_count == event.get("choices", []).size(), "event choices use structured wrapping layouts"):
+		return
+	var first_event_choice_button := main.reward_row.get_child(1) as Button
+	if not _check(first_event_choice_button != null and first_event_choice_button.get_child_count() >= 1 and first_event_choice_button.get_child(0) is MarginContainer, "event choice button contains a structured text layout"):
+		return
 	var gold_before_event: int = main.run_gold
 	main._on_event_choice_pressed(event.get("choices", [])[0])
 	if not _check(main.run_gold == gold_before_event + 35, "event choice applies gold effect"):
@@ -782,6 +909,67 @@ func _run() -> void:
 	if not _check(bool(main._create_save_state().get("completed_event_ids", {}).get("lost_caravan", false)), "save state includes completed one-time events"):
 		return
 
+	var chapter_two_pool_before_chain: Array = main._map_config_for_current_character("chapter_two").get("event_pool", [])
+	if not _check(not chapter_two_pool_before_chain.has("calibrator_return"), "chain follow-up stays out of chapter two before its prerequisite"):
+		return
+	_jump_to_event_id(main, "mute_calibrator")
+	var chain_start: Dictionary = main._event_by_id("mute_calibrator")
+	var chain_gold_before: int = max(main.run_gold, 25)
+	main.run_gold = chain_gold_before
+	main._on_event_choice_pressed(chain_start.get("choices", [])[0])
+	if not _check(main.run_gold == chain_gold_before - 25, "chain event can spend configured gold"):
+		return
+	if not _check(bool(main.completed_event_ids.get("mute_calibrator", false)), "chain event records the prerequisite flag"):
+		return
+	var chapter_two_pool_after_chain: Array = main._map_config_for_current_character("chapter_two").get("event_pool", [])
+	if not _check(chapter_two_pool_after_chain.has("calibrator_return"), "chain follow-up enters chapter two pool after its prerequisite"):
+		return
+	var chapter_two_guaranteed_events: Array = main._map_config_for_current_character("chapter_two").get("guaranteed_event_ids", [])
+	if not _check(chapter_two_guaranteed_events.has("calibrator_return"), "unlocked chain follow-up is guaranteed to appear once on the chapter two map"):
+		return
+	if not _check(bool(main._create_save_state().get("completed_event_ids", {}).get("mute_calibrator", false)), "chain prerequisite persists in run save state"):
+		return
+	_jump_to_event_id(main, "calibrator_return")
+	var chain_follow_up: Dictionary = main._event_by_id("calibrator_return")
+	var deck_size_before_chain_reward: int = main.run_deck_ids.size()
+	main._on_event_choice_pressed(chain_follow_up.get("choices", [])[0])
+	if not _check(main.run_deck_ids.size() == deck_size_before_chain_reward + 1 and main.run_deck_ids.has("calibration_protocol"), "chain follow-up grants its event-exclusive card"):
+		return
+	if not _check(bool(main.completed_event_ids.get("calibrator_return", false)), "chain follow-up records one-time completion"):
+		return
+	var oversized_card_rewards: Array = main._generate_card_rewards(100)
+	if not _check(not _shop_options_have_id(oversized_card_rewards, "calibration_protocol"), "event-exclusive chain card stays out of ordinary reward pools"):
+		return
+
+	_jump_to_node_type(main, "treasure")
+	if not _check(str(main._current_node().get("type", "")) == "treasure", "treasure node can start"):
+		return
+	if not _check(main.last_music_context == "reward", "treasure node uses reward music context"):
+		return
+	if not _check(main.last_treasure_gold_reward >= int(main.economy_data.get("treasure", {}).get("gold_min", 0)), "treasure generates configured gold reward"):
+		return
+	if not _check(main.reward_scroll.visible and main.reward_row is HFlowContainer and main.last_combat_layout_overflow <= 0.0, "treasure rewards stay inside a bounded wrapping reward area"):
+		return
+	if not _check(main.last_treasure_relic_layout_count == main.relic_reward_options.size() and main.last_treasure_relic_layout_count > 0, "treasure relic choices use structured item layout"):
+		return
+	if not _check(main.last_treasure_relic_icon_node_count == main.last_treasure_relic_layout_count and main.last_relic_icon_loaded, "treasure relic choices load icon nodes"):
+		return
+	var treasure_summary_panel := main.reward_row.get_child(0) as PanelContainer
+	var first_treasure_relic_button := main.reward_row.get_child(1) as Button
+	if not _check(treasure_summary_panel != null and first_treasure_relic_button != null and first_treasure_relic_button.get_child_count() >= 1, "treasure screen renders a summary panel before relic choices"):
+		return
+	var gold_before_treasure: int = main.run_gold
+	var relic_count_before_treasure: int = main.run_relic_ids.size()
+	var treasure_gold: int = main.last_treasure_gold_reward
+	var treasure_relic_id: String = str(main.relic_reward_options[0].get("id", ""))
+	main._on_treasure_relic_pressed(treasure_relic_id)
+	if not _check(main.run_gold == gold_before_treasure + treasure_gold, "treasure claim grants gold"):
+		return
+	if not _check(main.run_relic_ids.size() == relic_count_before_treasure + 1 and main.run_relic_ids.has(treasure_relic_id), "treasure claim grants selected relic"):
+		return
+	if not _check(main.current_node_id.is_empty() and not main.available_node_ids.is_empty(), "treasure returns to map choice after claim"):
+		return
+
 	_jump_to_node_type(main, "shop")
 	if not _check(str(main._current_node().get("type", "")) == "shop", "shop node can start"):
 		return
@@ -800,16 +988,37 @@ func _run() -> void:
 	var first_shop_card_button := main.reward_row.get_child(0) as Button
 	if not _check(first_shop_card_button != null and first_shop_card_button.get_child_count() >= 1 and first_shop_card_button.get_child(0) is MarginContainer, "shop card button contains a visual layout root"):
 		return
+	if not _check(main.last_shop_relic_layout_count == main.shop_relic_options.size() and main.last_shop_relic_layout_count > 0, "shop relic offers use structured item layout"):
+		return
+	if not _check(main.last_shop_relic_icon_node_count == main.last_shop_relic_layout_count and main.last_relic_icon_loaded, "shop relic offers load icon nodes"):
+		return
+	var first_shop_relic_button := main.reward_row.get_child(main.shop_card_options.size()) as Button
+	if not _check(first_shop_relic_button != null and first_shop_relic_button.get_child_count() >= 1 and first_shop_relic_button.get_child(0) is MarginContainer, "shop relic button contains a structured item layout root"):
+		return
 	if not _check(main.last_shop_potion_layout_count == main.shop_potion_options.size() and main.last_shop_potion_layout_count > 0, "shop potion offers use structured item layout"):
 		return
 	if not _check(main.last_shop_potion_icon_node_count == main.last_shop_potion_layout_count, "shop potion layouts load icon nodes"):
 		return
-	var first_shop_potion_button := main.reward_row.get_child(main.shop_card_options.size()) as Button
+	var first_shop_potion_button := main.reward_row.get_child(main.shop_card_options.size() + main.shop_relic_options.size()) as Button
 	if not _check(first_shop_potion_button != null and first_shop_potion_button.get_child_count() >= 1 and first_shop_potion_button.get_child(0) is MarginContainer, "shop potion button contains a structured item layout root"):
 		return
 	if not _check(main.last_reward_card_art_loaded and main._asset_loaded(main.last_reward_card_art_path), "shop card buttons load art manifest assets"):
 		return
+	if not _check(main.last_relic_icon_loaded and main._asset_loaded(main.last_relic_icon_path), "shop relic buttons load art manifest assets"):
+		return
 	if not _check(main.last_potion_icon_loaded and main._asset_loaded(main.last_potion_icon_path), "shop potion buttons load art manifest assets"):
+		return
+	var relic_count_before_shop: int = main.run_relic_ids.size()
+	var gold_before_relic: int = main.run_gold
+	var shop_relic: Dictionary = main.shop_relic_options[0]
+	var relic_price: int = main._relic_price(shop_relic)
+	main.run_gold = max(main.run_gold, relic_price)
+	main._on_shop_buy_relic_pressed(str(shop_relic.get("id", "")), relic_price)
+	if not _check(main.run_relic_ids.size() == relic_count_before_shop + 1 and main.run_relic_ids.has(str(shop_relic.get("id", ""))), "shop purchase adds a relic"):
+		return
+	if not _check(main.run_gold == max(gold_before_relic, relic_price) - relic_price, "shop relic purchase spends gold"):
+		return
+	if not _check(not _shop_options_have_id(main.shop_relic_options, str(shop_relic.get("id", ""))), "shop relic purchase removes bought offer"):
 		return
 	var potion_count_before: int = main.run_potion_ids.size()
 	var gold_before_potion: int = main.run_gold
@@ -836,9 +1045,22 @@ func _run() -> void:
 	var remove_increase: int = int(main.economy_data.get("shop", {}).get("remove_card_price_increase", 0))
 	var remove_count_before: int = main.run_shop_remove_count
 	var deck_size_before_remove: int = main.run_deck_ids.size()
+	var selected_remove_index: int = main.run_deck_ids.size() - 1
+	var selected_remove_entry: String = str(main.run_deck_ids[selected_remove_index])
 	main.run_gold = remove_price_before
 	main._on_shop_remove_card_pressed()
+	if not _check(main.shop_remove_selection_open, "shop removal opens card selection mode"):
+		return
+	if not _check(main.run_deck_ids.size() == deck_size_before_remove, "shop removal does not auto-remove a card before selection"):
+		return
+	if not _check(main.last_shop_remove_candidate_count == main.run_deck_ids.size() and main.last_shop_remove_card_layout_count == main.last_shop_remove_candidate_count, "shop removal renders selectable deck cards"):
+		return
+	if not _check(main.last_shop_remove_card_art_node_count == main.last_shop_remove_card_layout_count, "shop removal selectable cards load art nodes"):
+		return
+	main._on_shop_remove_card_selected(selected_remove_index)
 	if not _check(main.run_deck_ids.size() == deck_size_before_remove - 1, "shop removal removes one card"):
+		return
+	if not _check(not main.run_deck_ids.has(selected_remove_entry), "shop removal removes the selected card"):
 		return
 	if not _check(main.run_gold == 0, "shop removal spends current removal price"):
 		return
@@ -863,6 +1085,8 @@ func _run() -> void:
 	if not _check(main.reward_scroll.visible and main.reward_row is HFlowContainer, "victory reward screen uses a bounded wrapping reward area"):
 		return
 	if not _check(main.last_combat_layout_overflow <= 0.0 and main.last_combat_layout_total_height <= main.last_combat_layout_available_height, "victory reward screen keeps the full page inside the viewport"):
+		return
+	if not _check(main.last_combat_gold_reward > 0 and main.last_reward_gold_panel_count == 1, "boss reward screen grants and displays configured gold"):
 		return
 	if not _check(main.last_reward_relic_layout_count == main.relic_reward_options.size() and main.last_reward_relic_layout_count > 0, "boss relic rewards use structured item layout"):
 		return
@@ -904,6 +1128,17 @@ func _run() -> void:
 
 	_jump_to_node_type(main, "boss")
 	main.combat.phase = "won"
+	main._refresh_combat()
+	if not _check(main.last_combat_gold_reward == 0, "final boss reward screen grants no gold"):
+		return
+	if not _check(main.reward_options.is_empty(), "final boss reward screen grants no card options"):
+		return
+	if not _check(main.relic_reward_options.is_empty(), "final boss reward screen grants no relic options"):
+		return
+	if not _check(main.potion_reward_options.is_empty(), "final boss reward screen grants no potion options"):
+		return
+	if not _check(main.card_reward_done and main.relic_reward_done and main.potion_reward_done, "final boss reward screen allows immediate completion"):
+		return
 	main._advance_to_next_node()
 	if not _check(main.run_completed, "chapter three boss completion ends the run"):
 		return
@@ -925,7 +1160,15 @@ func _run() -> void:
 		return
 	if not _check(main.feedback_label.visible and main.feedback_label.text.contains("最终胜利"), "run completion shows final victory feedback"):
 		return
-	if not _check(main.reward_row.get_child_count() >= 3, "run completion shows ending action buttons including profile"):
+	if not _check(main.last_run_completion_panel_visible, "run completion shows dedicated ending panel"):
+		return
+	if not _check(main.last_run_completion_art_loaded and main.last_run_completion_art_path.contains("chapter_three"), "run completion loads chapter ending art"):
+		return
+	if not _check(main.last_run_completion_stat_chip_count >= 6, "run completion shows resource stat chips"):
+		return
+	if not _check(main.last_run_completion_unlock_chip_count >= main.last_run_unlocks.size(), "run completion shows unlock chips"):
+		return
+	if not _check(main.last_run_completion_action_count >= 3, "run completion shows ending action buttons including profile"):
 		return
 	main._on_profile_pressed()
 	if not _check(main.profile_open and main.last_profile_summary.contains("完整通关") and main.last_profile_summary.contains("余烬流亡者"), "completion profile page shows win stats and completed character"):
@@ -1082,6 +1325,13 @@ func _has_feedback_type(events: Array, event_type: String) -> bool:
 			return true
 	return false
 
+func _shop_options_have_id(options: Array, item_id: String) -> bool:
+	for option in options:
+		var option_dict: Dictionary = option
+		if str(option_dict.get("id", "")) == item_id:
+			return true
+	return false
+
 func _first_playable_card_index(main) -> int:
 	if main.combat == null:
 		return -1
@@ -1089,6 +1339,71 @@ func _first_playable_card_index(main) -> int:
 		if main.combat.can_play_card(i):
 			return i
 	return -1
+
+func _pc_hand_card_uses_full_background(button: Button) -> bool:
+	if button == null or button.get_child_count() == 0:
+		return false
+	var root := button.get_child(0) as MarginContainer
+	if root == null or root.get_child_count() == 0:
+		return false
+	var stack := root.get_child(0) as Control
+	if stack == null or stack.get_child_count() == 0:
+		return false
+	var art := stack.get_child(0) as TextureRect
+	if art == null or art.texture == null:
+		return false
+	return art.name == "FullCardArt" \
+		and art.anchor_left <= 0.01 \
+		and art.anchor_top <= 0.01 \
+		and art.anchor_right >= 0.99 \
+		and art.anchor_bottom >= 0.99
+
+func _has_generated_texture_background(control: Control) -> bool:
+	if control == null:
+		return false
+	var texture := control.get_node_or_null("GeneratedTextureBackground") as TextureRect
+	return texture != null and texture.texture != null
+
+func _control_has_texture_named(control: Node, node_name: String) -> bool:
+	if control == null:
+		return false
+	var texture_rect := control as TextureRect
+	if control.name == node_name and texture_rect != null and texture_rect.texture != null:
+		return true
+	for child in control.get_children():
+		if _control_has_texture_named(child, node_name):
+			return true
+	return false
+
+func _control_has_node_named(control: Node, node_name: String) -> bool:
+	if control == null:
+		return false
+	if control.name == node_name:
+		return true
+	for child in control.get_children():
+		if _control_has_node_named(child, node_name):
+			return true
+	return false
+
+func _first_label_text(control: Node) -> String:
+	if control == null:
+		return ""
+	if control is Label:
+		return (control as Label).text
+	for child in control.get_children():
+		var found := _first_label_text(child)
+		if not found.is_empty():
+			return found
+	return ""
+
+func _first_structured_button(control: Node) -> Button:
+	if control == null:
+		return null
+	for child in control.get_children():
+		var button := child as Button
+		if button != null and button.get_child_count() >= 1 and button.get_child(0) is MarginContainer:
+			return button
+	return null
 
 func _expected_card_effect_profile(card_type: String) -> String:
 	match card_type:

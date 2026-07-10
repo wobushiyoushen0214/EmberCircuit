@@ -26,10 +26,10 @@
       "id": "ember_bottle",
       "name": "余烬瓶",
       "rarity": "starter",
-      "description": "战斗开始时获得 3 点护甲。",
-      "effects": [ { "trigger": "combat_start", "type": "gain_block", "amount": 3 } ],
+      "description": "战斗开始时获得 6 点护甲。",
+      "effects": [ { "trigger": "combat_start", "type": "gain_block", "amount": 6 } ],
       "design_note": "给新手第一回合容错。",
-      "balance_note": "3 点护甲只影响开局，不改变长期强度。",
+      "balance_note": "6 点护甲只影响开局，用于把默认角色的完整跑团通关率稳定在目标下沿，不改变长期输出或资源上限。",
       "implementation_note": "已由 combat_start 遗物事件支持。"
     },
     {
@@ -113,6 +113,46 @@
       "implementation_note": "已由 Main.gd 在地图选择阶段扩展 available_node_ids。"
     },
     {
+      "id": "cinder_lens",
+      "name": "余烬透镜",
+      "rarity": "common",
+      "description": "回合开始时，若你拥有至少 3 点势能，抽 1 张牌。",
+      "effects": [ { "trigger": "turn_start", "type": "draw", "amount": 1, "requires_momentum_at_least": 3 } ],
+      "design_note": "把势能从单纯爆发资源扩展为稳定过牌门槛，鼓励玩家保留部分势能进入下一回合。",
+      "balance_note": "需要 3 点势能且只在回合开始结算，不会和同回合 0 费连打形成即时无限循环。",
+      "implementation_note": "CombatState 的遗物条件支持 requires_momentum_at_least；效果复用 turn_start/draw。"
+    },
+    {
+      "id": "pressure_canteen",
+      "name": "压力水壶",
+      "rarity": "uncommon",
+      "description": "每场战斗第一次使用药水后，抽 2 张牌。",
+      "effects": [ { "trigger": "potion_used", "type": "draw", "amount": 2, "once_per_combat": true } ],
+      "design_note": "让药水路线不只解决单次危机，也能成为爆发回合的启动器。",
+      "balance_note": "每场战斗一次，且需要消耗药水资源；抽牌收益强但不会长期滚雪球。",
+      "implementation_note": "CombatState.use_potion 会触发 potion_used；once_per_combat 由遗物触发记录限制。"
+    },
+    {
+      "id": "blood_rust_clamp",
+      "name": "血锈夹",
+      "rarity": "uncommon",
+      "description": "每回合第一次失去生命后，获得 1 点势能。",
+      "effects": [ { "trigger": "player_hp_lost", "type": "gain_momentum", "amount": 1, "min_hp_lost": 1, "once_per_turn": true } ],
+      "design_note": "给自伤、灼烧和挨打后的反击路线一个共享遗物支点，强化风险换资源的主题。",
+      "balance_note": "每回合一次且只给势能不给能量；玩家仍然真实损失生命，不能当作免费资源。",
+      "implementation_note": "CombatState._lose_player_hp 在玩家存活且实际失去生命后触发 player_hp_lost。"
+    },
+    {
+      "id": "twin_valve",
+      "name": "双联阀",
+      "rarity": "rare",
+      "description": "每回合第一次打出技能牌时，获得 1 点能量。",
+      "effects": [ { "trigger": "card_played", "type": "gain_energy", "amount": 1, "card_type": "skill", "once_per_turn": true } ],
+      "design_note": "让防御和过牌型技能构筑拥有爆发回合，避免技能牌只被动拖回合。",
+      "balance_note": "稀有遗物且每回合一次；收益依赖技能密度，不直接强化攻击牌输出。",
+      "implementation_note": "复用 card_played、card_type、once_per_turn 和 gain_energy 遗物效果。"
+    },
+    {
       "id": "spark_coil",
       "name": "火花线圈",
       "rarity": "common",
@@ -128,14 +168,13 @@
       "name": "绝缘电池",
       "rarity": "uncommon",
       "character_ids": [ "arc_tinker" ],
-      "description": "战斗开始时获得 4 点护甲和 1 点势能。",
+      "description": "战斗开始时获得 5 点护甲。",
       "effects": [
-        { "trigger": "combat_start", "type": "gain_block", "amount": 4 },
-        { "trigger": "combat_start", "type": "gain_momentum", "amount": 1 }
+        { "trigger": "combat_start", "type": "gain_block", "amount": 5 }
       ],
-      "design_note": "电弧工匠专属开局容错遗物，缓冲 64 生命带来的早期压力。",
-      "balance_note": "开局收益明确但不会随回合增长，适合低生命角色而不破坏长期强度。",
-      "implementation_note": "复用 combat_start 的 gain_block 和 gain_momentum 遗物效果。"
+      "design_note": "电弧工匠专属开局容错遗物，缓冲 68 生命带来的早期压力。",
+      "balance_note": "5 点一次性护甲只负责低生命容错；启动势能由角色基础值和电弧电容提供，避免三个开场势能来源重复叠加。",
+			"implementation_note": "复用 combat_start 的 gain_block 遗物效果。"
     },
     {
       "id": "micro_dynamo",
@@ -169,12 +208,12 @@
       "name": "灰烬念珠",
       "rarity": "common",
       "character_ids": [ "pyre_ascetic" ],
-      "description": "战斗开始时获得 7 点护甲。",
+      "description": "战斗开始时获得 9 点护甲。",
       "effects": [
-        { "trigger": "combat_start", "type": "gain_block", "amount": 7 }
+        { "trigger": "combat_start", "type": "gain_block", "amount": 9 }
       ],
       "design_note": "熔痕苦修者专属容错遗物，缓冲自伤和灼烧带来的早期血量压力。",
-      "balance_note": "只在战斗开始触发，数值约等于一张弱防御牌，专门缓冲连续战斗和自伤压力。",
+      "balance_note": "只在战斗开始触发，9 点护甲用于吸收首轮高压和角色自伤；后续回合仍必须靠牌组防御。",
       "implementation_note": "复用 combat_start/gain_block 遗物效果。"
     },
     {

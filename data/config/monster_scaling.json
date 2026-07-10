@@ -1,0 +1,32 @@
+{
+  "_comment": "敌人/遭遇数值预算。enemies.json 是实际数值，此文件定义章节、tier 和遭遇的验收边界。",
+  "chapters": {
+    "chapter_one": {
+      "normal": { "hp_min": 22, "hp_max": 46, "max_action_damage": 14, "max_block": 16, "expected_turns_min": 3, "expected_turns_max": 5 },
+      "elite": { "hp_min": 86, "hp_max": 104, "max_action_damage": 18, "max_block": 18, "expected_turns_min": 5, "expected_turns_max": 8 },
+      "boss": { "hp_min": 100, "hp_max": 108, "max_action_damage": 22, "max_block": 14, "expected_turns_min": 8, "expected_turns_max": 12 }
+    },
+    "chapter_two": {
+      "normal": { "hp_min": 42, "hp_max": 56, "max_action_damage": 18, "max_block": 16, "expected_turns_min": 4, "expected_turns_max": 6 },
+      "elite": { "hp_min": 96, "hp_max": 108, "max_action_damage": 21, "max_block": 18, "expected_turns_min": 6, "expected_turns_max": 9 },
+      "boss": { "hp_min": 100, "hp_max": 112, "max_action_damage": 24, "max_block": 14, "expected_turns_min": 9, "expected_turns_max": 13 }
+    },
+    "chapter_three": {
+      "normal": { "hp_min": 50, "hp_max": 66, "max_action_damage": 22, "max_block": 20, "expected_turns_min": 4, "expected_turns_max": 7 },
+      "elite": { "hp_min": 100, "hp_max": 108, "max_action_damage": 26, "max_block": 22, "expected_turns_min": 7, "expected_turns_max": 10 },
+      "boss": { "hp_min": 120, "hp_max": 132, "max_action_damage": 32, "max_block": 22, "expected_turns_min": 10, "expected_turns_max": 15 }
+    }
+  },
+  "encounter_constraints": {
+    "max_normal_enemy_count": 2,
+    "max_elite_enemy_count": 2,
+    "two_enemy_peak_damage_multiplier": 1.55,
+    "boss_phase_enter_max_effect_categories": 1,
+    "design_note": "双敌遭遇使用总压力预算，不能把两个单体峰值直接相加。",
+    "balance_note": "Boss 转阶段只能立即给护甲、力量或状态牌中的一个压力类型。"
+  },
+  "challenge_scaling": {
+    "source": "challenges.json",
+    "design_note": "挑战等级是唯一全局敌人倍率来源，禁止在敌人条目内加入隐式章节倍率。"
+  }
+}

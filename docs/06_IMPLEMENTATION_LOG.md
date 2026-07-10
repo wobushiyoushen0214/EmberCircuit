@@ -1,5 +1,30 @@
 # 实现日志
 
+## 2026-07-10
+
+已完成：
+
+- 成长系统正式接入：
+  - 新增三角色局外升级树、炉印货币、技能书装备、卡组专精和跑团快照隔离。
+  - 首个满足条件的精英奖励会开放卡组专精选择，存档保存 `run_deck_mastery_id`，下一场战斗起生效。
+  - 档案页重构为角色切换、当前角色锻造树、技能书和成就四个分区；档案角色切换不再污染当前跑团角色。
+- 数值合同与关卡树：
+  - 新增 `monster_scaling.json`、`level_tree.json` 和 `card_balance_budgets.json`。
+  - 地图生成器执行分支层、早期精英上限、Boss 前恢复候选和宝箱后非强制精英约束。
+  - 数据完整性测试会校验角色树、技能书、卡组专精、怪物章节预算、卡牌费用效率和关卡树配置。
+- 平衡模拟器与最终普通模式基线：
+  - 完整跑团模拟器已带入默认技能书和首个精英后的卡组专精，并与主游戏使用同一关卡树约束。
+  - 电弧工匠起始牌组改为 3 张 `spark_throw` 并加入 1 张 `ash_guard`；`spark_throw` 调整为 4/6 伤害，`pressure_probe` 调整为 5/7 伤害，`insulated_battery` 改为开场 5 护甲。
+  - `ember_bottle` 调整为开场 6 护甲，稳定默认角色目标下沿。
+  - 最终每角色 64 次、合计 192 次普通模式报告：余烬 20.3%、电弧 26.6%、苦修 28.1%，平均 25.0%，最大差距 7.8 个百分点，0 个风险标记。
+  - 报告路径：`/tmp/embercircuit_campaign_progression_final_c0_64.json`。
+- 第一批第二阶段美术重构：
+  - 通过 `grok-imagine-image-lite` 生成并接入 `menu_backdrop_v3_pc.png` 主菜单炉城背景。
+  - 生成并接入 `chapter_one_battle_v3_pc.png` 第一章空战斗舞台。
+  - 生成瘟疫炼金师和爆裂炉虫全身立绘，使用色键去底产出透明 PNG，并替换战斗舞台中的方框敌人图。
+  - 主菜单新增缓慢背景推进动画，敌人立绘新增轻微待机浮动；手牌继续使用现有悬停抬升、缩放和旋转归零动画。
+  - PC 截图库新增成长页和卡组专精页快照，用于 1280x720 视觉回归。
+
 ## 2026-07-09
 
 已完成：
@@ -482,14 +507,14 @@
   - 校验角色立绘、敌人、卡框、章节背景、事件图、遗物图标和药水图标可读取。
   - 校验关键 SVG 包含渐变光照和足够数量的图形层，防止首屏资源退回单色块。
 - 实现第一版全卡牌独立插图：
-  - 为当前 44 张配置卡牌生成 `assets/art/cards/card_*.svg`，覆盖共享卡、电弧工匠专属卡、熔痕苦修者专属卡和状态牌。
+  - 为当前 49 张配置卡牌生成 `assets/art/cards/card_*.svg`，覆盖共享卡、电弧工匠专属卡、熔痕苦修者专属卡、事件专属卡和状态牌。
   - 每张卡牌插图按类型、稀有度、角色流派和卡牌关键词生成不同构图，包含斩击、护盾、蒸汽、仪式、矩阵、瓶装涌流、电弧和白焰等图形语言。
   - `data/config/art_assets.json` 的 `card_art_slots[].asset_path` 已从共用类型框切换到对应 `slot_path`，后续正式插画仍沿同一路径替换。
   - 数据完整性测试现在会校验每张卡牌当前插图的 SVG 质量，防止回退到单色块或空文件。
 - 实现第一版遗物、药水和事件独立美术：
   - 为当前 18 个配置遗物生成 `assets/art/relics/relic_*.svg`，覆盖通用遗物、电弧工匠专属遗物和熔痕苦修者专属遗物。
   - 为当前 8 瓶配置药水生成 `assets/art/potions/potion_*.svg`，按伤害、防御、资源、爆弹、注射器、烟幕和冷却液区分瓶型与色相。
-  - 为当前 16 个配置问号事件生成 `assets/art/events/event_*.svg`，覆盖反应炉、档案馆、黑市、纪念碑、试炼舱、神龛、运输队、闸门和角色专属事件场景。
+  - 为当前 18 个配置问号事件生成 `assets/art/events/event_*.svg`，覆盖反应炉、档案馆、黑市、纪念碑、试炼舱、神龛、运输队、闸门、角色专属事件和跨章连锁事件场景。
   - `data/config/art_assets.json` 的 `relic_icon_slots[]`、`potion_icon_slots[]` 和 `event_art_slots[]` 已从共享 fallback 图切换到对应 `slot_path`。
   - 数据完整性测试现在会校验每个遗物、药水和事件当前资源的 SVG 质量。
 - 实现第一版 WAV 音效资源管线：
@@ -523,6 +548,92 @@
   - 第一章 Boss `forge_bishop` 调为 100 HP，基础/二阶段重击 20，终局重击 22。
   - 第二章第 3 层和第三章第 2 层加入篝火候选，后两章略降精英权重并提高篝火权重，形成更适合开发验证的普通模式路线。
   - 最新三角色普通模式 64 次完整跑团报告：`/tmp/embercircuit_campaign_all_c0_route_relief.json`，平均通关率 29.7%，平均完成 1.81 章，0 个 flagged case。
+- 补齐章节地图宝箱节点和第一版宝箱奖励房：
+  - `data/config/map_generation.json` 在三章固定层加入 `treasure` 节点，并给随机节点权重保留少量宝箱概率。
+  - `data/config/economy.json` 新增宝箱金币范围、遗物选项数量、设计说明和平衡说明。
+  - 地图生成器、地图视图和路线预览已识别“宝箱”，新增 `assets/art/map_node_treasure.svg` 金色宝箱节点图标。
+  - `Main.gd` 新增宝箱奖励页：展示宝箱概览、3 选 1 遗物和金币奖励；选择遗物或领取金币后正常返回地图。
+  - 宝箱奖励不会在刷新页面时立刻发放金币，避免读档或重复刷新导致重复结算。
+- 修复 PC 底部控制条在页面切换后出现空按钮的问题：
+  - 控制按钮现在按按钮身份恢复稳定文案，再套用当前布局的图标或普通皮肤。
+  - 重新生成 PC 图库后，地图页和宝箱页底部按钮均显示可读文本。
+- 实现 `thorn` 尖刺状态第一版结算：
+  - 攻击带尖刺的敌人会按攻击段数受到生命反伤。
+  - 玩家拥有尖刺时，敌人多段攻击会逐段受到反伤；若被反杀，后续段数停止。
+  - 尖刺伤害使用专用结算路径，不触发反伤递归。
+- 商店删卡从自动处理改为玩家选择具体卡牌：
+  - 点击商店“删卡”后进入牌组选择页，显示当前牌组的结构化卡面和卡图。
+  - 选择具体卡牌后扣除当前删卡价格、移除该牌、递增本局删卡次数并触发 profile/成就统计。
+  - 可取消返回商店；问号事件的自动删卡逻辑暂时保持不变。
+  - PC 截图库新增 `16_shop_remove.png`，用于检查删卡选择页在桌面布局下的可读性。
+- 补齐商店遗物购买：
+  - 商店现在生成 2 件遗物商品，沿用遗物角色过滤和发现记录。
+  - `data/config/economy.json` 新增普通/罕见/稀有遗物价格和商店遗物稀有度权重。
+  - 遗物商品复用结构化图标物品布局，购买后扣除金币、加入遗物栏并从当前商店商品中移除。
+  - 商店日志区域改为库存、金币和删卡价格信息，不再显示内部路线类型文本。
+- 数据化战斗金币奖励并修复奖励键：
+  - `data/config/economy.json` 新增 `combat_gold_rewards`，按普通战、精英和 Boss 配置金币范围，并提供章节金币加成。
+  - 战斗奖励生成键改为节点 id + 遭遇 id，避免分叉地图中重复遭遇节点只发放一次奖励。
+  - 奖励页新增金币面板和金币 HUD 图标，战斗胜利后能直接看到已到账金币。
+  - 奖励页开始尊重遭遇表的 `card_reward_count`；最终 Boss 的 0 卡牌、无遗物、0 金币配置不会再强制进入选牌奖励。
+- 实现第一版地图路线风险/收益预告：
+  - `Main.gd` 的地图节点预览新增风险等级、风险原因和收益摘要，覆盖普通战、精英、Boss、事件、商店、篝火和宝箱。
+  - 战斗节点收益预估复用真实战斗金币生成逻辑和遭遇奖励字段，避免预览和结算规则分叉。
+  - `MapView.gd` 的 tooltip 改为中文类型和泛化说明，不再暴露 `combat`、`event_id` 或遭遇内部 id。
+  - 地图按钮右上角新增风险徽章，使用“低 / 中 / 高 / 极 / ?”文本加颜色区分，不只依赖颜色传达风险。
+  - UI 层新增 `last_map_preview_risk_level` 和 `last_map_preview_reward_summary`，用于 headless 测试验证预览状态。
+- 重做 PC 最终结算 UI：
+  - 最终胜利不再把完整结算文本和三个按钮直接塞进奖励流，而是构建独立 `RunCompletionPanel`。
+  - 结局页左侧使用章节背景、角色舞台立绘和 Nexus Heart 核心场景，右侧显示标题、短状态语、资源统计芯片和局外解锁徽章。
+  - 结局动作区改为图标化按钮：最终牌组、档案进度和再来一局。
+  - UI 层新增 `last_run_completion_panel_visible`、`last_run_completion_art_loaded`、`last_run_completion_stat_chip_count`、`last_run_completion_unlock_chip_count` 和 `last_run_completion_action_count`，用于验证结局页结构。
+  - PC 截图库新增 `17_run_complete.png` 和 `18_run_complete_720p.png`，其中 720p 截图用于检查底部结局按钮不会被奖励区裁切。
+- 扩展共享遗物池和通用遗物触发：
+  - 新增 `cinder_lens`、`pressure_canteen`、`blood_rust_clamp` 和 `twin_valve` 4 个共享遗物，覆盖势能门槛过牌、药水启动、自伤/受伤收益和技能能量回流。
+  - `CombatState.gd` 新增 `once_per_combat` 触发记录，并支持 `potion_used`、`player_hp_lost`、`requires_momentum_at_least` 和 `min_hp_lost` 条件。
+  - `data/config/art_assets.json` 登记 4 个新遗物图标槽位，并新增对应第一版 SVG 图标。
+  - `BalanceSimulator.gd` 的遗物评分现在会折算一次性、每回合一次、势能门槛、药水触发、受伤触发和卡牌类型限定，避免奖励选择高估或低估新遗物。
+- 优化 PC 战斗 HUD 药水槽：
+  - PC 模式下空药水槽不再是纯黑圆点，改为带药瓶占位图、暗金属底和弱青色边框的装置槽。
+  - 药水槽尺寸从 36x30 调整为 42x32，并保留 1280x720 视觉边界测试覆盖，避免右上角 HUD 再次挤压。
+- 扩展共享卡池：
+  - 新增 `venting_slash`、`stoke_guard`、`rupture_signal` 和 `redline_engine` 4 张共享卡，覆盖势能门槛攻击过牌、防御蓄势、全体虚弱和高风险能力牌。
+  - 4 张新卡全部使用现有战斗效果解析路径，不引入新的结算规则；奖励池、商店和图鉴会按共享卡自动可见。
+  - 新增对应 `assets/art/cards/card_*.svg` 首版插图，并登记到 `data/config/art_assets.json` 的 `card_art_slots`。
+- 优化战斗奖励页操作控件：
+  - “跳过卡牌”“跳过药水”和“继续路线”不再使用纯文字小按钮，改为和金币/药水/遗物一致的图标化奖励操作卡。
+  - 新增 `control_skip_reward.svg` 和 `control_continue_route.svg`，用于奖励页操作按钮的小图标。
+  - UI 层新增 `last_reward_action_button_count` 和 `last_reward_action_icon_node_count`，用于测试奖励页操作卡数量和图标加载。
+  - PC 奖励页将三个操作收进固定高度的右侧命令栏，隐藏已处理奖励的灰色占位文案，避免 HFlow 换行后与底部导航重叠。
+- 实现第一组跨章连锁事件：
+  - 第一章新增“失声校准员”，玩家支付金币或生命修复后写入 `completed_event_ids`；选择即时金币则放弃后续。
+  - 第二章新增“校准员归来”，通过事件级 `availability_conditions` 和 `event_completed` 前置条件动态进入地图事件池。
+  - 解锁后的后续事件使用 `guaranteed_when_available` 写入地图生成器的 `guaranteed_event_ids`，确保第二章地图至少出现一次，不让前置投资被纯随机吞掉。
+  - 事件效果新增 `lose_gold` 和 `complete_event`，跑团存档、真实流程和平衡模拟器使用同一语义。
+  - 新增事件专属稀有能力牌“校准协议”，通过 `pool_tags=event_chain` 排除普通奖励和商店，并补齐独立卡图与两张事件插图。
+  - 事件选择按钮改为结构化标题、自动换行说明和独立条件/随机结果脚注；PC 宽度按故事面板与选项数量动态分配，避免说明文本被省略号截断。
+- Godot headless 测试补充：
+  - 地图生成测试覆盖每章存在宝箱节点。
+  - 跑团流程测试覆盖宝箱奖励页、金币/遗物结算、宝箱返回地图和宝箱页面布局预算。
+  - 战斗核心测试覆盖敌方尖刺反伤和玩家尖刺反伤。
+  - 战斗核心测试覆盖余烬透镜、压力水壶、血锈夹和双联阀的触发门槛、一次性限制和资源收益。
+  - 战斗核心测试覆盖泄压斩、添炉守势、裂隙信标和赤线引擎的关键效果。
+  - 跑团流程测试覆盖战斗奖励页的结构化操作按钮和操作按钮图标加载。
+  - 视觉边界测试覆盖 1280x720 战斗奖励页单行布局、右侧命令栏和底部导航防重叠。
+  - 跑团流程测试覆盖连锁事件前置隐藏、选择代价、跨章事件池解锁、存档标记、专属卡奖励和普通奖励池排除。
+  - 平衡模拟测试覆盖连锁事件金币代价、完成标记和第二章事件池动态解锁。
+  - 完整跑团模拟器补齐宝箱节点结算：按经济表发放确定性金币、选择遗物并记录宝箱访问，消除 `unknown_node_type` 假失败。
+  - 路线 AI 将宝箱评为高于普通战的无风险收益，避免模拟器因旧的默认 0 分主动绕开金币和遗物。
+  - 最新三角色普通模式回归报告：`/tmp/embercircuit_campaign_chain_events_c0_32_v2.json`，每角色 32 次，平均通关率 9.4%，平均完成 1.47 章；`unknown_node_type` 已归零，但三个角色均提示后期难度偏高。
+  - 完整跑团报告新增 `failure_node_types` 和 `failure_encounters` 聚合，后续调参可直接按普通战、精英、Boss 和具体遭遇定位断层。
+  - 视觉边界测试覆盖 1280x720 事件故事面板与三个结构化选项保持同一行并完整处于奖励视口内。
+  - 跑团流程测试覆盖商店删卡选择页、候选卡面、图标加载、指定卡牌移除、价格递增、存档字段和成就统计。
+  - 跑团流程测试覆盖商店遗物商品、图标加载、购买扣费、加入遗物和移除已购买商品。
+  - 跑团流程测试覆盖战斗金币面板、奖励刷新不重复发金币、Boss 金币奖励和最终 Boss 零奖励结算。
+  - 数据完整性测试覆盖战斗金币范围、章节加成和经济注释。
+  - 跑团流程测试覆盖地图节点风险/收益预告；地图视图测试覆盖 tooltip 中文类型显示和风险徽章生成。
+  - 跑团流程测试覆盖最终结算面板、结局背景、统计芯片、解锁徽章和结局动作按钮。
+  - 视觉边界测试覆盖 1280x720 最终结算页，检查结局动作区完整处于奖励视口内。
 
 最新验证命令：
 
@@ -539,6 +650,7 @@ jq empty data/cards/cards.json data/enemies/enemies.json data/relics/relics.json
 /Applications/Godot.app/Contents/MacOS/Godot --headless --path /Users/lizhiwei/localProj/EmberCircuit --script res://tests/test_balance_simulator.gd
 /Applications/Godot.app/Contents/MacOS/Godot --headless --path /Users/lizhiwei/localProj/EmberCircuit --script res://tools/run_balance_simulation.gd -- --iterations=4 --max-turns=50 --output=/tmp/embercircuit_balance_report.json
 /Applications/Godot.app/Contents/MacOS/Godot --headless --path /Users/lizhiwei/localProj/EmberCircuit --quit-after 2
+/Applications/Godot.app/Contents/MacOS/Godot --path /Users/lizhiwei/localProj/EmberCircuit --script res://tools/render_pc_gallery.gd
 ```
 
 下一步：

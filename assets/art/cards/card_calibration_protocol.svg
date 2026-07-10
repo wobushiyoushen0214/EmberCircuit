@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="220" height="160" viewBox="0 0 220 160">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#07161a"/>
+      <stop offset="0.55" stop-color="#12363a"/>
+      <stop offset="1" stop-color="#07090b"/>
+    </linearGradient>
+    <radialGradient id="glowField" cx="50%" cy="50%" r="64%">
+      <stop offset="0" stop-color="#8ffff5" stop-opacity="0.42"/>
+      <stop offset="1" stop-color="#8ffff5" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="brass" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ead39a"/>
+      <stop offset="0.5" stop-color="#9a7846"/>
+      <stop offset="1" stop-color="#3f3527"/>
+    </linearGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="2.6" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="220" height="160" rx="16" fill="url(#bg)"/>
+  <rect width="220" height="160" rx="16" fill="url(#glowField)"/>
+  <path d="M14 132 C54 112 166 112 206 132 V160 H14 Z" fill="#030708" opacity="0.52"/>
+  <circle cx="110" cy="78" r="50" fill="#071114" stroke="url(#brass)" stroke-width="8"/>
+  <circle cx="110" cy="78" r="35" fill="none" stroke="#86f7ee" stroke-width="4" stroke-dasharray="10 7" filter="url(#glow)"/>
+  <circle cx="110" cy="78" r="22" fill="#102d31" stroke="#d9c184" stroke-width="4"/>
+  <path d="M110 55 L127 64 V82 C127 94 120 103 110 109 C100 103 93 94 93 82 V64 Z" fill="#72d9d2" opacity="0.82" stroke="#d5fff9" stroke-width="3"/>
+  <path d="M101 81 L108 88 L121 72" fill="none" stroke="#071619" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M110 19 V34 M110 122 V139 M51 78 H66 M154 78 H169" stroke="#e1c886" stroke-width="5" stroke-linecap="round"/>
+  <path d="M68 36 L78 48 M142 108 L152 120 M68 120 L78 108 M142 48 L152 36" stroke="#79e9e1" stroke-width="4" stroke-linecap="round" filter="url(#glow)"/>
+  <circle cx="35" cy="36" r="11" fill="#10292d" stroke="#d2b879" stroke-width="3"/>
+  <circle cx="185" cy="36" r="11" fill="#10292d" stroke="#d2b879" stroke-width="3"/>
+  <path d="M35 30 V42 M29 36 H41 M179 36 H191" stroke="#8ffff5" stroke-width="3" stroke-linecap="round"/>
+  <rect x="7" y="7" width="206" height="146" rx="13" fill="none" stroke="#79e9e1" stroke-width="2.5" opacity="0.86"/>
+  <rect x="17" y="17" width="186" height="126" rx="9" fill="none" stroke="#15282d" stroke-width="2" opacity="0.86"/>
+</svg>

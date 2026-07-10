@@ -10,6 +10,8 @@
   "feedback_event_profiles": {
     "enemy_hit": "impact_enemy_hit",
     "player_hit": "impact_player_hit",
+    "block": "impact_block_gain",
+    "heal": "impact_heal_gain",
     "enemy_defeated": "impact_enemy_defeated",
     "phase": "impact_phase"
   },
@@ -69,6 +71,38 @@
       "design_note": "未知卡牌类型的兜底表现，保证新增卡牌类型不会静默失去反馈。",
       "balance_note": "纯表现配置，不影响任何战斗数值。",
       "implementation_note": "Main.gd 在无法匹配 card_type_profiles 时使用该画像。"
+    },
+    {
+      "id": "impact_block_gain",
+      "display_name": "护甲展开",
+      "audio_event": "block",
+      "particle_count": 8,
+      "effect_shape": "shield_expand",
+      "sprite_path": "res://assets/vfx/vfx_block_gain.svg",
+      "sprite_scale": 1.02,
+      "sprite_duration": 0.28,
+      "ray_count": 8,
+      "ray_length": 44,
+      "color": [0.42, 0.86, 1.0, 1.0],
+      "design_note": "获得护甲应当发生在玩家角色身上，用护盾展开替代顶部文字弹窗。",
+      "balance_note": "纯表现配置，不改变护甲数值、回合清除或相关遗物触发。",
+      "implementation_note": "Main.gd 在 block feedback 中读取该画像，围绕玩家舞台立绘生成护盾贴图和短射线。"
+    },
+    {
+      "id": "impact_heal_gain",
+      "display_name": "生命回流",
+      "audio_event": "heal",
+      "particle_count": 8,
+      "effect_shape": "heal_cross",
+      "sprite_path": "res://assets/vfx/vfx_heal_gain.svg",
+      "sprite_scale": 0.98,
+      "sprite_duration": 0.30,
+      "ray_count": 7,
+      "ray_length": 42,
+      "color": [0.50, 1.0, 0.62, 1.0],
+      "design_note": "治疗反馈需要和护甲区分，用绿色回流和十字脉冲表达恢复。",
+      "balance_note": "纯表现配置，不改变生命恢复量、上限或死亡判定。",
+      "implementation_note": "Main.gd 在 heal feedback 中读取该画像，围绕玩家舞台立绘生成恢复贴图和短射线。"
     },
     {
       "id": "impact_enemy_hit",

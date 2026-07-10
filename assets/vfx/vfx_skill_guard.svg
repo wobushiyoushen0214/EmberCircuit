@@ -1,7 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192">
-  <rect width="192" height="192" fill="none"/>
-  <circle cx="96" cy="96" r="66" fill="#66c7ff" opacity="0.14"/>
-  <circle cx="96" cy="96" r="54" fill="none" stroke="#72d4ff" stroke-width="9" opacity="0.88"/>
-  <path d="M96 38 L142 62 V98 C142 132 122 154 96 166 C70 154 50 132 50 98 V62 Z" fill="#1b4e6b" opacity="0.42" stroke="#d9f7ff" stroke-width="6"/>
-  <path d="M72 98 L89 115 L122 78" fill="none" stroke="#d9f7ff" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="guard" x1="58" y1="31" x2="197" y2="224" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ecffff"/>
+      <stop offset="0.48" stop-color="#56d7ff"/>
+      <stop offset="1" stop-color="#196c91" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <path d="M128 22 L204 54 L192 136 C185 178 160 209 128 232 C96 209 71 178 64 136 L52 54 Z" fill="#0b2635" fill-opacity="0.28" stroke="url(#guard)" stroke-width="10" stroke-linejoin="round"/>
+  <path d="M128 47 L178 68 L170 132 C165 160 150 182 128 200 C106 182 91 160 86 132 L78 68 Z" fill="none" stroke="#d9ffff" stroke-width="5" stroke-linejoin="round" opacity="0.8"/>
+  <path d="M53 128 H22 M234 128 H203 M128 23 V51 M128 233 V205" stroke="#8ef5ff" stroke-width="6" stroke-linecap="round" opacity="0.74"/>
 </svg>

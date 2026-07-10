@@ -3,6 +3,8 @@ extends SceneTree
 const CombatStateScript = preload("res://scripts/combat/CombatState.gd")
 const DataLoaderScript = preload("res://scripts/core/DataLoader.gd")
 
+var failed: bool = false
+
 func _init() -> void:
 	var card_data: Dictionary = DataLoaderScript.load_json("res://data/cards/cards.json")
 	var enemy_data: Dictionary = DataLoaderScript.load_json("res://data/enemies/enemies.json")
@@ -35,13 +37,13 @@ func _init() -> void:
 	var arc_combat = CombatStateScript.new()
 	arc_combat.setup(card_data, enemy_data, relic_data, encounter_data, arc_player_data, "intro_patrol")
 	_check(str(arc_combat.player.get("name", "")) == "电弧工匠", "combat can load selected character name")
-	_check(int(arc_combat.player.get("max_hp", 0)) == 64, "combat can load selected character HP")
+	_check(int(arc_combat.player.get("max_hp", 0)) == 68, "combat can load selected character HP")
 	_check(arc_combat.owned_relic_ids.has("arc_capacitor"), "combat can load selected character starter relic")
 	_check(_combat_has_card(arc_combat, "spark_throw"), "combat can load selected character starter deck")
 	_check(int(arc_combat.player.get("momentum", 0)) >= 2, "combat applies selected character starting momentum and starter relic")
 
 	var arc_relic_combat = CombatStateScript.new()
-	arc_relic_combat.setup(card_data, enemy_data, relic_data, encounter_data, arc_player_data, "intro_patrol", ["spark_throw"], ["spark_coil"], 64)
+	arc_relic_combat.setup(card_data, enemy_data, relic_data, encounter_data, arc_player_data, "intro_patrol", ["spark_throw"], ["spark_coil"], 68)
 	arc_relic_combat.consume_feedback_events()
 	var momentum_before_arc_relic: int = int(arc_relic_combat.player.get("momentum", 0))
 	_check(arc_relic_combat.play_card(0, 0), "arc dedicated relic test can play a zero-cost card")
@@ -52,12 +54,12 @@ func _init() -> void:
 	var pyre_combat = CombatStateScript.new()
 	pyre_combat.setup(card_data, enemy_data, relic_data, encounter_data, pyre_player_data, "intro_patrol")
 	_check(str(pyre_combat.player.get("name", "")) == "熔痕苦修者", "combat can load pyre ascetic character name")
-	_check(int(pyre_combat.player.get("max_hp", 0)) == 66, "combat can load pyre ascetic HP")
+	_check(int(pyre_combat.player.get("max_hp", 0)) == 70, "combat can load pyre ascetic HP")
 	_check(pyre_combat.owned_relic_ids.has("penitent_censer"), "combat can load pyre ascetic starter relic")
 	_check(_combat_has_card(pyre_combat, "penitent_cut"), "combat can load pyre ascetic starter deck")
 
 	var pyre_relic_combat = CombatStateScript.new()
-	pyre_relic_combat.setup(card_data, enemy_data, relic_data, encounter_data, pyre_player_data, "intro_patrol", ["wound_offering"], ["penitent_censer"], 66)
+	pyre_relic_combat.setup(card_data, enemy_data, relic_data, encounter_data, pyre_player_data, "intro_patrol", ["wound_offering"], ["penitent_censer"], 70)
 	pyre_relic_combat.consume_feedback_events()
 	var pyre_enemy_hp_before: int = int(pyre_relic_combat.enemies[0].get("hp", 0))
 	_check(pyre_relic_combat.play_card(0, 0), "pyre starter relic test can play wound offering")
@@ -96,6 +98,96 @@ func _init() -> void:
 	_check(_has_feedback_type(potion_feedback, "potion"), "using a potion emits potion feedback")
 	_check(_has_feedback_type(potion_feedback, "enemy_hit"), "damage potion emits enemy hit feedback")
 
+	var cinder_lens_combat = CombatStateScript.new()
+	cinder_lens_combat.setup(card_data, enemy_data, relic_data, encounter_data, player_data, "intro_patrol", ["ash_guard", "ember_strike", "cooling_breath", "soot_step", "spark_throw", "pressure_probe"], ["cinder_lens"], 72)
+	cinder_lens_combat.consume_feedback_events()
+	cinder_lens_combat.draw_pile = [cinder_lens_combat.cards_by_id.get("ember_strike", {}).duplicate(true)]
+	cinder_lens_combat.player["momentum"] = 2
+	var cinder_lens_hand_before_low: int = cinder_lens_combat.hand.size()
+	cinder_lens_combat._apply_relics("turn_start", {})
+	_check(cinder_lens_combat.hand.size() == cinder_lens_hand_before_low, "cinder lens does not draw below momentum threshold")
+	cinder_lens_combat.player["momentum"] = 3
+	cinder_lens_combat._apply_relics("turn_start", {})
+	_check(cinder_lens_combat.hand.size() == cinder_lens_hand_before_low + 1, "cinder lens draws when momentum threshold is met")
+
+	var canteen_combat = CombatStateScript.new()
+	canteen_combat.setup(card_data, enemy_data, relic_data, encounter_data, player_data, "intro_patrol", ["ash_guard", "ember_strike", "cooling_breath", "soot_step", "spark_throw", "pressure_probe", "chain_cut"], ["pressure_canteen"], 72)
+	canteen_combat.consume_feedback_events()
+	var canteen_hand_before: int = canteen_combat.hand.size()
+	_check(canteen_combat.use_potion(potions_by_id.get("guard_tonic", {}), 0), "pressure canteen test can use a potion")
+	_check(canteen_combat.hand.size() == canteen_hand_before + 2, "pressure canteen draws two after first potion use")
+	canteen_combat.draw_pile = [canteen_combat.cards_by_id.get("ember_strike", {}).duplicate(true)]
+	var canteen_hand_before_second: int = canteen_combat.hand.size()
+	_check(canteen_combat.use_potion(potions_by_id.get("guard_tonic", {}), 0), "pressure canteen test can use a second potion")
+	_check(canteen_combat.hand.size() == canteen_hand_before_second, "pressure canteen only triggers once per combat")
+
+	var blood_clamp_combat = CombatStateScript.new()
+	blood_clamp_combat.setup(card_data, enemy_data, relic_data, encounter_data, player_data, "intro_patrol", ["ash_guard"], ["blood_rust_clamp"], 72)
+	blood_clamp_combat.consume_feedback_events()
+	var clamp_momentum_before: int = int(blood_clamp_combat.player.get("momentum", 0))
+	blood_clamp_combat._lose_player_hp(2, "遗物测试")
+	_check(int(blood_clamp_combat.player.get("momentum", 0)) == clamp_momentum_before + 1, "blood rust clamp grants momentum after first HP loss")
+	blood_clamp_combat._lose_player_hp(2, "遗物测试")
+	_check(int(blood_clamp_combat.player.get("momentum", 0)) == clamp_momentum_before + 1, "blood rust clamp only triggers once per turn")
+
+	var twin_valve_combat = CombatStateScript.new()
+	twin_valve_combat.setup(card_data, enemy_data, relic_data, encounter_data, player_data, "intro_patrol", ["ash_guard", "cooling_breath"], ["twin_valve"], 72)
+	twin_valve_combat.consume_feedback_events()
+	var twin_energy_before: int = int(twin_valve_combat.player.get("energy", 0))
+	var twin_skill_index: int = _first_card_with_type(twin_valve_combat, "skill")
+	var twin_skill_cost: int = int(twin_valve_combat.hand[twin_skill_index].get("cost", 0)) if twin_skill_index >= 0 else 0
+	_check(twin_skill_index >= 0 and twin_valve_combat.play_card(twin_skill_index, 0), "twin valve test can play first skill")
+	_check(int(twin_valve_combat.player.get("energy", 0)) == twin_energy_before - twin_skill_cost + 1, "twin valve refunds one energy on first skill each turn")
+
+	var venting_low_combat = CombatStateScript.new()
+	venting_low_combat.setup(card_data, enemy_data, relic_data, encounter_data, player_data, "intro_patrol", ["venting_slash"], ["__test_no_relic__"], 72)
+	venting_low_combat.consume_feedback_events()
+	venting_low_combat.draw_pile = [venting_low_combat.cards_by_id.get("ember_strike", {}).duplicate(true)]
+	venting_low_combat.player["momentum"] = 2
+	var venting_low_enemy_hp_before: int = int(venting_low_combat.enemies[0].get("hp", 0))
+	_check(venting_low_combat.play_card(0, 0), "venting slash can be played below momentum threshold")
+	_check(venting_low_enemy_hp_before - int(venting_low_combat.enemies[0].get("hp", 0)) == 6, "venting slash deals base damage")
+	_check(venting_low_combat.hand.is_empty(), "venting slash does not draw below momentum threshold")
+
+	var venting_high_combat = CombatStateScript.new()
+	venting_high_combat.setup(card_data, enemy_data, relic_data, encounter_data, player_data, "intro_patrol", ["venting_slash"], ["__test_no_relic__"], 72)
+	venting_high_combat.consume_feedback_events()
+	venting_high_combat.draw_pile = [venting_high_combat.cards_by_id.get("ember_strike", {}).duplicate(true)]
+	venting_high_combat.player["momentum"] = 3
+	_check(venting_high_combat.play_card(0, 0), "venting slash can be played at momentum threshold")
+	_check(venting_high_combat.hand.size() == 1, "venting slash draws when momentum threshold is met")
+
+	var stoke_guard_combat = CombatStateScript.new()
+	stoke_guard_combat.setup(card_data, enemy_data, relic_data, encounter_data, player_data, "intro_patrol", ["stoke_guard"], ["__test_no_relic__"], 72)
+	stoke_guard_combat.consume_feedback_events()
+	var stoke_momentum_before: int = int(stoke_guard_combat.player.get("momentum", 0))
+	_check(stoke_guard_combat.play_card(0, 0), "stoke guard can be played")
+	_check(int(stoke_guard_combat.player.get("block", 0)) == 5, "stoke guard grants block")
+	_check(int(stoke_guard_combat.player.get("momentum", 0)) == stoke_momentum_before + 1, "stoke guard grants momentum")
+
+	var rupture_signal_combat = CombatStateScript.new()
+	rupture_signal_combat.setup(card_data, enemy_data, relic_data, encounter_data, player_data, "intro_patrol", ["rupture_signal"], ["__test_no_relic__"], 72)
+	rupture_signal_combat.consume_feedback_events()
+	_check(rupture_signal_combat.play_card(0, 0), "rupture signal can be played")
+	for enemy in rupture_signal_combat.enemies:
+		var enemy_dict: Dictionary = enemy
+		_check(rupture_signal_combat._status_amount(enemy_dict.get("statuses", {}), "weak") == 1, "rupture signal applies weak to every enemy")
+
+	var redline_engine_combat = CombatStateScript.new()
+	redline_engine_combat.setup(card_data, enemy_data, relic_data, encounter_data, player_data, "intro_patrol", ["redline_engine"], ["__test_no_relic__"], 72)
+	redline_engine_combat.consume_feedback_events()
+	_check(redline_engine_combat.play_card(0, 0), "redline engine can be played")
+	_check(redline_engine_combat._status_amount(redline_engine_combat.player.get("statuses", {}), "strength") == 1, "redline engine grants strength")
+	_check(int(redline_engine_combat.player.get("momentum", 0)) == 2, "redline engine grants momentum")
+	_check(redline_engine_combat._status_amount(redline_engine_combat.player.get("statuses", {}), "burn") == 1, "redline engine applies self burn as a cost")
+
+	var calibration_protocol_combat = CombatStateScript.new()
+	calibration_protocol_combat.setup(card_data, enemy_data, relic_data, encounter_data, player_data, "intro_patrol", ["calibration_protocol"], ["__test_no_relic__"], 72)
+	calibration_protocol_combat.consume_feedback_events()
+	_check(calibration_protocol_combat.play_card(0, 0), "calibration protocol can be played")
+	_check(calibration_protocol_combat._status_amount(calibration_protocol_combat.player.get("statuses", {}), "plating") == 1, "calibration protocol grants persistent plating")
+	_check(int(calibration_protocol_combat.player.get("momentum", 0)) == 1, "calibration protocol grants momentum")
+
 	var vulnerable_combat = CombatStateScript.new()
 	vulnerable_combat.setup(card_data, enemy_data, relic_data, encounter_data, player_data, "intro_patrol", ["heat_chain"], ["__test_no_relic__"], 72)
 	vulnerable_combat.consume_feedback_events()
@@ -132,6 +224,28 @@ func _init() -> void:
 	player_vulnerable_combat._resolve_enemy_effect(player_vulnerable_combat.enemies[0], {"type": "damage", "amount": 10, "hits": 2})
 	_check(player_hp_before_vulnerable_hit - int(player_vulnerable_combat.player.get("hp", 0)) == 30, "player vulnerable boosts every hit from one enemy damage effect")
 	_check(player_vulnerable_combat._status_amount(player_vulnerable_combat.player.get("statuses", {}), "vulnerable") == 0, "player vulnerable is consumed after the next incoming damage effect")
+
+	var enemy_thorn_combat = CombatStateScript.new()
+	enemy_thorn_combat.setup(card_data, enemy_data, relic_data, encounter_data, player_data, "iron_checkpoint", ["heat_chain"], ["__test_no_relic__"], 72)
+	enemy_thorn_combat.consume_feedback_events()
+	var thorn_enemy: Dictionary = enemy_thorn_combat.enemies[1]
+	enemy_thorn_combat._add_status(thorn_enemy["statuses"], "thorn", 2)
+	var player_hp_before_enemy_thorn: int = int(enemy_thorn_combat.player.get("hp", 0))
+	_check(enemy_thorn_combat.play_card(0, 1), "enemy thorn test can play a multi-hit attack")
+	_check(player_hp_before_enemy_thorn - int(enemy_thorn_combat.player.get("hp", 0)) == 6, "enemy thorn damages player once per attack hit")
+	var enemy_thorn_feedback: Array = enemy_thorn_combat.consume_feedback_events()
+	_check(_has_feedback_type(enemy_thorn_feedback, "player_hit"), "enemy thorn emits player hit feedback")
+
+	var player_thorn_combat = CombatStateScript.new()
+	player_thorn_combat.setup(card_data, enemy_data, relic_data, encounter_data, player_data, "intro_patrol", ["ash_guard"], ["__test_no_relic__"], 72)
+	player_thorn_combat.consume_feedback_events()
+	var thorn_attacker: Dictionary = player_thorn_combat.enemies[0]
+	player_thorn_combat._add_status(player_thorn_combat.player["statuses"], "thorn", 3)
+	var attacker_hp_before_player_thorn: int = int(thorn_attacker.get("hp", 0))
+	player_thorn_combat._resolve_enemy_effect(thorn_attacker, {"type": "damage", "amount": 2, "hits": 2})
+	_check(attacker_hp_before_player_thorn - int(thorn_attacker.get("hp", 0)) == 6, "player thorn damages attacking enemy once per hit")
+	var player_thorn_feedback: Array = player_thorn_combat.consume_feedback_events()
+	_check(_has_feedback_type(player_thorn_feedback, "enemy_hit"), "player thorn emits enemy hit feedback")
 
 	var boss_combat = CombatStateScript.new()
 	boss_combat.setup(card_data, enemy_data, relic_data, encounter_data, player_data, "chapter_one_boss", ["ash_guard"], [], 72)
@@ -172,6 +286,9 @@ func _init() -> void:
 	_check(loss_combat.phase == "lost", "enemy turn can defeat player")
 	_check(_has_feedback_type(loss_feedback, "lost"), "combat defeat emits feedback")
 
+	if failed:
+		quit(1)
+		return
 	print("Combat core smoke test passed.")
 	quit(0)
 
@@ -192,6 +309,15 @@ func _first_feedback_card(combat) -> int:
 			if effect_type == "damage" or effect_type == "block":
 				return i
 	return _first_playable_card(combat)
+
+func _first_card_with_type(combat, card_type: String) -> int:
+	for i in range(combat.hand.size()):
+		if not combat.can_play_card(i):
+			continue
+		var card: Dictionary = combat.hand[i]
+		if str(card.get("type", "")) == card_type:
+			return i
+	return -1
 
 func _has_feedback_type(events: Array, event_type: String) -> bool:
 	for event in events:
@@ -225,5 +351,5 @@ func _phase_entry_block_amount(enemy_data: Dictionary, enemy_id: String, phase_i
 
 func _check(condition: bool, message: String) -> void:
 	if not condition:
+		failed = true
 		push_error("Test failed: %s" % message)
-		quit(1)

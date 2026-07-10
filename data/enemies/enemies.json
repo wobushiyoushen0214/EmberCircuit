@@ -86,8 +86,8 @@
         { "id": "spikes", "intent": { "type": "block_buff", "amount": 8, "status": "thorn" }, "effects": [ { "type": "block", "amount": 8, "target": "self" }, { "type": "apply_status", "target": "self", "status": "thorn", "amount": 1 } ] },
         { "id": "shield_bash", "intent": { "type": "attack", "amount": 8, "hits": 1 }, "effects": [ { "type": "damage", "amount": 8, "target": "player" } ] }
       ],
-      "design_note": "反伤敌人，后续用于测试多段攻击风险。",
-      "balance_note": "当前 MVP 先实现为普通护甲加攻击，反伤标记保留给下一阶段。",
+      "design_note": "反伤敌人，用尖刺状态测试多段攻击风险。",
+      "balance_note": "尖刺每层对攻击者造成 1 点生命反伤，多段攻击逐段触发；当前只给 1 层，作为第一章低风险教学。",
       "intent_note": "防御和攻击交替。"
     },
     {

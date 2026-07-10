@@ -13,16 +13,18 @@
       "0": ["combat"],
       "2": ["event", "combat"],
       "3": ["shop", "combat"],
+      "4": ["treasure", "event", "combat"],
       "5": ["elite", "campfire"],
       "6": ["campfire"],
       "7": ["boss"]
     },
     "node_weights": {
-      "combat": 45,
+      "combat": 41,
       "event": 18,
       "shop": 10,
       "campfire": 14,
-      "elite": 13
+      "elite": 12,
+      "treasure": 5
     },
     "encounter_by_type": {
       "combat": ["intro_patrol", "polluted_lab", "iron_checkpoint"],
@@ -45,7 +47,8 @@
       "capacitor_gambit",
       "scar_chapel",
       "red_wick_altar",
-      "white_flame_branding"
+      "white_flame_branding",
+      "mute_calibrator"
     ],
     "balance_note": "精英和篝火在后半段更常见，避免玩家在没有构筑之前过早遇到精英。"
   },
@@ -61,16 +64,18 @@
       "0": ["combat"],
       "2": ["event", "combat", "combat"],
       "3": ["shop", "event", "campfire"],
+      "4": ["treasure", "combat", "event"],
       "5": ["elite", "combat", "campfire"],
       "7": ["campfire"],
       "8": ["boss"]
     },
     "node_weights": {
-      "combat": 36,
+      "combat": 33,
       "event": 20,
       "shop": 9,
       "campfire": 17,
-      "elite": 18
+      "elite": 17,
+      "treasure": 4
     },
     "encounter_by_type": {
       "combat": ["storm_patrol", "null_workshop", "glass_procession"],
@@ -93,7 +98,8 @@
       "capacitor_gambit",
       "scar_chapel",
       "red_wick_altar",
-      "white_flame_branding"
+      "white_flame_branding",
+      "calibrator_return"
     ],
     "balance_note": "第二章战斗池更硬；第 3 层加入篝火候选并略降精英权重，避免连续战斗在中段篝火前过早压死普通路线。"
   },
@@ -109,16 +115,18 @@
       "0": ["combat"],
       "2": ["event", "combat", "elite", "campfire"],
       "4": ["shop", "combat", "event"],
+      "5": ["treasure", "combat", "elite"],
       "6": ["elite", "combat", "campfire"],
       "8": ["campfire"],
       "9": ["boss"]
     },
     "node_weights": {
-      "combat": 39,
+      "combat": 36,
       "event": 20,
       "shop": 8,
       "campfire": 21,
-      "elite": 12
+      "elite": 11,
+      "treasure": 4
     },
     "encounter_by_type": {
       "combat": ["void_archive", "gravity_bridge", "core_mirror"],

@@ -20,7 +20,34 @@
       "uncommon": 55,
       "rare": 80
     },
-    "price_note": "价格按稀有度定档。普通卡价格低于一场普通战斗金币收益的三倍，保证玩家在商店有实际选择。"
+    "relic_prices": {
+      "common": 120,
+      "uncommon": 165,
+      "rare": 220
+    },
+    "price_note": "价格按稀有度定档。普通卡价格低于一场普通战斗金币收益的三倍；遗物价格高于单张卡牌，作为路线经济中的长期投资。"
+  },
+  "treasure": {
+    "gold_min": 18,
+    "gold_max": 35,
+    "relic_choices": 3,
+    "design_note": "宝箱节点提供一笔小额金币和 1 件遗物选择，定位为低风险构筑强化点，用来替代《杀戮尖塔》中路线上的无战斗奖励节奏。",
+    "balance_note": "金币范围低于一场精英战后的综合收益，但足以影响下一次商店购买；遗物选项为 3 个，保持选择感并避免直接给随机遗物造成构筑失控。"
+  },
+  "combat_gold_rewards": {
+    "by_tier": {
+      "normal": { "min": 18, "max": 28 },
+      "elite": { "min": 42, "max": 62 },
+      "boss": { "min": 90, "max": 125 }
+    },
+    "chapter_bonus": {
+      "chapter_one": 0,
+      "chapter_two": 8,
+      "chapter_three": 14
+    },
+    "design_note": "战斗金币奖励作为商店、删卡和事件选择的长期经济来源。普通战提供基础现金流，精英和 Boss 额外奖励玩家承担路线风险。",
+    "balance_note": "普通战金币约为普通卡牌价格的一半，精英约等于一张普通卡或一瓶中价药水，Boss 奖励服务跨章商店规划；章节加成抵消后期商品价格不变带来的购买力下降。",
+    "implementation_note": "Main.gd 会按当前节点、章节、角色和挑战等级确定性生成金币；遭遇表中的 gold_reward 仅作为缺失配置时的兼容回退，最终 Boss 可通过 0 卡牌奖励、无遗物和 gold_reward=0 跳过战后经济奖励。"
   },
   "reward_generation": {
     "card_rarity_weights": {
@@ -32,6 +59,11 @@
       "common": 55,
       "uncommon": 30,
       "rare": 15
+    },
+    "shop_relic_rarity_weights": {
+      "common": 45,
+      "uncommon": 35,
+      "rare": 20
     },
     "relic_rarity_weights": {
       "common": 50,

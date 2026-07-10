@@ -34,6 +34,29 @@ func _run() -> void:
 	var repeat_report: Dictionary = simulator.run_suite(options)
 	_check(JSON.stringify(report.get("cases", [])) == JSON.stringify(repeat_report.get("cases", [])), "balance simulator is deterministic for the same options")
 
+	var chain_state := {"completed_event_ids": {}, "gold": 50, "hp": 50, "max_hp": 72, "deck_ids": [], "relic_ids": [], "potion_ids": [], "character_id": "ember_exile"}
+	var chapter_two_events: Array = simulator.map_generation_data.get("chapter_two", {}).get("event_pool", [])
+	var chain_pool_before: Array = simulator._filtered_event_pool_for_character(chapter_two_events, "ember_exile", chain_state)
+	_check(not chain_pool_before.has("calibrator_return"), "balance simulator hides chain follow-up before prerequisite")
+	simulator._apply_campaign_event_effect(chain_state, {"type": "lose_gold", "amount": 25})
+	simulator._apply_campaign_event_effect(chain_state, {"type": "complete_event", "event_id": "mute_calibrator"})
+	_check(int(chain_state.get("gold", 0)) == 25 and bool(chain_state.get("completed_event_ids", {}).get("mute_calibrator", false)), "balance simulator applies chain cost and completion flag")
+	var chain_pool_after: Array = simulator._filtered_event_pool_for_character(chapter_two_events, "ember_exile", chain_state)
+	_check(chain_pool_after.has("calibrator_return"), "balance simulator exposes chain follow-up after prerequisite")
+	var chain_graph: Dictionary = simulator._generate_chapter_graph("chapter_two", 37, "ember_exile", chain_state)
+	_check(_graph_has_event(chain_graph, "calibrator_return"), "balance simulator chapter map places the unlocked guaranteed follow-up")
+	var treasure_state: Dictionary = chain_state.duplicate(true)
+	var treasure_gold_before: int = int(treasure_state.get("gold", 0))
+	var treasure_result: Dictionary = simulator._resolve_campaign_node(treasure_state, {"id": "test_treasure", "type": "treasure"}, "chapter_one", 30, 19)
+	_check(bool(treasure_result.get("completed", false)), "balance simulator resolves treasure nodes")
+	_check(int(treasure_state.get("gold", 0)) > treasure_gold_before and int(treasure_state.get("treasures_seen", 0)) == 1, "balance simulator treasure grants gold and records the visit")
+	_check(simulator._campaign_node_score(treasure_state, {"type": "treasure"}) > simulator._campaign_node_score(treasure_state, {"type": "combat"}), "campaign route AI values risk-free treasure above normal combat")
+	var mastery_deck: Array = ["ember_strike", "ember_strike", "ember_strike", "ember_strike", "ember_strike", "pressure_probe", "ash_guard", "ash_guard", "ash_guard", "ash_guard"]
+	_check(simulator._campaign_mastery_requirements_met(mastery_deck, {"min_type_count": {"attack": 6}}), "campaign simulator evaluates deck mastery type thresholds")
+	_check(simulator._choose_campaign_deck_mastery(mastery_deck) == "offense_forging", "campaign simulator chooses an eligible deck mastery after elite victory")
+	var modifier_sources: Array = simulator._campaign_modifier_sources({"skill_book_id": "steel_manual", "deck_mastery_id": "offense_forging"})
+	_check(modifier_sources.size() == 2, "campaign simulator passes skill book and deck mastery into combat")
+
 	var error: Error = simulator.save_report(report, REPORT_PATH)
 	_check(error == OK and FileAccess.file_exists(REPORT_PATH), "balance simulator can save JSON report")
 	var saved = JSON.parse_string(FileAccess.get_file_as_string(REPORT_PATH))
@@ -56,7 +79,10 @@ func _run() -> void:
 	_check(float(campaign_case.get("avg_chapters_completed", -1.0)) >= 0.0 and float(campaign_case.get("avg_chapters_completed", -1.0)) <= 3.0, "campaign records chapter progress")
 	_check(float(campaign_case.get("avg_nodes_completed", -1.0)) >= 0.0, "campaign records node progress")
 	_check(campaign_case.has("failure_reasons") and campaign_case.has("failure_points"), "campaign records failure breakdowns")
+	_check(campaign_case.has("failure_node_types") and campaign_case.has("failure_encounters"), "campaign records failure node types and encounter ids")
 	_check(_valid_campaign_risk_flag(str(campaign_case.get("risk_flag", ""))), "campaign risk flag is recognized")
+	var campaign_samples: Array = campaign_case.get("sample_runs", [])
+	_check(not campaign_samples.is_empty() and str(campaign_samples[0].get("skill_book_id", "")) == "steel_manual", "campaign reports the active default skill book")
 
 	print("Balance simulator smoke test passed.")
 	quit(0)
@@ -72,6 +98,15 @@ func _valid_risk_flag(flag: String) -> bool:
 		"elite_too_slow",
 		"boss_too_slow"
 	].has(flag)
+
+func _graph_has_event(graph: Dictionary, event_id: String) -> bool:
+	for layer in graph.get("layers", []):
+		var layer_nodes: Array = layer
+		for node in layer_nodes:
+			var node_dict: Dictionary = node
+			if str(node_dict.get("type", "")) == "event" and str(node_dict.get("event_id", "")) == event_id:
+				return true
+	return false
 
 func _valid_campaign_risk_flag(flag: String) -> bool:
 	return [

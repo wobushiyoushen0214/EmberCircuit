@@ -1,0 +1,52 @@
+{
+  "_comment": "局外角色升级、技能书和单局卡组专精。所有数值必须同时满足 docs/08 的预算规则。",
+  "currency": {
+    "id": "forge_marks",
+    "name": "炉印",
+    "boss_reward": 2,
+    "full_run_bonus": 3,
+    "design_note": "只奖励 Boss 击败和完整通关，避免失败刷局外数值。",
+    "balance_note": "每棵角色树总成本 12；完成约三次完整跑团能解锁一棵树。"
+  },
+  "character_trees": [
+    {
+      "character_id": "ember_exile",
+      "name": "余烬流亡者锻造树",
+      "nodes": [
+        { "id": "exile_tempered_body", "name": "固炉体魄", "cost": 3, "prerequisites": [], "effects": [ { "type": "max_hp_bonus", "amount": 3 } ], "description": "最大生命和初始生命 +3。", "design_note": "基础容错节点。", "balance_note": "不提高伤害或能量。" },
+        { "id": "exile_old_wound_charm", "name": "旧伤护符", "cost": 4, "prerequisites": [ "exile_tempered_body" ], "effects": [ { "type": "combat_start_block", "amount": 3 } ], "description": "每场战斗开始时获得 3 点护甲。", "design_note": "稳定开局防御。", "balance_note": "每场一次，不随回合增长。" },
+        { "id": "exile_ember_cache", "name": "余烬库存", "cost": 5, "prerequisites": [ "exile_old_wound_charm" ], "effects": [ { "type": "starting_gold_bonus", "amount": 20 } ], "description": "新跑团起始金币 +20。", "design_note": "提供路线与商店弹性。", "balance_note": "不直接提高战斗数值。" }
+      ]
+    },
+    {
+      "character_id": "arc_tinker",
+      "name": "电弧工匠锻造树",
+      "nodes": [
+        { "id": "arc_insulated_lining", "name": "绝缘内衬", "cost": 3, "prerequisites": [], "effects": [ { "type": "max_hp_bonus", "amount": 3 } ], "description": "最大生命和初始生命 +3。", "design_note": "缓冲低生命角色的连续战斗压力。", "balance_note": "仍低于默认角色的基础生命。" },
+        { "id": "arc_auxiliary_coil", "name": "辅助线圈", "cost": 4, "prerequisites": [ "arc_insulated_lining" ], "effects": [ { "type": "starting_momentum_bonus", "amount": 1 } ], "description": "新跑团初始势能 +1。", "design_note": "更快进入低费连打窗口。", "balance_note": "不提高势能上限。" },
+        { "id": "arc_spare_rack", "name": "备用瓶架", "cost": 5, "prerequisites": [ "arc_auxiliary_coil" ], "effects": [ { "type": "potion_slot_bonus", "amount": 1, "cap": 4 } ], "description": "药水槽 +1，最多 4 个。", "design_note": "强化角色药水身份。", "balance_note": "不会直接提供药水。" }
+      ]
+    },
+    {
+      "character_id": "pyre_ascetic",
+      "name": "熔痕苦修者锻造树",
+      "nodes": [
+        { "id": "pyre_ash_skin", "name": "灰烬皮肤", "cost": 3, "prerequisites": [], "effects": [ { "type": "max_hp_bonus", "amount": 3 } ], "description": "最大生命和初始生命 +3。", "design_note": "抵消自伤构筑的起步压力。", "balance_note": "不降低自伤或灼伤代价。" },
+        { "id": "pyre_prayer_barrier", "name": "祈火屏障", "cost": 4, "prerequisites": [ "pyre_ash_skin" ], "effects": [ { "type": "combat_start_block", "amount": 3 } ], "description": "每场战斗开始时获得 3 点护甲。", "design_note": "给自伤换资源留出安全空间。", "balance_note": "每场一次。" },
+        { "id": "pyre_ember_vessel", "name": "焰种容器", "cost": 5, "prerequisites": [ "pyre_prayer_barrier" ], "effects": [ { "type": "starting_momentum_bonus", "amount": 1 } ], "description": "新跑团初始势能 +1。", "design_note": "让高势能角色更早建立爆发。", "balance_note": "不提高势能上限或灼伤伤害。" }
+      ]
+    }
+  ],
+  "skill_books": [
+    { "id": "steel_manual", "name": "钢铁手册", "unlock": { "type": "default" }, "effects": [ { "trigger": "combat_start", "type": "gain_block", "amount": 3 } ], "description": "每场战斗开始时获得 3 点护甲。", "design_note": "默认可用的容错技能书。", "balance_note": "只改变首回合。" },
+    { "id": "swift_current_notes", "name": "迅流笔记", "unlock": { "type": "chapter_completed", "chapter_id": "chapter_one" }, "effects": [ { "trigger": "card_played", "type": "draw", "amount": 1, "card_cost_equals": 0, "once_per_combat": true } ], "description": "每场第一次打出 0 费牌时，抽 1 张牌。", "design_note": "给低费构筑一个有限的节奏窗口。", "balance_note": "每场一次，避免循环。" },
+    { "id": "furnace_edict", "name": "炉火条令", "unlock": { "type": "chapter_completed", "chapter_id": "chapter_two" }, "effects": [ { "trigger": "block_gained", "type": "gain_block", "amount": 2, "once_per_combat": true } ], "description": "每场第一次获得护甲时，额外获得 2 点护甲。", "design_note": "防御型构筑的微型稳定器。", "balance_note": "每场一次。" },
+    { "id": "ember_ritual", "name": "余烬仪式", "unlock": { "type": "chapter_completed", "chapter_id": "chapter_three" }, "effects": [ { "trigger": "card_created", "type": "damage_all_enemies", "amount": 2, "card_id": "searing_wound", "once_per_combat": true } ], "description": "每场第一次创建灼伤时，对所有敌人造成 2 点伤害。", "design_note": "把状态牌风险转化为一次有限回报。", "balance_note": "每场一次，与角色遗物分开结算。" }
+  ],
+  "deck_masteries": [
+    { "id": "offense_forging", "name": "攻势锻造", "requirements": { "min_type_count": { "attack": 6 } }, "effects": [ { "trigger": "card_played", "type": "bonus_damage", "amount": 2, "card_type": "attack", "once_per_combat": true } ], "description": "每场第一次打出攻击牌时，额外造成 2 点伤害。", "design_note": "奖励纯攻击构筑的开局斩杀线。", "balance_note": "每场一次，不等同力量。" },
+    { "id": "bastion_forging", "name": "壁垒锻造", "requirements": { "min_type_count": { "skill": 6 } }, "effects": [ { "trigger": "block_gained", "type": "gain_block", "amount": 3, "once_per_combat": true } ], "description": "每场第一次获得护甲时，额外获得 3 点护甲。", "design_note": "奖励防御型构筑。", "balance_note": "每场一次。" },
+    { "id": "overload_forging", "name": "过载锻造", "requirements": { "min_zero_cost_cards": 3 }, "effects": [ { "trigger": "card_played", "type": "gain_momentum", "amount": 1, "card_cost_equals": 0, "once_per_turn": true } ], "description": "每回合第一次打出 0 费牌时，获得 1 点势能。", "design_note": "强化低费节奏构筑。", "balance_note": "与同类遗物独立计数，但不提供能量。" },
+    { "id": "burn_forging", "name": "灼伤锻造", "requirements": { "min_burn_creator_cards": 3 }, "effects": [ { "trigger": "card_created", "type": "damage_all_enemies", "amount": 2, "card_id": "searing_wound", "once_per_combat": true } ], "description": "每场第一次创建灼伤时，对所有敌人造成 2 点伤害。", "design_note": "把灼伤牌组的污染转化为一次战术收益。", "balance_note": "每场一次。" }
+  ]
+}

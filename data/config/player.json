@@ -83,12 +83,12 @@
     {
       "id": "arc_tinker",
       "name": "电弧工匠",
-      "max_hp": 64,
-      "starting_hp": 64,
+      "max_hp": 68,
+      "starting_hp": 68,
       "max_energy": 3,
       "starting_momentum": 1,
       "momentum_max": 5,
-      "starting_gold": 88,
+      "starting_gold": 96,
       "potion_slots": 3,
       "starting_potions": [],
       "reward_pool_tags": [ "shared", "arc_tinker" ],
@@ -96,13 +96,13 @@
         "spark_throw",
         "spark_throw",
         "spark_throw",
-        "spark_throw",
         "pressure_probe",
         "pressure_probe",
         "soot_step",
         "soot_step",
+        "ash_guard",
         "forge_focus",
-        "cooling_breath"
+        "static_primer"
       ],
       "starter_relic_ids": [ "arc_capacitor", "insulated_battery" ],
       "ending": {
@@ -116,15 +116,15 @@
         ]
       },
       "archetype_note": "节奏型角色，依赖 0 费攻击、轻量过牌和药水槽优势寻找爆发窗口。",
-      "design_note": "第二名可玩角色，用更低生命、更低势能上限和更多药水槽制造与默认角色不同的节奏。",
-      "balance_note": "起手 4 张 0 费攻击让早期输出更顺；电弧电容和绝缘电池提供第一回合势能/护甲，抵消 64 生命的低容错。",
+      "design_note": "第二名可玩角色，用略低生命、更低势能上限和更多药水槽制造与默认角色不同的节奏。",
+      "balance_note": "68 生命仍低于默认角色；起手 4 张 0 费攻击与 1 张会消耗的静电预充保证首轮循环，96 金币和双启动遗物降低前两章随机波动。",
       "implementation_note": "使用现有卡牌池实现，先验证多角色数据管线；后续可补专属卡池与专属事件。"
     },
     {
       "id": "pyre_ascetic",
       "name": "熔痕苦修者",
-      "max_hp": 66,
-      "starting_hp": 66,
+      "max_hp": 70,
+      "starting_hp": 70,
       "max_energy": 3,
       "starting_momentum": 0,
       "momentum_max": 7,
@@ -157,7 +157,7 @@
       },
       "archetype_note": "高风险角色，利用灼伤、自伤和灼烧把负面状态转化为爆发节奏。",
       "design_note": "第三名可玩角色，验证状态牌污染、自伤资源和持续伤害构筑的完整角色管线。",
-      "balance_note": "66 生命、强化后的苦修香炉和灰烬念珠让角色保留高风险定位但拥有基本开局容错；7 点势能上限给爆发规划空间，但需要主动承担灼伤和自伤。",
+      "balance_note": "70 生命、强化后的苦修香炉和灰烬念珠让角色保留高风险定位但拥有普通模式开局容错；7 点势能上限给爆发规划空间，但仍需要主动承担灼伤和自伤。",
       "implementation_note": "复用 create_card、damage_self、burn、card_created 和角色专属奖励过滤，不新增战斗解释器语义。"
     }
   ]

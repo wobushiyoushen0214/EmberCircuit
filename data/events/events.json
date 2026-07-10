@@ -1,6 +1,6 @@
 {
   "_comment": "第一章问号事件数据。事件选择支持确定性效果、条件和权重随机结果。",
-  "schema_note": "choices[].effects 支持 gain_gold、lose_hp、heal_percent、add_card、gain_relic、gain_potion、remove_first_non_starter_card；choices[].conditions 支持 min_gold、min_hp、has_empty_potion_slot、has_removable_card、missing_relic、has_relic、deck_contains_card、event_not_completed；choices[].random_results[] 支持 weight 和 effects。",
+  "schema_note": "choices[].effects 支持 gain_gold、lose_gold、lose_hp、heal_percent、add_card、gain_relic、gain_potion、remove_first_non_starter_card、complete_event；choices[].conditions 与 events[].availability_conditions 支持 min_gold、min_hp、has_empty_potion_slot、has_removable_card、missing_relic、has_relic、deck_contains_card、event_not_completed、event_completed；choices[].random_results[] 支持 weight 和 effects。",
   "events": [
     {
       "id": "broken_reactor",
@@ -629,6 +629,89 @@
           "description": "将“烙印重击”加入牌组。",
           "effects": [
             { "type": "add_card", "card_id": "brand_strike" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mute_calibrator",
+      "name": "失声校准员",
+      "body": "一台旧式校准员跪在断裂导轨旁。它的发声器只剩杂音，胸腔里却反复投影出通往风暴高塔的坐标。",
+      "design_note": "两章连锁事件的第一阶段。玩家只有承担明确资源代价并修复校准员，才会把第二阶段加入下一章事件池。",
+      "balance_note": "25 金币或 6 生命是第一章可感知但可承受的前置成本；拆解选项给即时金币，但永久放弃后续稀有牌。",
+      "choices": [
+        {
+          "id": "restore_voice",
+          "label": "重接发声器",
+          "description": "支付 25 金币修复校准员，并解锁后续事件。",
+          "conditions": [
+            { "type": "min_gold", "amount": 25 }
+          ],
+          "effects": [
+            { "type": "lose_gold", "amount": 25 },
+            { "type": "complete_event", "event_id": "mute_calibrator" }
+          ]
+        },
+        {
+          "id": "feed_heat",
+          "label": "以体温供热",
+          "description": "失去 6 点生命修复校准员，并解锁后续事件。",
+          "conditions": [
+            { "type": "min_hp", "amount": 7 }
+          ],
+          "effects": [
+            { "type": "lose_hp", "amount": 6 },
+            { "type": "complete_event", "event_id": "mute_calibrator" }
+          ]
+        },
+        {
+          "id": "strip_coils",
+          "label": "拆走剩余线圈",
+          "description": "获得 35 金币，但放弃后续事件。",
+          "effects": [
+            { "type": "gain_gold", "amount": 35 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "calibrator_return",
+      "name": "校准员归来",
+      "body": "风暴高塔的中继层里，那台校准员正等在完整的导轨上。它终于能说话，并把一路修复出的战斗协议投向你的牌组。",
+      "one_time": true,
+      "guaranteed_when_available": true,
+      "availability_conditions": [
+        { "type": "event_completed", "event_id": "mute_calibrator" }
+      ],
+      "design_note": "两章连锁事件的第二阶段，仅在第一章帮助校准员后进入第二章地图事件池，并提供不同类型的长期回报。",
+      "balance_note": "专属稀有牌是主回报；70 金币是通用经济替代；删卡加 12% 治疗服务受损或精简牌组，三项价值接近但构筑方向不同。",
+      "choices": [
+        {
+          "id": "accept_protocol",
+          "label": "接收校准协议",
+          "description": "将事件专属稀有牌“校准协议”加入牌组。",
+          "effects": [
+            { "type": "add_card", "card_id": "calibration_protocol" }
+          ]
+        },
+        {
+          "id": "claim_payment",
+          "label": "索取护送报酬",
+          "description": "获得 70 金币。",
+          "effects": [
+            { "type": "gain_gold", "amount": 70 }
+          ]
+        },
+        {
+          "id": "purge_noise",
+          "label": "清除噪声记忆",
+          "description": "移除牌组中第一张非初始牌，并恢复 12% 最大生命。",
+          "conditions": [
+            { "type": "has_removable_card" }
+          ],
+          "effects": [
+            { "type": "remove_first_non_starter_card", "amount": 1 },
+            { "type": "heal_percent", "amount": 12 }
           ]
         }
       ]

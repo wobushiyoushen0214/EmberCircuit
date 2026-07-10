@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <radialGradient id="lensGlow" cx="50%" cy="48%" r="56%">
+      <stop offset="0%" stop-color="#ffe8a8"/>
+      <stop offset="42%" stop-color="#e88736"/>
+      <stop offset="100%" stop-color="#1a1010"/>
+    </radialGradient>
+    <linearGradient id="brass" x1="18" y1="18" x2="110" y2="110">
+      <stop offset="0%" stop-color="#f3d189"/>
+      <stop offset="54%" stop-color="#8b5224"/>
+      <stop offset="100%" stop-color="#322016"/>
+    </linearGradient>
+    <linearGradient id="glass" x1="32" y1="22" x2="96" y2="104">
+      <stop offset="0%" stop-color="#bdf7e8" stop-opacity="0.86"/>
+      <stop offset="58%" stop-color="#305e62" stop-opacity="0.70"/>
+      <stop offset="100%" stop-color="#070c10" stop-opacity="0.82"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="18" fill="#100f12"/>
+  <path d="M18 82 C22 47 45 22 76 18 C106 24 116 50 106 80 C98 104 74 116 46 109 C28 104 18 94 18 82Z" fill="url(#lensGlow)" opacity="0.42"/>
+  <circle cx="64" cy="62" r="44" fill="url(#brass)"/>
+  <circle cx="64" cy="62" r="35" fill="#161f22"/>
+  <circle cx="64" cy="62" r="29" fill="url(#glass)"/>
+  <circle cx="64" cy="62" r="17" fill="#ffb44f" opacity="0.62"/>
+  <circle cx="64" cy="62" r="7" fill="#fff0bc"/>
+  <path d="M41 44 C49 35 65 31 80 37" fill="none" stroke="#f8ffe6" stroke-width="4" stroke-linecap="round" opacity="0.62"/>
+  <path d="M35 76 C49 89 72 91 93 72" fill="none" stroke="#071013" stroke-width="6" stroke-linecap="round" opacity="0.70"/>
+  <path d="M25 102 L42 88 L52 100 L34 115Z" fill="#56351d"/>
+  <path d="M30 105 L42 95" stroke="#f3ca75" stroke-width="3" stroke-linecap="round"/>
+  <path d="M64 20 L70 9 L76 21" fill="#b36a2e"/>
+  <path d="M105 56 L119 50 L109 68" fill="#8a4a25"/>
+  <path d="M64 33 L68 52 L87 58 L69 66 L63 88 L58 66 L39 59 L58 52Z" fill="#ffe29a" opacity="0.54"/>
+</svg>

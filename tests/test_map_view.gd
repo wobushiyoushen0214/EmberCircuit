@@ -18,6 +18,12 @@ func _init() -> void:
 	_check(view.get_node_button_count() == _node_count(layers), "map view creates one button per node")
 	_check(view.get_available_button_count() == 1, "map view tracks available buttons")
 	_check(view.get_icon_button_count() == view.get_node_button_count(), "map view assigns an icon to every node button")
+	_check(view.get_risk_badge_count() == view.get_node_button_count(), "map view assigns a risk badge to every node")
+	var risk_badge_texts: Array[String] = view.get_risk_badge_texts()
+	_check(risk_badge_texts.has("中") and risk_badge_texts.has("高") and risk_badge_texts.has("极") and risk_badge_texts.has("?") and risk_badge_texts.has("低"), "map view risk badges cover route risk levels")
+	var start_button := view.node_buttons.get(start_id, null) as Button
+	_check(start_button != null and start_button.tooltip_text.contains("普通战斗") and not start_button.tooltip_text.contains("[combat]"), "map node tooltip uses localized type labels")
+	_check(start_button != null and start_button.has_node("RiskBadge"), "map node button contains a risk badge child")
 
 	var selected: Array[String] = []
 	view.node_selected.connect(func(node_id: String) -> void:

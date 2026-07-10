@@ -1,0 +1,14 @@
+{
+  "_comment": "卡牌基础效率验收边界。只校验未升级卡的直接伤害与直接护甲；条件增益、持续状态和能力牌由 balance_note 说明。",
+  "cost_budgets": {
+    "0": { "single_damage_max": 5, "all_damage_max": 4, "block_max": 4 },
+    "1": { "single_damage_max": 9, "all_damage_max": 6, "block_max": 9 },
+    "2": { "single_damage_max": 18, "all_damage_max": 12, "block_max": 16 },
+    "3": { "single_damage_max": 26, "all_damage_max": 18, "block_max": 24 }
+  },
+  "over_budget_downside_effect_types": [ "lose_momentum", "damage_self", "create_card", "apply_status" ],
+  "allowed_cost_range": [ 0, 3 ],
+  "design_note": "直接效率保持在稳定区间，稀有度主要增加组合规则，不直接突破费用预算。",
+  "balance_note": "超过上限时，卡牌基础效果中必须同时存在势能损失、自伤、状态污染或负面状态之一。",
+  "implementation_note": "tests/test_data_integrity.gd 会读取本文件并校验 cards.json。"
+}

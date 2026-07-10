@@ -25,6 +25,7 @@ var turn: int = 0
 var selected_encounter_id: String = "intro_patrol"
 var attack_cards_played_this_turn: int = 0
 var relic_used_this_turn: Dictionary = {}
+var relic_used_this_combat: Dictionary = {}
 var skill_block_bonus_percent: int = 0
 var challenge_modifiers: Dictionary = {}
 
@@ -50,6 +51,14 @@ func setup(
 		owned_relic_ids = player_config.get("starter_relic_ids", relic_data.get("starter_relics", [])).duplicate(true)
 	else:
 		owned_relic_ids = relic_override.duplicate(true)
+	for modifier_value in player_data.get("run_modifier_sources", []):
+		var modifier: Dictionary = modifier_value
+		var modifier_id: String = str(modifier.get("id", ""))
+		if modifier_id.is_empty():
+			continue
+		relics_by_id[modifier_id] = modifier.duplicate(true)
+		if not owned_relic_ids.has(modifier_id):
+			owned_relic_ids.append(modifier_id)
 
 	var starting_hp: int = int(player_config.get("starting_hp", 72))
 	if player_hp_override >= 0:
@@ -77,6 +86,7 @@ func setup(
 	phase = "setup"
 	attack_cards_played_this_turn = 0
 	relic_used_this_turn.clear()
+	relic_used_this_combat.clear()
 	skill_block_bonus_percent = 0
 
 	_apply_setup_relics()
@@ -92,6 +102,9 @@ func setup(
 	emit_signal("changed")
 
 func _player_config_from_data(player_data: Dictionary) -> Dictionary:
+	var runtime_config: Dictionary = player_data.get("runtime_player_config", {})
+	if not runtime_config.is_empty():
+		return runtime_config
 	var selected_character_id: String = str(player_data.get("selected_character_id", ""))
 	if not selected_character_id.is_empty():
 		for character in player_data.get("characters", []):
@@ -156,7 +169,7 @@ func play_card(hand_index: int, target_index: int = -1) -> bool:
 	_log("打出 %s，剩余能量 %d。" % [card.get("name", card.get("id", "卡牌")), player["energy"]])
 
 	_resolve_card(card, target_index)
-	_apply_relics("card_played", {"card": card})
+	_apply_relics("card_played", {"card": card, "target_index": target_index})
 
 	if bool(card.get("exhaust", false)):
 		exhaust_pile.append(card)
@@ -185,6 +198,7 @@ func use_potion(potion: Dictionary, target_index: int = -1) -> bool:
 	for effect in potion.get("effects", []):
 		var effect_dict: Dictionary = effect
 		_resolve_potion_effect(potion, effect_dict, target_index)
+	_apply_relics("potion_used", {"potion": potion})
 
 	_check_combat_end()
 	emit_signal("changed")
@@ -443,6 +457,8 @@ func _resolve_enemy_effect(enemy: Dictionary, effect: Dictionary) -> void:
 			var consumed_player_vulnerable := _status_amount(player["statuses"], "vulnerable") > 0
 			for _i in range(hits):
 				_damage_player(_modified_enemy_damage(int(effect.get("amount", 0))), enemy)
+				if int(enemy.get("hp", 0)) <= 0 or phase == "lost":
+					break
 			if consumed_enemy_weak:
 				_consume_status(enemy["statuses"], "weak", 1)
 			if consumed_player_vulnerable:
@@ -520,6 +536,9 @@ func _damage_enemy(enemy: Dictionary, amount: int, card: Dictionary) -> void:
 	if before_block > 0 and int(enemy.get("block", 0)) == 0:
 		_apply_relics("enemy_block_broken", {"enemy": enemy})
 
+	if _attack_source_triggers_thorn(card):
+		_apply_enemy_thorn_to_player(enemy)
+
 	if int(enemy.get("hp", 0)) <= 0:
 		_log("%s 被击败。" % enemy.get("name", "敌人"))
 		_push_feedback("enemy_defeated", "%s 被击败" % enemy.get("name", "敌人"), str(enemy.get("id", "")), 0, "success")
@@ -541,17 +560,50 @@ func _damage_player(amount: int, enemy: Dictionary) -> void:
 	_lose_player_hp(hp_damage, "%s 的攻击" % enemy.get("name", "敌人"))
 	_log("%s 攻击造成 %d 点生命伤害（格挡 %d）。" % [enemy.get("name", "敌人"), hp_damage, blocked])
 	_push_feedback("player_hit", "玩家 -%d" % hp_damage, "player", hp_damage, "danger")
+	_apply_player_thorn_to_enemy(enemy)
+
+func _attack_source_triggers_thorn(source: Dictionary) -> bool:
+	if bool(source.get("ignore_thorn", false)):
+		return false
+	return str(source.get("type", "")) == "attack"
+
+func _apply_enemy_thorn_to_player(enemy: Dictionary) -> void:
+	var thorn_damage: int = _status_amount(enemy.get("statuses", {}), "thorn")
+	if thorn_damage <= 0:
+		return
+	_lose_player_hp(thorn_damage, "%s 的尖刺" % enemy.get("name", "敌人"))
+	_log("%s 的尖刺反伤玩家 %d 点。" % [enemy.get("name", "敌人"), thorn_damage])
+	_push_feedback("player_hit", "尖刺 -%d" % thorn_damage, "player", thorn_damage, "danger")
+
+func _apply_player_thorn_to_enemy(enemy: Dictionary) -> void:
+	var thorn_damage: int = _status_amount(player.get("statuses", {}), "thorn")
+	if thorn_damage <= 0 or int(enemy.get("hp", 0)) <= 0:
+		return
+	enemy["hp"] = max(0, int(enemy.get("hp", 0)) - thorn_damage)
+	_log("玩家尖刺对 %s 造成 %d 点反伤。" % [enemy.get("name", "敌人"), thorn_damage])
+	_push_feedback("enemy_hit", "%s 尖刺 -%d" % [enemy.get("name", "敌人"), thorn_damage], str(enemy.get("id", "")), thorn_damage, "hit")
+	if int(enemy.get("hp", 0)) <= 0:
+		_log("%s 被尖刺击败。" % enemy.get("name", "敌人"))
+		_push_feedback("enemy_defeated", "%s 被尖刺击败" % enemy.get("name", "敌人"), str(enemy.get("id", "")), 0, "success")
+	else:
+		_check_enemy_phase_transitions(enemy)
 
 func _lose_player_hp(amount: int, reason: String) -> void:
 	amount = max(amount, 0)
 	if amount <= 0:
 		return
-	player["hp"] = max(0, int(player.get("hp", 0)) - amount)
-	_log("玩家因 %s 失去 %d 点生命。" % [reason, amount])
+	var before_hp: int = int(player.get("hp", 0))
+	player["hp"] = max(0, before_hp - amount)
+	var actual_loss: int = before_hp - int(player.get("hp", 0))
+	if actual_loss <= 0:
+		return
+	_log("玩家因 %s 失去 %d 点生命。" % [reason, actual_loss])
 	if int(player.get("hp", 0)) <= 0:
 		phase = "lost"
 		_log("玩家战败。")
 		_push_feedback("lost", "战败", "player", 0, "danger")
+	else:
+		_apply_relics("player_hp_lost", {"amount": actual_loss, "reason": reason})
 
 func _heal_player(amount: int, source: String) -> void:
 	amount = max(amount, 0)
@@ -655,14 +707,22 @@ func _apply_relics(trigger: String, context: Dictionary) -> void:
 				continue
 			if _relic_condition_failed(relic_id, effect, context):
 				continue
-			_resolve_relic_effect(relic, effect, context)
 			if bool(effect.get("once_per_turn", false)):
 				relic_used_this_turn[relic_id] = true
+			if bool(effect.get("once_per_combat", false)):
+				relic_used_this_combat[relic_id] = true
+			_resolve_relic_effect(relic, effect, context)
 
 func _relic_condition_failed(relic_id: String, effect: Dictionary, context: Dictionary) -> bool:
 	if bool(effect.get("first_turn_only", false)) and turn != 1:
 		return true
 	if bool(effect.get("once_per_turn", false)) and bool(relic_used_this_turn.get(relic_id, false)):
+		return true
+	if bool(effect.get("once_per_combat", false)) and bool(relic_used_this_combat.get(relic_id, false)):
+		return true
+	if effect.has("requires_momentum_at_least") and int(player.get("momentum", 0)) < int(effect.get("requires_momentum_at_least", 0)):
+		return true
+	if effect.has("min_hp_lost") and int(context.get("amount", 0)) < int(effect.get("min_hp_lost", 0)):
 		return true
 	if effect.has("min_card_cost"):
 		var card: Dictionary = context.get("card", {})
@@ -713,6 +773,14 @@ func _resolve_relic_effect(relic: Dictionary, effect: Dictionary, context: Dicti
 					enemy["hp"] = max(0, int(enemy.get("hp", 0)) - int(effect.get("amount", 0)))
 					if int(enemy.get("hp", 0)) > 0:
 						_check_enemy_phase_transitions(enemy)
+		"bonus_damage":
+			var target_index: int = int(context.get("target_index", -1))
+			var target := _get_enemy_at(target_index)
+			if target.is_empty():
+				target = _first_alive_enemy()
+			if not target.is_empty():
+				var source := {"name": relic.get("name", "规则源"), "type": "attack", "ignore_player_modifiers": true}
+				_damage_enemy(target, int(effect.get("amount", 0)), source)
 		_:
 			pass
 

@@ -1,6 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192">
-  <rect width="192" height="192" fill="none"/>
-  <circle cx="96" cy="96" r="62" fill="#7cff70" opacity="0.16"/>
-  <path d="M96 18 L112 70 L164 48 L132 96 L172 136 L118 124 L96 176 L74 124 L20 136 L60 96 L28 48 L80 70 Z" fill="#74ff64" opacity="0.72"/>
-  <path d="M62 98 L86 122 L132 66" fill="none" stroke="#eeffcf" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" opacity="0.90"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <radialGradient id="break" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#f3ffe8"/>
+      <stop offset="0.45" stop-color="#80ff6d" stop-opacity="0.78"/>
+      <stop offset="1" stop-color="#1c6f37" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <circle cx="128" cy="128" r="88" fill="url(#break)" opacity="0.8"/>
+  <path d="M128 20 L145 95 L219 54 L170 119 L235 150 L158 151 L177 232 L128 165 L80 232 L98 151 L21 150 L86 119 L37 54 L111 95 Z" fill="#69ff72" fill-opacity="0.58" stroke="#ecffd7" stroke-width="5" stroke-linejoin="round"/>
+  <path d="M81 86 L117 121 L91 172 M176 82 L137 125 L169 181" stroke="#f3ffe5" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
 </svg>

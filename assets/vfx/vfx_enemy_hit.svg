@@ -1,6 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192">
-  <rect width="192" height="192" fill="none"/>
-  <circle cx="96" cy="96" r="44" fill="#ffb840" opacity="0.22"/>
-  <path d="M96 20 L106 76 L164 48 L124 92 L174 118 L116 116 L132 174 L96 128 L60 174 L76 116 L18 118 L68 92 L28 48 L86 76 Z" fill="#ffb840" opacity="0.78"/>
-  <circle cx="96" cy="96" r="18" fill="#fff0a8" opacity="0.92"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <radialGradient id="hit" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#fff9c7"/>
+      <stop offset="0.32" stop-color="#ffb333" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#ff451d" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <circle cx="128" cy="128" r="64" fill="url(#hit)" opacity="0.9"/>
+  <path d="M128 18 L139 87 L198 42 L163 104 L237 99 L169 130 L226 177 L154 154 L164 235 L126 164 L82 225 L101 151 L31 181 L87 132 L18 102 L96 104 L58 38 L118 88 Z" fill="#ff872f" fill-opacity="0.72" stroke="#fff1a7" stroke-width="4" stroke-linejoin="round"/>
 </svg>

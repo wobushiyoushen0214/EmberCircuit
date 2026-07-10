@@ -14,7 +14,8 @@ const TYPE_ICON_PATHS := {
 	"boss": "res://assets/art/map_node_boss.svg",
 	"event": "res://assets/art/map_node_event.svg",
 	"shop": "res://assets/art/map_node_shop.svg",
-	"campfire": "res://assets/art/map_node_campfire.svg"
+	"campfire": "res://assets/art/map_node_campfire.svg",
+	"treasure": "res://assets/art/map_node_treasure.svg"
 }
 
 var graph: Dictionary = {}
@@ -27,6 +28,7 @@ var last_previewed_node_id: String = ""
 var previewed_node_id: String = ""
 var preview_successor_ids: Array[String] = []
 var icon_cache: Dictionary = {}
+var last_risk_badge_texts: Array[String] = []
 
 func _ready() -> void:
 	custom_minimum_size = Vector2(0, 330)
@@ -61,6 +63,17 @@ func get_icon_button_count() -> int:
 		if button != null and button.icon != null:
 			count += 1
 	return count
+
+func get_risk_badge_count() -> int:
+	var count := 0
+	for button_value in node_buttons.values():
+		var button := button_value as Button
+		if button != null and button.has_node("RiskBadge"):
+			count += 1
+	return count
+
+func get_risk_badge_texts() -> Array[String]:
+	return last_risk_badge_texts.duplicate()
 
 func get_previewed_successor_count() -> int:
 	return preview_successor_ids.size()
@@ -111,6 +124,7 @@ func _rebuild_buttons() -> void:
 		child.free()
 	node_buttons.clear()
 	node_positions.clear()
+	last_risk_badge_texts.clear()
 
 	for layer in graph.get("layers", []):
 		var layer_nodes: Array = layer
@@ -121,6 +135,7 @@ func _rebuild_buttons() -> void:
 				continue
 			var button := Button.new()
 			button.custom_minimum_size = NODE_SIZE
+			button.clip_contents = true
 			button.text = _button_text(node_dict)
 			button.icon = _type_texture(str(node_dict.get("type", "")))
 			button.expand_icon = true
@@ -132,6 +147,7 @@ func _rebuild_buttons() -> void:
 			button.pressed.connect(_on_node_button_pressed.bind(node_id))
 			button.mouse_entered.connect(_on_node_button_previewed.bind(node_id))
 			button.focus_entered.connect(_on_node_button_previewed.bind(node_id))
+			_add_risk_badge(button, node_dict)
 			add_child(button)
 			node_buttons[node_id] = button
 
@@ -171,6 +187,7 @@ func _layout_buttons() -> void:
 			button.disabled = not available_node_ids.has(node_id)
 			button.text = _button_text(node)
 			button.icon = _type_texture(str(node.get("type", "")))
+			_update_risk_badge(button, node)
 			_apply_button_style(button, node)
 			node_positions[node_id] = button.position
 
@@ -191,14 +208,168 @@ func _tooltip_text(node: Dictionary) -> String:
 	var detail := ""
 	var node_type: String = str(node.get("type", ""))
 	if node_type == "event":
-		detail = str(node.get("event_id", ""))
+		detail = "事件选项可能改变生命、金币、牌组或遗物。"
 	elif node_type == "shop":
-		detail = "购买卡牌、药水或删卡"
+		detail = "购买卡牌、遗物、药水或删卡。"
 	elif node_type == "campfire":
-		detail = "恢复生命或升级卡牌"
-	elif node.has("encounter_id"):
-		detail = str(node.get("encounter_id", ""))
-	return "%s [%s]\n%s" % [node.get("name", "节点"), node_type, detail]
+		detail = "恢复生命或升级卡牌。"
+	elif node_type == "treasure":
+		detail = "获得金币和一件遗物。"
+	elif node_type == "elite":
+		detail = "高风险战斗，通常提供遗物和更多金币。"
+	elif node_type == "boss":
+		detail = "章节终点战，胜利后推进章节或结局。"
+	elif node_type == "combat":
+		detail = "标准战斗，胜利后获得金币和卡牌奖励。"
+	return "%s [%s]\n%s" % [node.get("name", "节点"), _type_label(node_type), detail]
+
+func _add_risk_badge(button: Button, node: Dictionary) -> void:
+	var badge := PanelContainer.new()
+	badge.name = "RiskBadge"
+	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	badge.custom_minimum_size = Vector2(24, 18)
+	badge.clip_contents = true
+	button.add_child(badge)
+
+	var label := Label.new()
+	label.name = "RiskBadgeText"
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.clip_text = true
+	label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	label.add_theme_font_size_override("font_size", 10)
+	badge.add_child(label)
+	_update_risk_badge(button, node)
+
+func _update_risk_badge(button: Button, node: Dictionary) -> void:
+	var badge := button.get_node_or_null("RiskBadge") as PanelContainer
+	if badge == null:
+		return
+	var badge_size := Vector2(24, 18)
+	if button.size.x < 116.0:
+		badge_size = Vector2(22, 16)
+	badge.custom_minimum_size = badge_size
+	badge.size = badge_size
+	badge.position = Vector2(max(2.0, button.size.x - badge_size.x - 5.0), 4.0)
+	badge.tooltip_text = _risk_tooltip(node)
+	badge.add_theme_stylebox_override("panel", _risk_badge_style(_risk_level(node)))
+
+	var label := badge.get_node_or_null("RiskBadgeText") as Label
+	if label == null:
+		return
+	var risk_text: String = _risk_badge_text(_risk_level(node))
+	label.text = risk_text
+	label.size = badge_size
+	label.add_theme_color_override("font_color", _risk_badge_font_color(_risk_level(node)))
+	if not last_risk_badge_texts.has(risk_text):
+		last_risk_badge_texts.append(risk_text)
+
+func _risk_level(node: Dictionary) -> String:
+	var explicit_level: String = str(node.get("risk_level", ""))
+	if not explicit_level.is_empty():
+		return explicit_level
+	match str(node.get("type", "")):
+		"boss":
+			return "extreme"
+		"elite":
+			return "high"
+		"combat":
+			return "medium"
+		"event":
+			return "unknown"
+		"shop", "campfire", "treasure":
+			return "low"
+		_:
+			return "unknown"
+
+func _risk_badge_text(risk_level: String) -> String:
+	match risk_level:
+		"low":
+			return "低"
+		"medium":
+			return "中"
+		"high":
+			return "高"
+		"extreme":
+			return "极"
+		_:
+			return "?"
+
+func _risk_tooltip(node: Dictionary) -> String:
+	match _risk_level(node):
+		"low":
+			return "风险：低。通常是休整、商店、宝箱或低压路线。"
+		"medium":
+			return "风险：中。标准战斗，会消耗生命但提供金币和卡牌奖励。"
+		"high":
+			return "风险：高。精英节点压力更大，通常回报遗物和更多金币。"
+		"extreme":
+			return "风险：极高。Boss 节点会决定章节推进或最终结局。"
+		_:
+			return "风险：未知。事件结果取决于可选项和当前资源。"
+
+func _risk_badge_style(risk_level: String) -> StyleBoxFlat:
+	var bg := Color(0.11, 0.14, 0.14, 0.94)
+	var border := Color(0.48, 0.56, 0.58, 0.95)
+	match risk_level:
+		"low":
+			bg = Color(0.08, 0.24, 0.16, 0.96)
+			border = Color(0.50, 0.90, 0.55, 0.96)
+		"medium":
+			bg = Color(0.20, 0.16, 0.08, 0.96)
+			border = Color(0.95, 0.72, 0.30, 0.96)
+		"high":
+			bg = Color(0.27, 0.12, 0.07, 0.96)
+			border = Color(1.0, 0.45, 0.25, 0.96)
+		"extreme":
+			bg = Color(0.28, 0.06, 0.12, 0.96)
+			border = Color(1.0, 0.34, 0.55, 0.98)
+		_:
+			bg = Color(0.12, 0.16, 0.24, 0.96)
+			border = Color(0.58, 0.72, 0.96, 0.96)
+	var style := StyleBoxFlat.new()
+	style.bg_color = bg
+	style.border_color = border
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(5)
+	style.content_margin_left = 0
+	style.content_margin_right = 0
+	style.content_margin_top = 0
+	style.content_margin_bottom = 0
+	return style
+
+func _risk_badge_font_color(risk_level: String) -> Color:
+	match risk_level:
+		"low":
+			return Color(0.88, 1.0, 0.82)
+		"medium":
+			return Color(1.0, 0.94, 0.70)
+		"high":
+			return Color(1.0, 0.84, 0.72)
+		"extreme":
+			return Color(1.0, 0.80, 0.88)
+		_:
+			return Color(0.86, 0.92, 1.0)
+
+func _type_label(node_type: String) -> String:
+	match node_type:
+		"combat":
+			return "普通战斗"
+		"elite":
+			return "精英战斗"
+		"boss":
+			return "Boss"
+		"event":
+			return "事件"
+		"shop":
+			return "商店"
+		"campfire":
+			return "篝火"
+		"treasure":
+			return "宝箱"
+		_:
+			return "未知"
 
 func _type_texture(node_type: String) -> Texture2D:
 	var icon_path: String = str(TYPE_ICON_PATHS.get(node_type, TYPE_ICON_PATHS.get("event", "")))
@@ -206,9 +377,27 @@ func _type_texture(node_type: String) -> Texture2D:
 		return null
 	if icon_cache.has(icon_path):
 		return icon_cache[icon_path]
-	var texture := load(icon_path) as Texture2D
+	var texture := _load_texture(icon_path)
 	icon_cache[icon_path] = texture
 	return texture
+
+func _load_texture(path: String) -> Texture2D:
+	if path.is_empty():
+		return null
+	if ResourceLoader.exists(path):
+		var loaded_resource = load(path)
+		if loaded_resource is Texture2D:
+			return loaded_resource
+	if path.ends_with(".svg") and FileAccess.file_exists(path):
+		var svg_text: String = FileAccess.get_file_as_string(path)
+		if svg_text.is_empty():
+			return null
+		var image := Image.new()
+		var error: Error = image.load_svg_from_string(svg_text, 1.0)
+		if error != OK or image.get_width() <= 0 or image.get_height() <= 0:
+			return null
+		return ImageTexture.create_from_image(image)
+	return null
 
 func _type_base_color(node_type: String) -> Color:
 	match node_type:
@@ -224,6 +413,8 @@ func _type_base_color(node_type: String) -> Color:
 			return Color(0.16, 0.30, 0.22)
 		"campfire":
 			return Color(0.35, 0.20, 0.12)
+		"treasure":
+			return Color(0.33, 0.27, 0.11)
 		_:
 			return Color(0.18, 0.20, 0.23)
 
@@ -241,6 +432,8 @@ func _type_border_color(node_type: String) -> Color:
 			return Color(0.41, 0.82, 0.55)
 		"campfire":
 			return Color(0.95, 0.56, 0.25)
+		"treasure":
+			return Color(0.98, 0.78, 0.29)
 		_:
 			return Color(0.50, 0.55, 0.61)
 

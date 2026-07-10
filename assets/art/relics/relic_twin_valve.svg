@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="valveMetal" x1="18" y1="20" x2="110" y2="108">
+      <stop offset="0%" stop-color="#e8d7a1"/>
+      <stop offset="44%" stop-color="#8a6840"/>
+      <stop offset="100%" stop-color="#1f1713"/>
+    </linearGradient>
+    <radialGradient id="greenCore" cx="50%" cy="50%" r="52%">
+      <stop offset="0%" stop-color="#d4ffd5"/>
+      <stop offset="55%" stop-color="#3faf70"/>
+      <stop offset="100%" stop-color="#0a1711"/>
+    </radialGradient>
+    <linearGradient id="pipe" x1="14" y1="60" x2="114" y2="72">
+      <stop offset="0%" stop-color="#253334"/>
+      <stop offset="50%" stop-color="#9fb9a4"/>
+      <stop offset="100%" stop-color="#293132"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="18" fill="#0d1110"/>
+  <path d="M17 65 C29 45 43 37 64 39 C84 37 99 45 111 65 C99 87 84 95 64 92 C43 95 29 87 17 65Z" fill="#07100d" opacity="0.76"/>
+  <rect x="16" y="57" width="96" height="16" rx="8" fill="url(#pipe)" stroke="#1f2b2b" stroke-width="4"/>
+  <circle cx="44" cy="65" r="28" fill="url(#valveMetal)" stroke="#e5c87a" stroke-width="4"/>
+  <circle cx="84" cy="65" r="28" fill="url(#valveMetal)" stroke="#e5c87a" stroke-width="4"/>
+  <circle cx="44" cy="65" r="17" fill="url(#greenCore)"/>
+  <circle cx="84" cy="65" r="17" fill="url(#greenCore)"/>
+  <path d="M44 41 L44 89" stroke="#161b18" stroke-width="6" stroke-linecap="round"/>
+  <path d="M20 65 L68 65" stroke="#161b18" stroke-width="6" stroke-linecap="round"/>
+  <path d="M84 41 L84 89" stroke="#161b18" stroke-width="6" stroke-linecap="round"/>
+  <path d="M60 65 L108 65" stroke="#161b18" stroke-width="6" stroke-linecap="round"/>
+  <path d="M44 34 L39 19 L49 19Z" fill="#b78348"/>
+  <path d="M84 34 L79 19 L89 19Z" fill="#b78348"/>
+  <path d="M36 98 L52 98 L48 113 L40 113Z" fill="#6d4b2f"/>
+  <path d="M76 98 L92 98 L88 113 L80 113Z" fill="#6d4b2f"/>
+  <path d="M57 45 C62 38 68 38 73 45" fill="none" stroke="#baffc7" stroke-width="4" stroke-linecap="round" opacity="0.62"/>
+  <path d="M57 85 C62 92 68 92 73 85" fill="none" stroke="#baffc7" stroke-width="4" stroke-linecap="round" opacity="0.45"/>
+  <circle cx="44" cy="65" r="5" fill="#f3ffe1"/>
+  <circle cx="84" cy="65" r="5" fill="#f3ffe1"/>
+</svg>

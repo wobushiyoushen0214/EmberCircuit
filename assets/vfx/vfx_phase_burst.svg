@@ -1,7 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192">
-  <rect width="192" height="192" fill="none"/>
-  <circle cx="96" cy="96" r="70" fill="#c86bff" opacity="0.16"/>
-  <circle cx="96" cy="96" r="52" fill="none" stroke="#f0c2ff" stroke-width="9" opacity="0.84"/>
-  <path d="M96 10 V52 M96 140 V182 M10 96 H52 M140 96 H182 M36 36 L66 66 M126 126 L156 156 M156 36 L126 66 M66 126 L36 156" stroke="#f3c8ff" stroke-width="9" stroke-linecap="round"/>
-  <circle cx="96" cy="96" r="20" fill="#f056ff" opacity="0.88"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <radialGradient id="phase" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#fff2ff"/>
+      <stop offset="0.4" stop-color="#d764ff" stop-opacity="0.86"/>
+      <stop offset="1" stop-color="#3b0a68" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <circle cx="128" cy="128" r="103" fill="url(#phase)" opacity="0.85"/>
+  <circle cx="128" cy="128" r="86" fill="none" stroke="#f1b0ff" stroke-width="9" opacity="0.82"/>
+  <path d="M128 12 L145 83 L204 39 L173 105 L244 111 L178 138 L229 188 L158 166 L161 242 L128 173 L95 242 L98 166 L27 188 L78 138 L12 111 L83 105 L52 39 L111 83 Z" fill="#b453ff" fill-opacity="0.48" stroke="#ffd9ff" stroke-width="4" stroke-linejoin="round"/>
 </svg>

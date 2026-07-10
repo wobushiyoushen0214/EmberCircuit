@@ -7,9 +7,14 @@ const MapGeneratorScript = preload("res://scripts/map/MapGenerator.gd")
 const MapViewScript = preload("res://scripts/map/MapView.gd")
 
 const ENEMY_ART_PATHS := {
-	"placeholder_soot_raider": "res://assets/art/enemy_soot_raider.svg",
-	"placeholder_ash_hound": "res://assets/art/enemy_ash_hound.svg",
-	"placeholder_forge_bishop": "res://assets/art/enemy_forge_bishop.svg"
+	"placeholder_soot_raider": "res://assets/art/generated/enemy_soot_raider_pc.png",
+	"placeholder_ash_hound": "res://assets/art/generated/enemy_ash_hound_v3_pc.png",
+	"placeholder_plague_alchemist": "res://assets/art/generated/enemy_plague_alchemist_v2_pc.png",
+	"placeholder_bomb_mite": "res://assets/art/generated/enemy_bomb_mite_v2_pc.png",
+	"placeholder_iron_shell_guard": "res://assets/art/generated/enemy_iron_shell_guard_pc.png",
+	"placeholder_thorn_shield": "res://assets/art/generated/enemy_thorn_shield_pc.png",
+	"placeholder_twinblade_executor": "res://assets/art/generated/enemy_twinblade_executor_v2_pc.png",
+	"placeholder_forge_bishop": "res://assets/art/generated/enemy_forge_bishop_v2_pc.png"
 }
 const CARD_FRAME_PATHS := {
 	"attack": "res://assets/art/card_attack_frame.svg",
@@ -19,11 +24,51 @@ const CARD_FRAME_PATHS := {
 const POTION_ART_PATH := "res://assets/art/potion_placeholder.svg"
 const RELIC_ART_PATH := "res://assets/art/relic_placeholder.svg"
 const EVENT_ART_PATH := "res://assets/art/event_default.svg"
-const UI_BACKDROP_PATH := "res://assets/art/ui_backdrop_forge.svg"
+const UI_BACKDROP_PATH := "res://assets/art/generated/ui_backdrop_pc.png"
+const UI_MENU_BACKDROP_PATH := "res://assets/art/generated/ui/menu_backdrop_v3_pc.png"
+const UI_RESOURCE_CHIP_PATH := "res://assets/art/generated/ui/ui_resource_chip_pc.png"
+const UI_HAND_TRAY_PATH := "res://assets/art/generated/ui/ui_hand_tray_pc.png"
+const UI_ENEMY_PLATE_PATH := "res://assets/art/generated/ui/ui_enemy_plate_pc.png"
+const UI_END_TURN_BUTTON_PATH := "res://assets/art/generated/ui/ui_end_turn_button_pc.png"
+const UI_FEEDBACK_TOAST_PATH := "res://assets/art/generated/ui/ui_feedback_toast_pc.png"
+const HUD_ICON_PATHS := {
+	"回合": "res://assets/art/generated/ui/icons/hud_turn.svg",
+	"生命": "res://assets/art/generated/ui/icons/hud_hp.svg",
+	"护甲": "res://assets/art/generated/ui/icons/hud_block.svg",
+	"能量": "res://assets/art/generated/ui/icons/hud_energy.svg",
+	"势能": "res://assets/art/generated/ui/icons/hud_momentum.svg",
+	"金币": "res://assets/art/generated/ui/icons/hud_gold.svg",
+	"抽牌": "res://assets/art/generated/ui/icons/hud_draw.svg",
+	"弃牌": "res://assets/art/generated/ui/icons/hud_discard.svg",
+	"消耗": "res://assets/art/generated/ui/icons/hud_exhaust.svg"
+}
+const INTENT_ICON_PATHS := {
+	"attack": "res://assets/art/generated/ui/icons/intent_attack.svg",
+	"attack_debuff": "res://assets/art/generated/ui/icons/intent_attack.svg",
+	"block": "res://assets/art/generated/ui/icons/hud_block.svg",
+	"block_buff": "res://assets/art/generated/ui/icons/hud_block.svg",
+	"buff": "res://assets/art/generated/ui/icons/intent_buff.svg",
+	"debuff": "res://assets/art/generated/ui/icons/intent_debuff.svg",
+	"status_card": "res://assets/art/generated/ui/icons/intent_debuff.svg"
+}
+const UI_DECK_ICON_PATH := "res://assets/art/generated/ui/icons/hud_draw.svg"
+const UI_SETTINGS_ICON_PATH := "res://assets/art/generated/ui/icons/control_settings.svg"
+const UI_NEW_RUN_ICON_PATH := "res://assets/art/generated/ui/icons/control_new_run.svg"
+const UI_LOAD_RUN_ICON_PATH := "res://assets/art/generated/ui/icons/control_load_run.svg"
+const UI_PROFILE_ICON_PATH := "res://assets/art/generated/ui/icons/control_profile.svg"
+const UI_COMPENDIUM_ICON_PATH := "res://assets/art/generated/ui/icons/control_compendium.svg"
+const UI_TUTORIAL_ICON_PATH := "res://assets/art/generated/ui/icons/control_tutorial.svg"
+const UI_SKIP_REWARD_ICON_PATH := "res://assets/art/generated/ui/icons/control_skip_reward.svg"
+const UI_CONTINUE_ROUTE_ICON_PATH := "res://assets/art/generated/ui/icons/control_continue_route.svg"
 const PLAYER_ART_PATHS := {
-	"ember_exile": "res://assets/art/player_ember_exile.svg",
-	"arc_tinker": "res://assets/art/player_arc_tinker.svg",
-	"pyre_ascetic": "res://assets/art/player_pyre_ascetic.svg"
+	"ember_exile": "res://assets/art/generated/player_ember_exile_pc.png",
+	"arc_tinker": "res://assets/art/generated/player_arc_tinker_pc.png",
+	"pyre_ascetic": "res://assets/art/generated/player_pyre_ascetic_pc.png"
+}
+const PLAYER_STAGE_ART_PATHS := {
+	"ember_exile": "res://assets/art/generated/player_ember_exile_stage_pc.png",
+	"arc_tinker": "res://assets/art/generated/player_arc_tinker_stage_pc.png",
+	"pyre_ascetic": "res://assets/art/generated/player_pyre_ascetic_stage_pc.png"
 }
 const ROOT_MARGIN_LEFT := 14.0
 const ROOT_MARGIN_RIGHT := 14.0
@@ -49,6 +94,7 @@ var combat
 var debug_viewport_size_override: Vector2 = Vector2.ZERO
 var selected_enemy_index: int = 0
 var selected_character_id: String = "ember_exile"
+var profile_character_id: String = "ember_exile"
 var character_select_open: bool = false
 var card_data: Dictionary = {}
 var enemy_data: Dictionary = {}
@@ -65,7 +111,11 @@ var art_data: Dictionary = {}
 var vfx_data: Dictionary = {}
 var achievement_data: Dictionary = {}
 var challenge_data: Dictionary = {}
+var progression_data: Dictionary = {}
+var monster_scaling_data: Dictionary = {}
+var level_tree_data: Dictionary = {}
 var raw_svg_texture_cache: Dictionary = {}
+var menu_backdrop_tween: Tween
 
 var run_deck_ids: Array = []
 var run_relic_ids: Array = []
@@ -74,15 +124,21 @@ var run_hp: int = 0
 var run_max_hp: int = 0
 var run_gold: int = 0
 var run_shop_remove_count: int = 0
+var run_character_config: Dictionary = {}
+var run_progression_node_ids: Array = []
 var run_completed: bool = false
 var current_chapter_id: String = "chapter_one"
 var completed_chapter_ids: Array = []
 var selected_challenge_level: int = 0
 var current_challenge_level: int = 0
+var run_skill_book_id: String = "steel_manual"
+var run_deck_mastery_id: String = ""
 var settings_open: bool = false
 var tutorial_open: bool = false
 var profile_open: bool = false
 var compendium_open: bool = false
+var pile_view_open: bool = false
+var pile_view_kind: String = ""
 var selected_compendium_tab: String = "cards"
 var selected_compendium_filter: String = "all"
 var selected_compendium_sort: String = "name"
@@ -102,9 +158,13 @@ var reward_options: Array = []
 var relic_reward_options: Array = []
 var potion_reward_options: Array = []
 var shop_card_options: Array = []
+var shop_relic_options: Array = []
 var shop_potion_options: Array = []
+var treasure_reward_gold: int = 0
+var combat_reward_gold: int = 0
 var reward_generated_for: String = ""
 var shop_generated_for: int = -1
+var shop_remove_selection_open: bool = false
 var card_reward_done: bool = false
 var relic_reward_done: bool = true
 var potion_reward_done: bool = true
@@ -130,11 +190,21 @@ var enemy_stage_panel: PanelContainer
 var enemy_stage_stack: Control
 var battle_background: TextureRect
 var battle_stage_scrim: ColorRect
+var battle_forecast_layer: Control
+var battle_foreground_layer: Control
+var player_stage_art: TextureRect
 var hand_frame: PanelContainer
 var hand_scroll: ScrollContainer
 var combat_hud_row: HBoxContainer
 var feedback_label: Label
 var feedback_overlay: Control
+var pile_overlay: Control
+var pile_panel: PanelContainer
+var pile_title_label: Label
+var pile_summary_label: Label
+var pile_tab_row: HBoxContainer
+var pile_cards_scroll: ScrollContainer
+var pile_cards_flow: HFlowContainer
 var cinematic_overlay: Control
 var cinematic_panel: PanelContainer
 var cinematic_title_label: Label
@@ -149,6 +219,7 @@ var reward_row: HFlowContainer
 var log_label: RichTextLabel
 var controls_scroll: ScrollContainer
 var controls_row: HBoxContainer
+var controls_spacer: Control
 var end_turn_button: Button
 var restart_button: Button
 var save_button: Button
@@ -183,6 +254,7 @@ var last_card_play_animation_count: int = 0
 var last_card_play_card_id: String = ""
 var last_card_play_target_id: String = ""
 var last_card_play_trajectory_points: Array[Vector2] = []
+var last_card_flight_uses_card_art: bool = false
 var last_card_effect_profile: String = ""
 var last_card_particle_count: int = 0
 var last_card_audio_event: String = ""
@@ -206,6 +278,11 @@ var last_generated_potion_reward_rarities: Array[String] = []
 var last_reward_generation_context: String = ""
 var last_shop_card_layout_count: int = 0
 var last_shop_card_art_node_count: int = 0
+var last_shop_relic_layout_count: int = 0
+var last_shop_relic_icon_node_count: int = 0
+var last_shop_remove_candidate_count: int = 0
+var last_shop_remove_card_layout_count: int = 0
+var last_shop_remove_card_art_node_count: int = 0
 var last_campfire_card_layout_count: int = 0
 var last_campfire_card_art_node_count: int = 0
 var last_deck_view_card_layout_count: int = 0
@@ -226,7 +303,17 @@ var last_reward_potion_layout_count: int = 0
 var last_reward_potion_icon_node_count: int = 0
 var last_reward_relic_layout_count: int = 0
 var last_reward_relic_icon_node_count: int = 0
+var last_combat_gold_reward: int = 0
+var last_reward_gold_panel_count: int = 0
+var last_reward_action_button_count: int = 0
+var last_reward_action_icon_node_count: int = 0
+var last_mastery_reward_option_count: int = 0
+var last_mastery_reward_pending: bool = false
+var last_treasure_gold_reward: int = 0
+var last_treasure_relic_layout_count: int = 0
+var last_treasure_relic_icon_node_count: int = 0
 var last_event_choice_blocked_reason: String = ""
+var last_event_choice_layout_count: int = 0
 var last_event_result_id: String = ""
 var last_event_result_label: String = ""
 var last_event_art_path: String = ""
@@ -237,6 +324,12 @@ var last_event_panel_choice_count: int = 0
 var last_run_completion_title: String = ""
 var last_run_completion_summary: String = ""
 var last_run_unlocks: Array[String] = []
+var last_run_completion_panel_visible: bool = false
+var last_run_completion_art_path: String = ""
+var last_run_completion_art_loaded: bool = false
+var last_run_completion_stat_chip_count: int = 0
+var last_run_completion_unlock_chip_count: int = 0
+var last_run_completion_action_count: int = 0
 var last_character_selection_title: String = ""
 var last_character_selection_ids: Array[String] = []
 var last_character_button_icon_count: int = 0
@@ -246,6 +339,17 @@ var last_event_choice_style_count: int = 0
 var last_reward_button_style_count: int = 0
 var last_combat_hud_text: String = ""
 var last_combat_hud_block_count: int = 0
+var last_combat_hud_icon_node_count: int = 0
+var last_pile_view_visible: bool = false
+var last_pile_view_kind: String = ""
+var last_pile_view_card_count: int = 0
+var last_pile_view_art_node_count: int = 0
+var last_pile_view_tab_count: int = 0
+var last_stage_forecast_marker_count: int = 0
+var last_stage_forecast_beam_count: int = 0
+var last_stage_forecast_icon_count: int = 0
+var last_stage_foreground_layer_count: int = 0
+var last_feedback_label_suppressed_for_stage: bool = false
 var last_character_panel_style_applied: bool = false
 var last_battle_board_style_applied: bool = false
 var last_enemy_stage_style_applied: bool = false
@@ -271,6 +375,8 @@ var last_enemy_intent_badge_texts: Array[String] = []
 var last_enemy_intent_badge_types: Array[String] = []
 var last_map_preview_node_id: String = ""
 var last_map_preview_text: String = ""
+var last_map_preview_risk_level: String = ""
+var last_map_preview_reward_summary: String = ""
 var last_map_relic_extra_choice_count: int = 0
 var last_map_relic_extra_choice_ids: Array[String] = []
 var last_settings_panel_visible: bool = false
@@ -290,7 +396,11 @@ var last_profile_summary: String = ""
 var last_profile_unlocked_count: int = 0
 var last_profile_total_count: int = 0
 var last_profile_last_unlock_text: String = ""
+var last_profile_forge_marks: int = 0
+var last_profile_upgrade_node_count: int = 0
+var last_profile_skill_book_count: int = 0
 var last_profile_save_ok: bool = false
+var last_profile_character_selector_count: int = 0
 var last_compendium_panel_visible: bool = false
 var last_compendium_tab: String = ""
 var last_compendium_filter: String = ""
@@ -344,6 +454,11 @@ func _ready() -> void:
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_RESIZED:
 		_sync_layout_widths()
+
+func _unhandled_input(event: InputEvent) -> void:
+	if pile_view_open and event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE:
+		_close_pile_view()
+		get_viewport().set_input_as_handled()
 
 func _build_layout() -> void:
 	screen_background = ColorRect.new()
@@ -538,6 +653,19 @@ func _build_layout() -> void:
 	battle_stage_scrim.color = Color(0.02, 0.025, 0.03, 0.18)
 	enemy_stage_stack.add_child(battle_stage_scrim)
 
+	battle_forecast_layer = Control.new()
+	battle_forecast_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
+	battle_forecast_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	battle_forecast_layer.clip_contents = true
+	enemy_stage_stack.add_child(battle_forecast_layer)
+
+	player_stage_art = TextureRect.new()
+	player_stage_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	player_stage_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	player_stage_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	player_stage_art.modulate = Color(1.0, 1.0, 1.0, 0.92)
+	enemy_stage_stack.add_child(player_stage_art)
+
 	enemy_row = HBoxContainer.new()
 	enemy_row.set_anchors_preset(Control.PRESET_FULL_RECT)
 	enemy_row.offset_left = 12
@@ -549,6 +677,13 @@ func _build_layout() -> void:
 	enemy_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	enemy_row.add_theme_constant_override("separation", 8)
 	enemy_stage_stack.add_child(enemy_row)
+
+	battle_foreground_layer = Control.new()
+	battle_foreground_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
+	battle_foreground_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	battle_foreground_layer.clip_contents = true
+	enemy_stage_stack.add_child(battle_foreground_layer)
+	_rebuild_stage_foreground_layer()
 
 	potion_row = HBoxContainer.new()
 	potion_row.custom_minimum_size = Vector2(344, 52)
@@ -572,6 +707,8 @@ func _build_layout() -> void:
 	hand_frame.add_theme_stylebox_override("panel", _hand_frame_style())
 	last_hand_frame_style_applied = true
 	root_box.add_child(hand_frame)
+
+	_add_generated_texture_background(hand_frame, UI_HAND_TRAY_PATH, 0.42)
 
 	hand_scroll = ScrollContainer.new()
 	hand_scroll.custom_minimum_size = Vector2(0, 140)
@@ -687,12 +824,19 @@ func _build_layout() -> void:
 	settings_button.pressed.connect(_on_settings_pressed)
 	controls_row.add_child(settings_button)
 
+	controls_spacer = Control.new()
+	controls_spacer.visible = false
+	controls_spacer.custom_minimum_size = Vector2(0, 1)
+	controls_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	controls_row.add_child(controls_spacer)
+
 	feedback_overlay = Control.new()
 	feedback_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
 	feedback_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	feedback_overlay.z_index = 20
 	add_child(feedback_overlay)
 
+	_build_pile_overlay()
 	_build_cinematic_overlay()
 
 func _sync_layout_widths() -> void:
@@ -703,6 +847,144 @@ func _sync_layout_widths() -> void:
 	if root_box != null:
 		root_box.custom_minimum_size = Vector2(content_width, 0)
 		root_box.size = Vector2(content_width, root_box.size.y)
+	_sync_pile_overlay_layout()
+
+func _build_pile_overlay() -> void:
+	pile_overlay = Control.new()
+	pile_overlay.name = "PileOverlay"
+	pile_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	pile_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	pile_overlay.visible = false
+	pile_overlay.z_index = 25
+	add_child(pile_overlay)
+
+	var dismiss := Button.new()
+	dismiss.name = "PileDismissArea"
+	dismiss.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dismiss.text = ""
+	dismiss.focus_mode = Control.FOCUS_NONE
+	dismiss.add_theme_stylebox_override("normal", _pile_dismiss_style(false))
+	dismiss.add_theme_stylebox_override("hover", _pile_dismiss_style(false))
+	dismiss.add_theme_stylebox_override("pressed", _pile_dismiss_style(true))
+	dismiss.pressed.connect(_on_close_pile_view_pressed)
+	pile_overlay.add_child(dismiss)
+
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	pile_overlay.add_child(center)
+
+	pile_panel = PanelContainer.new()
+	pile_panel.name = "PilePanel"
+	pile_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	pile_panel.clip_contents = true
+	pile_panel.add_theme_stylebox_override("panel", _pile_panel_style())
+	center.add_child(pile_panel)
+
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 16)
+	margin.add_theme_constant_override("margin_right", 16)
+	margin.add_theme_constant_override("margin_top", 14)
+	margin.add_theme_constant_override("margin_bottom", 14)
+	pile_panel.add_child(margin)
+
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 10)
+	margin.add_child(box)
+
+	var header := HBoxContainer.new()
+	header.custom_minimum_size = Vector2(0, 42)
+	header.add_theme_constant_override("separation", 10)
+	box.add_child(header)
+
+	var title_box := VBoxContainer.new()
+	title_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title_box.add_theme_constant_override("separation", -2)
+	header.add_child(title_box)
+
+	pile_title_label = Label.new()
+	pile_title_label.text = "牌堆"
+	pile_title_label.add_theme_font_size_override("font_size", 22)
+	pile_title_label.add_theme_color_override("font_color", Color(1.0, 0.92, 0.70))
+	title_box.add_child(pile_title_label)
+
+	pile_summary_label = Label.new()
+	pile_summary_label.text = ""
+	pile_summary_label.clip_text = true
+	pile_summary_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	pile_summary_label.add_theme_font_size_override("font_size", 11)
+	pile_summary_label.add_theme_color_override("font_color", Color(0.70, 0.76, 0.74))
+	title_box.add_child(pile_summary_label)
+
+	var close_button := Button.new()
+	close_button.name = "PileCloseButton"
+	close_button.custom_minimum_size = Vector2(38, 38)
+	close_button.text = "×"
+	close_button.tooltip_text = "关闭牌堆"
+	close_button.add_theme_font_size_override("font_size", 22)
+	_apply_button_skin(close_button, "neutral")
+	close_button.pressed.connect(_on_close_pile_view_pressed)
+	header.add_child(close_button)
+
+	pile_tab_row = HBoxContainer.new()
+	pile_tab_row.custom_minimum_size = Vector2(0, 38)
+	pile_tab_row.add_theme_constant_override("separation", 8)
+	box.add_child(pile_tab_row)
+
+	pile_cards_scroll = ScrollContainer.new()
+	pile_cards_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	pile_cards_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	pile_cards_scroll.clip_contents = true
+	pile_cards_scroll.set("horizontal_scroll_mode", 0)
+	pile_cards_scroll.set("vertical_scroll_mode", 1)
+	box.add_child(pile_cards_scroll)
+
+	pile_cards_flow = HFlowContainer.new()
+	pile_cards_flow.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	pile_cards_flow.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	pile_cards_flow.add_theme_constant_override("h_separation", 10)
+	pile_cards_flow.add_theme_constant_override("v_separation", 10)
+	pile_cards_scroll.add_child(pile_cards_flow)
+	_sync_pile_overlay_layout()
+
+func _sync_pile_overlay_layout() -> void:
+	if pile_panel == null or pile_cards_flow == null:
+		return
+	var viewport_size: Vector2 = _layout_viewport_size()
+	var panel_width: float = clamp(viewport_size.x - 96.0, 760.0, 1180.0)
+	var panel_height: float = clamp(viewport_size.y - 80.0, 500.0, 720.0)
+	if _is_pc_layout():
+		var card_size: Vector2 = _pile_card_size()
+		var content_width: float = max(220.0, panel_width - 44.0)
+		var columns: int = max(1, int(floor((content_width + 10.0) / (card_size.x + 10.0))))
+		var card_count: int = _pile_cards(pile_view_kind).size() if combat != null and pile_view_open else 0
+		var rows: int = max(1, int(ceil(float(max(1, card_count)) / float(columns))))
+		var cards_height: float = float(rows) * card_size.y + float(max(0, rows - 1)) * 10.0
+		panel_height = clamp(142.0 + cards_height, 382.0, viewport_size.y - 80.0)
+	if not _is_pc_layout():
+		panel_width = max(260.0, viewport_size.x - 24.0)
+		panel_height = max(360.0, viewport_size.y - 24.0)
+	pile_panel.custom_minimum_size = Vector2(panel_width, panel_height)
+	pile_cards_flow.custom_minimum_size = Vector2(max(220.0, panel_width - 44.0), 0)
+
+func _pile_dismiss_style(pressed: bool) -> StyleBoxFlat:
+	var alpha: float = 0.78 if pressed else 0.70
+	var style := _button_style(Color(0.005, 0.007, 0.010, alpha), Color(0, 0, 0, 0), 0, 0)
+	style.content_margin_left = 0
+	style.content_margin_right = 0
+	style.content_margin_top = 0
+	style.content_margin_bottom = 0
+	return style
+
+func _pile_panel_style() -> StyleBoxFlat:
+	var style := _button_style(Color(0.035, 0.042, 0.046, 0.98), Color(0.72, 0.54, 0.30, 0.92), 2, 8)
+	style.shadow_color = Color(0, 0, 0, 0.76)
+	style.shadow_size = 14
+	style.content_margin_left = 0
+	style.content_margin_right = 0
+	style.content_margin_top = 0
+	style.content_margin_bottom = 0
+	return style
 
 func _build_cinematic_overlay() -> void:
 	cinematic_overlay = Control.new()
@@ -755,13 +1037,18 @@ func _start_new_run(character_id: String = "") -> void:
 	selected_character_id = _valid_character_id(selected_character_id)
 	selected_challenge_level = _valid_challenge_level(selected_challenge_level)
 	current_challenge_level = selected_challenge_level
+	run_skill_book_id = _equipped_skill_book_for_character(selected_character_id)
+	run_deck_mastery_id = ""
+	run_progression_node_ids = _purchased_upgrade_node_ids().duplicate(true)
+	run_character_config = _effective_character_config(selected_character_id)
+	_close_pile_view(false)
 	character_select_open = false
 	deck_view_open = false
 	settings_open = false
 	tutorial_open = false
 	profile_open = false
 	compendium_open = false
-	var player_config: Dictionary = _current_player_config()
+	var player_config: Dictionary = run_character_config
 	run_deck_ids = _starter_deck_for_character(player_config)
 	run_relic_ids = _starter_relics_for_character(player_config)
 	run_potion_ids = player_config.get("starting_potions", []).duplicate(true)
@@ -782,9 +1069,13 @@ func _start_new_run(character_id: String = "") -> void:
 	relic_reward_options.clear()
 	potion_reward_options.clear()
 	shop_card_options.clear()
+	shop_relic_options.clear()
 	shop_potion_options.clear()
+	treasure_reward_gold = 0
+	combat_reward_gold = 0
 	reward_generated_for = ""
 	shop_generated_for = -1
+	shop_remove_selection_open = false
 	card_reward_done = false
 	relic_reward_done = true
 	potion_reward_done = true
@@ -801,12 +1092,15 @@ func _open_character_select(play_audio: bool = true) -> void:
 		_load_all_data()
 	selected_character_id = _valid_character_id(selected_character_id)
 	selected_challenge_level = _valid_challenge_level(selected_challenge_level)
+	_close_pile_view(false)
 	character_select_open = true
 	deck_view_open = false
 	settings_open = false
 	tutorial_open = false
 	profile_open = false
 	compendium_open = false
+	run_character_config.clear()
+	run_progression_node_ids.clear()
 	combat = null
 	run_completed = false
 	current_node_id = ""
@@ -837,6 +1131,9 @@ func _load_all_data() -> void:
 	vfx_data = DataLoaderScript.load_json("res://data/config/vfx_profiles.json")
 	achievement_data = DataLoaderScript.load_json("res://data/config/achievements.json")
 	challenge_data = DataLoaderScript.load_json("res://data/config/challenges.json")
+	progression_data = DataLoaderScript.load_json("res://data/config/progression_systems.json")
+	monster_scaling_data = DataLoaderScript.load_json("res://data/config/monster_scaling.json")
+	level_tree_data = DataLoaderScript.load_json("res://data/config/level_tree.json")
 
 func _load_user_settings() -> void:
 	user_settings = SaveManagerScript.load_settings()
@@ -904,18 +1201,208 @@ func _character_config(character_id: String) -> Dictionary:
 	return {}
 
 func _current_player_config() -> Dictionary:
-	var config: Dictionary = _character_config(selected_character_id)
+	if not run_character_config.is_empty():
+		return run_character_config
+	return _effective_character_config(selected_character_id)
+
+func _effective_character_config(character_id: String) -> Dictionary:
+	var config: Dictionary = _character_config(character_id).duplicate(true)
 	if config.is_empty():
-		config = player_data.get("player", {})
+		config = player_data.get("player", {}).duplicate(true)
+	for effect_value in _character_upgrade_effects(character_id):
+		var effect: Dictionary = effect_value
+		match str(effect.get("type", "")):
+			"max_hp_bonus":
+				var hp_bonus: int = int(effect.get("amount", 0))
+				config["max_hp"] = int(config.get("max_hp", 0)) + hp_bonus
+				config["starting_hp"] = int(config.get("starting_hp", config.get("max_hp", 0))) + hp_bonus
+			"starting_gold_bonus":
+				config["starting_gold"] = int(config.get("starting_gold", 0)) + int(effect.get("amount", 0))
+			"starting_momentum_bonus":
+				config["starting_momentum"] = int(config.get("starting_momentum", 0)) + int(effect.get("amount", 0))
+			"potion_slot_bonus":
+				var cap: int = int(effect.get("cap", 99))
+				config["potion_slots"] = min(cap, int(config.get("potion_slots", 0)) + int(effect.get("amount", 0)))
 	return config
 
 func _player_data_for_current_character() -> Dictionary:
 	var normalized_data: Dictionary = player_data.duplicate(true)
 	normalized_data["selected_character_id"] = selected_character_id
 	normalized_data["player"] = _current_player_config().duplicate(true)
+	normalized_data["runtime_player_config"] = _current_player_config().duplicate(true)
+	normalized_data["run_modifier_sources"] = _run_modifier_sources()
 	normalized_data["challenge_level"] = current_challenge_level
 	normalized_data["challenge_modifiers"] = _challenge_modifiers(current_challenge_level)
 	return normalized_data
+
+func _character_tree_for_id(character_id: String) -> Dictionary:
+	for tree_value in progression_data.get("character_trees", []):
+		var tree: Dictionary = tree_value
+		if str(tree.get("character_id", "")) == character_id:
+			return tree
+	return {}
+
+func _upgrade_node_by_id(node_id: String) -> Dictionary:
+	for tree_value in progression_data.get("character_trees", []):
+		var tree: Dictionary = tree_value
+		for node_value in tree.get("nodes", []):
+			var node: Dictionary = node_value
+			if str(node.get("id", "")) == node_id:
+				return node
+	return {}
+
+func _purchased_upgrade_node_ids() -> Array:
+	return player_profile.get("purchased_upgrade_node_ids", [])
+
+func _character_upgrade_effects(character_id: String) -> Array:
+	var effects: Array = []
+	var purchased: Array = _purchased_upgrade_node_ids()
+	var tree: Dictionary = _character_tree_for_id(character_id)
+	for node_value in tree.get("nodes", []):
+		var node: Dictionary = node_value
+		if not purchased.has(str(node.get("id", ""))):
+			continue
+		for effect_value in node.get("effects", []):
+			var effect: Dictionary = effect_value
+			effects.append(effect.duplicate(true))
+	return effects
+
+func _progression_currency_amount() -> int:
+	return max(0, int(player_profile.get("forge_marks", 0)))
+
+func _skill_book_by_id(book_id: String) -> Dictionary:
+	for book_value in progression_data.get("skill_books", []):
+		var book: Dictionary = book_value
+		if str(book.get("id", "")) == book_id:
+			return book
+	return {}
+
+func _skill_book_unlocked(book: Dictionary) -> bool:
+	var unlock: Dictionary = book.get("unlock", {})
+	match str(unlock.get("type", "default")):
+		"default":
+			return true
+		"chapter_completed":
+			return player_profile.get("completed_chapters", []).has(str(unlock.get("chapter_id", "")))
+	return false
+
+func _default_skill_book_id() -> String:
+	for book_value in progression_data.get("skill_books", []):
+		var book: Dictionary = book_value
+		if _skill_book_unlocked(book):
+			return str(book.get("id", "steel_manual"))
+	return "steel_manual"
+
+func _equipped_skill_book_for_character(character_id: String) -> String:
+	var equipped_by_character: Dictionary = player_profile.get("equipped_skill_book_by_character", {})
+	var requested_id: String = str(equipped_by_character.get(character_id, ""))
+	var requested_book: Dictionary = _skill_book_by_id(requested_id)
+	if not requested_book.is_empty() and _skill_book_unlocked(requested_book):
+		return requested_id
+	return _default_skill_book_id()
+
+func _run_modifier_sources() -> Array:
+	var sources: Array = []
+	for node_id_value in run_progression_node_ids:
+		var node_id: String = str(node_id_value)
+		var node: Dictionary = _upgrade_node_by_id(node_id)
+		if node.is_empty():
+			continue
+		var combat_start_effects: Array = []
+		for effect_value in node.get("effects", []):
+			var effect: Dictionary = effect_value
+			if str(effect.get("type", "")) == "combat_start_block":
+				combat_start_effects.append({"trigger": "combat_start", "type": "gain_block", "amount": int(effect.get("amount", 0))})
+		if not combat_start_effects.is_empty():
+			sources.append({"id": "upgrade_%s" % node_id, "name": "升级：%s" % str(node.get("name", node_id)), "effects": combat_start_effects})
+	var skill_book: Dictionary = _skill_book_by_id(run_skill_book_id)
+	if not skill_book.is_empty() and _skill_book_unlocked(skill_book):
+		sources.append({"id": "skill_book_%s" % run_skill_book_id, "name": "技能书：%s" % str(skill_book.get("name", run_skill_book_id)), "effects": skill_book.get("effects", []).duplicate(true)})
+	var mastery: Dictionary = _deck_mastery_by_id(run_deck_mastery_id)
+	if not mastery.is_empty():
+		sources.append({"id": "deck_mastery_%s" % run_deck_mastery_id, "name": "卡组专精：%s" % str(mastery.get("name", run_deck_mastery_id)), "effects": mastery.get("effects", []).duplicate(true)})
+	return sources
+
+func _deck_mastery_by_id(mastery_id: String) -> Dictionary:
+	for mastery_value in progression_data.get("deck_masteries", []):
+		var mastery: Dictionary = mastery_value
+		if str(mastery.get("id", "")) == mastery_id:
+			return mastery
+	return {}
+
+func _eligible_deck_masteries() -> Array:
+	var eligible: Array = []
+	for mastery_value in progression_data.get("deck_masteries", []):
+		var mastery: Dictionary = mastery_value
+		if _deck_mastery_requirements_met(mastery.get("requirements", {})):
+			eligible.append(mastery)
+	return eligible
+
+func _deck_mastery_requirements_met(requirements: Dictionary) -> bool:
+	if requirements.has("min_type_count"):
+		var summary: Dictionary = _deck_summary()
+		for card_type_value in requirements.get("min_type_count", {}).keys():
+			var card_type: String = str(card_type_value)
+			if int(summary.get(card_type, 0)) < int(requirements.get("min_type_count", {}).get(card_type_value, 0)):
+				return false
+		return true
+	if requirements.has("min_zero_cost_cards"):
+		return _deck_zero_cost_count() >= int(requirements.get("min_zero_cost_cards", 0))
+	if requirements.has("min_burn_creator_cards"):
+		return _deck_burn_creator_count() >= int(requirements.get("min_burn_creator_cards", 0))
+	return false
+
+func _deck_zero_cost_count() -> int:
+	var count: int = 0
+	for entry_value in run_deck_ids:
+		var card: Dictionary = _deck_display_card(str(entry_value))
+		if not card.is_empty() and int(card.get("cost", -1)) == 0:
+			count += 1
+	return count
+
+func _deck_burn_creator_count() -> int:
+	var count: int = 0
+	for entry_value in run_deck_ids:
+		var entry: String = str(entry_value)
+		var card: Dictionary = _card_by_id(_base_card_id(entry))
+		var effects: Array = card.get("upgrade", {}).get("effects", []) if entry.ends_with("+") else card.get("effects", [])
+		for effect_value in effects:
+			var effect: Dictionary = effect_value
+			if str(effect.get("type", "")) == "create_card" and str(effect.get("card_id", "")) == "searing_wound":
+				count += 1
+				break
+	return count
+
+func _mastery_reward_is_available() -> bool:
+	if combat == null or combat.phase != "won" or not run_deck_mastery_id.is_empty():
+		return false
+	if str(_current_node().get("type", "")) != "elite":
+		return false
+	return not _eligible_deck_masteries().is_empty()
+
+func _mastery_requirement_text(mastery: Dictionary) -> String:
+	var requirements: Dictionary = mastery.get("requirements", {})
+	if requirements.has("min_type_count"):
+		var labels := {"attack": "攻击牌", "skill": "技能牌", "power": "能力牌"}
+		for card_type_value in requirements.get("min_type_count", {}).keys():
+			return "%s至少 %d 张" % [str(labels.get(str(card_type_value), str(card_type_value))), int(requirements.get("min_type_count", {}).get(card_type_value, 0))]
+	if requirements.has("min_zero_cost_cards"):
+		return "0 费牌至少 %d 张" % int(requirements.get("min_zero_cost_cards", 0))
+	if requirements.has("min_burn_creator_cards"):
+		return "灼伤生成牌至少 %d 张" % int(requirements.get("min_burn_creator_cards", 0))
+	return "构筑条件已满足"
+
+func _mastery_icon_path(mastery_id: String) -> String:
+	match mastery_id:
+		"offense_forging":
+			return str(INTENT_ICON_PATHS.get("attack", UI_DECK_ICON_PATH))
+		"bastion_forging":
+			return _hud_icon_path("护甲")
+		"overload_forging":
+			return _hud_icon_path("势能")
+		"burn_forging":
+			return str(INTENT_ICON_PATHS.get("debuff", UI_DECK_ICON_PATH))
+	return UI_DECK_ICON_PATH
 
 func _starter_deck_for_character(player_config: Dictionary) -> Array:
 	var configured_deck: Array = player_config.get("starter_deck_ids", [])
@@ -938,6 +1425,10 @@ func _character_art_path(character_id: String = "") -> String:
 	var lookup_id: String = selected_character_id if character_id.is_empty() else character_id
 	return str(PLAYER_ART_PATHS.get(lookup_id, PLAYER_ART_PATHS.get("ember_exile", "")))
 
+func _character_stage_art_path(character_id: String = "") -> String:
+	var lookup_id: String = selected_character_id if character_id.is_empty() else character_id
+	return str(PLAYER_STAGE_ART_PATHS.get(lookup_id, _character_art_path(lookup_id)))
+
 func _character_selection_tooltip_text(character: Dictionary) -> String:
 	return "%s\n\n%s\n\n起始牌组：%s" % [
 		str(character.get("name", character.get("id", "角色"))),
@@ -948,25 +1439,26 @@ func _character_selection_tooltip_text(character: Dictionary) -> String:
 func _add_character_select_card_layout(button: Button, character: Dictionary, character_texture: Texture2D) -> void:
 	var character_id: String = str(character.get("id", ""))
 	var compact: bool = button.custom_minimum_size.x < 340.0
+	var desktop: bool = _is_pc_layout() and not compact
 	var root := MarginContainer.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
-	root.offset_left = 8
-	root.offset_top = 8
-	root.offset_right = -8
-	root.offset_bottom = -8
+	root.offset_left = 12 if desktop else 8
+	root.offset_top = 12 if desktop else 8
+	root.offset_right = -12 if desktop else -8
+	root.offset_bottom = -12 if desktop else -8
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	button.add_child(root)
 
 	var row := HBoxContainer.new()
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_theme_constant_override("separation", 8 if compact else 10)
+	row.add_theme_constant_override("separation", 8 if compact else (16 if desktop else 10))
 	root.add_child(row)
 
 	var portrait_frame := PanelContainer.new()
-	var portrait_width := 72.0 if compact else 84.0
+	var portrait_width := 72.0 if compact else (152.0 if desktop else 84.0)
 	portrait_frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	portrait_frame.custom_minimum_size = Vector2(portrait_width, 0)
-	portrait_frame.add_theme_stylebox_override("panel", _button_style(Color(0.08, 0.09, 0.10, 0.72), Color(0.60, 0.54, 0.42), 1, 6))
+	portrait_frame.add_theme_stylebox_override("panel", _button_style(Color(0.055, 0.060, 0.065, 0.86), _character_accent_color(character_id).darkened(0.10), 2 if desktop else 1, 7))
 	row.add_child(portrait_frame)
 
 	var portrait := TextureRect.new()
@@ -979,17 +1471,17 @@ func _add_character_select_card_layout(button: Button, character: Dictionary, ch
 	var text_box := VBoxContainer.new()
 	text_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	text_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	text_box.add_theme_constant_override("separation", 3 if compact else 4)
+	text_box.add_theme_constant_override("separation", 3 if compact else (7 if desktop else 4))
 	row.add_child(text_box)
 
 	var name_label := Label.new()
 	name_label.text = str(character.get("name", character.get("id", "角色")))
-	_configure_character_card_label(name_label, 15 if compact else 17, Color(1.0, 0.96, 0.82), false)
+	_configure_character_card_label(name_label, 15 if compact else (21 if desktop else 17), Color(1.0, 0.96, 0.82), false)
 	text_box.add_child(name_label)
 
 	var archetype_label := Label.new()
 	archetype_label.text = str(character.get("archetype_note", ""))
-	_configure_character_card_label(archetype_label, 11 if compact else 12, Color(0.80, 0.88, 0.88), true)
+	_configure_character_card_label(archetype_label, 11 if compact else (13 if desktop else 12), Color(0.80, 0.88, 0.88), true)
 	text_box.add_child(archetype_label)
 
 	var stats_label := Label.new()
@@ -998,7 +1490,7 @@ func _add_character_select_card_layout(button: Button, character: Dictionary, ch
 		int(character.get("max_energy", 0)),
 		int(character.get("potion_slots", 0))
 	]
-	_configure_character_card_label(stats_label, 11, Color(0.95, 0.94, 0.86), false)
+	_configure_character_card_label(stats_label, 11 if not desktop else 13, Color(0.95, 0.94, 0.86), false)
 	text_box.add_child(stats_label)
 
 	var momentum_label := Label.new()
@@ -1006,12 +1498,12 @@ func _add_character_select_card_layout(button: Button, character: Dictionary, ch
 		int(character.get("starting_momentum", 0)),
 		int(character.get("momentum_max", 0))
 	]
-	_configure_character_card_label(momentum_label, 11, Color(0.92, 0.80, 0.58), false)
+	_configure_character_card_label(momentum_label, 11 if not desktop else 13, Color(0.92, 0.80, 0.58), false)
 	text_box.add_child(momentum_label)
 
 	var relic_label := Label.new()
 	relic_label.text = _relic_names(character.get("starter_relic_ids", []))
-	_configure_character_card_label(relic_label, 10 if compact else 11, _character_accent_color(character_id), true)
+	_configure_character_card_label(relic_label, 10 if compact else (12 if desktop else 11), _character_accent_color(character_id), true)
 	text_box.add_child(relic_label)
 
 func _configure_character_card_label(label: Label, font_size: int, color: Color, wrap: bool) -> void:
@@ -1344,13 +1836,19 @@ func _build_route() -> void:
 
 func _map_config_for_current_character(chapter_id: String) -> Dictionary:
 	var config: Dictionary = map_generation_data.get(chapter_id, {}).duplicate(true)
+	config["level_tree_constraints"] = level_tree_data.get("chapters", {}).get(chapter_id, {}).duplicate(true)
+	config["route_constraints"] = level_tree_data.get("route_constraints", {}).duplicate(true)
 	var filtered_event_pool: Array = []
+	var guaranteed_event_ids: Array = []
 	for event_id_value in config.get("event_pool", []):
 		var event_id: String = str(event_id_value)
 		var event: Dictionary = _event_by_id(event_id)
 		if event.is_empty() or _event_available_for_current_character(event):
 			filtered_event_pool.append(event_id)
+			if bool(event.get("guaranteed_when_available", false)):
+				guaranteed_event_ids.append(event_id)
 	config["event_pool"] = filtered_event_pool
+	config["guaranteed_event_ids"] = guaranteed_event_ids
 	return config
 
 func _event_available_for_current_character(event: Dictionary) -> bool:
@@ -1358,13 +1856,20 @@ func _event_available_for_current_character(event: Dictionary) -> bool:
 	if not character_ids.is_empty() and not character_ids.has(selected_character_id):
 		return false
 	var pool_tags: Array = event.get("pool_tags", [])
-	if pool_tags.is_empty():
-		return true
-	var character_tags: Array = _current_player_config().get("reward_pool_tags", ["shared", selected_character_id])
-	for tag in pool_tags:
-		if character_tags.has(str(tag)):
-			return true
-	return false
+	if not pool_tags.is_empty():
+		var character_tags: Array = _current_player_config().get("reward_pool_tags", ["shared", selected_character_id])
+		var tag_matched: bool = false
+		for tag in pool_tags:
+			if character_tags.has(str(tag)):
+				tag_matched = true
+				break
+		if not tag_matched:
+			return false
+	for condition in event.get("availability_conditions", []):
+		var condition_dict: Dictionary = condition
+		if not _event_condition_blocked_reason(condition_dict).is_empty():
+			return false
+	return true
 
 func _start_current_node() -> void:
 	if current_node_id.is_empty() and not available_node_ids.is_empty():
@@ -1382,7 +1887,11 @@ func _start_current_node() -> void:
 	reward_options.clear()
 	relic_reward_options.clear()
 	potion_reward_options.clear()
+	treasure_reward_gold = 0
+	combat_reward_gold = 0
+	shop_relic_options.clear()
 	reward_generated_for = ""
+	shop_remove_selection_open = false
 	card_reward_done = false
 	relic_reward_done = true
 	potion_reward_done = true
@@ -1406,6 +1915,9 @@ func _start_current_node() -> void:
 	_refresh()
 
 func _refresh() -> void:
+	if status_label != null:
+		status_label.visible = true
+	_refresh_screen_backdrop()
 	if profile_open:
 		_music_context("menu")
 		_set_run_controls_enabled(not character_select_open and not run_deck_ids.is_empty())
@@ -1481,9 +1993,51 @@ func _refresh() -> void:
 		_music_context("event")
 		_refresh_event(node)
 		_apply_tutorial_hint("event")
+	elif node_type == "treasure":
+		_music_context("reward")
+		_refresh_treasure(node)
+		_apply_tutorial_hint("treasure")
 	else:
 		_refresh_unknown_node(node)
 		_apply_tutorial_hint("")
+
+func _refresh_screen_backdrop() -> void:
+	if screen_background_art == null:
+		return
+	var menu_page: bool = character_select_open and not settings_open and not profile_open and not tutorial_open and not compendium_open
+	var path: String = UI_MENU_BACKDROP_PATH if menu_page else UI_BACKDROP_PATH
+	screen_background_art.texture = _load_texture(path)
+	screen_background_art.visible = screen_background_art.texture != null
+	screen_background_art.modulate = Color(1, 1, 1, 0.86 if menu_page else 0.46)
+	last_ui_backdrop_loaded = screen_background_art.visible
+	_update_menu_backdrop_motion(menu_page)
+	if title_label != null:
+		title_label.text = "余烬回路" if menu_page else "EmberCircuit / 余烬回路"
+		title_label.custom_minimum_size.y = 46.0 if menu_page else 24.0
+		title_label.add_theme_font_size_override("font_size", 36 if menu_page else 20)
+		title_label.add_theme_color_override("font_color", Color(1.0, 0.88, 0.62) if menu_page else Color(0.96, 0.92, 0.84))
+		title_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.88))
+		title_label.add_theme_constant_override("shadow_offset_x", 2)
+		title_label.add_theme_constant_override("shadow_offset_y", 3)
+	if status_label != null and menu_page and _is_pc_layout():
+		status_label.visible = false
+
+func _update_menu_backdrop_motion(menu_page: bool) -> void:
+	if not menu_page:
+		if menu_backdrop_tween != null and menu_backdrop_tween.is_valid():
+			menu_backdrop_tween.kill()
+		menu_backdrop_tween = null
+		screen_background_art.scale = Vector2.ONE
+		return
+	if DisplayServer.get_name() == "headless" or not is_inside_tree():
+		return
+	if menu_backdrop_tween != null and menu_backdrop_tween.is_valid():
+		return
+	screen_background_art.pivot_offset = _layout_viewport_size() * 0.5
+	screen_background_art.scale = Vector2(1.018, 1.018)
+	menu_backdrop_tween = create_tween().set_loops()
+	menu_backdrop_tween.tween_property(screen_background_art, "scale", Vector2(1.048, 1.048), 9.0).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	menu_backdrop_tween.tween_property(screen_background_art, "scale", Vector2(1.018, 1.018), 9.0).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
 func _set_run_controls_enabled(active_run: bool) -> void:
 	if restart_button != null:
@@ -1504,6 +2058,12 @@ func _set_run_controls_enabled(active_run: bool) -> void:
 		settings_button.disabled = false
 
 func _set_page_regions(character_visible: bool, hud_visible: bool, map_visible: bool, potions_visible: bool, enemies_visible: bool, log_visible: bool, hand_visible: bool, rewards_visible: bool) -> void:
+	if title_label != null:
+		title_label.visible = true
+	if run_label != null:
+		run_label.visible = true
+	if status_label != null:
+		status_label.visible = true
 	if character_frame != null:
 		character_frame.visible = character_visible
 	if character_panel != null:
@@ -1534,6 +2094,7 @@ func _set_page_regions(character_visible: bool, hud_visible: bool, map_visible: 
 		reward_scroll.visible = rewards_visible
 	if reward_row != null:
 		reward_row.visible = rewards_visible
+	_apply_controls_layout_constraints(hud_visible and hand_visible and not rewards_visible)
 
 func _set_content_heights(log_height: float = 210.0, reward_height: float = 112.0) -> void:
 	if log_label != null:
@@ -1567,66 +2128,508 @@ func _apply_map_layout_constraints() -> void:
 
 func _apply_reward_page_layout_constraints(log_height: float = 170.0, reward_height: float = 190.0) -> void:
 	var scale_y: float = _page_layout_scale()
-	_set_content_heights(round(log_height * scale_y), round(reward_height * scale_y))
+	var target_log_height: float = round(log_height * scale_y)
+	var target_reward_height: float = round(reward_height * scale_y)
+	if _is_pc_layout():
+		target_log_height = clamp(target_log_height, 56.0, 76.0)
+		target_reward_height = clamp(max(target_reward_height, 390.0), 340.0, 430.0)
+	_set_content_heights(target_log_height, target_reward_height)
 	_record_scroll_region_metrics()
+
+func _apply_pc_combat_chrome(reward_visible: bool) -> void:
+	var immersive_combat: bool = _is_pc_layout() and not reward_visible
+	if title_label != null:
+		title_label.visible = not immersive_combat
+	if run_label != null:
+		run_label.visible = not immersive_combat
+	if status_label != null:
+		status_label.visible = not immersive_combat
+	if character_frame != null:
+		character_frame.visible = not immersive_combat
+	if character_panel != null:
+		character_panel.visible = not immersive_combat
+	if relic_belt_row != null:
+		relic_belt_row.visible = not immersive_combat
+	if log_label != null and immersive_combat:
+		log_label.visible = false
+
+func _place_potion_row_for_combat(use_hud_belt: bool, row_size: Vector2) -> void:
+	if potion_row == null or battle_mid_row == null or enemy_stage_stack == null:
+		return
+	var desired_parent: Node = combat_hud_row if use_hud_belt and combat_hud_row != null else battle_mid_row
+	if potion_row.get_parent() != desired_parent:
+		var old_parent := potion_row.get_parent()
+		if old_parent != null:
+			old_parent.remove_child(potion_row)
+		desired_parent.add_child(potion_row)
+	potion_row.custom_minimum_size = row_size
+	potion_row.size = row_size
+	potion_row.size_flags_horizontal = Control.SIZE_SHRINK_END if use_hud_belt else Control.SIZE_SHRINK_BEGIN
+	potion_row.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	potion_row.z_index = 0
+	if use_hud_belt:
+		potion_row.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		potion_row.offset_left = 0.0
+		potion_row.offset_top = 0.0
+		potion_row.offset_right = 0.0
+		potion_row.offset_bottom = 0.0
+		if combat_hud_row != null and potion_row.get_parent() == combat_hud_row:
+			combat_hud_row.move_child(potion_row, combat_hud_row.get_child_count() - 1)
+	else:
+		potion_row.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		potion_row.offset_left = 0.0
+		potion_row.offset_top = 0.0
+		potion_row.offset_right = 0.0
+		potion_row.offset_bottom = 0.0
+
+func _place_feedback_label_for_combat(overlay_on_stage: bool, label_size: Vector2) -> void:
+	if feedback_label == null or battle_board_box == null or enemy_stage_stack == null:
+		return
+	var desired_parent: Node = enemy_stage_stack if overlay_on_stage else battle_board_box
+	if feedback_label.get_parent() != desired_parent:
+		var old_parent := feedback_label.get_parent()
+		if old_parent != null:
+			old_parent.remove_child(feedback_label)
+		desired_parent.add_child(feedback_label)
+	if overlay_on_stage:
+		feedback_label.z_index = 9
+		feedback_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		feedback_label.anchor_left = 0.5
+		feedback_label.anchor_right = 0.5
+		feedback_label.offset_left = -label_size.x * 0.5
+		feedback_label.offset_top = 10.0
+		feedback_label.offset_right = label_size.x * 0.5
+		feedback_label.offset_bottom = 10.0 + label_size.y
+		feedback_label.size = label_size
+	else:
+		feedback_label.z_index = 0
+		feedback_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		feedback_label.offset_left = 0.0
+		feedback_label.offset_top = 0.0
+		feedback_label.offset_right = 0.0
+		feedback_label.offset_bottom = 0.0
+		if battle_mid_row != null and feedback_label.get_parent() == battle_board_box:
+			battle_board_box.move_child(feedback_label, max(0, battle_mid_row.get_index()))
+
+func _apply_controls_layout_constraints(combat_primary: bool = false) -> void:
+	var pc_combat: bool = _is_pc_layout() and combat_primary
+	var pc_character_menu: bool = _is_pc_character_menu_controls()
+	var pc_wide_controls: bool = pc_combat or pc_character_menu
+	if controls_scroll != null:
+		controls_scroll.custom_minimum_size = Vector2(0, 46.0 if pc_wide_controls else 34.0)
+	if controls_row != null:
+		controls_row.add_theme_constant_override("separation", 10 if pc_character_menu else (8 if pc_combat else 8))
+		controls_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL if pc_wide_controls else Control.SIZE_SHRINK_BEGIN
+		controls_row.custom_minimum_size = Vector2(_scroll_content_width() if pc_wide_controls else 0.0, 44.0 if pc_wide_controls else 34.0)
+	if controls_spacer != null:
+		controls_spacer.visible = pc_wide_controls
+		controls_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		controls_spacer.custom_minimum_size = Vector2(0, 1)
+	if controls_row != null and end_turn_button != null and end_turn_button.get_parent() == controls_row:
+		controls_row.move_child(end_turn_button, controls_row.get_child_count() - 1 if pc_combat else 0)
+	if controls_row != null and controls_spacer != null and controls_spacer.get_parent() == controls_row:
+		if pc_combat:
+			controls_row.move_child(controls_spacer, max(0, controls_row.get_child_count() - 2))
+		elif pc_character_menu and load_button != null and load_button.get_parent() == controls_row:
+			controls_row.move_child(controls_spacer, min(load_button.get_index() + 1, controls_row.get_child_count() - 1))
+
+	var utility_buttons: Array = [restart_button, save_button, load_button, deck_button, profile_button, compendium_button, tutorial_button, settings_button]
+	for button_value in utility_buttons:
+		var button := button_value as Button
+		if button == null:
+			continue
+		button.visible = _control_button_visible_for_layout(button, pc_combat, pc_character_menu)
+		button.text = _control_button_label(button, pc_combat)
+		if pc_combat:
+			button.custom_minimum_size = Vector2(_combat_utility_button_width(button), 30)
+			_apply_compact_control_button_skin(button, _control_button_skin(button), true)
+			_apply_pc_combat_utility_button_content(button)
+		elif pc_character_menu:
+			button.custom_minimum_size = Vector2(_pc_menu_control_button_width(button), 36)
+			_apply_pc_menu_control_button_skin(button)
+			_apply_pc_menu_control_button_content(button)
+		else:
+			_remove_compact_button_content(button)
+			button.custom_minimum_size = Vector2(_default_control_button_width(button), 30)
+			_apply_button_skin(button, _control_button_skin(button))
+	if end_turn_button != null:
+		if pc_combat:
+			end_turn_button.visible = true
+			end_turn_button.custom_minimum_size = Vector2(168, 42)
+			_apply_primary_control_button_skin(end_turn_button)
+		else:
+			end_turn_button.visible = not pc_character_menu and not _is_pc_layout()
+			_remove_generated_button_skin_children(end_turn_button)
+			end_turn_button.text = "结束回合"
+			end_turn_button.custom_minimum_size = Vector2(96, 30)
+			_apply_button_skin(end_turn_button, "primary")
+
+func _is_pc_character_menu_controls() -> bool:
+	return _is_pc_layout() and character_select_open and not settings_open and not profile_open and not tutorial_open and not compendium_open
+
+func _control_button_visible_for_layout(button: Button, pc_combat: bool, pc_character_menu: bool) -> bool:
+	if pc_combat:
+		return button == deck_button or button == settings_button
+	if pc_character_menu:
+		return button == restart_button or button == load_button or button == profile_button or button == compendium_button or button == tutorial_button or button == settings_button
+	return true
+
+func _control_button_skin(button: Button) -> String:
+	if button == profile_button:
+		return "relic"
+	if button == compendium_button:
+		return "event"
+	return "neutral"
+
+func _default_control_button_width(button: Button) -> float:
+	if button == profile_button or button == compendium_button or button == settings_button:
+		return 72.0
+	return 88.0
+
+func _control_button_label(button: Button, pc_combat: bool = false) -> String:
+	if button == restart_button:
+		return "新跑团"
+	if button == save_button:
+		return "保存跑团"
+	if button == load_button:
+		return "读取跑团"
+	if button == deck_button:
+		return "牌组" if pc_combat else "查看牌组"
+	if button == profile_button:
+		return "档案"
+	if button == compendium_button:
+		return "图鉴"
+	if button == tutorial_button:
+		return "完成引导" if last_tutorial_visible and not last_tutorial_step_id.is_empty() else "引导"
+	if button == settings_button:
+		return "设置"
+	return button.text
+
+func _combat_utility_button_width(button: Button) -> float:
+	if button == profile_button or button == compendium_button or button == settings_button:
+		return 62.0
+	if button == tutorial_button:
+		return 70.0
+	return 76.0
+
+func _pc_menu_control_button_width(button: Button) -> float:
+	if button == restart_button or button == load_button:
+		return 118.0
+	if button == tutorial_button:
+		return 112.0 if button.text.length() >= 4 else 94.0
+	return 90.0
+
+func _apply_compact_control_button_skin(button: Button, skin: String, subdued: bool) -> void:
+	_configure_button_bounds(button)
+	var palette: Dictionary = _button_skin_palette(skin)
+	var bg: Color = palette.get("bg", Color(0.16, 0.17, 0.18))
+	var border: Color = palette.get("border", Color(0.46, 0.50, 0.52))
+	if subdued:
+		bg = bg.darkened(0.18)
+		border = border.darkened(0.18)
+	var normal := _button_style(bg, border, 1, 6)
+	var hover := _button_style(bg.lightened(0.10), border.lightened(0.14), 1, 6)
+	var pressed := _button_style(bg.darkened(0.10), border.lightened(0.06), 1, 6)
+	for style in [normal, hover, pressed]:
+		style.content_margin_left = 7
+		style.content_margin_right = 7
+		style.content_margin_top = 3
+		style.content_margin_bottom = 3
+	button.add_theme_stylebox_override("normal", normal)
+	button.add_theme_stylebox_override("hover", hover)
+	button.add_theme_stylebox_override("pressed", pressed)
+	button.add_theme_stylebox_override("disabled", _button_style(Color(0.10, 0.11, 0.12), Color(0.28, 0.30, 0.32), 1, 6))
+	button.add_theme_color_override("font_color", Color(0.82, 0.84, 0.82))
+	button.add_theme_color_override("font_disabled_color", Color(0.48, 0.50, 0.50))
+	button.add_theme_font_size_override("font_size", 12)
+
+func _apply_pc_menu_control_button_skin(button: Button) -> void:
+	_configure_button_bounds(button)
+	var active_main: bool = button == restart_button
+	var bg := Color(0.105, 0.115, 0.12, 0.88)
+	var border := Color(0.48, 0.54, 0.56, 0.78)
+	if active_main:
+		bg = Color(0.18, 0.145, 0.085, 0.92)
+		border = Color(0.92, 0.66, 0.34, 0.90)
+	var normal := _button_style(bg, border, 1 if not active_main else 2, 7)
+	var hover := _button_style(bg.lightened(0.09), border.lightened(0.14), 1 if not active_main else 2, 7)
+	var pressed := _button_style(bg.darkened(0.12), border.lightened(0.04), 1 if not active_main else 2, 7)
+	var disabled := _button_style(Color(0.08, 0.085, 0.09, 0.62), Color(0.24, 0.26, 0.27, 0.58), 1, 7)
+	for style in [normal, hover, pressed, disabled]:
+		style.content_margin_left = 9
+		style.content_margin_right = 9
+		style.content_margin_top = 4
+		style.content_margin_bottom = 4
+		style.shadow_color = Color(0, 0, 0, 0.34)
+		style.shadow_size = 2
+	button.add_theme_stylebox_override("normal", normal)
+	button.add_theme_stylebox_override("hover", hover)
+	button.add_theme_stylebox_override("pressed", pressed)
+	button.add_theme_stylebox_override("disabled", disabled)
+	button.add_theme_color_override("font_color", Color(0.90, 0.91, 0.86))
+	button.add_theme_color_override("font_disabled_color", Color(0.50, 0.52, 0.50))
+	button.add_theme_font_size_override("font_size", 13)
+
+func _apply_pc_menu_control_button_content(button: Button) -> void:
+	if button == null:
+		return
+	var label_text: String = button.text
+	var icon_path: String = _pc_menu_control_icon_path(button)
+	_remove_compact_button_content(button)
+	_remove_generated_button_skin_children(button)
+	if icon_path.is_empty():
+		return
+	button.text = ""
+	var root := CenterContainer.new()
+	root.name = "CompactButtonContent"
+	root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	button.add_child(root)
+
+	var row := HBoxContainer.new()
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_theme_constant_override("separation", 6)
+	root.add_child(row)
+
+	var icon := TextureRect.new()
+	icon.name = "MenuButtonIcon"
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	icon.custom_minimum_size = Vector2(17, 17)
+	icon.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.texture = _load_texture(icon_path)
+	icon.modulate = Color(0.96, 0.98, 0.90, 0.94)
+	row.add_child(icon)
+
+	var label := Label.new()
+	label.name = "MenuButtonLabel"
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.text = label_text
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", 13)
+	label.add_theme_color_override("font_color", Color(0.90, 0.91, 0.86))
+	row.add_child(label)
+
+func _apply_pc_combat_utility_button_content(button: Button) -> void:
+	if button == null:
+		return
+	var label_text: String = button.text
+	var icon_path: String = _pc_combat_utility_icon_path(button)
+	_remove_compact_button_content(button)
+	if icon_path.is_empty():
+		return
+	button.text = ""
+	var root := CenterContainer.new()
+	root.name = "CompactButtonContent"
+	root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	button.add_child(root)
+
+	var row := HBoxContainer.new()
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_theme_constant_override("separation", 5)
+	root.add_child(row)
+
+	var icon := TextureRect.new()
+	icon.name = "CompactButtonIcon"
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	icon.custom_minimum_size = Vector2(16, 16)
+	icon.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.texture = _load_texture(icon_path)
+	icon.modulate = Color(0.96, 0.98, 0.90, 0.92)
+	row.add_child(icon)
+
+	var label := Label.new()
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.text = label_text
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", 12)
+	label.add_theme_color_override("font_color", Color(0.88, 0.90, 0.84))
+	row.add_child(label)
+
+func _remove_compact_button_content(button: Button) -> void:
+	if button == null:
+		return
+	var child := button.get_node_or_null("CompactButtonContent")
+	if child != null:
+		button.remove_child(child)
+		child.free()
+
+func _pc_combat_utility_icon_path(button: Button) -> String:
+	if button == deck_button:
+		return UI_DECK_ICON_PATH
+	if button == settings_button:
+		return UI_SETTINGS_ICON_PATH
+	return ""
+
+func _pc_menu_control_icon_path(button: Button) -> String:
+	if button == restart_button:
+		return UI_NEW_RUN_ICON_PATH
+	if button == load_button:
+		return UI_LOAD_RUN_ICON_PATH
+	if button == profile_button:
+		return UI_PROFILE_ICON_PATH
+	if button == compendium_button:
+		return UI_COMPENDIUM_ICON_PATH
+	if button == tutorial_button:
+		return UI_TUTORIAL_ICON_PATH
+	if button == settings_button:
+		return UI_SETTINGS_ICON_PATH
+	return ""
+
+func _apply_primary_control_button_skin(button: Button) -> void:
+	_configure_button_bounds(button)
+	if _is_pc_layout():
+		var normal := _button_style(Color(0.15, 0.30, 0.16, 0.96), Color(0.86, 0.96, 0.56), 2, 9)
+		var hover := _button_style(Color(0.20, 0.39, 0.20, 0.98), Color(1.0, 0.98, 0.66), 2, 9)
+		var pressed := _button_style(Color(0.10, 0.22, 0.12, 0.98), Color(0.78, 0.86, 0.48), 2, 9)
+		for style in [normal, hover, pressed]:
+			style.content_margin_left = 18
+			style.content_margin_right = 18
+			style.content_margin_top = 7
+			style.content_margin_bottom = 7
+			style.shadow_color = Color(0, 0, 0, 0.48)
+			style.shadow_size = 5
+		button.add_theme_stylebox_override("normal", normal)
+		button.add_theme_stylebox_override("hover", hover)
+		button.add_theme_stylebox_override("pressed", pressed)
+		button.add_theme_stylebox_override("disabled", _button_style(Color(0.08, 0.10, 0.08, 0.78), Color(0.30, 0.34, 0.24), 1, 9))
+		button.add_theme_color_override("font_color", Color(0.98, 1.00, 0.80))
+		button.add_theme_color_override("font_disabled_color", Color(0.48, 0.52, 0.42))
+		button.add_theme_font_size_override("font_size", 17)
+		_apply_generated_button_texture_label(button, UI_END_TURN_BUTTON_PATH, "结束回合")
+		return
+	_remove_generated_button_skin_children(button)
+	button.text = "结束回合"
+	var normal := _button_style(Color(0.16, 0.28, 0.20), Color(0.78, 0.94, 0.62), 2, 7)
+	var hover := _button_style(Color(0.19, 0.34, 0.24), Color(0.92, 1.00, 0.74), 2, 7)
+	var pressed := _button_style(Color(0.12, 0.22, 0.16), Color(0.82, 0.94, 0.62), 2, 7)
+	for style in [normal, hover, pressed]:
+		style.content_margin_left = 14
+		style.content_margin_right = 14
+		style.content_margin_top = 5
+		style.content_margin_bottom = 5
+	button.add_theme_stylebox_override("normal", normal)
+	button.add_theme_stylebox_override("hover", hover)
+	button.add_theme_stylebox_override("pressed", pressed)
+	button.add_theme_stylebox_override("disabled", _button_style(Color(0.10, 0.12, 0.11), Color(0.30, 0.36, 0.32), 1, 7))
+	button.add_theme_color_override("font_color", Color(0.96, 1.00, 0.88))
+	button.add_theme_color_override("font_disabled_color", Color(0.54, 0.58, 0.54))
+	button.add_theme_font_size_override("font_size", 16)
 
 func _apply_combat_layout_constraints(reward_visible: bool) -> void:
 	var scale_y: float = _combat_layout_scale()
 	if character_frame != null:
-		character_frame.custom_minimum_size = Vector2(0, clamp(round(58.0 * scale_y), 42.0, 58.0))
+		if _is_pc_layout() and not reward_visible:
+			character_frame.visible = false
+		else:
+			character_frame.visible = true
+		var character_frame_height := 52.0 if _is_pc_layout() else 58.0
+		character_frame.custom_minimum_size = Vector2(0, clamp(round(character_frame_height * scale_y), 42.0, character_frame_height))
 	if character_panel != null:
-		character_panel.custom_minimum_size = Vector2(0, clamp(round(50.0 * scale_y), 38.0, 50.0))
+		character_panel.visible = character_frame == null or character_frame.visible
+	if character_panel != null:
+		var character_panel_height := 44.0 if _is_pc_layout() else 50.0
+		character_panel.custom_minimum_size = Vector2(0, clamp(round(character_panel_height * scale_y), 38.0, character_panel_height))
 	if player_portrait != null:
-		var portrait_size: float = clamp(round(48.0 * scale_y), 34.0, 48.0)
+		var portrait_target := 42.0 if _is_pc_layout() else 48.0
+		var portrait_size: float = clamp(round(portrait_target * scale_y), 34.0, portrait_target)
 		player_portrait.custom_minimum_size = Vector2(portrait_size, portrait_size)
 
 	if battle_board_panel != null:
-		battle_board_panel.custom_minimum_size = Vector2(0, clamp(round(244.0 * scale_y), 176.0, 244.0))
+		var battle_board_height := 470.0 if _is_pc_layout() else 244.0
+		battle_board_panel.custom_minimum_size = Vector2(0, clamp(round(battle_board_height * scale_y), 176.0, 500.0 if _is_pc_layout() else 244.0))
 	if battle_board_box != null:
-		battle_board_box.add_theme_constant_override("separation", max(2, int(round(5.0 * scale_y))))
+		battle_board_box.add_theme_constant_override("separation", max(2, int(round((4.0 if _is_pc_layout() else 5.0) * scale_y))))
 	if combat_hud_row != null:
-		combat_hud_row.custom_minimum_size = Vector2(0, clamp(round(38.0 * scale_y), 27.0, 38.0))
+		combat_hud_row.custom_minimum_size = Vector2(0, clamp(round((36.0 if _is_pc_layout() else 38.0) * scale_y), 34.0 if _is_pc_layout() else 24.0, 38.0 if _is_pc_layout() else 38.0))
 		combat_hud_row.add_theme_constant_override("separation", 6)
 	if feedback_label != null:
-		feedback_label.custom_minimum_size = Vector2(0, clamp(round(28.0 * scale_y), 20.0, 28.0))
-		feedback_label.add_theme_font_size_override("font_size", max(12, int(round(14.0 * scale_y))))
+		var feedback_overlay: bool = _is_pc_layout() and not reward_visible
+		var feedback_height: float = clamp(round((22.0 if _is_pc_layout() else 28.0) * scale_y), 18.0, 24.0 if _is_pc_layout() else 28.0)
+		_place_feedback_label_for_combat(feedback_overlay, Vector2(340.0, feedback_height))
+		feedback_label.custom_minimum_size = Vector2(340.0 if feedback_overlay else 0.0, feedback_height)
+		feedback_label.add_theme_font_size_override("font_size", max(11, int(round((12.0 if _is_pc_layout() else 14.0) * scale_y))))
 	if battle_mid_row != null:
-		battle_mid_row.custom_minimum_size = Vector2(0, clamp(round(150.0 * scale_y), 108.0, 150.0))
+		var battle_mid_height := 400.0 if _is_pc_layout() else 150.0
+		battle_mid_row.custom_minimum_size = Vector2(0, clamp(round(battle_mid_height * scale_y), 108.0, 430.0 if _is_pc_layout() else 150.0))
 	if enemy_stage_panel != null:
-		enemy_stage_panel.custom_minimum_size = Vector2(0, clamp(round(148.0 * scale_y), 106.0, 148.0))
+		var enemy_stage_height := 396.0 if _is_pc_layout() else 148.0
+		enemy_stage_panel.custom_minimum_size = Vector2(0, clamp(round(enemy_stage_height * scale_y), 106.0, 426.0 if _is_pc_layout() else 148.0))
 	if enemy_stage_stack != null:
-		enemy_stage_stack.custom_minimum_size = Vector2(0, clamp(round(136.0 * scale_y), 98.0, 136.0))
+		var enemy_stack_height := 384.0 if _is_pc_layout() else 136.0
+		enemy_stage_stack.custom_minimum_size = Vector2(0, clamp(round(enemy_stack_height * scale_y), 98.0, 414.0 if _is_pc_layout() else 136.0))
+	if player_stage_art != null:
+		player_stage_art.texture = _load_texture(_character_stage_art_path())
+		player_stage_art.visible = _is_pc_layout() and player_stage_art.texture != null and not reward_visible
+		if _is_pc_layout():
+			player_stage_art.anchor_left = 0.0
+			player_stage_art.anchor_top = 0.0
+			player_stage_art.anchor_right = 0.0
+			player_stage_art.anchor_bottom = 1.0
+			player_stage_art.offset_left = 26.0
+			player_stage_art.offset_top = 20.0
+			player_stage_art.offset_right = 356.0
+			player_stage_art.offset_bottom = -2.0
 	if enemy_row != null:
-		enemy_row.custom_minimum_size = Vector2(0, clamp(round(136.0 * scale_y), 98.0, 136.0))
+		var enemy_row_height := 378.0 if _is_pc_layout() else 136.0
+		enemy_row.custom_minimum_size = Vector2(0, clamp(round(enemy_row_height * scale_y), 98.0, 408.0 if _is_pc_layout() else 136.0))
+		if _is_pc_layout():
+			enemy_row.offset_left = 366.0
+			enemy_row.offset_top = 18.0
+			enemy_row.offset_right = -24.0
+			enemy_row.offset_bottom = -14.0
+		else:
+			enemy_row.offset_left = 12.0
+			enemy_row.offset_top = 8.0
+			enemy_row.offset_right = -12.0
+			enemy_row.offset_bottom = -8.0
 		enemy_row.add_theme_constant_override("separation", _enemy_panel_gap())
 	if potion_row != null:
-		potion_row.custom_minimum_size = Vector2(_potion_row_width(), clamp(round(52.0 * scale_y), 38.0, 52.0))
+		var potion_row_height: float = clamp(round((32.0 if _is_pc_layout() else 52.0) * scale_y), 30.0 if _is_pc_layout() else 38.0, 34.0 if _is_pc_layout() else 52.0)
+		var potion_row_size := Vector2(_potion_row_width(), potion_row_height)
+		_place_potion_row_for_combat(_is_pc_layout() and not reward_visible, potion_row_size)
 		potion_row.add_theme_constant_override("separation", _potion_slot_gap())
 
-	var log_height: float = clamp(round((110.0 if reward_visible else 58.0) * scale_y), 40.0 if not reward_visible else 74.0, 110.0 if reward_visible else 58.0)
-	var reward_height: float = round((190.0 if reward_visible else 0.0) * scale_y)
-	var hand_frame_height: float = clamp(round(150.0 * scale_y), 124.0, 150.0)
-	var hand_scroll_height: float = clamp(hand_frame_height - 10.0, 114.0, 140.0)
+	var log_height: float = clamp(round((98.0 if reward_visible else (34.0 if _is_pc_layout() else 58.0)) * scale_y), 28.0 if (_is_pc_layout() and not reward_visible) else (40.0 if not reward_visible else 70.0), 98.0 if reward_visible else (38.0 if _is_pc_layout() else 58.0))
+	var reward_height: float = 0.0
+	if reward_visible:
+		reward_height = clamp(round((320.0 if _is_pc_layout() else 190.0) * scale_y), 270.0 if _is_pc_layout() else 112.0, 330.0 if _is_pc_layout() else 190.0)
+	var target_hand_frame_height := 262.0 if _is_pc_layout() else 150.0
+	if _is_pc_layout():
+		target_hand_frame_height = 276.0
+	var hand_frame_height: float = clamp(round(target_hand_frame_height * scale_y), 124.0, 246.0 if _is_pc_layout() else 150.0)
+	var hand_scroll_height: float = clamp(hand_frame_height - 12.0, 114.0, 234.0 if _is_pc_layout() else 140.0)
 	if hand_frame != null:
+		hand_frame.add_theme_stylebox_override("panel", _hand_frame_style())
 		hand_frame.custom_minimum_size = Vector2(0, hand_frame_height)
+		hand_frame.clip_contents = not _is_pc_layout()
 	if hand_scroll != null:
 		hand_scroll.custom_minimum_size = Vector2(0, hand_scroll_height)
+		hand_scroll.clip_contents = not _is_pc_layout()
 	if hand_row != null:
 		var hand_width: float = _hand_required_width()
 		var hand_height: float = hand_scroll_height
-		hand_row.custom_minimum_size = Vector2(hand_width, hand_height)
-		hand_row.size = Vector2(hand_width, hand_height)
+		var hand_row_width: float = max(_scroll_content_width(), hand_width) if _is_pc_layout() else hand_width
+		hand_row.custom_minimum_size = Vector2(hand_row_width, hand_height)
+		hand_row.size = Vector2(hand_row_width, hand_height)
 		hand_row.add_theme_constant_override("separation", _hand_card_gap())
 	_set_content_heights(log_height, reward_height)
+	_apply_pc_combat_chrome(reward_visible)
 	_record_scroll_region_metrics()
 
 func _combat_layout_scale() -> float:
 	var available_height: float = _layout_viewport_size().y - _root_vertical_margin()
-	return clamp(available_height / 860.0, 0.70, 1.0)
+	return clamp(available_height / 860.0, 0.70, 1.08 if _is_pc_layout() else 1.0)
 
 func _page_layout_scale() -> float:
 	var available_height: float = _layout_viewport_size().y - _root_vertical_margin()
-	return clamp(available_height / 840.0, 0.68, 1.0)
+	return clamp(available_height / 840.0, 0.68, 1.08 if _is_pc_layout() else 1.0)
+
+func _is_pc_layout() -> bool:
+	var viewport_size: Vector2 = _layout_viewport_size()
+	return viewport_size.x >= 1180.0 and viewport_size.y >= 680.0
 
 func _layout_viewport_size() -> Vector2:
 	if debug_viewport_size_override.x > 0.0 and debug_viewport_size_override.y > 0.0:
@@ -1670,28 +2673,56 @@ func _character_select_card_size() -> Vector2:
 	elif available_width >= 720.0:
 		columns = 2
 	var width: float = floor((available_width - gap * float(columns - 1)) / float(columns))
-	width = _bounded_width(width, 286.0, 380.0)
-	var height: float = clamp(round(204.0 * _page_layout_scale()), 146.0, 204.0)
+	width = _bounded_width(width, 286.0, 430.0 if _is_pc_layout() else 380.0)
+	var target_height := 232.0 if _is_pc_layout() else 204.0
+	var height: float = clamp(round(target_height * _page_layout_scale()), 146.0, target_height)
 	return Vector2(width, height)
 
 func _large_card_button_size() -> Vector2:
 	var scale_y: float = _page_layout_scale()
+	if _is_pc_layout():
+		return Vector2(clamp(round(184.0 * scale_y), 168.0, 196.0), clamp(round(238.0 * scale_y), 214.0, 254.0))
 	return Vector2(clamp(round(158.0 * scale_y), 132.0, 158.0), clamp(round(184.0 * scale_y), 154.0, 184.0))
 
 func _large_item_button_size() -> Vector2:
 	var scale_y: float = _page_layout_scale()
+	if _is_pc_layout():
+		return Vector2(clamp(round(164.0 * scale_y), 144.0, 176.0), clamp(round(142.0 * scale_y), 122.0, 154.0))
 	return Vector2(clamp(round(150.0 * scale_y), 128.0, 150.0), clamp(round(118.0 * scale_y), 96.0, 118.0))
+
+func _mastery_reward_button_size() -> Vector2:
+	if _is_pc_layout():
+		return Vector2(clamp(_scroll_content_width() * 0.245, 244.0, 292.0), 154.0)
+	return Vector2(clamp(_scroll_content_width() * 0.46, 150.0, 220.0), 132.0)
 
 func _small_action_button_size() -> Vector2:
 	var scale_y: float = _page_layout_scale()
+	if _is_pc_layout():
+		return Vector2(142, clamp(round(104.0 * scale_y), 88.0, 112.0))
 	return Vector2(120, clamp(round(96.0 * scale_y), 78.0, 96.0))
 
+func _reward_action_button_size(compact: bool = false) -> Vector2:
+	var scale_y: float = _page_layout_scale()
+	if compact and _is_pc_layout():
+		return Vector2(clamp(round(150.0 * scale_y), 132.0, 164.0), clamp(round(68.0 * scale_y), 60.0, 72.0))
+	if _is_pc_layout():
+		return Vector2(clamp(round(150.0 * scale_y), 132.0, 164.0), clamp(round(142.0 * scale_y), 122.0, 154.0))
+	return Vector2(clamp(round(132.0 * scale_y), 116.0, 138.0), clamp(round(118.0 * scale_y), 96.0, 124.0))
+
 func _event_story_panel_size() -> Vector2:
+	if _is_pc_layout():
+		var pc_width: float = _bounded_width(_scroll_content_width() * 0.50, 620.0, 760.0)
+		var pc_height: float = clamp(round(220.0 * _page_layout_scale()), 196.0, 236.0)
+		return Vector2(pc_width, pc_height)
 	var width: float = _bounded_width(_scroll_content_width(), 286.0, 520.0)
 	var height: float = clamp(round(138.0 * _page_layout_scale()), 118.0, 138.0)
 	return Vector2(width, height)
 
 func _event_story_art_size(panel_width: float) -> Vector2:
+	if _is_pc_layout():
+		var art_width: float = clamp(panel_width * 0.34, 210.0, 250.0)
+		var art_height: float = clamp(round(198.0 * _page_layout_scale()), 176.0, 214.0)
+		return Vector2(art_width, art_height)
 	var art_width: float = 130.0
 	if panel_width < 340.0:
 		art_width = 88.0
@@ -1699,6 +2730,16 @@ func _event_story_art_size(panel_width: float) -> Vector2:
 		art_width = 104.0
 	var art_height: float = clamp(round(120.0 * _page_layout_scale()), 96.0, 120.0)
 	return Vector2(art_width, art_height)
+
+func _event_choice_button_size(choice_count: int) -> Vector2:
+	var scale_y: float = _page_layout_scale()
+	if _is_pc_layout():
+		var count: int = max(1, choice_count)
+		var story_width: float = _event_story_panel_size().x
+		var available_width: float = max(0.0, _scroll_content_width() - story_width - float(count) * 6.0)
+		var width: float = clamp(floor(available_width / float(count)), 176.0, 226.0)
+		return Vector2(width, clamp(round(144.0 * scale_y), 128.0, 148.0))
+	return Vector2(196, clamp(round(122.0 * scale_y), 108.0, 126.0))
 
 func _cinematic_panel_size() -> Vector2:
 	var viewport_size: Vector2 = _layout_viewport_size()
@@ -1712,7 +2753,7 @@ func _root_horizontal_margin() -> float:
 	return ROOT_MARGIN_LEFT + ROOT_MARGIN_RIGHT
 
 func _hand_card_gap() -> int:
-	return 6
+	return 12 if _is_pc_layout() else 6
 
 func _hand_card_size() -> Vector2:
 	var card_count := 5
@@ -1720,8 +2761,9 @@ func _hand_card_size() -> Vector2:
 		card_count = max(1, combat.hand.size())
 	var available_width: float = _scroll_content_width()
 	var width: float = floor((available_width - float(card_count - 1) * float(_hand_card_gap())) / float(card_count))
-	width = clamp(width, 88.0, 136.0)
-	var height: float = clamp(round(136.0 * _combat_layout_scale()), 112.0, 140.0)
+	width = clamp(width, 88.0, 154.0 if _is_pc_layout() else 136.0)
+	var target_height := 242.0 if _is_pc_layout() else 136.0
+	var height: float = clamp(round(target_height * _combat_layout_scale()), 190.0 if _is_pc_layout() else 112.0, 220.0 if _is_pc_layout() else 140.0)
 	return Vector2(width, height)
 
 func _hand_required_width() -> float:
@@ -1760,7 +2802,7 @@ func _container_required_width(container: Container) -> float:
 	return total
 
 func _enemy_panel_gap() -> int:
-	return 8
+	return 28 if _is_pc_layout() else 8
 
 func _enemy_panel_width() -> float:
 	var enemy_count := 1
@@ -1768,65 +2810,79 @@ func _enemy_panel_width() -> float:
 		enemy_count = max(1, combat.enemies.size())
 	var content_width: float = _scroll_content_width()
 	var available_width: float = content_width - _potion_row_width() - 20.0
+	if _is_pc_layout():
+		available_width = max(260.0, content_width - 366.0 - 24.0)
 	var width: float = floor((available_width - float(enemy_count - 1) * float(_enemy_panel_gap())) / float(enemy_count))
 	var minimum_width := 72.0
 	if content_width < 360.0:
 		minimum_width = 36.0
 	elif content_width < 460.0:
 		minimum_width = 44.0
-	return clamp(width, minimum_width, 198.0)
+	elif _is_pc_layout():
+		minimum_width = 210.0
+	return clamp(width, minimum_width, 340.0 if _is_pc_layout() else 198.0)
 
 func _enemy_panel_height() -> float:
-	return clamp(round(132.0 * _combat_layout_scale()), 96.0, 136.0)
+	return clamp(round((342.0 if _is_pc_layout() else 132.0) * _combat_layout_scale()), 96.0, 368.0 if _is_pc_layout() else 136.0)
 
 func _enemy_art_height() -> float:
-	return clamp(round(58.0 * _combat_layout_scale()), 38.0, 62.0)
+	return clamp(round((226.0 if _is_pc_layout() else 58.0) * _combat_layout_scale()), 38.0, 246.0 if _is_pc_layout() else 62.0)
 
 func _enemy_badge_height() -> float:
-	return clamp(round(22.0 * _combat_layout_scale()), 18.0, 24.0)
+	return clamp(round((28.0 if _is_pc_layout() else 22.0) * _combat_layout_scale()), 18.0, 30.0 if _is_pc_layout() else 24.0)
 
 func _enemy_button_height() -> float:
-	return clamp(round(42.0 * _combat_layout_scale()), 32.0, 46.0)
+	return clamp(round((50.0 if _is_pc_layout() else 42.0) * _combat_layout_scale()), 32.0, 54.0 if _is_pc_layout() else 46.0)
+
+func _pc_enemy_info_width(panel_width: float) -> float:
+	return clamp(round(panel_width * 0.78), 174.0, 258.0)
 
 func _potion_slot_gap() -> int:
 	return 6
 
 func _potion_slot_button_size() -> Vector2:
+	if _is_pc_layout():
+		return Vector2(42.0, 32.0)
 	var scale_y: float = _combat_layout_scale()
 	var slots := 2
 	if player_data != null and not player_data.is_empty():
 		slots = max(1, _max_potion_slots())
 	var available_width: float = _scroll_content_width()
-	var target_minimum := 210.0
+	var target_minimum := 170.0 if _is_pc_layout() else 210.0
 	var slot_minimum := 48.0
 	if available_width < 420.0:
 		target_minimum = 96.0
 		slot_minimum = 28.0
-	var target_row_width: float = clamp(available_width * (0.38 if slots >= 3 else 0.34), target_minimum, min(344.0, available_width))
+	var max_row_width := 238.0 if _is_pc_layout() else 344.0
+	var target_row_width: float = clamp(available_width * (0.22 if _is_pc_layout() else (0.38 if slots >= 3 else 0.34)), target_minimum, min(max_row_width, available_width))
 	if available_width < 420.0:
 		target_row_width = clamp(available_width * (0.30 if slots >= 3 else 0.26), target_minimum, min(132.0, available_width))
 	var label_width := 44.0
 	if available_width < 420.0:
 		label_width = 30.0
 	var slot_width: float = floor((target_row_width - label_width - float(slots) * float(_potion_slot_gap())) / float(slots))
-	return Vector2(clamp(slot_width, slot_minimum, 96.0), clamp(round(48.0 * scale_y), 34.0, 50.0))
+	return Vector2(clamp(slot_width, slot_minimum, 76.0 if _is_pc_layout() else 96.0), clamp(round(48.0 * scale_y), 34.0, 50.0))
 
 func _potion_row_width() -> float:
 	var slots := 2
 	if player_data != null and not player_data.is_empty():
 		slots = max(1, _max_potion_slots())
+	if _is_pc_layout():
+		return float(slots) * _potion_slot_button_size().x + float(max(0, slots - 1)) * float(_potion_slot_gap())
 	var label_width := 44.0
 	if _scroll_content_width() < 420.0:
 		label_width = 30.0
 	return label_width + float(slots) * _potion_slot_button_size().x + float(max(0, slots)) * float(_potion_slot_gap())
 
 func _hud_block_width() -> float:
-	var entries := 7
+	var entries := 8 if _is_pc_layout() else 7
 	var gap := 6.0
 	var available_width: float = _scroll_content_width()
+	if _is_pc_layout():
+		available_width = max(360.0, available_width - _potion_row_width() - 18.0)
 	var width: float = floor((available_width - float(entries - 1) * gap) / float(entries))
 	var minimum_width := 64.0 if available_width >= 420.0 else 38.0
-	return clamp(width, minimum_width, 98.0)
+	return clamp(width, minimum_width, 112.0 if _is_pc_layout() else 98.0)
 
 func _estimated_control_height(control: Control) -> float:
 	if control == null:
@@ -1859,6 +2915,8 @@ func _refresh_character_select() -> void:
 	run_label.text = "新跑团 | %s" % last_character_selection_title
 	status_label.text = "选择本次跑团的角色和挑战等级。不同角色拥有独立初始牌组、起始遗物、生命、势能和药水槽。"
 	_set_page_regions(false, false, false, false, false, true, false, true)
+	if _is_pc_layout():
+		status_label.visible = false
 	feedback_label.visible = false
 	_hide_cinematic_prompt()
 	_clear_container(potion_row)
@@ -1959,10 +3017,18 @@ func _refresh_run_header(node: Dictionary) -> void:
 
 func _refresh_run_completed() -> void:
 	_set_page_regions(false, false, false, false, false, true, false, true)
-	_apply_reward_page_layout_constraints(210.0, 116.0)
+	_apply_reward_page_layout_constraints(72.0, 430.0)
+	if _is_pc_layout():
+		_set_content_heights(56.0, 410.0)
 	last_run_completion_title = _run_completion_title()
 	last_run_unlocks = _run_completion_unlocks()
 	last_run_completion_summary = _run_completion_summary()
+	last_run_completion_panel_visible = false
+	last_run_completion_art_path = ""
+	last_run_completion_art_loaded = false
+	last_run_completion_stat_chip_count = 0
+	last_run_completion_unlock_chip_count = 0
+	last_run_completion_action_count = 0
 	run_label.text = "跑团完成 | %s | %s | 挑战 %d | 金币：%d | 生命：%d/%d | 牌组：%d 张" % [
 		_character_display_name(),
 		_chapter_display_name(current_chapter_id),
@@ -1983,36 +3049,377 @@ func _refresh_run_completed() -> void:
 	_clear_container(enemy_row)
 	_clear_container(hand_row)
 	_clear_container(reward_row)
-	log_label.text = last_run_completion_summary
+	log_label.text = _run_completion_logline()
 	end_turn_button.disabled = true
 
-	var deck_summary_button := Button.new()
-	deck_summary_button.custom_minimum_size = Vector2(180, 96)
-	deck_summary_button.text = "查看最终牌组"
-	_apply_button_skin(deck_summary_button, "primary")
-	deck_summary_button.pressed.connect(_on_deck_view_pressed)
-	reward_row.add_child(deck_summary_button)
-
-	var profile_summary_button := Button.new()
-	profile_summary_button.custom_minimum_size = Vector2(160, 96)
-	profile_summary_button.text = "查看档案\n成就 %d/%d" % [last_profile_unlocked_count, last_profile_total_count]
-	_apply_button_skin(profile_summary_button, "relic")
-	profile_summary_button.pressed.connect(_on_profile_pressed)
-	reward_row.add_child(profile_summary_button)
-
-	var restart_run_button := Button.new()
-	restart_run_button.custom_minimum_size = Vector2(160, 96)
-	restart_run_button.text = "再来一局"
-	_apply_button_skin(restart_run_button, "success")
-	restart_run_button.pressed.connect(_on_new_run_pressed)
-	reward_row.add_child(restart_run_button)
+	_build_run_completion_panel()
 	_record_layout_metrics()
 
-func _run_completion_summary() -> String:
-	var summary: Dictionary = _deck_summary()
+func _build_run_completion_panel() -> void:
+	if reward_row == null:
+		return
+	var content_width: float = _scroll_content_width()
+	var panel_height: float = max(300.0, last_reward_scroll_height - 2.0)
+	var shell := VBoxContainer.new()
+	shell.name = "RunCompletionPanel"
+	shell.custom_minimum_size = Vector2(content_width, panel_height)
+	shell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	shell.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	shell.add_theme_constant_override("separation", 2)
+	reward_row.add_child(shell)
+	last_run_completion_panel_visible = true
+
+	var action_height: float = _run_completion_action_height()
+	var body_height: float = max(212.0, panel_height - action_height - 8.0)
+	var body: BoxContainer
+	if _is_pc_layout() and content_width >= 900.0:
+		body = HBoxContainer.new()
+		body.add_theme_constant_override("separation", 10)
+	else:
+		body = VBoxContainer.new()
+		body.add_theme_constant_override("separation", 8)
+	body.custom_minimum_size = Vector2(content_width, body_height)
+	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	body.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	shell.add_child(body)
+
+	var scene_width: float = _run_completion_scene_width(content_width)
+	var detail_width: float = content_width
+	if body is HBoxContainer:
+		detail_width = max(320.0, content_width - scene_width - 10.0)
+	var scene_size := Vector2(scene_width, body_height)
+	var detail_size := Vector2(detail_width, body_height)
+
+	var scene_panel := PanelContainer.new()
+	scene_panel.name = "RunCompletionScene"
+	scene_panel.custom_minimum_size = scene_size
+	scene_panel.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	scene_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	scene_panel.clip_contents = true
+	scene_panel.add_theme_stylebox_override("panel", _run_completion_scene_style())
+	body.add_child(scene_panel)
+	_add_run_completion_scene(scene_panel, scene_size)
+
+	var detail_panel := PanelContainer.new()
+	detail_panel.name = "RunCompletionDetails"
+	detail_panel.custom_minimum_size = detail_size
+	detail_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	detail_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	detail_panel.clip_contents = true
+	detail_panel.add_theme_stylebox_override("panel", _run_completion_detail_style())
+	body.add_child(detail_panel)
+	_add_run_completion_details(detail_panel, detail_size)
+
+	var action_row := HBoxContainer.new()
+	action_row.name = "RunCompletionActions"
+	action_row.custom_minimum_size = Vector2(content_width, action_height)
+	action_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	action_row.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	action_row.alignment = BoxContainer.ALIGNMENT_END if _is_pc_layout() else BoxContainer.ALIGNMENT_CENTER
+	action_row.add_theme_constant_override("separation", 8)
+	shell.add_child(action_row)
+	_add_run_completion_action_button(action_row, "最终牌组", UI_DECK_ICON_PATH, "primary", Callable(self, "_on_deck_view_pressed"))
+	_add_run_completion_action_button(action_row, "档案 %d/%d" % [last_profile_unlocked_count, last_profile_total_count], UI_PROFILE_ICON_PATH, "relic", Callable(self, "_on_profile_pressed"))
+	_add_run_completion_action_button(action_row, "再来一局", UI_NEW_RUN_ICON_PATH, "success", Callable(self, "_on_new_run_pressed"))
+
+func _add_run_completion_scene(parent: PanelContainer, scene_size: Vector2) -> void:
+	var stack := Control.new()
+	stack.custom_minimum_size = scene_size
+	stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	stack.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	stack.clip_contents = true
+	parent.add_child(stack)
+
+	last_run_completion_art_path = _battle_background_path(current_chapter_id)
+	last_run_completion_art_loaded = _asset_loaded(last_run_completion_art_path)
+	var background := TextureRect.new()
+	background.set_anchors_preset(Control.PRESET_FULL_RECT)
+	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	background.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+	background.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	background.texture = _load_texture(last_run_completion_art_path)
+	background.modulate = Color(1.0, 1.0, 1.0, 0.92)
+	stack.add_child(background)
+
+	var scrim := ColorRect.new()
+	scrim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	scrim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	scrim.color = Color(0.015, 0.020, 0.026, 0.42)
+	stack.add_child(scrim)
+
+	var player := TextureRect.new()
+	player.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	player.texture = _load_texture(_character_stage_art_path())
+	player.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	player.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	player.size = Vector2(clamp(scene_size.x * 0.34, 168.0, 270.0), max(180.0, scene_size.y - 34.0))
+	player.position = Vector2(18.0, 24.0)
+	player.modulate = Color(1.0, 1.0, 1.0, 0.96)
+	stack.add_child(player)
+
+	var core_size: float = clamp(scene_size.y * 0.50, 128.0, 188.0)
+	var core_glow := PanelContainer.new()
+	core_glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	core_glow.custom_minimum_size = Vector2(core_size + 28.0, core_size + 28.0)
+	core_glow.size = core_glow.custom_minimum_size
+	core_glow.position = Vector2(scene_size.x - core_glow.size.x - 36.0, 36.0)
+	core_glow.add_theme_stylebox_override("panel", _run_completion_core_glow_style())
+	stack.add_child(core_glow)
+
+	var core := TextureRect.new()
+	core.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	core.custom_minimum_size = Vector2(core_size, core_size)
+	core.size = core.custom_minimum_size
+	core.position = Vector2(14.0, 14.0)
+	core.texture = _load_texture("res://assets/art/enemy_nexus_heart.svg")
+	core.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+	core.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	core.modulate = Color(0.82, 1.0, 0.90, 0.86)
+	core_glow.add_child(core)
+
+	var ribbon := PanelContainer.new()
+	ribbon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ribbon.custom_minimum_size = Vector2(max(260.0, scene_size.x - 36.0), 52.0)
+	ribbon.size = ribbon.custom_minimum_size
+	ribbon.position = Vector2(18.0, max(12.0, scene_size.y - 68.0))
+	ribbon.add_theme_stylebox_override("panel", _button_style(Color(0.035, 0.060, 0.050, 0.84), Color(0.52, 0.92, 0.62, 0.72), 1, 8))
+	stack.add_child(ribbon)
+
+	var ribbon_label := Label.new()
+	ribbon_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ribbon_label.text = "核心已封锁"
+	ribbon_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	ribbon_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	ribbon_label.add_theme_font_size_override("font_size", 20 if _is_pc_layout() else 16)
+	ribbon_label.add_theme_color_override("font_color", Color(0.84, 1.0, 0.78))
+	ribbon_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.76))
+	ribbon_label.add_theme_constant_override("shadow_offset_y", 2)
+	ribbon.add_child(ribbon_label)
+
+func _add_run_completion_details(parent: PanelContainer, detail_size: Vector2) -> void:
+	var margin := MarginContainer.new()
+	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	margin.add_theme_constant_override("margin_left", 12)
+	margin.add_theme_constant_override("margin_right", 12)
+	margin.add_theme_constant_override("margin_top", 8)
+	margin.add_theme_constant_override("margin_bottom", 8)
+	parent.add_child(margin)
+
+	var box := VBoxContainer.new()
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_theme_constant_override("separation", 6)
+	margin.add_child(box)
+
+	var eyebrow := Label.new()
+	eyebrow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	eyebrow.text = "%s / %s" % [_character_display_name(), _chapter_display_name(current_chapter_id)]
+	eyebrow.clip_text = true
+	eyebrow.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	eyebrow.add_theme_font_size_override("font_size", 12)
+	eyebrow.add_theme_color_override("font_color", Color(0.68, 0.82, 0.76))
+	box.add_child(eyebrow)
+
+	var title := Label.new()
+	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	title.text = last_run_completion_title
+	title.clip_text = true
+	title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	title.add_theme_font_size_override("font_size", 20 if _is_pc_layout() else 18)
+	title.add_theme_color_override("font_color", Color(1.0, 0.92, 0.68))
+	box.add_child(title)
+
+	var epilogue := Label.new()
+	epilogue.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	epilogue.text = "三章通关 | 核心封锁 | 局外记录已更新"
+	epilogue.custom_minimum_size = Vector2(0, 24 if _is_pc_layout() else 56)
+	epilogue.autowrap_mode = TextServer.AUTOWRAP_OFF
+	epilogue.clip_text = true
+	epilogue.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	epilogue.add_theme_font_size_override("font_size", 13)
+	epilogue.add_theme_color_override("font_color", Color(0.88, 0.90, 0.86))
+	box.add_child(epilogue)
+
+	var stat_flow := HFlowContainer.new()
+	stat_flow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stat_flow.custom_minimum_size = Vector2(max(260.0, detail_size.x - 28.0), 78)
+	stat_flow.add_theme_constant_override("h_separation", 6)
+	stat_flow.add_theme_constant_override("v_separation", 6)
+	box.add_child(stat_flow)
+	_add_run_completion_stat_chip(stat_flow, "生命", "%d/%d" % [run_hp, run_max_hp], _hud_icon_path("生命"), "danger")
+	_add_run_completion_stat_chip(stat_flow, "金币", "%d" % run_gold, _hud_icon_path("金币"), "relic")
+	_add_run_completion_stat_chip(stat_flow, "牌组", "%d 张" % run_deck_ids.size(), _hud_icon_path("抽牌"), "primary")
+	_add_run_completion_stat_chip(stat_flow, "章节", "%d/%d" % [completed_chapter_ids.size(), 3], UI_COMPENDIUM_ICON_PATH, "event")
+	_add_run_completion_stat_chip(stat_flow, "遗物", "%d" % run_relic_ids.size(), RELIC_ART_PATH, "relic")
+	_add_run_completion_stat_chip(stat_flow, "药水", "%d" % run_potion_ids.size(), POTION_ART_PATH, "potion")
+
+	var unlock_title := Label.new()
+	unlock_title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	unlock_title.text = "局外解锁"
+	unlock_title.add_theme_font_size_override("font_size", 13)
+	unlock_title.add_theme_color_override("font_color", Color(0.74, 0.82, 0.78))
+	box.add_child(unlock_title)
+
+	var unlock_flow := HFlowContainer.new()
+	unlock_flow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	unlock_flow.custom_minimum_size = Vector2(max(260.0, detail_size.x - 28.0), 54)
+	unlock_flow.add_theme_constant_override("h_separation", 6)
+	unlock_flow.add_theme_constant_override("v_separation", 6)
+	box.add_child(unlock_flow)
+	if last_run_unlocks.is_empty():
+		_add_run_completion_unlock_chip(unlock_flow, "暂无新增解锁")
+	else:
+		for unlock in last_run_unlocks:
+			_add_run_completion_unlock_chip(unlock_flow, str(unlock))
+
+func _add_run_completion_stat_chip(parent: Control, label_text: String, value_text: String, icon_path: String, skin: String) -> void:
+	var chip := PanelContainer.new()
+	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	chip.custom_minimum_size = Vector2(124, 36)
+	chip.clip_contents = true
+	chip.add_theme_stylebox_override("panel", _pc_hud_panel_style(skin))
+	parent.add_child(chip)
+	_add_generated_texture_background(chip, UI_RESOURCE_CHIP_PATH, 0.18)
+
+	var margin := MarginContainer.new()
+	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	margin.add_theme_constant_override("margin_left", 6)
+	margin.add_theme_constant_override("margin_right", 7)
+	margin.add_theme_constant_override("margin_top", 4)
+	margin.add_theme_constant_override("margin_bottom", 4)
+	chip.add_child(margin)
+
+	var row := HBoxContainer.new()
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_theme_constant_override("separation", 6)
+	margin.add_child(row)
+
+	var icon := TextureRect.new()
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	icon.custom_minimum_size = Vector2(22, 22)
+	icon.texture = _load_texture(icon_path)
+	icon.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	row.add_child(icon)
+
+	var texts := VBoxContainer.new()
+	texts.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	texts.custom_minimum_size = Vector2(58, 26)
+	texts.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	texts.add_theme_constant_override("separation", -2)
+	row.add_child(texts)
+
+	var label := Label.new()
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.text = label_text
+	label.clip_text = true
+	label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	label.add_theme_font_size_override("font_size", 8)
+	label.add_theme_color_override("font_color", Color(0.68, 0.72, 0.69))
+	texts.add_child(label)
+
+	var value := Label.new()
+	value.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	value.text = value_text
+	value.clip_text = true
+	value.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	value.add_theme_font_size_override("font_size", 12)
+	value.add_theme_color_override("font_color", Color(0.98, 0.96, 0.84))
+	texts.add_child(value)
+	last_run_completion_stat_chip_count += 1
+
+func _add_run_completion_unlock_chip(parent: Control, text: String) -> void:
+	var chip := PanelContainer.new()
+	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	chip.custom_minimum_size = Vector2(176 if _is_pc_layout() else 180, 24)
+	chip.tooltip_text = text
+	chip.add_theme_stylebox_override("panel", _button_style(Color(0.10, 0.13, 0.12, 0.82), Color(0.58, 0.76, 0.54, 0.72), 1, 6))
+	parent.add_child(chip)
+
+	var label := Label.new()
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.text = text
+	label.clip_text = true
+	label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", 11)
+	label.add_theme_color_override("font_color", Color(0.82, 0.94, 0.78))
+	chip.add_child(label)
+	last_run_completion_unlock_chip_count += 1
+
+func _add_run_completion_action_button(parent: Control, text: String, icon_path: String, skin: String, callback: Callable) -> void:
+	var button := Button.new()
+	button.custom_minimum_size = _run_completion_action_button_size()
+	button.text = text
+	button.icon = _load_texture(icon_path)
+	button.expand_icon = true
+	button.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	_apply_button_skin(button, skin, "reward")
+	button.pressed.connect(callback)
+	parent.add_child(button)
+	last_run_completion_action_count += 1
+
+func _run_completion_logline() -> String:
+	return "%s\n完成章节：%s | 最终资源：生命 %d/%d，金币 %d，遗物 %d，药水 %d" % [
+		_run_completion_epilogue(),
+		" -> ".join(_completed_chapter_display_names()),
+		run_hp,
+		run_max_hp,
+		run_gold,
+		run_relic_ids.size(),
+		run_potion_ids.size()
+	]
+
+func _completed_chapter_display_names() -> Array[String]:
 	var chapter_names: Array[String] = []
 	for chapter_id in completed_chapter_ids:
 		chapter_names.append(_chapter_display_name(str(chapter_id)))
+	return chapter_names
+
+func _run_completion_scene_width(content_width: float) -> float:
+	if not _is_pc_layout() or content_width < 900.0:
+		return content_width
+	return clamp(round(content_width * 0.49), 520.0, 820.0)
+
+func _run_completion_action_height() -> float:
+	return 44.0 if _is_pc_layout() else 52.0
+
+func _run_completion_action_button_size() -> Vector2:
+	return Vector2(148, 40) if _is_pc_layout() else Vector2(120, 46)
+
+func _run_completion_scene_style() -> StyleBoxFlat:
+	var style := _button_style(Color(0.040, 0.045, 0.048, 0.88), Color(0.64, 0.42, 0.25, 0.82), 2, 8)
+	style.shadow_color = Color(0, 0, 0, 0.56)
+	style.shadow_size = 8
+	style.content_margin_left = 0
+	style.content_margin_right = 0
+	style.content_margin_top = 0
+	style.content_margin_bottom = 0
+	return style
+
+func _run_completion_detail_style() -> StyleBoxFlat:
+	var style := _button_style(Color(0.070, 0.080, 0.078, 0.88), Color(0.38, 0.56, 0.48, 0.76), 2, 8)
+	style.shadow_color = Color(0, 0, 0, 0.46)
+	style.shadow_size = 6
+	style.content_margin_left = 0
+	style.content_margin_right = 0
+	style.content_margin_top = 0
+	style.content_margin_bottom = 0
+	return style
+
+func _run_completion_core_glow_style() -> StyleBoxFlat:
+	var style := _button_style(Color(0.06, 0.18, 0.12, 0.24), Color(0.46, 1.0, 0.62, 0.62), 2, 96)
+	style.shadow_color = Color(0.20, 1.0, 0.54, 0.28)
+	style.shadow_size = 16
+	style.content_margin_left = 0
+	style.content_margin_right = 0
+	style.content_margin_top = 0
+	style.content_margin_bottom = 0
+	return style
+
+func _run_completion_summary() -> String:
+	var summary: Dictionary = _deck_summary()
+	var chapter_names: Array[String] = _completed_chapter_display_names()
 	var unlock_lines: Array[String] = []
 	for unlock in last_run_unlocks:
 		unlock_lines.append("- %s" % unlock)
@@ -2224,11 +3631,15 @@ func _settings_music_volume_percent() -> int:
 func _refresh_profile_view() -> void:
 	last_profile_panel_visible = true
 	last_profile_button_count = 0
+	last_profile_character_selector_count = 0
+	last_profile_forge_marks = _progression_currency_amount()
+	last_profile_upgrade_node_count = _purchased_upgrade_node_ids().size()
+	last_profile_skill_book_count = _unlocked_skill_book_count()
 	_refresh_achievement_unlocks("profile_view")
 	_set_page_regions(false, false, false, false, false, true, false, true)
 	_apply_reward_page_layout_constraints(148.0, 224.0)
-	run_label.text = "局外档案 | 成就 %d/%d" % [last_profile_unlocked_count, last_profile_total_count]
-	status_label.text = "查看跨跑团统计、角色通关记录和成就解锁。档案独立保存，不会被单局读档覆盖。"
+	run_label.text = "局外档案 | 炉印 %d | 成就 %d/%d" % [last_profile_forge_marks, last_profile_unlocked_count, last_profile_total_count]
+	status_label.text = "使用炉印购买角色升级，并为当前选中角色装备技能书。局外成长仅在下一次新跑团生效。"
 	status_label.tooltip_text = status_label.text
 	feedback_label.visible = false
 	_hide_cinematic_prompt()
@@ -2239,7 +3650,42 @@ func _refresh_profile_view() -> void:
 	end_turn_button.disabled = true
 	log_label.text = _profile_summary_text()
 
-	_add_profile_button("返回\n回到当前页面", "primary", Callable(self, "_on_close_profile_pressed"))
+	var profile_root := VBoxContainer.new()
+	profile_root.custom_minimum_size = Vector2(_scroll_content_width(), 0)
+	profile_root.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	profile_root.add_theme_constant_override("separation", 10)
+	reward_row.add_child(profile_root)
+
+	var toolbar := HBoxContainer.new()
+	toolbar.custom_minimum_size = Vector2(_scroll_content_width(), 52)
+	toolbar.add_theme_constant_override("separation", 6)
+	profile_root.add_child(toolbar)
+	_add_profile_button("返回档案", "primary", Callable(self, "_on_close_profile_pressed"), toolbar)
+	for character_value in player_data.get("characters", []):
+		var character: Dictionary = character_value
+		var character_id: String = str(character.get("id", ""))
+		if character_id.is_empty():
+			continue
+		var character_button := Button.new()
+		character_button.custom_minimum_size = Vector2(_profile_character_button_width(), 48)
+		character_button.text = str(character.get("name", character_id))
+		character_button.icon = _load_texture(_character_art_path(character_id))
+		character_button.expand_icon = true
+		character_button.tooltip_text = "查看 %s 的角色升级树和技能书配置。" % str(character.get("name", character_id))
+		_apply_button_skin(character_button, "relic" if profile_character_id == character_id else "neutral")
+		character_button.disabled = profile_character_id == character_id
+		character_button.pressed.connect(_on_profile_character_pressed.bind(character_id))
+		toolbar.add_child(character_button)
+		last_profile_button_count += 1
+		last_profile_character_selector_count += 1
+
+	_add_profile_progression_entries(profile_root)
+	_add_profile_section_header(profile_root, "成就档案", "%d/%d 已解锁" % [last_profile_unlocked_count, last_profile_total_count], UI_PROFILE_ICON_PATH, "success")
+	var achievement_flow := HFlowContainer.new()
+	achievement_flow.custom_minimum_size = Vector2(_scroll_content_width(), 0)
+	achievement_flow.add_theme_constant_override("h_separation", 6)
+	achievement_flow.add_theme_constant_override("v_separation", 6)
+	profile_root.add_child(achievement_flow)
 	for achievement in achievement_data.get("achievements", []):
 		var achievement_dict: Dictionary = achievement
 		var achievement_id: String = str(achievement_dict.get("id", ""))
@@ -2247,8 +3693,8 @@ func _refresh_profile_view() -> void:
 			continue
 		var unlocked: bool = _profile_unlocked_achievements().has(achievement_id)
 		var button := Button.new()
-		button.custom_minimum_size = Vector2(_profile_achievement_card_width(), 104)
-		button.text = _achievement_button_text(achievement_dict, unlocked)
+		button.custom_minimum_size = Vector2(_profile_achievement_card_width(), 88)
+		button.text = ""
 		button.tooltip_text = "%s\n%s\n%s" % [
 			str(achievement_dict.get("name", achievement_id)),
 			str(achievement_dict.get("description", "")),
@@ -2256,21 +3702,32 @@ func _refresh_profile_view() -> void:
 		]
 		_apply_button_skin(button, "success" if unlocked else "neutral")
 		button.disabled = true
-		reward_row.add_child(button)
+		_add_profile_option_layout(button, str(achievement_dict.get("name", achievement_id)), "已解锁" if unlocked else "未解锁", str(achievement_dict.get("description", "")), UI_PROFILE_ICON_PATH, "success" if unlocked else "neutral")
+		achievement_flow.add_child(button)
 		last_profile_button_count += 1
 	_record_layout_metrics()
 
-func _add_profile_button(text: String, skin: String, pressed_callable: Callable) -> void:
+func _add_profile_button(text: String, skin: String, pressed_callable: Callable, parent: Container = null) -> void:
 	var button := Button.new()
-	button.custom_minimum_size = Vector2(_profile_achievement_card_width(), 96)
+	button.custom_minimum_size = Vector2(132, 48)
 	button.text = text
+	button.icon = _load_texture(UI_CONTINUE_ROUTE_ICON_PATH)
+	button.expand_icon = true
 	_apply_button_skin(button, skin)
 	button.pressed.connect(pressed_callable)
-	reward_row.add_child(button)
+	(parent if parent != null else reward_row).add_child(button)
 	last_profile_button_count += 1
 
 func _profile_achievement_card_width() -> float:
-	return _bounded_width(174.0, 146.0, 188.0)
+	var available: float = _scroll_content_width()
+	var columns: int = 3 if available >= 840.0 else (2 if available >= 520.0 else 1)
+	return floor((available - 6.0 * float(columns - 1)) / float(columns))
+
+func _profile_character_button_width() -> float:
+	return clamp(floor((_scroll_content_width() - 150.0) / 3.0), 176.0, 248.0)
+
+func _profile_progression_card_width(columns: int) -> float:
+	return floor((_scroll_content_width() - 6.0 * float(columns - 1)) / float(columns))
 
 func _achievement_button_text(achievement: Dictionary, unlocked: bool) -> String:
 	var state_text := "已解锁" if unlocked else "未解锁"
@@ -2294,7 +3751,12 @@ func _profile_summary_text() -> String:
 		if not achievement.is_empty():
 			last_unlock_names.append(str(achievement.get("name", achievement_id)))
 	last_profile_last_unlock_text = "、".join(last_unlock_names)
-	last_profile_summary = "档案统计\n跑团开始：%d\n完整通关：%d\n击败 Boss：%d\n商店删卡：%d\n最高金币：%d\n最大牌组：%d\n最高完成挑战：%d\n最高解锁挑战：%d\n\n完成章节：%s\n角色通关：%s\n最近解锁：%s" % [
+	last_profile_summary = "档案统计 | 炉印 %d | 角色升级 %d/9 | 技能书 %d/%d | 当前装备：%s\n跑团开始 %d | 完整通关 %d | 击败 Boss %d | 商店删卡 %d | 最高金币 %d | 最大牌组 %d\n挑战完成 %d | 最高解锁 %d | 完成章节：%s\n角色通关：%s | 最近解锁：%s" % [
+		_progression_currency_amount(),
+		_purchased_upgrade_node_ids().size(),
+		_unlocked_skill_book_count(),
+		progression_data.get("skill_books", []).size(),
+		str(_skill_book_by_id(_equipped_skill_book_for_character(profile_character_id)).get("name", "钢铁手册")),
 		int(stats.get("runs_started", 0)),
 		int(stats.get("runs_completed", 0)),
 		int(stats.get("bosses_defeated", 0)),
@@ -2308,6 +3770,197 @@ func _profile_summary_text() -> String:
 		last_profile_last_unlock_text if not last_profile_last_unlock_text.is_empty() else "无"
 	]
 	return last_profile_summary
+
+func _add_profile_progression_entries(parent: VBoxContainer) -> void:
+	var tree: Dictionary = _character_tree_for_id(profile_character_id)
+	_add_profile_section_header(parent, str(tree.get("name", "角色升级树")), "炉印 %d | 购买后下次跑团生效" % _progression_currency_amount(), UI_PROFILE_ICON_PATH, "relic")
+	var tree_flow := HFlowContainer.new()
+	tree_flow.custom_minimum_size = Vector2(_scroll_content_width(), 0)
+	tree_flow.add_theme_constant_override("h_separation", 6)
+	tree_flow.add_theme_constant_override("v_separation", 6)
+	parent.add_child(tree_flow)
+	for node_value in tree.get("nodes", []):
+		var node: Dictionary = node_value
+		var node_id: String = str(node.get("id", ""))
+		if node_id.is_empty():
+			continue
+		var owned: bool = _purchased_upgrade_node_ids().has(node_id)
+		var blocked_reason: String = _upgrade_node_blocked_reason(node)
+		var state_text: String = "已购买" if owned else ("成本 %d 炉印" % int(node.get("cost", 0)) if blocked_reason.is_empty() else blocked_reason)
+		var skin: String = "success" if owned else ("relic" if blocked_reason.is_empty() else "neutral")
+		var button := Button.new()
+		button.custom_minimum_size = Vector2(_profile_progression_card_width(3), 94)
+		button.text = ""
+		button.tooltip_text = "%s\n%s\n%s\n%s" % [str(tree.get("name", "角色升级")), str(node.get("description", "")), str(node.get("design_note", "")), state_text]
+		_apply_button_skin(button, skin)
+		button.disabled = owned or not blocked_reason.is_empty()
+		button.pressed.connect(_on_upgrade_node_pressed.bind(node_id))
+		_add_profile_option_layout(button, str(node.get("name", node_id)), state_text, str(node.get("description", "")), _upgrade_node_icon_path(node), skin)
+		tree_flow.add_child(button)
+		last_profile_button_count += 1
+
+	_add_profile_section_header(parent, "技能书", "装备给 %s | 每局限 1 本" % _character_display_name(profile_character_id), UI_COMPENDIUM_ICON_PATH, "event")
+	var book_flow := HFlowContainer.new()
+	book_flow.custom_minimum_size = Vector2(_scroll_content_width(), 0)
+	book_flow.add_theme_constant_override("h_separation", 6)
+	book_flow.add_theme_constant_override("v_separation", 6)
+	parent.add_child(book_flow)
+	for book_value in progression_data.get("skill_books", []):
+		var book: Dictionary = book_value
+		var book_id: String = str(book.get("id", ""))
+		var unlocked: bool = _skill_book_unlocked(book)
+		var equipped: bool = _equipped_skill_book_for_character(profile_character_id) == book_id
+		var button := Button.new()
+		button.custom_minimum_size = Vector2(_profile_progression_card_width(4), 94)
+		button.text = ""
+		button.tooltip_text = "%s\n%s\n%s" % [str(book.get("description", "")), str(book.get("design_note", "")), str(book.get("balance_note", ""))]
+		var skin: String = "success" if equipped else ("event" if unlocked else "neutral")
+		_apply_button_skin(button, skin)
+		button.disabled = not unlocked or equipped
+		button.pressed.connect(_on_skill_book_equipped.bind(book_id))
+		_add_profile_option_layout(button, str(book.get("name", book_id)), "已装备" if equipped else ("可装备" if unlocked else "未解锁"), str(book.get("description", "")), _skill_book_icon_path(book_id), skin)
+		book_flow.add_child(button)
+		last_profile_button_count += 1
+
+func _add_profile_section_header(parent: VBoxContainer, title_text: String, detail_text: String, icon_path: String, skin: String) -> void:
+	var row := HBoxContainer.new()
+	row.custom_minimum_size = Vector2(_scroll_content_width(), 28)
+	row.add_theme_constant_override("separation", 7)
+	parent.add_child(row)
+	var icon := TextureRect.new()
+	icon.custom_minimum_size = Vector2(22, 22)
+	icon.texture = _load_texture(icon_path)
+	icon.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	row.add_child(icon)
+	var title := Label.new()
+	title.text = title_text
+	title.add_theme_font_size_override("font_size", 16)
+	title.add_theme_color_override("font_color", _icon_item_accent_color(skin))
+	row.add_child(title)
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(spacer)
+	var detail := Label.new()
+	detail.text = detail_text
+	detail.add_theme_font_size_override("font_size", 12)
+	detail.add_theme_color_override("font_color", Color(0.76, 0.80, 0.78))
+	row.add_child(detail)
+
+func _add_profile_option_layout(button: Button, title_text: String, state_text: String, description_text: String, icon_path: String, skin: String) -> void:
+	var margin := MarginContainer.new()
+	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
+	margin.offset_left = 9
+	margin.offset_top = 8
+	margin.offset_right = -9
+	margin.offset_bottom = -8
+	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	button.add_child(margin)
+	var row := HBoxContainer.new()
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_theme_constant_override("separation", 9)
+	margin.add_child(row)
+	row.add_child(_icon_item_frame(_load_texture(icon_path), skin, Vector2(42, 42)))
+	var text_box := VBoxContainer.new()
+	text_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	text_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	text_box.add_theme_constant_override("separation", 1)
+	row.add_child(text_box)
+	var title := _icon_item_label(title_text, 13, Color(0.96, 0.96, 0.90), HORIZONTAL_ALIGNMENT_LEFT)
+	title.clip_text = true
+	title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	text_box.add_child(title)
+	var state := _icon_item_label(state_text, 11, _icon_item_accent_color(skin), HORIZONTAL_ALIGNMENT_LEFT)
+	state.clip_text = true
+	state.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	text_box.add_child(state)
+	var description := _icon_item_label(description_text, 10, Color(0.78, 0.82, 0.80), HORIZONTAL_ALIGNMENT_LEFT)
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	description.max_lines_visible = 2
+	description.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	text_box.add_child(description)
+
+func _upgrade_node_icon_path(node: Dictionary) -> String:
+	var effects: Array = node.get("effects", [])
+	var effect_type: String = str((effects[0] as Dictionary).get("type", "")) if not effects.is_empty() else ""
+	match effect_type:
+		"max_hp_bonus":
+			return _hud_icon_path("生命")
+		"starting_gold_bonus":
+			return _hud_icon_path("金币")
+		"starting_momentum_bonus":
+			return _hud_icon_path("势能")
+		"potion_slot_bonus":
+			return _potion_fallback_icon_path()
+		"combat_start_block":
+			return _hud_icon_path("护甲")
+	return UI_PROFILE_ICON_PATH
+
+func _skill_book_icon_path(book_id: String) -> String:
+	match book_id:
+		"steel_manual":
+			return _hud_icon_path("护甲")
+		"swift_current_notes":
+			return _hud_icon_path("抽牌")
+		"furnace_edict":
+			return _hud_icon_path("能量")
+		"ember_ritual":
+			return str(INTENT_ICON_PATHS.get("debuff", UI_COMPENDIUM_ICON_PATH))
+	return UI_COMPENDIUM_ICON_PATH
+
+func _on_profile_character_pressed(character_id: String) -> void:
+	if _character_config(character_id).is_empty():
+		_audio_event("error")
+		return
+	profile_character_id = character_id
+	_audio_event("ui_click")
+	_refresh()
+
+func _upgrade_node_blocked_reason(node: Dictionary) -> String:
+	var node_id: String = str(node.get("id", ""))
+	if _purchased_upgrade_node_ids().has(node_id):
+		return "已购"
+	for prerequisite_value in node.get("prerequisites", []):
+		if not _purchased_upgrade_node_ids().has(str(prerequisite_value)):
+			var prerequisite: Dictionary = _upgrade_node_by_id(str(prerequisite_value))
+			return "需要 %s" % str(prerequisite.get("name", prerequisite_value))
+	if _progression_currency_amount() < int(node.get("cost", 0)):
+		return "炉印不足"
+	return ""
+
+func _on_upgrade_node_pressed(node_id: String) -> void:
+	var node: Dictionary = _upgrade_node_by_id(node_id)
+	if node.is_empty() or not _upgrade_node_blocked_reason(node).is_empty():
+		_audio_event("error")
+		return
+	var purchased: Array = _purchased_upgrade_node_ids()
+	purchased.append(node_id)
+	player_profile["purchased_upgrade_node_ids"] = purchased
+	player_profile["forge_marks"] = _progression_currency_amount() - int(node.get("cost", 0))
+	_save_player_profile()
+	_audio_event("reward")
+	_refresh()
+
+func _on_skill_book_equipped(book_id: String) -> void:
+	var book: Dictionary = _skill_book_by_id(book_id)
+	if book.is_empty() or not _skill_book_unlocked(book):
+		_audio_event("error")
+		return
+	var equipped_by_character: Dictionary = player_profile.get("equipped_skill_book_by_character", {}).duplicate(true)
+	var target_character_id: String = profile_character_id if profile_open else selected_character_id
+	equipped_by_character[target_character_id] = book_id
+	player_profile["equipped_skill_book_by_character"] = equipped_by_character
+	_save_player_profile()
+	_audio_event("ui_click")
+	_refresh()
+
+func _unlocked_skill_book_count() -> int:
+	var count := 0
+	for book_value in progression_data.get("skill_books", []):
+		var book: Dictionary = book_value
+		if _skill_book_unlocked(book):
+			count += 1
+	return count
 
 func _refresh_tutorial_view() -> void:
 	last_tutorial_page_visible = true
@@ -3556,6 +5209,7 @@ func _apply_tutorial_hint(step_id: String) -> void:
 		last_tutorial_body = ""
 		if tutorial_button != null:
 			tutorial_button.text = "引导"
+			_refresh_pc_menu_button_content(tutorial_button)
 		status_label.tooltip_text = status_label.text
 		return
 	var data: Dictionary = _tutorial_step_data(step_id)
@@ -3570,6 +5224,14 @@ func _apply_tutorial_hint(step_id: String) -> void:
 	status_label.tooltip_text = "%s\n\n引导：%s\n%s" % [status_label.text, last_tutorial_title, last_tutorial_body]
 	if tutorial_button != null:
 		tutorial_button.text = "完成引导"
+		_refresh_pc_menu_button_content(tutorial_button)
+
+func _refresh_pc_menu_button_content(button: Button) -> void:
+	if button == null or not _is_pc_character_menu_controls():
+		return
+	button.custom_minimum_size = Vector2(_pc_menu_control_button_width(button), 36)
+	_apply_pc_menu_control_button_skin(button)
+	_apply_pc_menu_control_button_content(button)
 
 func _tutorial_step_data(step_id: String) -> Dictionary:
 	match step_id:
@@ -3614,6 +5276,12 @@ func _tutorial_step_data(step_id: String) -> Dictionary:
 				"title": "篝火",
 				"short": "低血量休息，稳定时升级核心牌",
 				"body": "休息恢复生命，升级能提高单卡效率。若下一条路线有精英或 Boss，生命安全通常优先。"
+			}
+		"treasure":
+			return {
+				"title": "宝箱",
+				"short": "无战斗获得一次构筑强化",
+				"body": "宝箱会提供金币和一件遗物选择。优先选择能强化当前核心出牌节奏的遗物；金币可以为后续商店保留空间。"
 			}
 		"deck_view":
 			return {
@@ -3751,6 +5419,7 @@ func _record_card_removed() -> void:
 
 func _record_boss_defeated(chapter_id: String) -> void:
 	_increment_profile_stat("bosses_defeated", 1)
+	_add_forge_marks(int(progression_data.get("currency", {}).get("boss_reward", 2)))
 	_set_profile_stat_max("best_gold", run_gold)
 	_set_profile_stat_max("highest_deck_size", run_deck_ids.size())
 	_refresh_achievement_unlocks("boss_defeated")
@@ -3763,6 +5432,7 @@ func _record_chapter_completed(chapter_id: String) -> void:
 
 func _record_run_completed() -> void:
 	_increment_profile_stat("runs_completed", 1)
+	_add_forge_marks(int(progression_data.get("currency", {}).get("full_run_bonus", 3)))
 	_set_profile_stat_max("best_gold", run_gold)
 	_set_profile_stat_max("highest_deck_size", run_deck_ids.size())
 	_set_profile_stat_max("best_challenge_level_completed", current_challenge_level)
@@ -3772,6 +5442,11 @@ func _record_run_completed() -> void:
 	_set_profile_stat_max("max_challenge_level_unlocked", _max_unlocked_challenge_level())
 	_refresh_achievement_unlocks("run_completed")
 	_save_player_profile()
+
+func _add_forge_marks(amount: int) -> void:
+	if amount <= 0:
+		return
+	player_profile["forge_marks"] = _progression_currency_amount() + amount
 
 func _refresh_achievement_unlocks(context: String = "") -> Array[String]:
 	player_profile = SaveManagerScript.normalized_profile(player_profile)
@@ -3822,6 +5497,8 @@ func _refresh_combat() -> void:
 	if combat == null:
 		return
 	var reward_visible: bool = combat.phase == "won" or combat.phase == "lost"
+	if reward_visible:
+		_close_pile_view(false)
 	if combat.phase == "lost":
 		_music_context("defeat")
 	elif combat.phase == "won":
@@ -3838,6 +5515,8 @@ func _refresh_combat() -> void:
 		combat.turn,
 		combat.phase
 	]
+	if status_label != null:
+		status_label.visible = not (_is_pc_layout() and not reward_visible)
 	_refresh_battle_background()
 	_refresh_combat_hud()
 	_refresh_potions()
@@ -3846,6 +5525,7 @@ func _refresh_combat() -> void:
 	_refresh_rewards()
 	_refresh_log()
 	_refresh_feedback()
+	_apply_pc_combat_chrome(reward_visible)
 	_record_combat_layout_metrics(reward_visible)
 	end_turn_button.disabled = combat.phase != "player"
 
@@ -3886,8 +5566,12 @@ func _refresh_battle_background() -> void:
 func _refresh_combat_hud() -> void:
 	if combat_hud_row == null or combat == null:
 		return
+	var preserved_potion_row := potion_row if potion_row != null and potion_row.get_parent() == combat_hud_row else null
+	if preserved_potion_row != null:
+		combat_hud_row.remove_child(preserved_potion_row)
 	_clear_container(combat_hud_row)
 	last_combat_hud_block_count = 0
+	last_combat_hud_icon_node_count = 0
 	var hp: int = int(combat.player.get("hp", 0))
 	var max_hp: int = int(combat.player.get("max_hp", 0))
 	var block: int = int(combat.player.get("block", 0))
@@ -3895,7 +5579,10 @@ func _refresh_combat_hud() -> void:
 	var max_energy: int = int(combat.player.get("max_energy", 0))
 	var momentum: int = int(combat.player.get("momentum", 0))
 	var momentum_max: int = int(combat.player.get("momentum_max", 0))
-	var entries: Array[Dictionary] = [
+	var entries: Array[Dictionary] = []
+	if _is_pc_layout():
+		entries.append({"label": "回合", "value": "%d · %s" % [combat.turn, _combat_phase_short_name()], "skin": "event"})
+	entries.append_array([
 		{"label": "生命", "value": "%d/%d" % [hp, max_hp], "skin": "danger"},
 		{"label": "护甲", "value": "%d" % block, "skin": "primary"},
 		{"label": "能量", "value": "%d/%d" % [energy, max_energy], "skin": "relic"},
@@ -3903,7 +5590,7 @@ func _refresh_combat_hud() -> void:
 		{"label": "抽牌", "value": "%d" % combat.draw_pile.size(), "skin": "neutral"},
 		{"label": "弃牌", "value": "%d" % combat.discard_pile.size(), "skin": "neutral"},
 		{"label": "消耗", "value": "%d" % combat.exhaust_pile.size(), "skin": "event"}
-	]
+	])
 	var text_parts: Array[String] = []
 	for entry in entries:
 		var entry_dict: Dictionary = entry
@@ -3911,36 +5598,327 @@ func _refresh_combat_hud() -> void:
 		var value: String = str(entry_dict.get("value", ""))
 		_add_hud_block(label, value, str(entry_dict.get("skin", "neutral")))
 		text_parts.append("%s %s" % [label, value])
+	if preserved_potion_row != null:
+		var spacer := Control.new()
+		spacer.custom_minimum_size = Vector2(8, 1)
+		spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		combat_hud_row.add_child(spacer)
+		combat_hud_row.add_child(preserved_potion_row)
 	last_combat_hud_text = " | ".join(text_parts)
 
 func _add_hud_block(label_text: String, value_text: String, skin: String) -> void:
+	if _is_pc_layout():
+		_add_pc_hud_block(label_text, value_text, skin)
+		return
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(_hud_block_width(), round(34.0 * _combat_layout_scale()))
+	panel.custom_minimum_size = Vector2(_hud_block_width(), clamp(round((30.0 if _is_pc_layout() else 34.0) * _combat_layout_scale()), 28.0 if _is_pc_layout() else 22.0, 32.0 if _is_pc_layout() else 34.0))
 	var palette: Dictionary = _button_skin_palette(skin)
-	panel.add_theme_stylebox_override("panel", _button_style(
+	var panel_style := _button_style(
 		palette.get("bg", Color(0.16, 0.17, 0.18)),
 		palette.get("border", Color(0.46, 0.50, 0.52)),
 		2,
 		6
-	))
+	)
+	if _is_pc_layout():
+		panel_style.content_margin_left = 6
+		panel_style.content_margin_right = 6
+		panel_style.content_margin_top = 2
+		panel_style.content_margin_bottom = 2
+	panel.add_theme_stylebox_override("panel", panel_style)
 	var box := VBoxContainer.new()
 	box.alignment = BoxContainer.ALIGNMENT_CENTER
-	box.add_theme_constant_override("separation", 2)
+	box.add_theme_constant_override("separation", 1 if _is_pc_layout() else 2)
 	panel.add_child(box)
 	var label := Label.new()
 	label.text = label_text
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.add_theme_font_size_override("font_size", 10)
+	label.add_theme_font_size_override("font_size", 9 if _is_pc_layout() else 10)
 	label.add_theme_color_override("font_color", Color(0.72, 0.76, 0.74))
 	box.add_child(label)
 	var value := Label.new()
 	value.text = value_text
 	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	value.add_theme_font_size_override("font_size", 14)
+	value.add_theme_font_size_override("font_size", 12 if _is_pc_layout() else 14)
 	value.add_theme_color_override("font_color", Color(0.96, 0.96, 0.90))
 	box.add_child(value)
 	combat_hud_row.add_child(panel)
 	last_combat_hud_block_count += 1
+
+func _add_pc_hud_block(label_text: String, value_text: String, skin: String) -> void:
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(_hud_block_width(), 34)
+	panel.clip_contents = true
+	panel.tooltip_text = _hud_block_tooltip(label_text, value_text)
+	panel.add_theme_stylebox_override("panel", _pc_hud_panel_style(skin))
+	combat_hud_row.add_child(panel)
+	_add_generated_texture_background(panel, UI_RESOURCE_CHIP_PATH, 0.20)
+
+	var margin := MarginContainer.new()
+	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	margin.add_theme_constant_override("margin_left", 5)
+	margin.add_theme_constant_override("margin_right", 7)
+	margin.add_theme_constant_override("margin_top", 4)
+	margin.add_theme_constant_override("margin_bottom", 4)
+	panel.add_child(margin)
+
+	var row := HBoxContainer.new()
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_theme_constant_override("separation", 6)
+	margin.add_child(row)
+
+	var badge := PanelContainer.new()
+	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	badge.custom_minimum_size = Vector2(24, 24)
+	badge.add_theme_stylebox_override("panel", _pc_hud_badge_style(skin))
+	row.add_child(badge)
+
+	var icon := TextureRect.new()
+	icon.name = "HudIcon"
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	icon.custom_minimum_size = Vector2(18, 18)
+	icon.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.texture = _load_texture(_hud_icon_path(label_text))
+	icon.modulate = Color(1.0, 0.96, 0.78, 0.96)
+	badge.add_child(icon)
+	if icon.texture != null:
+		last_combat_hud_icon_node_count += 1
+
+	var text_box := VBoxContainer.new()
+	text_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	text_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	text_box.add_theme_constant_override("separation", -2)
+	row.add_child(text_box)
+
+	var label := Label.new()
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.text = label_text
+	label.clip_text = true
+	label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	label.add_theme_font_size_override("font_size", 8)
+	label.add_theme_color_override("font_color", Color(0.68, 0.71, 0.68))
+	text_box.add_child(label)
+
+	var value := Label.new()
+	value.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	value.text = value_text
+	value.clip_text = true
+	value.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	value.add_theme_font_size_override("font_size", 13)
+	value.add_theme_color_override("font_color", Color(0.98, 0.96, 0.86))
+	text_box.add_child(value)
+
+	if _hud_block_opens_pile(label_text):
+		var hit_area := Button.new()
+		hit_area.name = "PileHudHitArea_%s" % label_text
+		hit_area.set_anchors_preset(Control.PRESET_FULL_RECT)
+		hit_area.text = ""
+		hit_area.tooltip_text = _hud_block_tooltip(label_text, value_text)
+		hit_area.focus_mode = Control.FOCUS_ALL
+		hit_area.add_theme_stylebox_override("normal", _hud_hit_area_style(false, false))
+		hit_area.add_theme_stylebox_override("hover", _hud_hit_area_style(true, false))
+		hit_area.add_theme_stylebox_override("pressed", _hud_hit_area_style(true, true))
+		hit_area.pressed.connect(_on_pile_hud_pressed.bind(label_text))
+		panel.add_child(hit_area)
+	last_combat_hud_block_count += 1
+
+func _hud_icon_path(label_text: String) -> String:
+	return str(HUD_ICON_PATHS.get(label_text, ""))
+
+func _combat_phase_short_name() -> String:
+	if combat == null:
+		return ""
+	match str(combat.phase):
+		"player":
+			return "玩家"
+		"enemy":
+			return "敌方"
+		"won":
+			return "胜利"
+		"lost":
+			return "战败"
+	return str(combat.phase)
+
+func _hud_block_opens_pile(label_text: String) -> bool:
+	return ["抽牌", "弃牌", "消耗"].has(label_text)
+
+func _hud_block_tooltip(label_text: String, value_text: String) -> String:
+	if _hud_block_opens_pile(label_text):
+		return "%s堆：%s 张\n点击查看牌堆内容" % [label_text, value_text]
+	if label_text == "回合":
+		return "当前回合与行动阶段"
+	return "%s：%s" % [label_text, value_text]
+
+func _hud_hit_area_style(hovered: bool, pressed: bool) -> StyleBoxFlat:
+	var bg := Color(1.0, 0.78, 0.38, 0.0)
+	var border := Color(1.0, 0.76, 0.32, 0.0)
+	if hovered:
+		bg.a = 0.07 if not pressed else 0.12
+		border.a = 0.58 if not pressed else 0.78
+	var style := _button_style(bg, border, 1, 8)
+	style.content_margin_left = 0
+	style.content_margin_right = 0
+	style.content_margin_top = 0
+	style.content_margin_bottom = 0
+	return style
+
+func _on_pile_hud_pressed(label_text: String) -> void:
+	match label_text:
+		"抽牌":
+			_open_pile_view("draw")
+		"弃牌":
+			_open_pile_view("discard")
+		"消耗":
+			_open_pile_view("exhaust")
+
+func _open_pile_view(kind: String) -> void:
+	if combat == null or combat.phase == "won" or combat.phase == "lost":
+		return
+	pile_view_kind = _valid_pile_view_kind(kind)
+	pile_view_open = true
+	_refresh_pile_view()
+	_audio_event("ui_click")
+
+func _close_pile_view(play_audio: bool = true) -> void:
+	pile_view_open = false
+	pile_view_kind = ""
+	last_pile_view_visible = false
+	if pile_overlay != null:
+		pile_overlay.visible = false
+	if play_audio:
+		_audio_event("ui_click")
+
+func _on_close_pile_view_pressed() -> void:
+	_close_pile_view()
+
+func _valid_pile_view_kind(kind: String) -> String:
+	if ["draw", "discard", "exhaust"].has(kind):
+		return kind
+	return "draw"
+
+func _refresh_pile_view() -> void:
+	if pile_overlay == null or pile_cards_flow == null or pile_tab_row == null:
+		return
+	if combat == null or not pile_view_open:
+		_close_pile_view(false)
+		return
+	_sync_pile_overlay_layout()
+	pile_view_kind = _valid_pile_view_kind(pile_view_kind)
+	var cards: Array = _pile_cards_for_view(pile_view_kind)
+	pile_overlay.visible = true
+	last_pile_view_visible = true
+	last_pile_view_kind = pile_view_kind
+	last_pile_view_card_count = cards.size()
+	last_pile_view_art_node_count = 0
+	last_pile_view_tab_count = 0
+	if pile_title_label != null:
+		pile_title_label.text = "%s · %d 张" % [_pile_view_title(pile_view_kind), cards.size()]
+	if pile_summary_label != null:
+		pile_summary_label.text = _pile_view_summary(pile_view_kind, cards.size())
+	_clear_container(pile_tab_row)
+	for tab_kind in ["draw", "discard", "exhaust"]:
+		_add_pile_tab_button(str(tab_kind))
+	_clear_container(pile_cards_flow)
+	if cards.is_empty():
+		var empty_panel := PanelContainer.new()
+		empty_panel.custom_minimum_size = Vector2(max(420.0, pile_panel.custom_minimum_size.x - 46.0), 130.0)
+		empty_panel.add_theme_stylebox_override("panel", _button_style(Color(0.045, 0.052, 0.055, 0.82), Color(0.30, 0.36, 0.36, 0.70), 1, 7))
+		pile_cards_flow.add_child(empty_panel)
+		var empty_label := Label.new()
+		empty_label.text = "%s当前为空" % _pile_view_title(pile_view_kind)
+		empty_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		empty_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		empty_label.add_theme_font_size_override("font_size", 18)
+		empty_label.add_theme_color_override("font_color", Color(0.62, 0.68, 0.66))
+		empty_panel.add_child(empty_label)
+		return
+	for card_value in cards:
+		var card: Dictionary = card_value
+		var button := Button.new()
+		button.custom_minimum_size = _pile_card_size()
+		button.text = ""
+		button.focus_mode = Control.FOCUS_NONE
+		button.tooltip_text = "%s [%d]\n%s\n%s" % [
+			card.get("name", "卡牌"),
+			int(card.get("cost", 0)),
+			_card_type_display_name(str(card.get("type", ""))),
+			card.get("description", "")
+		]
+		_apply_card_button_skin(button, str(card.get("type", "")))
+		var art_path: String = _card_art_path(card)
+		var art_texture: Texture2D = _load_texture(art_path)
+		_add_structured_card_layout(button, card, art_texture, "pile_view")
+		if art_texture != null:
+			last_pile_view_art_node_count += 1
+		pile_cards_flow.add_child(button)
+
+func _add_pile_tab_button(kind: String) -> void:
+	var button := Button.new()
+	button.custom_minimum_size = Vector2(164, 36)
+	button.text = "%s  %d" % [_pile_view_title(kind), _pile_cards(kind).size()]
+	button.icon = _load_texture(_pile_view_icon_path(kind))
+	button.expand_icon = true
+	button.tooltip_text = "查看%s" % _pile_view_title(kind)
+	button.disabled = kind == pile_view_kind
+	_apply_button_skin(button, "primary" if kind == pile_view_kind else "neutral")
+	button.pressed.connect(_open_pile_view.bind(kind))
+	pile_tab_row.add_child(button)
+	last_pile_view_tab_count += 1
+
+func _pile_cards(kind: String) -> Array:
+	if combat == null:
+		return []
+	match _valid_pile_view_kind(kind):
+		"discard":
+			return combat.discard_pile
+		"exhaust":
+			return combat.exhaust_pile
+	return combat.draw_pile
+
+func _pile_cards_for_view(kind: String) -> Array:
+	var cards: Array = _pile_cards(kind).duplicate(true)
+	cards.sort_custom(_sort_cards_by_display_name)
+	return cards
+
+func _sort_cards_by_display_name(a: Variant, b: Variant) -> bool:
+	var card_a: Dictionary = a
+	var card_b: Dictionary = b
+	var name_a: String = str(card_a.get("name", card_a.get("id", "")))
+	var name_b: String = str(card_b.get("name", card_b.get("id", "")))
+	if name_a == name_b:
+		return str(card_a.get("id", "")) < str(card_b.get("id", ""))
+	return name_a < name_b
+
+func _pile_view_title(kind: String) -> String:
+	match _valid_pile_view_kind(kind):
+		"discard":
+			return "弃牌堆"
+		"exhaust":
+			return "消耗堆"
+	return "抽牌堆"
+
+func _pile_view_summary(kind: String, count: int) -> String:
+	match _valid_pile_view_kind(kind):
+		"draw":
+			return "共 %d 张。抽牌顺序已随机化，此处按名称展示，不泄露下一张牌。" % count
+		"discard":
+			return "共 %d 张。抽牌堆耗尽时，这些牌会重新洗入抽牌堆。" % count
+		"exhaust":
+			return "共 %d 张。本场战斗中通常不会再次进入牌组循环。" % count
+	return ""
+
+func _pile_view_icon_path(kind: String) -> String:
+	match _valid_pile_view_kind(kind):
+		"discard":
+			return _hud_icon_path("弃牌")
+		"exhaust":
+			return _hud_icon_path("消耗")
+	return _hud_icon_path("抽牌")
+
+func _pile_card_size() -> Vector2:
+	if _is_pc_layout():
+		return Vector2(166, 224)
+	return Vector2(132, 184)
 
 func _refresh_campfire(node: Dictionary) -> void:
 	last_campfire_button_style_count = 0
@@ -4002,14 +5980,21 @@ func _refresh_shop(node: Dictionary) -> void:
 	last_shop_button_style_count = 0
 	last_shop_card_layout_count = 0
 	last_shop_card_art_node_count = 0
+	last_shop_relic_layout_count = 0
+	last_shop_relic_icon_node_count = 0
+	last_shop_remove_candidate_count = 0
+	last_shop_remove_card_layout_count = 0
+	last_shop_remove_card_art_node_count = 0
 	last_shop_potion_layout_count = 0
 	last_shop_potion_icon_node_count = 0
 	_set_page_regions(true, false, false, false, false, true, false, true)
 	_apply_reward_page_layout_constraints(150.0, 204.0)
 	if shop_generated_for != current_node_index:
 		shop_card_options = _generate_card_rewards(3, "shop_card")
+		shop_relic_options = _generate_relic_rewards(2, "shop_relic")
 		shop_potion_options = _generate_potion_rewards(2, "shop_potion")
 		var discovery_changed: bool = _record_discovered_item_array("cards", shop_card_options)
+		discovery_changed = _record_discovered_item_array("relics", shop_relic_options) or discovery_changed
 		discovery_changed = _record_discovered_item_array("potions", shop_potion_options) or discovery_changed
 		if discovery_changed:
 			_save_player_profile()
@@ -4022,8 +6007,21 @@ func _refresh_shop(node: Dictionary) -> void:
 	_clear_container(enemy_row)
 	_clear_container(hand_row)
 	_clear_container(reward_row)
-	log_label.text = _route_preview()
 	end_turn_button.disabled = true
+
+	if shop_remove_selection_open:
+		_refresh_shop_remove_selection()
+		_record_layout_metrics()
+		return
+
+	log_label.text = "商店库存：卡牌 %d | 遗物 %d | 药水 %d\n当前金币：%d | 删卡价格：%d | 本局已删：%d" % [
+		shop_card_options.size(),
+		shop_relic_options.size(),
+		shop_potion_options.size(),
+		run_gold,
+		_remove_card_price(),
+		run_shop_remove_count
+	]
 
 	for card in shop_card_options:
 		var card_dict: Dictionary = card
@@ -4040,6 +6038,31 @@ func _refresh_shop(node: Dictionary) -> void:
 		button.disabled = run_gold < price
 		button.pressed.connect(_on_shop_buy_card_pressed.bind(str(card_dict.get("id", "")), price))
 		reward_row.add_child(button)
+
+	for relic in shop_relic_options:
+		var relic_dict: Dictionary = relic
+		var relic_price: int = _relic_price(relic_dict)
+		var relic_button := Button.new()
+		relic_button.custom_minimum_size = _large_item_button_size()
+		relic_button.text = ""
+		relic_button.tooltip_text = "遗物 %s\n%d 金币\n%s" % [relic_dict.get("name", "遗物"), relic_price, relic_dict.get("description", "")]
+		last_relic_icon_path = _relic_icon_path(relic_dict)
+		last_relic_icon_loaded = _asset_loaded(last_relic_icon_path)
+		var relic_texture: Texture2D = _load_texture(last_relic_icon_path)
+		_apply_button_skin(relic_button, "relic", "shop")
+		_add_icon_item_layout(
+			relic_button,
+			str(relic_dict.get("name", "遗物")),
+			"%d 金币" % relic_price,
+			str(relic_dict.get("description", "")),
+			relic_texture,
+			"relic",
+			"shop_relic",
+			false
+		)
+		relic_button.disabled = run_gold < relic_price or run_relic_ids.has(str(relic_dict.get("id", "")))
+		relic_button.pressed.connect(_on_shop_buy_relic_pressed.bind(str(relic_dict.get("id", "")), relic_price))
+		reward_row.add_child(relic_button)
 
 	for potion in shop_potion_options:
 		var potion_dict: Dictionary = potion
@@ -4069,9 +6092,9 @@ func _refresh_shop(node: Dictionary) -> void:
 	var remove_button := Button.new()
 	remove_button.custom_minimum_size = Vector2(160, 104)
 	var remove_price: int = _remove_card_price()
-	remove_button.text = "删卡\n%d 金币\n本局已删 %d 次\n优先移除非初始牌" % [remove_price, run_shop_remove_count]
+	remove_button.text = "删卡\n%d 金币\n本局已删 %d 次\n选择一张牌" % [remove_price, run_shop_remove_count]
 	_apply_button_skin(remove_button, "danger", "shop")
-	remove_button.disabled = run_gold < remove_price or run_deck_ids.is_empty()
+	remove_button.disabled = run_gold < remove_price or _shop_removable_card_indices().is_empty()
 	remove_button.pressed.connect(_on_shop_remove_card_pressed)
 	reward_row.add_child(remove_button)
 
@@ -4083,8 +6106,61 @@ func _refresh_shop(node: Dictionary) -> void:
 	reward_row.add_child(leave_button)
 	_record_layout_metrics()
 
+func _refresh_shop_remove_selection() -> void:
+	var remove_price: int = _remove_card_price()
+	status_label.text = "商店删卡：选择一张要移除的牌。删卡会立刻扣除 %d 金币，并使本局下次删卡更贵。" % remove_price
+	log_label.text = "当前金币：%d | 删卡价格：%d | 本局已删：%d\n选择具体卡牌后不可撤销。" % [
+		run_gold,
+		remove_price,
+		run_shop_remove_count
+	]
+
+	var header := Label.new()
+	header.text = "选择要移除的牌："
+	header.custom_minimum_size = Vector2(150, 0)
+	reward_row.add_child(header)
+
+	var candidate_indices: Array[int] = _shop_removable_card_indices()
+	last_shop_remove_candidate_count = candidate_indices.size()
+	for deck_index in candidate_indices:
+		var entry: String = str(run_deck_ids[deck_index])
+		var card_dict: Dictionary = _deck_display_card(entry)
+		if card_dict.is_empty():
+			continue
+		var button := Button.new()
+		button.custom_minimum_size = _large_card_button_size()
+		button.text = ""
+		button.tooltip_text = "移除第 %d 张：%s\n花费 %d 金币\n%s" % [
+			deck_index + 1,
+			card_dict.get("name", "卡牌"),
+			remove_price,
+			card_dict.get("description", "")
+		]
+		last_reward_card_art_path = _card_art_path(card_dict)
+		last_reward_card_art_loaded = _asset_loaded(last_reward_card_art_path)
+		var card_texture: Texture2D = _load_texture(last_reward_card_art_path)
+		_apply_card_button_skin(button, str(card_dict.get("type", "")), "shop_remove")
+		_add_structured_card_layout(button, card_dict, card_texture, "shop_remove")
+		button.disabled = run_gold < remove_price
+		button.pressed.connect(_on_shop_remove_card_selected.bind(deck_index))
+		reward_row.add_child(button)
+
+	if candidate_indices.is_empty():
+		var empty_label := Label.new()
+		empty_label.text = "当前牌组没有可移除的牌。"
+		empty_label.custom_minimum_size = Vector2(200, 0)
+		reward_row.add_child(empty_label)
+
+	var cancel_button := Button.new()
+	cancel_button.custom_minimum_size = _small_action_button_size()
+	cancel_button.text = "返回商店"
+	_apply_button_skin(cancel_button, "neutral", "shop")
+	cancel_button.pressed.connect(_on_shop_remove_cancel_pressed)
+	reward_row.add_child(cancel_button)
+
 func _refresh_event(node: Dictionary) -> void:
 	last_event_choice_style_count = 0
+	last_event_choice_layout_count = 0
 	last_event_art_path = ""
 	last_event_art_loaded = false
 	last_event_panel_title = ""
@@ -4105,19 +6181,22 @@ func _refresh_event(node: Dictionary) -> void:
 
 	_add_event_story_panel(event, node)
 
-	for choice in event.get("choices", []):
+	var event_choices: Array = event.get("choices", [])
+	for choice in event_choices:
 		var choice_dict: Dictionary = choice
 		var button := Button.new()
-		button.custom_minimum_size = Vector2(196, 122)
+		button.custom_minimum_size = _event_choice_button_size(event_choices.size())
 		var blocked_reason: String = _event_choice_blocked_reason(choice_dict)
-		button.text = _event_choice_button_text(choice_dict, blocked_reason)
+		button.text = ""
+		button.tooltip_text = _event_choice_button_text(choice_dict, blocked_reason)
 		_apply_button_skin(button, "event", "event")
 		button.disabled = not blocked_reason.is_empty()
+		_add_event_choice_layout(button, choice_dict, blocked_reason)
 		button.pressed.connect(_on_event_choice_pressed.bind(choice_dict))
 		reward_row.add_child(button)
 		last_event_panel_choice_count += 1
 
-	if event.get("choices", []).is_empty():
+	if event_choices.is_empty():
 		var continue_button := Button.new()
 		continue_button.custom_minimum_size = Vector2(120, 104)
 		continue_button.text = "继续"
@@ -4126,20 +6205,206 @@ func _refresh_event(node: Dictionary) -> void:
 		reward_row.add_child(continue_button)
 	_record_layout_metrics()
 
+func _add_event_choice_layout(button: Button, choice: Dictionary, blocked_reason: String) -> void:
+	var margin := MarginContainer.new()
+	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
+	margin.offset_left = 12
+	margin.offset_top = 10
+	margin.offset_right = -12
+	margin.offset_bottom = -10
+	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	button.add_child(margin)
+
+	var box := VBoxContainer.new()
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.alignment = BoxContainer.ALIGNMENT_CENTER
+	box.add_theme_constant_override("separation", 7 if _is_pc_layout() else 5)
+	margin.add_child(box)
+
+	var title := Label.new()
+	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	title.text = str(choice.get("label", "选择"))
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	title.add_theme_font_size_override("font_size", 16 if _is_pc_layout() else 14)
+	title.add_theme_color_override("font_color", Color(0.97, 0.92, 0.82))
+	box.add_child(title)
+
+	var description := Label.new()
+	description.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	description.text = str(choice.get("description", ""))
+	description.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	description.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	description.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	description.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+	description.add_theme_font_size_override("font_size", 12 if _is_pc_layout() else 11)
+	description.add_theme_color_override("font_color", Color(0.86, 0.86, 0.82))
+	box.add_child(description)
+
+	var footer_text := ""
+	var footer_color := Color(0.66, 0.82, 0.80)
+	if not blocked_reason.is_empty():
+		footer_text = "条件不足：%s" % blocked_reason
+		footer_color = Color(0.95, 0.56, 0.48)
+	elif choice.has("random_results"):
+		footer_text = "结果随机"
+	if not footer_text.is_empty():
+		var footer := Label.new()
+		footer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		footer.text = footer_text
+		footer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		footer.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		footer.add_theme_font_size_override("font_size", 10)
+		footer.add_theme_color_override("font_color", footer_color)
+		box.add_child(footer)
+	last_event_choice_layout_count += 1
+
+func _refresh_treasure(node: Dictionary) -> void:
+	last_treasure_gold_reward = 0
+	last_treasure_relic_layout_count = 0
+	last_treasure_relic_icon_node_count = 0
+	_set_page_regions(true, false, false, false, false, true, false, true)
+	_apply_reward_page_layout_constraints(132.0, 204.0)
+	var reward_key: String = "treasure:%s" % str(node.get("id", current_node_index))
+	if reward_generated_for != reward_key:
+		treasure_reward_gold = _treasure_gold_amount(str(node.get("id", "")))
+		last_treasure_gold_reward = treasure_reward_gold
+		relic_reward_options = _generate_relic_rewards(_treasure_relic_choice_count(), "treasure_relic")
+		relic_reward_done = relic_reward_options.is_empty()
+		card_reward_done = true
+		potion_reward_done = true
+		if _record_discovered_item_array("relics", relic_reward_options):
+			_save_player_profile()
+		reward_generated_for = reward_key
+	else:
+		last_treasure_gold_reward = treasure_reward_gold
+
+	status_label.text = "宝箱：选择 1 件遗物，并在离开时获得 %d 金币。" % treasure_reward_gold
+	feedback_label.visible = false
+	_hide_cinematic_prompt()
+	_clear_container(potion_row)
+	_clear_container(enemy_row)
+	_clear_container(hand_row)
+	_clear_container(reward_row)
+	log_label.text = "宝箱奖励：金币 %d；遗物 %d 选 1。\n选择遗物或领取金币后返回地图路线。" % [
+		treasure_reward_gold,
+		relic_reward_options.size()
+	]
+	end_turn_button.disabled = true
+
+	_add_treasure_summary_panel(node)
+
+	if not relic_reward_options.is_empty():
+		for relic in relic_reward_options:
+			var relic_dict: Dictionary = relic
+			var relic_button := Button.new()
+			relic_button.custom_minimum_size = _large_item_button_size()
+			relic_button.text = ""
+			relic_button.tooltip_text = "选择遗物：%s\n%s\n同时获得 %d 金币。" % [
+				relic_dict.get("name", "遗物"),
+				relic_dict.get("description", ""),
+				treasure_reward_gold
+			]
+			last_relic_icon_path = _relic_icon_path(relic_dict)
+			last_relic_icon_loaded = _asset_loaded(last_relic_icon_path)
+			var relic_texture: Texture2D = _load_texture(last_relic_icon_path)
+			_apply_button_skin(relic_button, "relic", "reward")
+			_add_icon_item_layout(
+				relic_button,
+				str(relic_dict.get("name", "遗物")),
+				"遗物 + %d 金币" % treasure_reward_gold,
+				str(relic_dict.get("description", "")),
+				relic_texture,
+				"relic",
+				"treasure_relic",
+				false
+			)
+			relic_button.pressed.connect(_on_treasure_relic_pressed.bind(str(relic_dict.get("id", ""))))
+			reward_row.add_child(relic_button)
+	else:
+		var empty_label := Label.new()
+		empty_label.text = "本局可获得的遗物已耗尽，领取金币后继续。"
+		empty_label.custom_minimum_size = Vector2(220, 0)
+		empty_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		reward_row.add_child(empty_label)
+
+	var continue_button := Button.new()
+	continue_button.custom_minimum_size = _small_action_button_size()
+	continue_button.text = "领取金币"
+	_apply_button_skin(continue_button, "primary", "reward")
+	continue_button.pressed.connect(_on_treasure_continue_pressed)
+	reward_row.add_child(continue_button)
+	_record_layout_metrics()
+
+func _add_treasure_summary_panel(node: Dictionary) -> void:
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(186, 154) if _is_pc_layout() else Vector2(160, 130)
+	panel.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	panel.clip_contents = true
+	panel.add_theme_stylebox_override("panel", _button_style(Color(0.14, 0.105, 0.07), Color(0.98, 0.78, 0.29), 2, 6))
+	reward_row.add_child(panel)
+
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 10)
+	margin.add_theme_constant_override("margin_right", 10)
+	margin.add_theme_constant_override("margin_top", 10)
+	margin.add_theme_constant_override("margin_bottom", 10)
+	panel.add_child(margin)
+
+	var box := VBoxContainer.new()
+	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	box.add_theme_constant_override("separation", 5)
+	margin.add_child(box)
+
+	var title := Label.new()
+	title.text = str(node.get("name", "宝箱"))
+	title.clip_text = true
+	title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 15)
+	title.add_theme_color_override("font_color", Color(1.0, 0.91, 0.58))
+	box.add_child(title)
+
+	var icon_center := CenterContainer.new()
+	icon_center.custom_minimum_size = Vector2(0, 66)
+	icon_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	box.add_child(icon_center)
+
+	var icon := TextureRect.new()
+	icon.custom_minimum_size = Vector2(58, 58)
+	icon.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.texture = _load_texture("res://assets/art/map_node_treasure.svg")
+	icon_center.add_child(icon)
+
+	var body := Label.new()
+	body.text = "金币 +%d\n选择一件遗物带走" % treasure_reward_gold
+	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	body.add_theme_font_size_override("font_size", 12)
+	body.add_theme_color_override("font_color", Color(0.92, 0.88, 0.74))
+	box.add_child(body)
+
 func _add_event_story_panel(event: Dictionary, node: Dictionary) -> void:
 	var panel := PanelContainer.new()
 	var panel_size: Vector2 = _event_story_panel_size()
 	panel.custom_minimum_size = panel_size
+	panel.clip_contents = true
 	panel.add_theme_stylebox_override("panel", _event_story_panel_style())
 	reward_row.add_child(panel)
 
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
+	row.clip_contents = true
 	panel.add_child(row)
 
 	var art_size: Vector2 = _event_story_art_size(panel_size.x)
 	var art_frame := PanelContainer.new()
 	art_frame.custom_minimum_size = art_size
+	art_frame.clip_contents = true
 	art_frame.add_theme_stylebox_override("panel", _icon_item_frame_style("event"))
 	row.add_child(art_frame)
 
@@ -4152,12 +6417,15 @@ func _add_event_story_panel(event: Dictionary, node: Dictionary) -> void:
 
 	var art := TextureRect.new()
 	art.custom_minimum_size = art_size
-	art.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+	art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	art.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	art.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	art.texture = _load_texture(last_event_art_path)
 	art_frame.add_child(art)
 
 	var text_box := VBoxContainer.new()
+	text_box.custom_minimum_size = Vector2(max(160.0, panel_size.x - art_size.x - 38.0), 0)
 	text_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	text_box.add_theme_constant_override("separation", 5)
 	row.add_child(text_box)
@@ -4172,7 +6440,11 @@ func _add_event_story_panel(event: Dictionary, node: Dictionary) -> void:
 
 	var body := Label.new()
 	body.text = event_body
+	body.custom_minimum_size = Vector2(0, max(74.0, panel_size.y - 48.0))
+	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	body.clip_text = true
+	body.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	body.add_theme_font_size_override("font_size", 10 if panel_size.x < 340.0 else 11)
 	body.add_theme_color_override("font_color", Color(0.86, 0.88, 0.84))
 	text_box.add_child(body)
@@ -4203,6 +6475,38 @@ func _refresh_potions() -> void:
 	_clear_container(potion_row)
 	last_potion_slot_layout_count = 0
 	last_potion_slot_icon_node_count = 0
+	if _is_pc_layout():
+		potion_row.alignment = BoxContainer.ALIGNMENT_END
+		var pc_max_slots: int = _max_potion_slots()
+		for i in range(pc_max_slots):
+			var button := Button.new()
+			button.custom_minimum_size = _potion_slot_button_size()
+			_configure_button_bounds(button)
+			button.clip_contents = true
+			if i < run_potion_ids.size():
+				var potion: Dictionary = _potion_by_id(str(run_potion_ids[i]))
+				last_potion_icon_path = _potion_icon_path(potion)
+				last_potion_icon_loaded = _asset_loaded(last_potion_icon_path)
+				var potion_texture: Texture2D = _load_texture(last_potion_icon_path)
+				button.text = ""
+				button.tooltip_text = "%s\n%s" % [potion.get("name", run_potion_ids[i]), potion.get("description", "")]
+				_apply_pc_potion_slot_skin(button, true)
+				_add_pc_potion_slot_layout(button, potion_texture, true)
+				button.disabled = combat == null or combat.phase != "player"
+				button.pressed.connect(_on_potion_pressed.bind(i))
+			else:
+				last_potion_icon_path = _potion_fallback_icon_path()
+				last_potion_icon_loaded = _asset_loaded(last_potion_icon_path)
+				var empty_texture: Texture2D = _load_texture(last_potion_icon_path)
+				button.text = ""
+				button.tooltip_text = "空药水槽"
+				_apply_pc_potion_slot_skin(button, false)
+				_add_pc_potion_slot_layout(button, empty_texture, false)
+				button.disabled = true
+			potion_row.add_child(button)
+		return
+
+	potion_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	var label := Label.new()
 	label.text = "药水"
 	label.custom_minimum_size = Vector2(30 if _scroll_content_width() < 420.0 else 44, 0)
@@ -4260,20 +6564,85 @@ func _refresh_potions() -> void:
 			button.disabled = true
 		potion_row.add_child(button)
 
+func _apply_pc_potion_slot_skin(button: Button, occupied: bool) -> void:
+	var normal := _pc_potion_slot_style(occupied, false)
+	var hover := _pc_potion_slot_style(occupied, true)
+	var pressed := _pc_potion_slot_style(occupied, false)
+	pressed.bg_color = pressed.bg_color.darkened(0.12)
+	button.add_theme_stylebox_override("normal", normal)
+	button.add_theme_stylebox_override("hover", hover)
+	button.add_theme_stylebox_override("pressed", pressed)
+	button.add_theme_stylebox_override("disabled", _pc_potion_slot_style(occupied, false, true))
+
+func _add_pc_potion_slot_layout(button: Button, icon_texture: Texture2D, occupied: bool) -> void:
+	var root := MarginContainer.new()
+	root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	root.offset_left = 4
+	root.offset_top = 3
+	root.offset_right = -4
+	root.offset_bottom = -3
+	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	button.add_child(root)
+
+	var center := CenterContainer.new()
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(center)
+	if occupied and icon_texture != null:
+		var icon := TextureRect.new()
+		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		icon.custom_minimum_size = Vector2(24, 24)
+		icon.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon.texture = icon_texture
+		center.add_child(icon)
+	else:
+		var socket := PanelContainer.new()
+		socket.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		socket.custom_minimum_size = Vector2(26, 22)
+		socket.add_theme_stylebox_override("panel", _pc_potion_empty_socket_style())
+		center.add_child(socket)
+		if icon_texture != null:
+			var empty_icon := TextureRect.new()
+			empty_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			empty_icon.custom_minimum_size = Vector2(18, 18)
+			empty_icon.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+			empty_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			empty_icon.texture = icon_texture
+			empty_icon.modulate = Color(0.62, 0.76, 0.74, 0.36)
+			socket.add_child(empty_icon)
+	_record_icon_item_layout("potion_slot", icon_texture != null)
+
 func _refresh_enemies() -> void:
 	_clear_container(enemy_row)
 	enemy_visuals_by_id.clear()
 	last_enemy_intent_badge_count = 0
 	last_enemy_intent_badge_texts.clear()
 	last_enemy_intent_badge_types.clear()
+	last_stage_forecast_marker_count = 0
+	last_stage_forecast_beam_count = 0
+	last_stage_forecast_icon_count = 0
 	for i in range(combat.enemies.size()):
 		var enemy: Dictionary = combat.enemies[i]
 		var enemy_id: String = str(enemy.get("id", ""))
 		var panel_width: float = _enemy_panel_width()
 		var panel_height: float = _enemy_panel_height()
+		if _is_pc_layout():
+			var pc_panel := Control.new()
+			pc_panel.custom_minimum_size = Vector2(panel_width, panel_height)
+			pc_panel.size = Vector2(panel_width, panel_height)
+			pc_panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+			enemy_row.add_child(pc_panel)
+			var pc_visual_entry: Dictionary = _add_pc_enemy_stage_layout(pc_panel, enemy, i, panel_width, panel_height)
+			enemy_visuals_by_id["%s:%d" % [enemy_id, i]] = pc_visual_entry
+			if not enemy_visuals_by_id.has(enemy_id):
+				enemy_visuals_by_id[enemy_id] = pc_visual_entry
+			continue
+
 		var panel := VBoxContainer.new()
 		panel.custom_minimum_size = Vector2(panel_width, panel_height)
 		panel.add_theme_constant_override("separation", 4)
+		if _is_pc_layout():
+			panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		enemy_row.add_child(panel)
 
 		var art := TextureRect.new()
@@ -4283,21 +6652,36 @@ func _refresh_enemies() -> void:
 		art.texture = _enemy_texture(enemy)
 		panel.add_child(art)
 
-		var intent_badge := _enemy_intent_badge(enemy, panel_width)
+		var enemy_info_width: float = _pc_enemy_info_width(panel_width) if _is_pc_layout() else panel_width
+		var intent_badge := _enemy_intent_badge(enemy, enemy_info_width)
+		if _is_pc_layout():
+			intent_badge.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		panel.add_child(intent_badge)
 
 		var button := Button.new()
-		button.custom_minimum_size = Vector2(panel_width, _enemy_button_height())
+		button.custom_minimum_size = Vector2(enemy_info_width, _enemy_button_height())
+		if _is_pc_layout():
+			button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		button.disabled = int(enemy.get("hp", 0)) <= 0
-		button.text = _enemy_button_text(enemy, i == selected_enemy_index)
 		button.tooltip_text = _enemy_tooltip_text(enemy)
 		button.clip_text = true
 		button.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-		button.add_theme_font_size_override("font_size", 10)
-		button.add_theme_stylebox_override("normal", _enemy_button_style(enemy, i == selected_enemy_index, false))
-		button.add_theme_stylebox_override("hover", _enemy_button_style(enemy, true, false))
-		button.add_theme_stylebox_override("pressed", _enemy_button_style(enemy, true, true))
-		button.add_theme_stylebox_override("disabled", _button_style(Color(0.13, 0.13, 0.14), Color(0.34, 0.34, 0.36)))
+		button.clip_contents = true
+		if _is_pc_layout():
+			button.text = ""
+			button.add_theme_stylebox_override("normal", _pc_enemy_plate_style(enemy, i == selected_enemy_index, false))
+			button.add_theme_stylebox_override("hover", _pc_enemy_plate_style(enemy, true, false))
+			button.add_theme_stylebox_override("pressed", _pc_enemy_plate_style(enemy, true, true))
+			button.add_theme_stylebox_override("disabled", _pc_enemy_plate_style(enemy, false, false, true))
+			_add_generated_texture_background(button, UI_ENEMY_PLATE_PATH, 0.18)
+			_add_pc_enemy_plate_layout(button, enemy, i == selected_enemy_index)
+		else:
+			button.text = _enemy_button_text(enemy, i == selected_enemy_index)
+			button.add_theme_font_size_override("font_size", 10)
+			button.add_theme_stylebox_override("normal", _enemy_button_style(enemy, i == selected_enemy_index, false))
+			button.add_theme_stylebox_override("hover", _enemy_button_style(enemy, true, false))
+			button.add_theme_stylebox_override("pressed", _enemy_button_style(enemy, true, true))
+			button.add_theme_stylebox_override("disabled", _button_style(Color(0.13, 0.13, 0.14), Color(0.34, 0.34, 0.36)))
 		button.pressed.connect(_on_enemy_pressed.bind(i))
 		panel.add_child(button)
 		var visual_entry := {
@@ -4309,6 +6693,314 @@ func _refresh_enemies() -> void:
 		enemy_visuals_by_id["%s:%d" % [enemy_id, i]] = visual_entry
 		if not enemy_visuals_by_id.has(enemy_id):
 			enemy_visuals_by_id[enemy_id] = visual_entry
+	_queue_stage_forecast_refresh()
+
+func _add_pc_enemy_stage_layout(panel: Control, enemy: Dictionary, enemy_index: int, panel_width: float, panel_height: float) -> Dictionary:
+	var selected: bool = enemy_index == selected_enemy_index
+	var hit_area := Button.new()
+	hit_area.name = "EnemyHitArea"
+	hit_area.set_anchors_preset(Control.PRESET_FULL_RECT)
+	hit_area.text = ""
+	hit_area.tooltip_text = _enemy_tooltip_text(enemy)
+	hit_area.disabled = int(enemy.get("hp", 0)) <= 0
+	hit_area.focus_mode = Control.FOCUS_ALL
+	hit_area.clip_contents = false
+	hit_area.add_theme_stylebox_override("normal", _pc_enemy_stage_hit_style(enemy, selected, false))
+	hit_area.add_theme_stylebox_override("hover", _pc_enemy_stage_hit_style(enemy, true, false))
+	hit_area.add_theme_stylebox_override("pressed", _pc_enemy_stage_hit_style(enemy, true, true))
+	hit_area.add_theme_stylebox_override("disabled", _pc_enemy_stage_hit_style(enemy, false, false, true))
+	hit_area.pressed.connect(_on_enemy_pressed.bind(enemy_index))
+	panel.add_child(hit_area)
+
+	var hp_plate_height := 26.0
+	var hp_plate_width: float = clamp(round(panel_width * 0.46), 118.0, 156.0)
+	var hp_plate_y: float = panel_height - hp_plate_height - 8.0
+	var art_y := 38.0
+	if panel_height >= 330.0:
+		art_y = 44.0
+	var art_height: float = clamp(_enemy_art_height() + 18.0, 150.0, min(268.0, max(150.0, hp_plate_y - art_y + 18.0)))
+
+	var foot_shadow := PanelContainer.new()
+	foot_shadow.name = "EnemyFootShadow"
+	foot_shadow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	foot_shadow.custom_minimum_size = Vector2(clamp(panel_width * 0.58, 118.0, 204.0), 18.0)
+	foot_shadow.size = foot_shadow.custom_minimum_size
+	foot_shadow.position = Vector2((panel_width - foot_shadow.size.x) * 0.5, hp_plate_y - 15.0)
+	foot_shadow.add_theme_stylebox_override("panel", _pc_enemy_foot_shadow_style(enemy, selected))
+	panel.add_child(foot_shadow)
+
+	var art := TextureRect.new()
+	art.name = "EnemyStageArt"
+	art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	art.custom_minimum_size = Vector2(panel_width, art_height)
+	art.size = art.custom_minimum_size
+	art.position = Vector2(0.0, art_y)
+	art.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+	art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	art.texture = _enemy_texture(enemy)
+	var art_scale: float = _pc_enemy_stage_art_scale(enemy)
+	if art_scale > 1.0:
+		art.scale = Vector2(art_scale, art_scale)
+		art.position = Vector2(
+			(panel_width - panel_width * art_scale) * 0.5,
+			art_y - (art_height * art_scale - art_height) * 0.44
+		)
+	panel.add_child(art)
+	_start_enemy_idle_motion(art, enemy_index)
+
+	var intent_width: float = clamp(round(panel_width * 0.32), 76.0, 98.0)
+	var intent_badge := _enemy_intent_badge(enemy, intent_width)
+	intent_badge.name = "EnemyStageIntentBadge"
+	intent_badge.size = intent_badge.custom_minimum_size
+	intent_badge.position = Vector2((panel_width - intent_badge.size.x) * 0.5, 2.0)
+	panel.add_child(intent_badge)
+
+	var hp_plate := PanelContainer.new()
+	hp_plate.name = "EnemyHpPlate"
+	hp_plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hp_plate.custom_minimum_size = Vector2(hp_plate_width, hp_plate_height)
+	hp_plate.size = hp_plate.custom_minimum_size
+	hp_plate.position = Vector2((panel_width - hp_plate_width) * 0.5, hp_plate_y)
+	hp_plate.add_theme_stylebox_override("panel", _pc_enemy_health_plate_style(enemy, selected))
+	panel.add_child(hp_plate)
+	_add_pc_enemy_health_plate_layout(hp_plate, enemy, selected)
+
+	return {
+		"panel": panel,
+		"art": art,
+		"intent_badge": intent_badge,
+		"button": hit_area
+	}
+
+func _pc_enemy_stage_art_scale(enemy: Dictionary) -> float:
+	var sprite_key: String = str(enemy.get("data", {}).get("sprite_key", ""))
+	match sprite_key:
+		"placeholder_ash_hound":
+			return 1.16
+		"placeholder_plague_alchemist":
+			return 1.30
+		"placeholder_bomb_mite":
+			return 1.24
+		"placeholder_twinblade_executor":
+			return 1.55
+		"placeholder_forge_bishop":
+			return 1.28
+	return 1.0
+
+func _start_enemy_idle_motion(art: TextureRect, enemy_index: int) -> void:
+	if DisplayServer.get_name() == "headless" or not is_inside_tree():
+		return
+	var base_y: float = art.position.y
+	var amplitude: float = 2.5 + float(enemy_index % 2)
+	var duration: float = 1.35 + float(enemy_index) * 0.12
+	var tween := create_tween().bind_node(art).set_loops()
+	tween.tween_property(art, "position:y", base_y - amplitude, duration).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	tween.tween_property(art, "position:y", base_y + amplitude * 0.35, duration).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+func _rebuild_stage_foreground_layer() -> void:
+	if battle_foreground_layer == null:
+		return
+	_clear_container(battle_foreground_layer)
+	last_stage_foreground_layer_count = 0
+	_add_stage_foreground_rect(0.0, 0.0, 1.0, 0.0, 0.0, 2.0, Color(1.0, 0.52, 0.24, 0.34))
+	_add_stage_foreground_rect(0.0, 1.0, 1.0, 1.0, 0.0, -58.0, Color(0.0, 0.0, 0.0, 0.20))
+	_add_stage_foreground_rect(0.0, 1.0, 1.0, 1.0, 0.0, -28.0, Color(0.0, 0.0, 0.0, 0.26))
+	_add_stage_foreground_rect(0.0, 0.0, 0.0, 1.0, 0.0, 0.0, Color(0.0, 0.0, 0.0, 0.16), Vector2(70, 0))
+	_add_stage_foreground_rect(1.0, 0.0, 1.0, 1.0, -70.0, 0.0, Color(0.0, 0.0, 0.0, 0.13), Vector2(70, 0))
+
+func _add_stage_foreground_rect(anchor_left: float, anchor_top: float, anchor_right: float, anchor_bottom: float, offset_x: float, offset_y: float, color: Color, fixed_size: Vector2 = Vector2.ZERO) -> void:
+	var rect := ColorRect.new()
+	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	rect.color = color
+	rect.anchor_left = anchor_left
+	rect.anchor_top = anchor_top
+	rect.anchor_right = anchor_right
+	rect.anchor_bottom = anchor_bottom
+	rect.offset_left = offset_x
+	rect.offset_top = offset_y
+	rect.offset_right = 0.0
+	rect.offset_bottom = 0.0
+	if fixed_size.x > 0.0:
+		rect.offset_right = offset_x + fixed_size.x
+	if fixed_size.y > 0.0:
+		rect.offset_bottom = offset_y + fixed_size.y
+	battle_foreground_layer.add_child(rect)
+	last_stage_foreground_layer_count += 1
+
+func _queue_stage_forecast_refresh() -> void:
+	if battle_forecast_layer == null:
+		return
+	if not _is_pc_layout() or combat == null or combat.phase == "won" or combat.phase == "lost":
+		_clear_container(battle_forecast_layer)
+		last_stage_forecast_marker_count = 0
+		last_stage_forecast_beam_count = 0
+		last_stage_forecast_icon_count = 0
+		return
+	for enemy in combat.enemies:
+		var enemy_dict: Dictionary = enemy
+		if int(enemy_dict.get("hp", 0)) <= 0:
+			continue
+		last_stage_forecast_marker_count += 1
+		var intent: Dictionary = enemy_dict.get("current_action", {}).get("intent", {})
+		if _intent_projects_to_player(str(intent.get("type", ""))):
+			last_stage_forecast_beam_count += 1
+	if is_inside_tree() and DisplayServer.get_name() != "headless":
+		call_deferred("_refresh_stage_forecast_layer")
+
+func _refresh_stage_forecast_layer() -> void:
+	if battle_forecast_layer == null or not is_instance_valid(battle_forecast_layer) or not is_inside_tree():
+		return
+	_clear_container(battle_forecast_layer)
+	last_stage_forecast_marker_count = 0
+	last_stage_forecast_beam_count = 0
+	last_stage_forecast_icon_count = 0
+	if not _is_pc_layout() or combat == null or combat.phase == "won" or combat.phase == "lost":
+		return
+	var player_control: Control = _player_combat_target_control()
+	if player_control != null and is_instance_valid(player_control):
+		var player_rect: Rect2 = _control_rect_in_layer(player_control, battle_forecast_layer)
+		var player_floor: Vector2 = Vector2(player_rect.position.x + player_rect.size.x * 0.50, player_rect.end.y - 18.0)
+		_add_stage_floor_marker(player_floor, Vector2(clamp(player_rect.size.x * 0.55, 148.0, 236.0), 30.0), "player", false)
+	for i in range(combat.enemies.size()):
+		var enemy: Dictionary = combat.enemies[i]
+		if int(enemy.get("hp", 0)) <= 0:
+			continue
+		var visual: Dictionary = _enemy_visual_for_index(i)
+		var art_value: Variant = visual.get("art", null)
+		if not is_instance_valid(art_value):
+			continue
+		var art: Control = art_value as Control
+		if art == null:
+			continue
+		var intent: Dictionary = enemy.get("current_action", {}).get("intent", {})
+		var intent_type: String = str(intent.get("type", "none"))
+		var enemy_rect: Rect2 = _control_rect_in_layer(art, battle_forecast_layer)
+		var enemy_floor: Vector2 = Vector2(enemy_rect.position.x + enemy_rect.size.x * 0.5, enemy_rect.end.y - 10.0)
+		var selected: bool = i == selected_enemy_index
+		_add_stage_floor_marker(enemy_floor, Vector2(clamp(enemy_rect.size.x * 0.64, 120.0, 210.0), 26.0), intent_type, selected)
+		_add_stage_intent_marker(Vector2(enemy_rect.position.x + enemy_rect.size.x * 0.50, enemy_rect.position.y + 22.0), intent_type, intent)
+		if selected:
+			_add_stage_selection_reticle(enemy_rect, intent_type)
+		if _intent_projects_to_player(intent_type) and player_control != null:
+			var enemy_center: Vector2 = Vector2(enemy_rect.position.x + enemy_rect.size.x * 0.5, enemy_rect.position.y + enemy_rect.size.y * 0.48)
+			var player_center: Vector2 = _control_center_in_layer(player_control, battle_forecast_layer) + Vector2(58.0, 4.0)
+			_add_stage_beam(enemy_center, player_center, intent_type)
+
+func _intent_projects_to_player(intent_type: String) -> bool:
+	return ["attack", "attack_debuff", "debuff", "status_card"].has(intent_type)
+
+func _add_stage_floor_marker(center: Vector2, size: Vector2, intent_type: String, selected: bool) -> void:
+	if battle_forecast_layer == null:
+		return
+	var marker := PanelContainer.new()
+	marker.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	marker.custom_minimum_size = size
+	marker.size = size
+	marker.position = center - size * 0.5
+	marker.add_theme_stylebox_override("panel", _stage_floor_marker_style(intent_type, selected))
+	battle_forecast_layer.add_child(marker)
+	last_stage_forecast_marker_count += 1
+
+func _add_stage_intent_marker(center: Vector2, intent_type: String, intent: Dictionary) -> void:
+	if battle_forecast_layer == null:
+		return
+	var marker := PanelContainer.new()
+	marker.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	marker.custom_minimum_size = Vector2(42, 42)
+	marker.size = marker.custom_minimum_size
+	marker.position = center - marker.size * 0.5
+	marker.add_theme_stylebox_override("panel", _stage_intent_marker_style(intent_type))
+	marker.tooltip_text = _intent_text(intent)
+	battle_forecast_layer.add_child(marker)
+
+	var icon := TextureRect.new()
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	icon.custom_minimum_size = Vector2(26, 26)
+	icon.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.texture = _load_texture(_intent_icon_path(intent_type))
+	icon.modulate = _intent_badge_font_color(intent_type)
+	marker.add_child(icon)
+	if icon.texture != null:
+		last_stage_forecast_icon_count += 1
+
+func _add_stage_selection_reticle(enemy_rect: Rect2, intent_type: String) -> void:
+	if battle_forecast_layer == null:
+		return
+	var size: Vector2 = Vector2(clamp(enemy_rect.size.x * 0.74, 122.0, 230.0), clamp(enemy_rect.size.y * 0.76, 142.0, 224.0))
+	var reticle := PanelContainer.new()
+	reticle.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	reticle.custom_minimum_size = size
+	reticle.size = size
+	reticle.position = Vector2(enemy_rect.position.x + enemy_rect.size.x * 0.5, enemy_rect.position.y + enemy_rect.size.y * 0.50) - size * 0.5
+	reticle.add_theme_stylebox_override("panel", _stage_selection_reticle_style(intent_type))
+	battle_forecast_layer.add_child(reticle)
+
+func _add_stage_beam(start: Vector2, end: Vector2, intent_type: String) -> void:
+	if battle_forecast_layer == null:
+		return
+	var delta: Vector2 = end - start
+	var length: float = max(delta.length(), 1.0)
+	for pass_index in range(2):
+		var beam := ColorRect.new()
+		beam.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		beam.color = _stage_forecast_color(intent_type)
+		beam.size = Vector2(length, 12.0 if pass_index == 0 else 4.0)
+		beam.pivot_offset = Vector2(0, beam.size.y * 0.5)
+		beam.position = start - Vector2(0, beam.size.y * 0.5)
+		beam.rotation = delta.angle()
+		beam.modulate = Color(1, 1, 1, 0.18 if pass_index == 0 else 0.50)
+		battle_forecast_layer.add_child(beam)
+	last_stage_forecast_beam_count += 1
+
+func _stage_floor_marker_style(intent_type: String, selected: bool) -> StyleBoxFlat:
+	var color: Color = _stage_forecast_color(intent_type)
+	var bg_alpha: float = 0.16 if intent_type == "player" else 0.20
+	var border_alpha: float = 0.56 if selected else 0.36
+	var style: StyleBoxFlat = _button_style(Color(color.r, color.g, color.b, bg_alpha), Color(color.r, color.g, color.b, border_alpha), 2 if selected else 1, 18)
+	style.shadow_color = Color(color.r, color.g, color.b, 0.28 if selected else 0.12)
+	style.shadow_size = 5 if selected else 2
+	style.content_margin_left = 0
+	style.content_margin_right = 0
+	style.content_margin_top = 0
+	style.content_margin_bottom = 0
+	return style
+
+func _stage_intent_marker_style(intent_type: String) -> StyleBoxFlat:
+	var color: Color = _stage_forecast_color(intent_type)
+	var style: StyleBoxFlat = _button_style(Color(0.015, 0.017, 0.020, 0.62), Color(color.r, color.g, color.b, 0.68), 1, 21)
+	style.shadow_color = Color(color.r, color.g, color.b, 0.26)
+	style.shadow_size = 4
+	style.content_margin_left = 7
+	style.content_margin_right = 7
+	style.content_margin_top = 7
+	style.content_margin_bottom = 7
+	return style
+
+func _stage_selection_reticle_style(intent_type: String) -> StyleBoxFlat:
+	var color: Color = _stage_forecast_color(intent_type)
+	var style: StyleBoxFlat = _button_style(Color(color.r, color.g, color.b, 0.035), Color(color.r, color.g, color.b, 0.62), 2, 10)
+	style.shadow_color = Color(color.r, color.g, color.b, 0.18)
+	style.shadow_size = 4
+	style.content_margin_left = 0
+	style.content_margin_right = 0
+	style.content_margin_top = 0
+	style.content_margin_bottom = 0
+	return style
+
+func _stage_forecast_color(intent_type: String) -> Color:
+	match intent_type:
+		"attack", "attack_debuff":
+			return Color(1.0, 0.30, 0.18, 1.0)
+		"block", "block_buff":
+			return Color(0.42, 0.90, 0.72, 1.0)
+		"debuff", "status_card":
+			return Color(0.82, 0.52, 1.0, 1.0)
+		"buff":
+			return Color(1.0, 0.74, 0.30, 1.0)
+		"player":
+			return Color(0.36, 0.88, 1.0, 1.0)
+	return Color(0.76, 0.82, 0.86, 1.0)
 
 func _enemy_button_text(enemy: Dictionary, selected: bool) -> String:
 	var prefix := ">> " if selected else ""
@@ -4324,6 +7016,148 @@ func _enemy_button_text(enemy: Dictionary, selected: bool) -> String:
 		int(enemy.get("block", 0)),
 		status_text
 	]
+
+func _add_pc_enemy_plate_layout(button: Button, enemy: Dictionary, selected: bool) -> void:
+	var root := MarginContainer.new()
+	root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	root.offset_left = 8
+	root.offset_top = 5
+	root.offset_right = -8
+	root.offset_bottom = -5
+	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	button.add_child(root)
+
+	var box := VBoxContainer.new()
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_theme_constant_override("separation", 3)
+	root.add_child(box)
+
+	var top_row := HBoxContainer.new()
+	top_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	top_row.add_theme_constant_override("separation", 6)
+	box.add_child(top_row)
+
+	var name_label := Label.new()
+	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	name_label.text = "%s%s" % ["> " if selected else "", str(enemy.get("name", "敌人"))]
+	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_label.clip_text = true
+	name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	name_label.add_theme_font_size_override("font_size", 12)
+	name_label.add_theme_color_override("font_color", Color(0.95, 0.93, 0.84))
+	top_row.add_child(name_label)
+
+	var hp_text := "%d/%d" % [int(enemy.get("hp", 0)), int(enemy.get("max_hp", 0))]
+	var hp_label := Label.new()
+	hp_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hp_label.text = hp_text
+	hp_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	hp_label.custom_minimum_size = Vector2(58, 0)
+	hp_label.add_theme_font_size_override("font_size", 12)
+	hp_label.add_theme_color_override("font_color", Color(1.0, 0.82, 0.72))
+	top_row.add_child(hp_label)
+
+	var hp_bar := Control.new()
+	hp_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hp_bar.custom_minimum_size = Vector2(0, 7)
+	hp_bar.clip_contents = true
+	box.add_child(hp_bar)
+
+	var bar_bg := ColorRect.new()
+	bar_bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bar_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bar_bg.color = Color(0.045, 0.035, 0.035, 0.92)
+	hp_bar.add_child(bar_bg)
+
+	var max_hp: int = max(1, int(enemy.get("max_hp", 1)))
+	var hp_ratio: float = clamp(float(int(enemy.get("hp", 0))) / float(max_hp), 0.0, 1.0)
+	var bar_fill := ColorRect.new()
+	bar_fill.anchor_left = 0.0
+	bar_fill.anchor_top = 0.0
+	bar_fill.anchor_right = hp_ratio
+	bar_fill.anchor_bottom = 1.0
+	bar_fill.offset_left = 0.0
+	bar_fill.offset_top = 0.0
+	bar_fill.offset_right = 0.0
+	bar_fill.offset_bottom = 0.0
+	bar_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bar_fill.color = Color(0.78, 0.16, 0.12, 0.94)
+	hp_bar.add_child(bar_fill)
+
+	var status_line := Label.new()
+	status_line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	status_line.text = "护甲 %d%s" % [int(enemy.get("block", 0)), _pc_enemy_status_suffix(enemy)]
+	status_line.clip_text = true
+	status_line.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	status_line.add_theme_font_size_override("font_size", 10)
+	status_line.add_theme_color_override("font_color", Color(0.72, 0.76, 0.72))
+	box.add_child(status_line)
+
+func _add_pc_enemy_health_plate_layout(hp_plate: PanelContainer, enemy: Dictionary, selected: bool) -> void:
+	var root := MarginContainer.new()
+	root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_theme_constant_override("margin_left", 5)
+	root.add_theme_constant_override("margin_right", 5)
+	root.add_theme_constant_override("margin_top", 4)
+	root.add_theme_constant_override("margin_bottom", 4)
+	hp_plate.add_child(root)
+
+	var hp_bar := Control.new()
+	hp_bar.name = "EnemyHpBar"
+	hp_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hp_bar.custom_minimum_size = Vector2(0, 14)
+	hp_bar.clip_contents = true
+	root.add_child(hp_bar)
+
+	var bar_bg := ColorRect.new()
+	bar_bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bar_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bar_bg.color = Color(0.045, 0.030, 0.026, 0.96)
+	hp_bar.add_child(bar_bg)
+
+	var max_hp: int = max(1, int(enemy.get("max_hp", 1)))
+	var hp_ratio: float = clamp(float(int(enemy.get("hp", 0))) / float(max_hp), 0.0, 1.0)
+	var bar_fill := ColorRect.new()
+	bar_fill.anchor_left = 0.0
+	bar_fill.anchor_top = 0.0
+	bar_fill.anchor_right = hp_ratio
+	bar_fill.anchor_bottom = 1.0
+	bar_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bar_fill.color = Color(0.72, 0.045, 0.035, 0.96)
+	hp_bar.add_child(bar_fill)
+
+	var bar_glint := ColorRect.new()
+	bar_glint.anchor_left = 0.0
+	bar_glint.anchor_top = 0.0
+	bar_glint.anchor_right = hp_ratio
+	bar_glint.anchor_bottom = 0.0
+	bar_glint.offset_bottom = 2.0
+	bar_glint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bar_glint.color = Color(1.0, 0.42, 0.30, 0.42)
+	hp_bar.add_child(bar_glint)
+
+	var hp_label := Label.new()
+	hp_label.name = "EnemyHpValue"
+	hp_label.set_anchors_preset(Control.PRESET_FULL_RECT)
+	hp_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hp_label.text = "%d/%d" % [int(enemy.get("hp", 0)), int(enemy.get("max_hp", 0))]
+	hp_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hp_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	hp_label.clip_text = true
+	hp_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	hp_label.add_theme_font_size_override("font_size", 10)
+	hp_label.add_theme_color_override("font_color", Color(1.0, 0.88, 0.76))
+	hp_label.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.92))
+	hp_label.add_theme_constant_override("shadow_offset_x", 1)
+	hp_label.add_theme_constant_override("shadow_offset_y", 1)
+	hp_bar.add_child(hp_label)
+
+func _pc_enemy_status_suffix(enemy: Dictionary) -> String:
+	var status_text: String = _status_text(enemy.get("statuses", {}))
+	if status_text.is_empty():
+		return ""
+	return "  %s" % status_text
 
 func _enemy_tooltip_text(enemy: Dictionary) -> String:
 	var data: Dictionary = enemy.get("data", {})
@@ -4365,19 +7199,79 @@ func _enemy_intent_badge(enemy: Dictionary, badge_width: float = 210.0) -> Panel
 	badge.custom_minimum_size = Vector2(badge_width, _enemy_badge_height())
 	badge.tooltip_text = "敌人意图：%s" % _intent_text(intent)
 	badge.add_theme_stylebox_override("panel", _intent_badge_style(intent_type))
+	if _is_pc_layout():
+		var margin := MarginContainer.new()
+		margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		margin.add_theme_constant_override("margin_left", 7)
+		margin.add_theme_constant_override("margin_right", 7)
+		margin.add_theme_constant_override("margin_top", 3)
+		margin.add_theme_constant_override("margin_bottom", 3)
+		badge.add_child(margin)
 
-	var label := Label.new()
-	label.text = badge_text
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.add_theme_font_size_override("font_size", 10)
-	label.add_theme_color_override("font_color", _intent_badge_font_color(intent_type))
-	badge.add_child(label)
+		var row := HBoxContainer.new()
+		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_theme_constant_override("separation", 4)
+		margin.add_child(row)
+
+		var icon := TextureRect.new()
+		icon.name = "IntentIcon"
+		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		icon.custom_minimum_size = Vector2(18, 18)
+		icon.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon.texture = _load_texture(_intent_icon_path(intent_type))
+		icon.modulate = _intent_badge_font_color(intent_type)
+		row.add_child(icon)
+		if icon.texture != null:
+			last_stage_forecast_icon_count += 1
+
+		var label := Label.new()
+		label.name = "IntentLabel"
+		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		label.text = _intent_compact_text(intent)
+		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		label.clip_text = true
+		label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		label.add_theme_font_size_override("font_size", 12)
+		label.add_theme_color_override("font_color", _intent_badge_font_color(intent_type))
+		row.add_child(label)
+	else:
+		var label := Label.new()
+		label.text = badge_text
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		label.add_theme_font_size_override("font_size", 10)
+		label.add_theme_color_override("font_color", _intent_badge_font_color(intent_type))
+		badge.add_child(label)
 
 	last_enemy_intent_badge_count += 1
 	last_enemy_intent_badge_texts.append(badge_text)
 	last_enemy_intent_badge_types.append(intent_type)
 	return badge
+
+func _intent_icon_path(intent_type: String) -> String:
+	return str(INTENT_ICON_PATHS.get(intent_type, "res://assets/art/generated/ui/icons/intent_buff.svg"))
+
+func _intent_compact_text(intent: Dictionary) -> String:
+	var intent_type: String = str(intent.get("type", "none"))
+	match intent_type:
+		"attack":
+			return "%d x%d" % [int(intent.get("amount", 0)), int(intent.get("hits", 1))]
+		"attack_debuff":
+			return "%d+" % int(intent.get("amount", 0))
+		"block":
+			return "+%d" % int(intent.get("amount", 0))
+		"block_buff":
+			return "+%d" % int(intent.get("amount", 0))
+		"debuff":
+			return "x%d" % int(intent.get("amount", 0))
+		"status_card":
+			return "+"
+		"buff":
+			return "x%d" % int(intent.get("amount", 0))
+	return _intent_text(intent)
 
 func _intent_badge_label(intent: Dictionary) -> String:
 	var intent_type: String = str(intent.get("type", "none"))
@@ -4458,10 +7352,15 @@ func _refresh_hand() -> void:
 		button.disabled = not combat.can_play_card(i)
 		_add_structured_card_layout(button, card, card_texture, "hand")
 		button.mouse_entered.connect(_on_card_previewed.bind(i))
+		button.mouse_entered.connect(_on_hand_card_hovered.bind(i, true))
+		button.mouse_exited.connect(_on_hand_card_hovered.bind(i, false))
 		button.focus_entered.connect(_on_card_previewed.bind(i))
+		button.focus_entered.connect(_on_hand_card_hovered.bind(i, true))
+		button.focus_exited.connect(_on_hand_card_hovered.bind(i, false))
 		button.pressed.connect(_on_card_pressed.bind(i))
 		hand_row.add_child(button)
 		hand_buttons_by_index[i] = button
+	call_deferred("_apply_hand_card_transforms")
 
 func _add_structured_card_layout(button: Button, card: Dictionary, card_texture: Texture2D, telemetry_bucket: String) -> void:
 	var card_type: String = str(card.get("type", ""))
@@ -4472,7 +7371,12 @@ func _add_structured_card_layout(button: Button, card: Dictionary, card_texture:
 	var visible_type_text: String = type_text
 	if not rarity_text.is_empty():
 		visible_type_text = "%s · %s" % [type_text, rarity_text]
-	var compact: bool = telemetry_bucket == "hand" or button.custom_minimum_size.y < 178.0
+	var use_pc_full_art: bool = _is_pc_layout() and (telemetry_bucket == "hand" or button.custom_minimum_size.y >= 200.0)
+	if use_pc_full_art:
+		_add_pc_hand_card_layout(button, card, card_texture, card_type, card_name, cost_text, visible_type_text)
+		_record_structured_card_layout(telemetry_bucket, card_texture != null, cost_text, type_text, card_name, rarity_text)
+		return
+	var compact: bool = (telemetry_bucket == "hand" and not _is_pc_layout()) or button.custom_minimum_size.y < 178.0
 	var ultra_compact: bool = compact and button.custom_minimum_size.y <= 112.0
 	var margin_x: float = 5.0 if ultra_compact else (6.0 if compact else 8.0)
 	var margin_y: float = 3.0 if ultra_compact else (4.0 if compact else 7.0)
@@ -4485,6 +7389,18 @@ func _add_structured_card_layout(button: Button, card: Dictionary, card_texture:
 	var desc_height: float = 20.0 if ultra_compact else (28.0 if compact else 58.0)
 	var desc_font_size: int = 7 if ultra_compact else (8 if compact else 10)
 	var child_gap: int = 2 if compact else 4
+	if _is_pc_layout() and not compact:
+		var card_height: float = button.custom_minimum_size.y
+		top_height = 28.0
+		cost_size = Vector2(32, 28)
+		name_font_size = 14
+		cost_font_size = 17
+		art_height = clamp(round(card_height * 0.30), 64.0, 82.0)
+		type_font_size = 11
+		desc_height = clamp(round(card_height * 0.31), 66.0, 88.0)
+		desc_font_size = 11
+		child_gap = 5
+	var framed_content_padding := 12.0
 
 	var root := MarginContainer.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -4535,14 +7451,15 @@ func _add_structured_card_layout(button: Button, card: Dictionary, card_texture:
 	var art_frame := PanelContainer.new()
 	art_frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	art_frame.custom_minimum_size = Vector2(0, art_height)
+	art_frame.clip_contents = true
 	art_frame.add_theme_stylebox_override("panel", _hand_card_art_frame_style(card_type))
 	box.add_child(art_frame)
 
 	var art := TextureRect.new()
 	art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	art.custom_minimum_size = Vector2(0, art_height)
+	art.custom_minimum_size = Vector2(0, max(0.0, art_height - framed_content_padding))
 	art.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
-	art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	art.texture = card_texture
 	art_frame.add_child(art)
 
@@ -4566,6 +7483,9 @@ func _add_structured_card_layout(button: Button, card: Dictionary, card_texture:
 	var desc := Label.new()
 	desc.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	desc.text = str(card.get("description", ""))
+	desc.custom_minimum_size = Vector2(0, max(0.0, desc_height - framed_content_padding))
+	desc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	desc.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	desc.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	desc.clip_text = true
@@ -4575,6 +7495,240 @@ func _add_structured_card_layout(button: Button, card: Dictionary, card_texture:
 	desc_panel.add_child(desc)
 
 	_record_structured_card_layout(telemetry_bucket, card_texture != null, cost_text, type_text, card_name, rarity_text)
+
+func _add_pc_hand_card_layout(button: Button, card: Dictionary, card_texture: Texture2D, card_type: String, card_name: String, cost_text: String, visible_type_text: String) -> void:
+	button.clip_contents = true
+	var card_height: float = button.custom_minimum_size.y
+	var top_height: float = clamp(round(card_height * 0.18), 30.0, 38.0)
+	var desc_height: float = clamp(round(card_height * 0.40), 72.0, 86.0)
+	var type_height: float = 20.0
+
+	var root := MarginContainer.new()
+	root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	root.offset_left = 3
+	root.offset_top = 3
+	root.offset_right = -3
+	root.offset_bottom = -3
+	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	button.add_child(root)
+
+	var stack := Control.new()
+	stack.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	stack.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	stack.clip_contents = true
+	root.add_child(stack)
+
+	var art := TextureRect.new()
+	art.name = "FullCardArt"
+	art.set_anchors_preset(Control.PRESET_FULL_RECT)
+	art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	art.texture = card_texture
+	stack.add_child(art)
+
+	var left_rail := ColorRect.new()
+	left_rail.name = "CardLeftRail"
+	left_rail.anchor_left = 0.0
+	left_rail.anchor_top = 0.0
+	left_rail.anchor_right = 0.0
+	left_rail.anchor_bottom = 1.0
+	left_rail.offset_left = 0.0
+	left_rail.offset_right = 7.0
+	left_rail.color = _pc_card_rail_color(card_type, true)
+	left_rail.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stack.add_child(left_rail)
+
+	var right_rail := ColorRect.new()
+	right_rail.name = "CardRightRail"
+	right_rail.anchor_left = 1.0
+	right_rail.anchor_top = 0.0
+	right_rail.anchor_right = 1.0
+	right_rail.anchor_bottom = 1.0
+	right_rail.offset_left = -6.0
+	right_rail.offset_right = 0.0
+	right_rail.color = Color(0.0, 0.0, 0.0, 0.40)
+	right_rail.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stack.add_child(right_rail)
+
+	var top_highlight := ColorRect.new()
+	top_highlight.name = "CardTopHighlight"
+	top_highlight.anchor_left = 0.0
+	top_highlight.anchor_top = 0.0
+	top_highlight.anchor_right = 1.0
+	top_highlight.anchor_bottom = 0.0
+	top_highlight.offset_top = 0.0
+	top_highlight.offset_bottom = 2.0
+	top_highlight.color = Color(1.0, 0.92, 0.70, 0.34)
+	top_highlight.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stack.add_child(top_highlight)
+
+	var diagonal_glaze := ColorRect.new()
+	diagonal_glaze.name = "CardDiagonalGlaze"
+	diagonal_glaze.anchor_left = 0.0
+	diagonal_glaze.anchor_top = 0.0
+	diagonal_glaze.anchor_right = 0.0
+	diagonal_glaze.anchor_bottom = 0.0
+	diagonal_glaze.offset_left = 18.0
+	diagonal_glaze.offset_top = -22.0
+	diagonal_glaze.offset_right = 82.0
+	diagonal_glaze.offset_bottom = 120.0
+	diagonal_glaze.rotation = -0.18
+	diagonal_glaze.color = Color(1.0, 0.96, 0.80, 0.055)
+	diagonal_glaze.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stack.add_child(diagonal_glaze)
+
+	var top_scrim := ColorRect.new()
+	top_scrim.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	top_scrim.anchor_right = 1.0
+	top_scrim.offset_right = 0.0
+	top_scrim.offset_bottom = top_height + 10.0
+	top_scrim.color = Color(0.02, 0.015, 0.014, 0.58)
+	top_scrim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stack.add_child(top_scrim)
+
+	var bottom_scrim := ColorRect.new()
+	bottom_scrim.anchor_left = 0.0
+	bottom_scrim.anchor_top = 1.0
+	bottom_scrim.anchor_right = 1.0
+	bottom_scrim.anchor_bottom = 1.0
+	bottom_scrim.offset_top = -desc_height - type_height - 16.0
+	bottom_scrim.offset_bottom = 0.0
+	bottom_scrim.color = Color(0.015, 0.014, 0.016, 0.68)
+	bottom_scrim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stack.add_child(bottom_scrim)
+
+	var frame := PanelContainer.new()
+	frame.set_anchors_preset(Control.PRESET_FULL_RECT)
+	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	frame.add_theme_stylebox_override("panel", _pc_hand_card_frame_style(card_type))
+	stack.add_child(frame)
+
+	var title_panel := PanelContainer.new()
+	title_panel.anchor_left = 0.0
+	title_panel.anchor_top = 0.0
+	title_panel.anchor_right = 1.0
+	title_panel.anchor_bottom = 0.0
+	title_panel.offset_left = 26.0
+	title_panel.offset_top = 4.0
+	title_panel.offset_right = -8.0
+	title_panel.offset_bottom = top_height
+	title_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	title_panel.add_theme_stylebox_override("panel", _pc_hand_card_title_style(card_type))
+	stack.add_child(title_panel)
+
+	var title_margin := MarginContainer.new()
+	title_margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	title_margin.add_theme_constant_override("margin_left", 12)
+	title_margin.add_theme_constant_override("margin_right", 8)
+	title_panel.add_child(title_margin)
+
+	var name_label := Label.new()
+	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	name_label.text = card_name
+	name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	name_label.clip_text = true
+	name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	name_label.add_theme_font_size_override("font_size", 14)
+	name_label.add_theme_color_override("font_color", Color(1.0, 0.94, 0.78))
+	title_margin.add_child(name_label)
+
+	var cost_panel := PanelContainer.new()
+	cost_panel.anchor_left = 0.0
+	cost_panel.anchor_top = 0.0
+	cost_panel.anchor_right = 0.0
+	cost_panel.anchor_bottom = 0.0
+	cost_panel.offset_left = 4.0
+	cost_panel.offset_top = 2.0
+	cost_panel.offset_right = 36.0
+	cost_panel.offset_bottom = 34.0
+	cost_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cost_panel.add_theme_stylebox_override("panel", _hand_card_cost_style(card_type))
+	stack.add_child(cost_panel)
+
+	var cost_label := Label.new()
+	cost_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cost_label.text = cost_text
+	cost_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	cost_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	cost_label.add_theme_font_size_override("font_size", 17)
+	cost_label.add_theme_color_override("font_color", Color(1.0, 0.96, 0.78))
+	cost_panel.add_child(cost_label)
+
+	var rarity_gem := PanelContainer.new()
+	rarity_gem.name = "CardRarityGem"
+	rarity_gem.anchor_left = 1.0
+	rarity_gem.anchor_top = 0.0
+	rarity_gem.anchor_right = 1.0
+	rarity_gem.anchor_bottom = 0.0
+	rarity_gem.offset_left = -26.0
+	rarity_gem.offset_top = 8.0
+	rarity_gem.offset_right = -10.0
+	rarity_gem.offset_bottom = 24.0
+	rarity_gem.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	rarity_gem.add_theme_stylebox_override("panel", _pc_card_rarity_gem_style(str(card.get("rarity", "common"))))
+	stack.add_child(rarity_gem)
+
+	var type_panel := PanelContainer.new()
+	type_panel.anchor_left = 0.08
+	type_panel.anchor_top = 1.0
+	type_panel.anchor_right = 0.92
+	type_panel.anchor_bottom = 1.0
+	type_panel.offset_top = -desc_height - type_height - 4.0
+	type_panel.offset_bottom = -desc_height - 4.0
+	type_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	type_panel.add_theme_stylebox_override("panel", _pc_hand_card_type_style(card_type))
+	stack.add_child(type_panel)
+
+	var type_label := Label.new()
+	type_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	type_label.text = visible_type_text
+	type_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	type_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	type_label.clip_text = true
+	type_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	type_label.add_theme_font_size_override("font_size", 10)
+	type_label.add_theme_color_override("font_color", _hand_card_type_color(card_type))
+	type_panel.add_child(type_label)
+
+	var desc_panel := PanelContainer.new()
+	desc_panel.name = "CardDescriptionPanel"
+	desc_panel.anchor_left = 0.0
+	desc_panel.anchor_top = 1.0
+	desc_panel.anchor_right = 1.0
+	desc_panel.anchor_bottom = 1.0
+	desc_panel.offset_left = 8.0
+	desc_panel.offset_top = -desc_height
+	desc_panel.offset_right = -8.0
+	desc_panel.offset_bottom = -8.0
+	desc_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	desc_panel.add_theme_stylebox_override("panel", _pc_hand_card_description_style(card_type))
+	stack.add_child(desc_panel)
+
+	var desc_margin := MarginContainer.new()
+	desc_margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	desc_margin.add_theme_constant_override("margin_left", 7)
+	desc_margin.add_theme_constant_override("margin_right", 7)
+	desc_margin.add_theme_constant_override("margin_top", 4)
+	desc_margin.add_theme_constant_override("margin_bottom", 4)
+	desc_panel.add_child(desc_margin)
+
+	var desc := Label.new()
+	desc.name = "CardDescriptionText"
+	desc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	desc.text = str(card.get("description", ""))
+	desc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	desc.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	desc.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	desc.clip_text = true
+	desc.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	desc.add_theme_font_size_override("font_size", 10)
+	if card_height <= 200.0:
+		desc.add_theme_font_size_override("font_size", 9)
+	desc.add_theme_color_override("font_color", Color(0.94, 0.90, 0.78))
+	desc_margin.add_child(desc)
 
 func _record_structured_card_layout(telemetry_bucket: String, art_loaded: bool, cost_text: String, type_text: String, card_name: String, rarity_text: String) -> void:
 	match telemetry_bucket:
@@ -4594,6 +7748,10 @@ func _record_structured_card_layout(telemetry_bucket: String, art_loaded: bool, 
 			last_shop_card_layout_count += 1
 			if art_loaded:
 				last_shop_card_art_node_count += 1
+		"shop_remove":
+			last_shop_remove_card_layout_count += 1
+			if art_loaded:
+				last_shop_remove_card_art_node_count += 1
 		"campfire":
 			last_campfire_card_layout_count += 1
 			if art_loaded:
@@ -4650,6 +7808,36 @@ func _add_icon_item_layout(button: Button, title: String, subtitle: String, desc
 		box.add_child(desc)
 	_record_icon_item_layout(telemetry_bucket, icon_texture != null)
 
+func _add_reward_action_button(title: String, subtitle: String, description: String, icon_path: String, skin: String, disabled: bool, callback: Callable, compact: bool = false) -> Button:
+	var button := Button.new()
+	button.custom_minimum_size = _reward_action_button_size(compact)
+	button.text = ""
+	button.tooltip_text = "%s\n%s\n%s" % [title, subtitle, description]
+	button.disabled = disabled
+	_apply_button_skin(button, skin, "reward")
+	_add_icon_item_layout(
+		button,
+		title,
+		subtitle,
+		description,
+		_load_texture(icon_path),
+		skin,
+		"reward_action",
+		compact
+	)
+	if callback.is_valid():
+		button.pressed.connect(callback)
+	return button
+
+func _create_reward_action_column() -> VBoxContainer:
+	var column := VBoxContainer.new()
+	column.name = "RewardActionColumn"
+	column.custom_minimum_size = Vector2(_reward_action_button_size(true).x, _large_card_button_size().y)
+	column.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	column.alignment = BoxContainer.ALIGNMENT_CENTER
+	column.add_theme_constant_override("separation", 6)
+	return column
+
 func _icon_item_frame(icon_texture: Texture2D, skin: String, min_size: Vector2) -> PanelContainer:
 	var frame := PanelContainer.new()
 	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -4686,6 +7874,130 @@ func _icon_item_accent_color(skin: String) -> Color:
 	var palette: Dictionary = _button_skin_palette(skin)
 	return palette.get("border", Color(0.72, 0.76, 0.78)).lightened(0.16)
 
+func _add_generated_texture_background(parent: Control, texture_path: String, alpha: float = 1.0) -> TextureRect:
+	if parent == null:
+		return null
+	var existing := parent.get_node_or_null("GeneratedTextureBackground") as TextureRect
+	if existing != null:
+		existing.texture = _load_texture(texture_path)
+		existing.modulate = Color(1, 1, 1, alpha)
+		return existing
+	var texture := TextureRect.new()
+	texture.name = "GeneratedTextureBackground"
+	texture.set_anchors_preset(Control.PRESET_FULL_RECT)
+	texture.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	texture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	texture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	texture.texture = _load_texture(texture_path)
+	texture.modulate = Color(1, 1, 1, alpha)
+	parent.add_child(texture)
+	parent.move_child(texture, 0)
+	return texture
+
+func _remove_generated_button_skin_children(button: Button) -> void:
+	if button == null:
+		return
+	for child in button.get_children():
+		if child.name == "GeneratedTextureBackground" or child.name == "GeneratedButtonLabelRoot":
+			button.remove_child(child)
+			child.free()
+
+func _apply_generated_button_texture_label(button: Button, texture_path: String, label_text: String) -> void:
+	if button == null:
+		return
+	_remove_generated_button_skin_children(button)
+	button.text = ""
+	button.clip_contents = true
+	_add_generated_texture_background(button, texture_path, 0.96)
+	var center := CenterContainer.new()
+	center.name = "GeneratedButtonLabelRoot"
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	button.add_child(center)
+	var label := Label.new()
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.text = label_text
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", 19)
+	label.add_theme_color_override("font_color", Color(0.98, 1.0, 0.78))
+	center.add_child(label)
+
+func _hud_badge_text(label_text: String) -> String:
+	match label_text:
+		"生命":
+			return "心"
+		"护甲":
+			return "盾"
+		"能量":
+			return "能"
+		"势能":
+			return "势"
+		"抽牌":
+			return "抽"
+		"弃牌":
+			return "弃"
+		"消耗":
+			return "耗"
+		_:
+			return label_text.substr(0, 1)
+
+func _pc_hud_panel_style(skin: String) -> StyleBoxFlat:
+	var palette: Dictionary = _button_skin_palette(skin)
+	var bg: Color = palette.get("bg", Color(0.16, 0.17, 0.18)).darkened(0.28)
+	var border: Color = palette.get("border", Color(0.46, 0.50, 0.52)).darkened(0.04)
+	var style := _button_style(Color(bg.r, bg.g, bg.b, 0.76), Color(border.r, border.g, border.b, 0.82), 1, 8)
+	style.content_margin_left = 0
+	style.content_margin_right = 0
+	style.content_margin_top = 0
+	style.content_margin_bottom = 0
+	style.shadow_color = Color(0, 0, 0, 0.42)
+	style.shadow_size = 3
+	return style
+
+func _pc_hud_badge_style(skin: String) -> StyleBoxFlat:
+	var palette: Dictionary = _button_skin_palette(skin)
+	var border: Color = palette.get("border", Color(0.46, 0.50, 0.52))
+	var bg: Color = border.darkened(0.34)
+	var style := _button_style(Color(bg.r, bg.g, bg.b, 0.92), Color(border.r, border.g, border.b, 0.96), 1, 12)
+	style.content_margin_left = 0
+	style.content_margin_right = 0
+	style.content_margin_top = 0
+	style.content_margin_bottom = 0
+	style.shadow_size = 1
+	return style
+
+func _pc_potion_slot_style(occupied: bool, highlighted: bool, disabled: bool = false) -> StyleBoxFlat:
+	var bg := Color(0.050, 0.064, 0.070, 0.82)
+	var border := Color(0.35, 0.45, 0.45, 0.76)
+	if occupied:
+		bg = Color(0.075, 0.18, 0.18, 0.94)
+		border = Color(0.48, 0.92, 0.88, 0.96)
+	if highlighted:
+		bg = bg.lightened(0.10)
+		border = border.lightened(0.16)
+	if disabled and not occupied:
+		bg = Color(0.030, 0.038, 0.042, 0.64)
+		border = Color(0.32, 0.38, 0.38, 0.58)
+	var style := _button_style(bg, border, 1, 11)
+	style.content_margin_left = 3
+	style.content_margin_right = 3
+	style.content_margin_top = 3
+	style.content_margin_bottom = 3
+	style.shadow_color = Color(0, 0, 0, 0.50)
+	style.shadow_size = 3
+	return style
+
+func _pc_potion_empty_socket_style() -> StyleBoxFlat:
+	var style := _button_style(Color(0.012, 0.018, 0.020, 0.44), Color(0.38, 0.56, 0.53, 0.40), 1, 8)
+	style.shadow_color = Color(0, 0, 0, 0.42)
+	style.shadow_size = 1
+	style.content_margin_left = 0
+	style.content_margin_right = 0
+	style.content_margin_top = 0
+	style.content_margin_bottom = 0
+	return style
+
 func _record_icon_item_layout(telemetry_bucket: String, icon_loaded: bool) -> void:
 	match telemetry_bucket:
 		"potion_slot":
@@ -4696,6 +8008,10 @@ func _record_icon_item_layout(telemetry_bucket: String, icon_loaded: bool) -> vo
 			last_shop_potion_layout_count += 1
 			if icon_loaded:
 				last_shop_potion_icon_node_count += 1
+		"shop_relic":
+			last_shop_relic_layout_count += 1
+			if icon_loaded:
+				last_shop_relic_icon_node_count += 1
 		"reward_potion":
 			last_reward_potion_layout_count += 1
 			if icon_loaded:
@@ -4704,6 +8020,14 @@ func _record_icon_item_layout(telemetry_bucket: String, icon_loaded: bool) -> vo
 			last_reward_relic_layout_count += 1
 			if icon_loaded:
 				last_reward_relic_icon_node_count += 1
+		"treasure_relic":
+			last_treasure_relic_layout_count += 1
+			if icon_loaded:
+				last_treasure_relic_icon_node_count += 1
+		"reward_action":
+			last_reward_action_button_count += 1
+			if icon_loaded:
+				last_reward_action_icon_node_count += 1
 
 func _refresh_log() -> void:
 	var lines: Array = combat.log_entries.slice(max(0, combat.log_entries.size() - 16), combat.log_entries.size())
@@ -4722,10 +8046,15 @@ func _refresh_feedback() -> void:
 	if message.is_empty():
 		return
 	var event_type: String = str(event.get("type", ""))
+	last_feedback_label_suppressed_for_stage = false
+	if _stage_feedback_replaces_label(event_type):
+		feedback_label.visible = false
+		last_feedback_label_suppressed_for_stage = true
+		return
 	feedback_label.text = message
 	feedback_label.visible = true
 	var feedback_height: float = round((36.0 if _is_strong_feedback(event_type) else 28.0) * _combat_layout_scale())
-	feedback_label.custom_minimum_size = Vector2(0, feedback_height)
+	feedback_label.custom_minimum_size = Vector2(340.0 if _is_pc_layout() else 0.0, feedback_height)
 	feedback_label.add_theme_font_size_override("font_size", _feedback_font_size(event_type))
 	feedback_label.add_theme_stylebox_override("normal", _feedback_style(str(event.get("severity", "info"))))
 	feedback_label.modulate = Color(1, 1, 1, 1)
@@ -4900,7 +8229,9 @@ func _flash_player_target(danger: bool) -> void:
 	if DisplayServer.get_name() == "headless" or not is_inside_tree():
 		return
 	var flash_color := Color(1.0, 0.36, 0.30, 1.0) if danger else Color(0.48, 0.78, 1.0, 1.0)
-	var target: Control = character_frame if character_frame != null and character_frame.visible else status_label
+	var target: Control = _player_combat_target_control()
+	if target == null:
+		return
 	var tween := create_tween()
 	target.modulate = flash_color
 	target.scale = Vector2(1.02, 1.02)
@@ -4911,7 +8242,69 @@ func _feedback_spawns_float(event_type: String) -> bool:
 	return ["enemy_hit", "player_hit", "block", "heal", "enemy_defeated", "phase", "won", "lost"].has(event_type)
 
 func _feedback_spawns_impact(event_type: String) -> bool:
-	return ["enemy_hit", "player_hit", "enemy_defeated", "phase"].has(event_type)
+	return ["enemy_hit", "player_hit", "block", "heal", "enemy_defeated", "phase"].has(event_type)
+
+func _stage_feedback_replaces_label(event_type: String) -> bool:
+	return _is_pc_layout() and not _is_strong_feedback(event_type)
+
+func _apply_hand_card_transforms() -> void:
+	if hand_row == null:
+		return
+	var card_count: int = hand_row.get_child_count()
+	for i in range(card_count):
+		var button := hand_row.get_child(i) as Button
+		if button == null:
+			continue
+		button.pivot_offset = button.custom_minimum_size * 0.5
+		button.scale = Vector2.ONE
+		button.z_index = i
+		button.remove_meta("hand_hover_base_position")
+		if _is_pc_layout():
+			var center: float = float(max(1, card_count - 1)) * 0.5
+			var distance_from_center: float = abs(float(i) - center)
+			var rest_position: Vector2 = button.position + Vector2(0, 4.0 + distance_from_center * 0.8)
+			button.set_meta("hand_rest_position", rest_position)
+			button.position = rest_position
+			button.rotation_degrees = _hand_card_base_rotation(i, card_count)
+		else:
+			button.remove_meta("hand_rest_position")
+			button.rotation_degrees = 0.0
+
+func _hand_card_base_rotation(index: int, card_count: int = -1) -> float:
+	if not _is_pc_layout():
+		return 0.0
+	if card_count < 0:
+		card_count = combat.hand.size() if combat != null else 0
+	if card_count <= 1:
+		return 0.0
+	var center: float = float(card_count - 1) * 0.5
+	return clamp((float(index) - center) * 1.2, -2.4, 2.4)
+
+func _on_hand_card_hovered(index: int, hovered: bool) -> void:
+	if not _is_pc_layout() or hand_row == null or not hand_buttons_by_index.has(index):
+		return
+	var button := hand_buttons_by_index.get(index) as Button
+	if button == null:
+		return
+	button.pivot_offset = button.size * 0.5 if button.size.x > 0.0 and button.size.y > 0.0 else button.custom_minimum_size * 0.5
+	var card_count: int = hand_row.get_child_count()
+	var base_rotation: float = _hand_card_base_rotation(index, card_count)
+	var rest_position: Vector2 = button.get_meta("hand_rest_position", button.position)
+	if hovered:
+		button.set_meta("hand_hover_base_position", rest_position)
+		button.z_index = 80
+		var enter_tween := create_tween()
+		enter_tween.tween_property(button, "scale", Vector2(1.045, 1.045), 0.13).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		enter_tween.parallel().tween_property(button, "rotation_degrees", 0.0, 0.13).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		enter_tween.parallel().tween_property(button, "position", rest_position + Vector2(0, -18), 0.13).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	else:
+		var base_position: Vector2 = button.get_meta("hand_hover_base_position", rest_position)
+		button.z_index = index
+		var exit_tween := create_tween()
+		exit_tween.tween_property(button, "scale", Vector2.ONE, 0.12).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		exit_tween.parallel().tween_property(button, "rotation_degrees", base_rotation, 0.12).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		exit_tween.parallel().tween_property(button, "position", base_position, 0.12).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		button.remove_meta("hand_hover_base_position")
 
 func _on_card_previewed(index: int) -> void:
 	if combat == null or combat.phase != "player" or index < 0 or index >= combat.hand.size():
@@ -4936,6 +8329,7 @@ func _build_card_visual_payload(hand_index: int, card: Dictionary, target_index:
 		"card_id": str(card.get("id", "")),
 		"card_name": str(card.get("name", "卡牌")),
 		"card_type": str(card.get("type", "")),
+		"card_art_path": _card_art_path(card),
 		"target_id": target_id,
 		"target_index": target_index,
 		"points": [start, mid, end]
@@ -4986,14 +8380,12 @@ func _card_target_position(target_id: String, target_index: int) -> Vector2:
 			return Vector2(650, 214)
 		return Vector2(560 + max(target_index, 0) * 216, 214)
 	if target_id == "player":
-		return _control_center(status_label)
+		return _control_center(_player_combat_target_control())
 	if target_id == "all_enemies":
 		return _alive_enemy_group_center()
-	var visual: Dictionary = _enemy_visual_for_index(target_index)
-	if not visual.is_empty():
-		var control := visual.get("button") as Control
-		if control != null:
-			return _control_center(control)
+	var control := _enemy_combat_target_control(target_id, target_index)
+	if control != null:
+		return _control_center(control)
 	return _feedback_target_position({"target_id": target_id})
 
 func _alive_enemy_group_center() -> Vector2:
@@ -5003,7 +8395,9 @@ func _alive_enemy_group_center() -> Vector2:
 			if int(combat.enemies[i].get("hp", 0)) <= 0:
 				continue
 			var visual: Dictionary = _enemy_visual_for_index(i)
-			var control := visual.get("button") as Control
+			var control := visual.get("art") as Control
+			if control == null:
+				control = visual.get("button") as Control
 			if control != null:
 				points.append(_control_center(control))
 	if points.is_empty():
@@ -5053,6 +8447,7 @@ func _request_card_play_visual(payload: Dictionary) -> void:
 	last_card_effect_profile = profile
 	last_card_particle_count = _card_particle_count(profile)
 	last_card_audio_event = _card_audio_event(profile)
+	last_card_flight_uses_card_art = _asset_loaded(str(payload.get("card_art_path", "")))
 	var profile_data: Dictionary = _vfx_profile(profile)
 	last_card_vfx_asset_path = _vfx_sprite_path(profile_data)
 	last_card_vfx_asset_loaded = _asset_loaded(last_card_vfx_asset_path)
@@ -5065,25 +8460,68 @@ func _request_card_play_visual(payload: Dictionary) -> void:
 		return
 	var ghost := PanelContainer.new()
 	ghost.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	ghost.custom_minimum_size = Vector2(118, 72)
+	ghost.custom_minimum_size = Vector2(86, 124) if _is_pc_layout() else Vector2(118, 72)
 	ghost.size = ghost.custom_minimum_size
 	ghost.pivot_offset = ghost.custom_minimum_size * 0.5
+	ghost.clip_contents = true
 	ghost.add_theme_stylebox_override("panel", _card_flight_style(str(payload.get("card_type", ""))))
+	var stack := Control.new()
+	stack.set_anchors_preset(Control.PRESET_FULL_RECT)
+	stack.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stack.clip_contents = true
+	ghost.add_child(stack)
+
+	var card_art_path: String = str(payload.get("card_art_path", ""))
+	var card_texture := _load_texture(card_art_path)
+	if card_texture != null:
+		var art := TextureRect.new()
+		art.set_anchors_preset(Control.PRESET_FULL_RECT)
+		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		art.texture = card_texture
+		stack.add_child(art)
+		var scrim := ColorRect.new()
+		scrim.anchor_left = 0.0
+		scrim.anchor_top = 1.0
+		scrim.anchor_right = 1.0
+		scrim.anchor_bottom = 1.0
+		scrim.offset_top = -30.0
+		scrim.color = Color(0.02, 0.016, 0.014, 0.64)
+		scrim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		stack.add_child(scrim)
+	else:
+		var fill := ColorRect.new()
+		fill.set_anchors_preset(Control.PRESET_FULL_RECT)
+		fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		fill.color = Color(0.08, 0.075, 0.07, 0.92)
+		stack.add_child(fill)
+
 	var label := Label.new()
+	label.anchor_left = 0.0
+	label.anchor_top = 1.0
+	label.anchor_right = 1.0
+	label.anchor_bottom = 1.0
+	label.offset_left = 6.0
+	label.offset_top = -29.0
+	label.offset_right = -6.0
+	label.offset_bottom = -4.0
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	label.text = str(payload.get("card_name", "卡牌"))
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	label.add_theme_font_size_override("font_size", 14)
-	label.add_theme_color_override("font_color", Color(0.95, 0.96, 0.94))
-	ghost.add_child(label)
+	label.clip_text = true
+	label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	label.add_theme_font_size_override("font_size", 10 if _is_pc_layout() else 14)
+	label.add_theme_color_override("font_color", Color(0.98, 0.94, 0.78))
+	stack.add_child(label)
 	feedback_overlay.add_child(ghost)
 	ghost.position = (points[0] as Vector2) - ghost.custom_minimum_size * 0.5
-	ghost.scale = Vector2(0.90, 0.90)
+	ghost.scale = Vector2(0.92, 0.92)
 	var tween := create_tween()
 	tween.tween_method(Callable(self, "_update_card_flight_position").bind(ghost, points, ghost.custom_minimum_size), 0.0, 1.0, 0.34).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	tween.parallel().tween_property(ghost, "scale", Vector2(0.52, 0.52), 0.34)
-	tween.parallel().tween_property(ghost, "modulate", Color(1, 1, 1, 0.16), 0.34)
+	tween.parallel().tween_property(ghost, "scale", Vector2(0.42, 0.42), 0.34)
+	tween.parallel().tween_property(ghost, "modulate", Color(1, 1, 1, 0.12), 0.34)
 	tween.tween_callback(Callable(self, "_spawn_card_resolution_effect").bind(payload))
 	tween.tween_callback(Callable(ghost, "queue_free"))
 
@@ -5463,18 +8901,54 @@ func _floating_feedback_color(event: Dictionary) -> Color:
 func _feedback_target_position(event: Dictionary) -> Vector2:
 	var target_id: String = str(event.get("target_id", ""))
 	if target_id == "player":
-		if character_panel != null and character_panel.visible:
-			return _control_center(character_panel)
-		if player_portrait != null and player_portrait.visible:
-			return _control_center(player_portrait)
-	var visual: Dictionary = enemy_visuals_by_id.get(target_id, {})
-	if not visual.is_empty():
-		var control := visual.get("button") as Control
-		if control != null:
-			return _control_center(control)
+		return _control_center(_player_combat_target_control())
+	var control := _enemy_combat_target_control(target_id, -1)
+	if control != null:
+		return _control_center(control)
 	if feedback_label != null:
 		return _control_center(feedback_label)
 	return Vector2.ZERO
+
+func _player_combat_target_control() -> Control:
+	if _is_pc_layout() and player_stage_art != null and player_stage_art.visible:
+		return player_stage_art
+	if character_panel != null and character_panel.visible:
+		return character_panel
+	if player_portrait != null and player_portrait.visible:
+		return player_portrait
+	return status_label
+
+func _enemy_combat_target_control(target_id: String, target_index: int = -1) -> Control:
+	var visual: Dictionary = {}
+	if target_index >= 0:
+		visual = _enemy_visual_for_index(target_index)
+	if visual.is_empty():
+		visual = enemy_visuals_by_id.get(target_id, {})
+	if visual.is_empty():
+		return null
+	var art_value: Variant = visual.get("art", null)
+	var art: Control = null
+	if is_instance_valid(art_value):
+		art = art_value as Control
+	if art != null and art.visible:
+		return art
+	var button_value: Variant = visual.get("button", null)
+	if is_instance_valid(button_value):
+		return button_value as Control
+	return null
+
+func _control_rect_in_layer(control: Control, layer: Control) -> Rect2:
+	if control == null or layer == null or not is_instance_valid(control) or not is_instance_valid(layer):
+		return Rect2()
+	var rect: Rect2 = control.get_global_rect()
+	var layer_transform: Transform2D = layer.get_global_transform_with_canvas()
+	var local_position: Vector2 = layer_transform.affine_inverse() * rect.position
+	var local_end: Vector2 = layer_transform.affine_inverse() * rect.end
+	return Rect2(local_position, local_end - local_position)
+
+func _control_center_in_layer(control: Control, layer: Control) -> Vector2:
+	var rect := _control_rect_in_layer(control, layer)
+	return rect.position + rect.size * 0.5
 
 func _clamp_feedback_overlay_position(position: Vector2, label_size: Vector2) -> Vector2:
 	if feedback_overlay == null:
@@ -5599,6 +9073,11 @@ func _refresh_rewards() -> void:
 	last_reward_potion_icon_node_count = 0
 	last_reward_relic_layout_count = 0
 	last_reward_relic_icon_node_count = 0
+	last_reward_gold_panel_count = 0
+	last_reward_action_button_count = 0
+	last_reward_action_icon_node_count = 0
+	last_mastery_reward_option_count = 0
+	last_mastery_reward_pending = false
 	_clear_container(reward_row)
 	if combat.phase == "lost":
 		var lost_label := Label.new()
@@ -5611,17 +9090,19 @@ func _refresh_rewards() -> void:
 
 	var node: Dictionary = _current_node()
 	var encounter_id: String = str(node.get("encounter_id", ""))
-	if reward_generated_for != encounter_id:
-		_grant_encounter_gold(encounter_id)
-		reward_options = _generate_card_rewards(3)
+	var reward_key: String = _combat_reward_key(node, encounter_id)
+	if reward_generated_for != reward_key:
 		var encounter: Dictionary = _encounter_by_id(encounter_id)
+		combat_reward_gold = _grant_encounter_gold(encounter_id, reward_key)
+		var card_reward_count: int = max(0, int(encounter.get("card_reward_count", 3)))
+		reward_options = _generate_card_rewards(card_reward_count) if card_reward_count > 0 else []
 		if bool(encounter.get("relic_reward", false)):
 			relic_reward_options = _generate_relic_rewards(3)
 			relic_reward_done = relic_reward_options.is_empty()
 		else:
 			relic_reward_options.clear()
 			relic_reward_done = true
-		if _has_empty_potion_slot():
+		if card_reward_count > 0 and _has_empty_potion_slot():
 			potion_reward_options = _generate_potion_rewards(_potion_reward_count())
 			potion_reward_done = potion_reward_options.is_empty()
 		else:
@@ -5633,12 +9114,20 @@ func _refresh_rewards() -> void:
 		if discovery_changed:
 			_save_player_profile()
 		card_reward_done = reward_options.is_empty()
-		reward_generated_for = encounter_id
+		reward_generated_for = reward_key
+	last_combat_gold_reward = combat_reward_gold
 
-	var label := Label.new()
-	label.text = "战斗胜利，选择奖励："
-	label.custom_minimum_size = Vector2(180, 0)
-	reward_row.add_child(label)
+	var action_column: VBoxContainer = _create_reward_action_column() if _is_pc_layout() else null
+	var action_target: Container = action_column if action_column != null else reward_row
+
+	if not _is_pc_layout():
+		var label := Label.new()
+		label.text = "战斗胜利，领取奖励："
+		label.custom_minimum_size = Vector2(180, 0)
+		reward_row.add_child(label)
+
+	if combat_reward_gold > 0:
+		_add_combat_gold_reward_panel(combat_reward_gold)
 
 	if not card_reward_done:
 		for card in reward_options:
@@ -5655,13 +9144,17 @@ func _refresh_rewards() -> void:
 			button.pressed.connect(_on_reward_card_pressed.bind(str(card_dict.get("id", ""))))
 			reward_row.add_child(button)
 
-		var skip_button := Button.new()
-		skip_button.custom_minimum_size = _small_action_button_size()
-		skip_button.text = "跳过卡牌"
-		_apply_button_skin(skip_button, "neutral", "reward")
-		skip_button.pressed.connect(_on_skip_card_reward_pressed)
-		reward_row.add_child(skip_button)
-	else:
+		action_target.add_child(_add_reward_action_button(
+			"跳过卡牌",
+			"保持牌组精简",
+			"不拿本次卡牌奖励。",
+			UI_SKIP_REWARD_ICON_PATH,
+			"neutral",
+			false,
+			Callable(self, "_on_skip_card_reward_pressed"),
+			action_column != null
+		))
+	elif not _is_pc_layout():
 		var card_done_label := Label.new()
 		card_done_label.text = "卡牌奖励已处理。"
 		card_done_label.custom_minimum_size = Vector2(130, 0)
@@ -5690,7 +9183,7 @@ func _refresh_rewards() -> void:
 			)
 			relic_button.pressed.connect(_on_reward_relic_pressed.bind(str(relic_dict.get("id", ""))))
 			reward_row.add_child(relic_button)
-	elif not relic_reward_options.is_empty():
+	elif not relic_reward_options.is_empty() and not _is_pc_layout():
 		var relic_done_label := Label.new()
 		relic_done_label.text = "遗物奖励已处理。"
 		relic_done_label.custom_minimum_size = Vector2(130, 0)
@@ -5720,25 +9213,171 @@ func _refresh_rewards() -> void:
 			potion_button.pressed.connect(_on_reward_potion_pressed.bind(str(potion_dict.get("id", ""))))
 			reward_row.add_child(potion_button)
 
-		var skip_potion_button := Button.new()
-		skip_potion_button.custom_minimum_size = _small_action_button_size()
-		skip_potion_button.text = "跳过药水"
-		_apply_button_skin(skip_potion_button, "neutral", "reward")
-		skip_potion_button.pressed.connect(_on_skip_potion_reward_pressed)
-		reward_row.add_child(skip_potion_button)
-	elif not potion_reward_options.is_empty():
+		action_target.add_child(_add_reward_action_button(
+			"跳过药水",
+			"保留药水槽",
+			"不拿本次药水奖励。",
+			UI_SKIP_REWARD_ICON_PATH,
+			"neutral",
+			false,
+			Callable(self, "_on_skip_potion_reward_pressed"),
+			action_column != null
+		))
+	elif not potion_reward_options.is_empty() and not _is_pc_layout():
 		var potion_done_label := Label.new()
 		potion_done_label.text = "药水奖励已处理。"
 		potion_done_label.custom_minimum_size = Vector2(130, 0)
 		reward_row.add_child(potion_done_label)
 
-	var continue_button := Button.new()
-	continue_button.custom_minimum_size = _small_action_button_size()
-	continue_button.text = "继续"
-	_apply_button_skin(continue_button, "primary", "reward")
-	continue_button.disabled = not (card_reward_done and relic_reward_done and potion_reward_done)
-	continue_button.pressed.connect(_advance_to_next_node)
-	reward_row.add_child(continue_button)
+	var standard_rewards_done: bool = card_reward_done and relic_reward_done and potion_reward_done
+	var mastery_options: Array = _eligible_deck_masteries() if standard_rewards_done and _mastery_reward_is_available() else []
+	last_mastery_reward_pending = not mastery_options.is_empty()
+	if last_mastery_reward_pending:
+		_add_mastery_reward_summary_panel(mastery_options.size())
+		for mastery_value in mastery_options:
+			var mastery: Dictionary = mastery_value
+			var mastery_id: String = str(mastery.get("id", ""))
+			var mastery_button := Button.new()
+			mastery_button.custom_minimum_size = _mastery_reward_button_size()
+			mastery_button.text = ""
+			mastery_button.tooltip_text = "%s\n%s\n条件：%s" % [
+				str(mastery.get("name", mastery_id)),
+				str(mastery.get("description", "")),
+				_mastery_requirement_text(mastery)
+			]
+			_apply_button_skin(mastery_button, "relic", "reward")
+			_add_icon_item_layout(
+				mastery_button,
+				str(mastery.get("name", mastery_id)),
+				"卡组锻造专精",
+				str(mastery.get("description", "")),
+				_load_texture(_mastery_icon_path(mastery_id)),
+				"relic",
+				"mastery_reward",
+				false
+			)
+			mastery_button.pressed.connect(_on_deck_mastery_pressed.bind(mastery_id))
+			reward_row.add_child(mastery_button)
+			last_mastery_reward_option_count += 1
+
+	var can_continue: bool = standard_rewards_done and not last_mastery_reward_pending
+	action_target.add_child(_add_reward_action_button(
+		"继续路线",
+		"进入下个节点" if can_continue else ("选择一项卡组专精" if last_mastery_reward_pending else "等待奖励处理"),
+		"完成所有奖励和卡组专精选择后继续推进路线。",
+		UI_CONTINUE_ROUTE_ICON_PATH,
+		"primary",
+		not can_continue,
+		Callable(self, "_advance_to_next_node"),
+		action_column != null
+	))
+	if action_column != null:
+		reward_row.add_child(action_column)
+
+func _add_mastery_reward_summary_panel(eligible_count: int) -> void:
+	var summary: Dictionary = _deck_summary()
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(270, 154)
+	panel.clip_contents = true
+	panel.add_theme_stylebox_override("panel", _button_style(Color(0.16, 0.13, 0.08), Color(0.92, 0.64, 0.28), 2, 6))
+	reward_row.add_child(panel)
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 11)
+	margin.add_theme_constant_override("margin_right", 11)
+	margin.add_theme_constant_override("margin_top", 10)
+	margin.add_theme_constant_override("margin_bottom", 10)
+	panel.add_child(margin)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 6)
+	margin.add_child(box)
+	var title_row := HBoxContainer.new()
+	title_row.add_theme_constant_override("separation", 7)
+	box.add_child(title_row)
+	var icon := TextureRect.new()
+	icon.custom_minimum_size = Vector2(28, 28)
+	icon.texture = _load_texture(UI_DECK_ICON_PATH)
+	icon.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	title_row.add_child(icon)
+	var title := Label.new()
+	title.text = "卡组锻造"
+	title.add_theme_font_size_override("font_size", 16)
+	title.add_theme_color_override("font_color", Color(1.0, 0.88, 0.58))
+	title_row.add_child(title)
+	var stats := Label.new()
+	stats.text = "攻击 %d  ·  技能 %d  ·  能力 %d\n0 费 %d  ·  灼伤源 %d" % [
+		int(summary.get("attack", 0)),
+		int(summary.get("skill", 0)),
+		int(summary.get("power", 0)),
+		_deck_zero_cost_count(),
+		_deck_burn_creator_count()
+	]
+	stats.add_theme_font_size_override("font_size", 12)
+	stats.add_theme_color_override("font_color", Color(0.88, 0.86, 0.78))
+	box.add_child(stats)
+	var footer := Label.new()
+	footer.text = "%d 项学派满足当前构筑" % eligible_count
+	footer.add_theme_font_size_override("font_size", 11)
+	footer.add_theme_color_override("font_color", Color(0.96, 0.68, 0.32))
+	box.add_child(footer)
+
+func _combat_reward_key(node: Dictionary, encounter_id: String) -> String:
+	var node_id: String = str(node.get("id", ""))
+	if node_id.is_empty():
+		node_id = "index_%d" % current_node_index
+	return "%s:%s" % [node_id, encounter_id]
+
+func _add_combat_gold_reward_panel(amount: int) -> void:
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = _large_item_button_size()
+	panel.clip_contents = true
+	panel.add_theme_stylebox_override("panel", _button_style(Color(0.18, 0.125, 0.045), Color(0.96, 0.70, 0.22), 2, 6))
+	reward_row.add_child(panel)
+	last_reward_gold_panel_count += 1
+
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 10)
+	margin.add_theme_constant_override("margin_right", 10)
+	margin.add_theme_constant_override("margin_top", 9)
+	margin.add_theme_constant_override("margin_bottom", 9)
+	panel.add_child(margin)
+
+	var box := VBoxContainer.new()
+	box.alignment = BoxContainer.ALIGNMENT_CENTER
+	box.add_theme_constant_override("separation", 5)
+	margin.add_child(box)
+
+	var title := Label.new()
+	title.text = "战利品"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 14)
+	title.add_theme_color_override("font_color", Color(1.0, 0.88, 0.50))
+	box.add_child(title)
+
+	var icon_center := CenterContainer.new()
+	icon_center.custom_minimum_size = Vector2(0, 48)
+	box.add_child(icon_center)
+
+	var icon := TextureRect.new()
+	icon.custom_minimum_size = Vector2(42, 42)
+	icon.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.texture = _load_texture(_hud_icon_path("金币"))
+	icon_center.add_child(icon)
+
+	var amount_label := Label.new()
+	amount_label.text = "+%d 金币" % amount
+	amount_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	amount_label.add_theme_font_size_override("font_size", 15)
+	amount_label.add_theme_color_override("font_color", Color(1.0, 0.96, 0.72))
+	box.add_child(amount_label)
+
+	var note := Label.new()
+	note.text = "已加入钱袋"
+	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	note.add_theme_font_size_override("font_size", 11)
+	note.add_theme_color_override("font_color", Color(0.84, 0.76, 0.58))
+	box.add_child(note)
 
 func _on_enemy_pressed(index: int) -> void:
 	selected_enemy_index = index
@@ -5829,6 +9468,43 @@ func _on_skip_potion_reward_pressed() -> void:
 	potion_reward_done = true
 	_refresh()
 
+func _on_deck_mastery_pressed(mastery_id: String) -> void:
+	if not run_deck_mastery_id.is_empty():
+		return
+	var mastery: Dictionary = _deck_mastery_by_id(mastery_id)
+	if mastery.is_empty() or not _deck_mastery_requirements_met(mastery.get("requirements", {})):
+		_audio_event("error")
+		return
+	run_deck_mastery_id = mastery_id
+	_audio_event("reward")
+	if combat != null:
+		combat.log_entries.append("卡组专精：%s。下一场战斗起生效。" % str(mastery.get("name", mastery_id)))
+	_refresh()
+
+func _on_treasure_relic_pressed(relic_id: String) -> void:
+	if relic_id.is_empty():
+		_audio_event("error")
+		return
+	_claim_treasure_reward(relic_id)
+
+func _on_treasure_continue_pressed() -> void:
+	_claim_treasure_reward("")
+
+func _claim_treasure_reward(relic_id: String) -> void:
+	var gold_reward: int = treasure_reward_gold
+	if gold_reward <= 0:
+		gold_reward = _treasure_gold_amount(str(_current_node().get("id", "")))
+	run_gold += gold_reward
+	last_treasure_gold_reward = gold_reward
+	treasure_reward_gold = 0
+	if not relic_id.is_empty() and not run_relic_ids.has(relic_id):
+		run_relic_ids.append(relic_id)
+		if _record_discovered_content("relics", relic_id):
+			_save_player_profile()
+	relic_reward_done = true
+	_audio_event("reward")
+	_advance_to_next_node()
+
 func _on_campfire_heal_pressed() -> void:
 	var heal_percent: int = _campfire_heal_percent()
 	var heal: int = max(1, int(ceil(float(run_max_hp) * float(heal_percent) / 100.0)))
@@ -5861,6 +9537,22 @@ func _on_shop_buy_card_pressed(card_id: String, price: int) -> void:
 			break
 	_refresh()
 
+func _on_shop_buy_relic_pressed(relic_id: String, price: int) -> void:
+	if relic_id.is_empty() or run_gold < price or run_relic_ids.has(relic_id):
+		_audio_event("error")
+		return
+	run_gold -= price
+	run_relic_ids.append(relic_id)
+	if _record_discovered_content("relics", relic_id):
+		_save_player_profile()
+	_audio_event("shop")
+	for i in range(shop_relic_options.size()):
+		var relic: Dictionary = shop_relic_options[i]
+		if str(relic.get("id", "")) == relic_id:
+			shop_relic_options.remove_at(i)
+			break
+	_refresh()
+
 func _on_shop_buy_potion_pressed(potion_id: String, price: int) -> void:
 	if potion_id.is_empty() or run_gold < price or not _has_empty_potion_slot():
 		_audio_event("error")
@@ -5879,17 +9571,33 @@ func _on_shop_buy_potion_pressed(potion_id: String, price: int) -> void:
 
 func _on_shop_remove_card_pressed() -> void:
 	var remove_price: int = _remove_card_price()
-	if run_gold < remove_price or run_deck_ids.is_empty():
+	if run_gold < remove_price or _shop_removable_card_indices().is_empty():
 		_audio_event("error")
 		return
-	var remove_index: int = _find_removable_card_index()
-	if remove_index < 0:
+	shop_remove_selection_open = true
+	_audio_event("ui_click")
+	_refresh()
+
+func _on_shop_remove_card_selected(deck_index: int) -> void:
+	var remove_price: int = _remove_card_price()
+	if run_gold < remove_price or not _shop_removable_card_indices().has(deck_index):
+		_audio_event("error")
+		_refresh()
 		return
 	run_gold -= remove_price
-	run_deck_ids.remove_at(remove_index)
+	var removed_entry: String = str(run_deck_ids[deck_index])
+	var removed_card: Dictionary = _deck_display_card(removed_entry)
+	run_deck_ids.remove_at(deck_index)
 	run_shop_remove_count += 1
+	shop_remove_selection_open = false
 	_record_card_removed()
 	_audio_event("shop")
+	status_label.text = "已移除：%s。" % removed_card.get("name", removed_entry)
+	_refresh()
+
+func _on_shop_remove_cancel_pressed() -> void:
+	shop_remove_selection_open = false
+	_audio_event("ui_click")
 	_refresh()
 
 func _on_map_node_pressed(node_id: String) -> void:
@@ -5979,6 +9687,7 @@ func _on_close_settings_pressed() -> void:
 	_refresh()
 
 func _on_profile_pressed() -> void:
+	profile_character_id = _valid_character_id(selected_character_id)
 	profile_open = true
 	deck_view_open = false
 	settings_open = false
@@ -6154,6 +9863,18 @@ func _on_load_pressed() -> void:
 	run_max_hp = int(state.get("run_max_hp", 72))
 	run_gold = int(state.get("run_gold", 0))
 	run_shop_remove_count = int(state.get("run_shop_remove_count", 0))
+	run_progression_node_ids = state.get("run_progression_node_ids", []).duplicate(true)
+	run_character_config = state.get("run_character_config", {}).duplicate(true)
+	if run_character_config.is_empty():
+		run_character_config = _character_config(selected_character_id).duplicate(true)
+		run_character_config["max_hp"] = run_max_hp
+		run_character_config["starting_hp"] = run_max_hp
+	run_skill_book_id = str(state.get("run_skill_book_id", _equipped_skill_book_for_character(selected_character_id)))
+	if _skill_book_by_id(run_skill_book_id).is_empty() or not _skill_book_unlocked(_skill_book_by_id(run_skill_book_id)):
+		run_skill_book_id = _equipped_skill_book_for_character(selected_character_id)
+	run_deck_mastery_id = str(state.get("run_deck_mastery_id", ""))
+	if not run_deck_mastery_id.is_empty() and _deck_mastery_by_id(run_deck_mastery_id).is_empty():
+		run_deck_mastery_id = ""
 	current_challenge_level = _configured_challenge_level(int(state.get("current_challenge_level", 0)))
 	selected_challenge_level = _valid_challenge_level(current_challenge_level)
 	current_chapter_id = str(state.get("current_chapter_id", _first_chapter_id()))
@@ -6171,9 +9892,12 @@ func _on_load_pressed() -> void:
 	relic_reward_options.clear()
 	potion_reward_options.clear()
 	shop_card_options.clear()
+	shop_relic_options.clear()
 	shop_potion_options.clear()
+	treasure_reward_gold = 0
 	reward_generated_for = ""
 	shop_generated_for = -1
+	shop_remove_selection_open = false
 	card_reward_done = false
 	relic_reward_done = true
 	potion_reward_done = true
@@ -6271,7 +9995,7 @@ func _asset_loaded(path: String) -> bool:
 		return false
 	if ResourceLoader.exists(path):
 		return true
-	return path.ends_with(".svg") and FileAccess.file_exists(path)
+	return (path.ends_with(".svg") or _is_raster_texture_path(path)) and FileAccess.file_exists(path)
 
 func _card_frame_path(card_type: String) -> String:
 	var frames: Dictionary = art_data.get("card_type_frames", {})
@@ -6338,7 +10062,20 @@ func _load_texture(path: String) -> Texture2D:
 		var svg_texture := ImageTexture.create_from_image(image)
 		raw_svg_texture_cache[path] = svg_texture
 		return svg_texture
+	if _is_raster_texture_path(path) and FileAccess.file_exists(path):
+		if raw_svg_texture_cache.has(path):
+			return raw_svg_texture_cache.get(path)
+		var image := Image.new()
+		var error: Error = image.load(path)
+		if error != OK or image.get_width() <= 0 or image.get_height() <= 0:
+			return null
+		var image_texture := ImageTexture.create_from_image(image)
+		raw_svg_texture_cache[path] = image_texture
+		return image_texture
 	return null
+
+func _is_raster_texture_path(path: String) -> bool:
+	return path.ends_with(".png") or path.ends_with(".jpg") or path.ends_with(".jpeg") or path.ends_with(".webp")
 
 func _player_panel_style() -> StyleBoxFlat:
 	return _button_style(Color(0.12, 0.16, 0.16, 0.94), Color(0.46, 0.72, 0.66), 2, 8)
@@ -6350,6 +10087,11 @@ func _enemy_stage_style() -> StyleBoxFlat:
 	return _button_style(Color(0.095, 0.09, 0.085, 0.92), Color(0.72, 0.48, 0.30), 2, 8)
 
 func _hand_frame_style() -> StyleBoxFlat:
+	if _is_pc_layout():
+		var style := _button_style(Color(0.045, 0.050, 0.060, 0.58), Color(0.36, 0.46, 0.66, 0.50), 1, 8)
+		style.shadow_color = Color(0, 0, 0, 0.48)
+		style.shadow_size = 5
+		return style
 	return _button_style(Color(0.11, 0.12, 0.15, 0.94), Color(0.46, 0.54, 0.72), 2, 8)
 
 func _card_button_style(card_type: String, highlighted: bool, pressed: bool) -> StyleBoxFlat:
@@ -6361,16 +10103,33 @@ func _card_button_style(card_type: String, highlighted: bool, pressed: bool) -> 
 		border = border.lightened(0.16)
 	if pressed:
 		bg = bg.darkened(0.12)
-	return _button_style(bg, border, 2, 6)
+	if _is_pc_layout():
+		var style := _button_style(Color(bg.r, bg.g, bg.b, 0.92), border.lightened(0.05), 2, 8)
+		style.shadow_color = Color(0, 0, 0, 0.60)
+		style.shadow_size = 8
+		style.content_margin_left = 0
+		style.content_margin_right = 0
+		style.content_margin_top = 0
+		style.content_margin_bottom = 0
+		return style
+	return _button_style(bg, border, 2, 5)
 
 func _hand_card_cost_style(card_type: String) -> StyleBoxFlat:
 	var colors: Dictionary = _card_colors(card_type)
-	return _button_style(
+	var style := _button_style(
 		colors.get("border", Color(0.58, 0.60, 0.64)).darkened(0.28),
 		colors.get("border", Color(0.58, 0.60, 0.64)).lightened(0.10),
 		2,
-		8
+		16 if _is_pc_layout() else 8
 	)
+	if _is_pc_layout():
+		style.shadow_color = Color(0, 0, 0, 0.52)
+		style.shadow_size = 4
+		style.content_margin_left = 0
+		style.content_margin_right = 0
+		style.content_margin_top = 0
+		style.content_margin_bottom = 0
+	return style
 
 func _hand_card_art_frame_style(card_type: String) -> StyleBoxFlat:
 	var colors: Dictionary = _card_colors(card_type)
@@ -6389,6 +10148,96 @@ func _hand_card_description_style(card_type: String) -> StyleBoxFlat:
 		1,
 		6
 	)
+
+func _pc_hand_card_frame_style(card_type: String) -> StyleBoxFlat:
+	var colors: Dictionary = _card_colors(card_type)
+	var style := _button_style(
+		Color(0.03, 0.024, 0.020, 0.10),
+		colors.get("border", Color(0.58, 0.60, 0.64)).lightened(0.12),
+		2,
+		8
+	)
+	style.content_margin_left = 0
+	style.content_margin_right = 0
+	style.content_margin_top = 0
+	style.content_margin_bottom = 0
+	style.shadow_color = Color(0, 0, 0, 0.48)
+	style.shadow_size = 7
+	return style
+
+func _pc_hand_card_title_style(card_type: String) -> StyleBoxFlat:
+	var colors: Dictionary = _card_colors(card_type)
+	var style := _button_style(
+		colors.get("bg", Color(0.18, 0.19, 0.22)).darkened(0.12),
+		colors.get("border", Color(0.58, 0.60, 0.64)).lightened(0.02),
+		1,
+		5
+	)
+	style.content_margin_left = 0
+	style.content_margin_right = 0
+	style.content_margin_top = 0
+	style.content_margin_bottom = 0
+	style.shadow_size = 2
+	return style
+
+func _pc_hand_card_type_style(card_type: String) -> StyleBoxFlat:
+	var colors: Dictionary = _card_colors(card_type)
+	var style := _button_style(
+		Color(0.03, 0.028, 0.026, 0.78),
+		colors.get("border", Color(0.58, 0.60, 0.64)).darkened(0.06),
+		1,
+		5
+	)
+	style.content_margin_left = 4
+	style.content_margin_right = 4
+	style.content_margin_top = 1
+	style.content_margin_bottom = 1
+	style.shadow_size = 1
+	return style
+
+func _pc_hand_card_description_style(card_type: String) -> StyleBoxFlat:
+	var colors: Dictionary = _card_colors(card_type)
+	var style := _button_style(
+		Color(0.08, 0.07, 0.055, 0.88),
+		colors.get("border", Color(0.58, 0.60, 0.64)).darkened(0.18),
+		1,
+		5
+	)
+	style.content_margin_left = 0
+	style.content_margin_right = 0
+	style.content_margin_top = 0
+	style.content_margin_bottom = 0
+	style.shadow_size = 2
+	return style
+
+func _pc_card_rail_color(card_type: String, primary: bool) -> Color:
+	var colors: Dictionary = _card_colors(card_type)
+	var border: Color = colors.get("border", Color(0.58, 0.60, 0.64))
+	if primary:
+		return Color(border.r, border.g, border.b, 0.50)
+	return Color(border.darkened(0.36).r, border.darkened(0.36).g, border.darkened(0.36).b, 0.42)
+
+func _pc_card_rarity_gem_style(rarity: String) -> StyleBoxFlat:
+	var color := _rarity_gem_color(rarity)
+	var style := _button_style(Color(color.r, color.g, color.b, 0.84), Color(1.0, 0.96, 0.78, 0.90), 1, 8)
+	style.shadow_color = Color(0, 0, 0, 0.55)
+	style.shadow_size = 3
+	style.content_margin_left = 0
+	style.content_margin_right = 0
+	style.content_margin_top = 0
+	style.content_margin_bottom = 0
+	return style
+
+func _rarity_gem_color(rarity: String) -> Color:
+	match rarity:
+		"uncommon":
+			return Color(0.44, 0.88, 0.62, 1.0)
+		"rare":
+			return Color(0.74, 0.52, 1.0, 1.0)
+		"starter":
+			return Color(0.88, 0.78, 0.52, 1.0)
+		_:
+			return Color(0.78, 0.84, 0.88, 1.0)
 
 func _hand_card_type_color(card_type: String) -> Color:
 	var colors: Dictionary = _card_colors(card_type)
@@ -6442,6 +10291,81 @@ func _enemy_button_style(enemy: Dictionary, selected: bool, pressed: bool) -> St
 		bg = bg.darkened(0.12)
 	return _button_style(bg, border, 2, 6)
 
+func _pc_enemy_plate_style(enemy: Dictionary, selected: bool, pressed: bool, disabled: bool = false) -> StyleBoxFlat:
+	var data: Dictionary = enemy.get("data", {})
+	var tier: String = str(data.get("tier", "normal"))
+	var bg := Color(0.10, 0.105, 0.11, 0.78)
+	var border := Color(0.45, 0.48, 0.50, 0.80)
+	if tier == "elite":
+		bg = Color(0.16, 0.12, 0.08, 0.82)
+		border = Color(0.88, 0.58, 0.28, 0.92)
+	elif tier == "boss":
+		bg = Color(0.17, 0.075, 0.075, 0.84)
+		border = Color(0.96, 0.34, 0.28, 0.96)
+	if selected:
+		bg = bg.lightened(0.08)
+		border = border.lightened(0.16)
+	if pressed:
+		bg = bg.darkened(0.10)
+	if disabled:
+		bg = Color(0.06, 0.06, 0.065, 0.58)
+		border = Color(0.24, 0.24, 0.25, 0.62)
+	var style := _button_style(bg, border, 1, 7)
+	style.content_margin_left = 0
+	style.content_margin_right = 0
+	style.content_margin_top = 0
+	style.content_margin_bottom = 0
+	style.shadow_color = Color(0, 0, 0, 0.44)
+	style.shadow_size = 3
+	return style
+
+func _pc_enemy_stage_hit_style(enemy: Dictionary, selected: bool, pressed: bool, disabled: bool = false) -> StyleBoxFlat:
+	var bg := Color(0.0, 0.0, 0.0, 0.0)
+	if pressed:
+		bg = Color(1.0, 0.55, 0.24, 0.035)
+	if disabled:
+		bg = Color(0.0, 0.0, 0.0, 0.08)
+	var style := _button_style(bg, Color(0.0, 0.0, 0.0, 0.0), 0, 10)
+	style.content_margin_left = 0
+	style.content_margin_right = 0
+	style.content_margin_top = 0
+	style.content_margin_bottom = 0
+	style.shadow_size = 0
+	return style
+
+func _pc_enemy_health_plate_style(enemy: Dictionary, selected: bool) -> StyleBoxFlat:
+	var data: Dictionary = enemy.get("data", {})
+	var tier: String = str(data.get("tier", "normal"))
+	var border := Color(0.42, 0.46, 0.46, 0.68)
+	if tier == "elite":
+		border = Color(0.88, 0.58, 0.28, 0.72)
+	elif tier == "boss":
+		border = Color(0.96, 0.34, 0.28, 0.78)
+	if selected:
+		border = border.lightened(0.18)
+	var style := _button_style(Color(0.018, 0.016, 0.015, 0.72), border, 1, 5)
+	style.content_margin_left = 0
+	style.content_margin_right = 0
+	style.content_margin_top = 0
+	style.content_margin_bottom = 0
+	style.shadow_color = Color(0, 0, 0, 0.58)
+	style.shadow_size = 4
+	return style
+
+func _pc_enemy_foot_shadow_style(enemy: Dictionary, selected: bool) -> StyleBoxFlat:
+	var color := Color(0.0, 0.0, 0.0, 0.38)
+	var border := Color(0.0, 0.0, 0.0, 0.0)
+	if selected:
+		border = Color(0.66, 0.92, 0.82, 0.30)
+	var style := _button_style(color, border, 1 if selected else 0, 12)
+	style.content_margin_left = 0
+	style.content_margin_right = 0
+	style.content_margin_top = 0
+	style.content_margin_bottom = 0
+	style.shadow_color = Color(0, 0, 0, 0.34)
+	style.shadow_size = 5
+	return style
+
 func _character_button_style(character_id: String, highlighted: bool, pressed: bool) -> StyleBoxFlat:
 	var bg := Color(0.16, 0.18, 0.20)
 	var border := Color(0.62, 0.68, 0.72)
@@ -6451,12 +10375,15 @@ func _character_button_style(character_id: String, highlighted: bool, pressed: b
 	elif character_id == "ember_exile":
 		bg = Color(0.22, 0.13, 0.10)
 		border = Color(0.88, 0.48, 0.28)
+	elif character_id == "pyre_ascetic":
+		bg = Color(0.20, 0.12, 0.13)
+		border = Color(0.96, 0.50, 0.38)
 	if highlighted:
 		bg = bg.lightened(0.10)
 		border = border.lightened(0.14)
 	if pressed:
 		bg = bg.darkened(0.12)
-	return _button_style(bg, border, 2, 6)
+	return _button_style(bg, border, 3 if _is_pc_layout() else 2, 6)
 
 func _apply_card_button_skin(button: Button, card_type: String, telemetry_bucket: String = "") -> void:
 	_configure_button_bounds(button)
@@ -6543,6 +10470,18 @@ func _card_colors(card_type: String) -> Dictionary:
 			return {"bg": Color(0.18, 0.19, 0.22), "border": Color(0.58, 0.60, 0.64)}
 
 func _feedback_style(severity: String) -> StyleBoxFlat:
+	if _is_pc_layout():
+		match severity:
+			"danger":
+				return _button_style(Color(0.22, 0.055, 0.045, 0.82), Color(0.95, 0.35, 0.28, 0.82), 1, 8)
+			"hit":
+				return _button_style(Color(0.18, 0.10, 0.045, 0.82), Color(0.95, 0.55, 0.24, 0.82), 1, 8)
+			"success":
+				return _button_style(Color(0.06, 0.16, 0.09, 0.80), Color(0.36, 0.86, 0.48, 0.80), 1, 8)
+			"phase":
+				return _button_style(Color(0.17, 0.06, 0.20, 0.84), Color(0.82, 0.46, 0.96, 0.84), 1, 8)
+			_:
+				return _button_style(Color(0.08, 0.085, 0.09, 0.74), Color(0.50, 0.54, 0.58, 0.72), 1, 8)
 	match severity:
 		"danger":
 			return _button_style(Color(0.28, 0.09, 0.08), Color(0.95, 0.35, 0.28), 2, 6)
@@ -6565,6 +10504,8 @@ func _cinematic_style(event_type: String) -> StyleBoxFlat:
 			return _button_style(Color(0.17, 0.07, 0.22, 0.95), Color(0.95, 0.64, 1.0), 3, 8)
 
 func _feedback_font_size(event_type: String) -> int:
+	if _is_pc_layout():
+		return 15 if _is_strong_feedback(event_type) else 12
 	return 18 if _is_strong_feedback(event_type) else 14
 
 func _is_strong_feedback(event_type: String) -> bool:
@@ -6683,7 +10624,9 @@ func _rarity_weights_for_context(context: String) -> Dictionary:
 	match context:
 		"shop_card":
 			return config.get("shop_card_rarity_weights", config.get("card_rarity_weights", {}))
-		"relic_reward":
+		"shop_relic":
+			return config.get("shop_relic_rarity_weights", config.get("relic_rarity_weights", {}))
+		"relic_reward", "treasure_relic":
 			return config.get("relic_rarity_weights", {})
 		"shop_potion", "potion_reward":
 			return config.get("potion_rarity_weights", {})
@@ -6782,11 +10725,40 @@ func _rarities_for_items(items: Array) -> Array[String]:
 		rarities.append(str(item_dict.get("rarity", "common")))
 	return rarities
 
-func _grant_encounter_gold(encounter_id: String) -> void:
-	var encounter: Dictionary = _encounter_by_id(encounter_id)
-	var gold_reward: int = int(encounter.get("gold_reward", 0))
+func _grant_encounter_gold(encounter_id: String, reward_key: String) -> int:
+	var gold_reward: int = _encounter_gold_reward(encounter_id, reward_key)
+	if gold_reward <= 0:
+		return 0
 	run_gold += gold_reward
 	combat.log_entries.append("获得金币：%d。" % gold_reward)
+	return gold_reward
+
+func _encounter_gold_reward(encounter_id: String, reward_key: String) -> int:
+	var encounter: Dictionary = _encounter_by_id(encounter_id)
+	if encounter.is_empty() or _encounter_skips_economy_rewards(encounter):
+		return 0
+	var gold_config: Dictionary = economy_data.get("combat_gold_rewards", {})
+	var by_tier: Dictionary = gold_config.get("by_tier", {})
+	var tier: String = str(encounter.get("tier", "normal"))
+	if by_tier.has(tier):
+		var tier_range: Dictionary = by_tier.get(tier, {})
+		var min_gold: int = int(tier_range.get("min", encounter.get("gold_reward", 0)))
+		var max_gold: int = int(tier_range.get("max", min_gold))
+		if max_gold < min_gold:
+			max_gold = min_gold
+		var span: int = max_gold - min_gold + 1
+		var chapter_bonus: int = int(gold_config.get("chapter_bonus", {}).get(current_chapter_id, 0))
+		return max(0, min_gold + _deterministic_index("combat_gold|%s|%s|%s|%s|%d" % [
+			selected_character_id,
+			current_chapter_id,
+			reward_key,
+			tier,
+			current_challenge_level
+		], span) + chapter_bonus)
+	return max(0, int(encounter.get("gold_reward", 0)))
+
+func _encounter_skips_economy_rewards(encounter: Dictionary) -> bool:
+	return int(encounter.get("card_reward_count", 3)) <= 0 and not bool(encounter.get("relic_reward", false)) and int(encounter.get("gold_reward", 0)) <= 0
 
 func _card_price(card: Dictionary) -> int:
 	var rarity: String = str(card.get("rarity", "common"))
@@ -6798,11 +10770,33 @@ func _potion_price(potion: Dictionary) -> int:
 	var prices: Dictionary = economy_data.get("shop", {}).get("potion_prices", {})
 	return int(prices.get(rarity, prices.get("common", 35)))
 
+func _relic_price(relic: Dictionary) -> int:
+	var rarity: String = str(relic.get("rarity", "common"))
+	var prices: Dictionary = economy_data.get("shop", {}).get("relic_prices", {})
+	return int(prices.get(rarity, prices.get("common", 120)))
+
 func _remove_card_price() -> int:
 	var shop_config: Dictionary = economy_data.get("shop", {})
 	var base_price: int = int(shop_config.get("remove_card_price", 50))
 	var increase: int = int(shop_config.get("remove_card_price_increase", 25))
 	return base_price + max(0, run_shop_remove_count) * max(0, increase)
+
+func _treasure_gold_amount(node_id: String) -> int:
+	var treasure_config: Dictionary = economy_data.get("treasure", {})
+	var min_gold: int = int(treasure_config.get("gold_min", 18))
+	var max_gold: int = int(treasure_config.get("gold_max", 35))
+	if max_gold < min_gold:
+		max_gold = min_gold
+	var span: int = max_gold - min_gold + 1
+	return min_gold + _deterministic_index("treasure_gold|%s|%s|%s|%d" % [
+		selected_character_id,
+		current_chapter_id,
+		node_id,
+		current_challenge_level
+	], span)
+
+func _treasure_relic_choice_count() -> int:
+	return max(1, int(economy_data.get("treasure", {}).get("relic_choices", 3)))
 
 func _campfire_heal_percent() -> int:
 	return int(economy_data.get("campfire", {}).get("heal_percent_of_max_hp", 30))
@@ -6864,6 +10858,10 @@ func _event_condition_blocked_reason(condition: Dictionary) -> String:
 			var event_id: String = str(condition.get("event_id", ""))
 			if completed_event_ids.has(event_id):
 				return "该事件已完成"
+		"event_completed":
+			var event_id: String = str(condition.get("event_id", ""))
+			if not bool(completed_event_ids.get(event_id, false)):
+				return "需要完成前置事件"
 		_:
 			return ""
 	return ""
@@ -6926,6 +10924,8 @@ func _apply_event_effect(effect: Dictionary) -> void:
 	match effect_type:
 		"gain_gold":
 			run_gold += int(effect.get("amount", 0))
+		"lose_gold":
+			run_gold = max(0, run_gold - int(effect.get("amount", 0)))
 		"lose_hp":
 			run_hp = max(1, run_hp - int(effect.get("amount", 0)))
 		"heal_percent":
@@ -6954,6 +10954,10 @@ func _apply_event_effect(effect: Dictionary) -> void:
 			var remove_index: int = _find_removable_card_index()
 			if remove_index >= 0:
 				run_deck_ids.remove_at(remove_index)
+		"complete_event":
+			var event_id: String = str(effect.get("event_id", ""))
+			if not event_id.is_empty():
+				completed_event_ids[event_id] = true
 		_:
 			pass
 
@@ -6970,6 +10974,14 @@ func _find_removable_card_index() -> int:
 			return i
 	return run_deck_ids.size() - 1
 
+func _shop_removable_card_indices() -> Array[int]:
+	var result: Array[int] = []
+	for i in range(run_deck_ids.size()):
+		var entry: String = str(run_deck_ids[i])
+		if not _deck_display_card(entry).is_empty():
+			result.append(i)
+	return result
+
 func _current_node() -> Dictionary:
 	if not current_node_id.is_empty():
 		return _node_by_id(current_node_id)
@@ -6981,35 +10993,58 @@ func _is_battle_node(node_type: String) -> bool:
 	return node_type == "combat" or node_type == "elite" or node_type == "boss"
 
 func _route_preview() -> String:
-	var parts: Array[String] = []
-	var layers: Array = map_graph.get("layers", [])
-	if not layers.is_empty():
-		for layer in layers:
-			var layer_nodes: Array = layer
-			var node_parts: Array[String] = []
-			for node in layer_nodes:
-				var node_dict: Dictionary = node
-				var node_id: String = str(node_dict.get("id", ""))
-				var marker: String = "-"
-				if completed_node_ids.has(node_id):
-					marker = "x"
-				elif node_id == current_node_id:
-					marker = ">"
-				elif available_node_ids.has(node_id):
-					marker = "*"
-				node_parts.append("%s%s:%s" % [marker, node_dict.get("name", "节点"), node_dict.get("type", "")])
-			parts.append(" | ".join(node_parts))
-		return "\n".join(parts)
+	var total_nodes: int = _route_total_node_count()
+	var current_node: Dictionary = _current_node()
+	var current_text: String = "未选择"
+	if not current_node.is_empty():
+		current_text = "%s [%s]" % [
+			current_node.get("name", "节点"),
+			_node_type_display_name(str(current_node.get("type", "")))
+		]
+	var next_parts: Array[String] = _route_next_preview_parts()
+	var next_text: String = "本章终点"
+	if not next_parts.is_empty():
+		next_text = "、".join(next_parts)
+	return "路线概览：已清理 %d/%d | 当前：%s\n下一步：%s" % [
+		min(completed_node_ids.size(), total_nodes),
+		total_nodes,
+		current_text,
+		next_text
+	]
 
-	for i in range(route_nodes.size()):
-		var node: Dictionary = route_nodes[i]
-		var marker: String = ">"
-		if i < current_node_index:
-			marker = "x"
-		elif i > current_node_index:
-			marker = "-"
-		parts.append("%s %s [%s]" % [marker, node.get("name", "节点"), node.get("type", "")])
-	return "\n".join(parts)
+func _route_total_node_count() -> int:
+	var total := 0
+	for layer in map_graph.get("layers", []):
+		var layer_nodes: Array = layer
+		total += layer_nodes.size()
+	if total > 0:
+		return total
+	return route_nodes.size()
+
+func _route_next_preview_parts() -> Array[String]:
+	var node_ids: Array[String] = []
+	if not current_node_id.is_empty():
+		node_ids = _successor_node_ids(current_node_id)
+	if node_ids.is_empty():
+		for node_id in available_node_ids:
+			var node_id_string: String = str(node_id)
+			if not node_id_string.is_empty() and not node_ids.has(node_id_string):
+				node_ids.append(node_id_string)
+
+	var parts: Array[String] = []
+	var max_count := 4 if _is_pc_layout() else 3
+	for i in range(min(max_count, node_ids.size())):
+		var node_id: String = str(node_ids[i])
+		var node: Dictionary = _node_by_id(node_id)
+		if node.is_empty():
+			continue
+		parts.append("%s [%s]" % [
+			node.get("name", node_id),
+			_node_type_display_name(str(node.get("type", "")))
+		])
+	if node_ids.size() > max_count:
+		parts.append("另有 %d 个选择" % (node_ids.size() - max_count))
+	return parts
 
 func _map_graph_for_view() -> Dictionary:
 	if not map_graph.is_empty():
@@ -7032,7 +11067,10 @@ func _map_legend_text() -> String:
 	var available_names: Array[String] = []
 	for node_id in available_node_ids:
 		var node: Dictionary = _node_by_id(node_id)
-		available_names.append("%s [%s]" % [node.get("name", node_id), node.get("type", "")])
+		available_names.append("%s [%s]" % [
+			node.get("name", node_id),
+			_node_type_display_name(str(node.get("type", "")))
+		])
 	return "地图图例：> 可前往，x 已完成，灰色为暂不可达。\n当前可选：%s" % ", ".join(available_names)
 
 func _default_map_preview_node_id() -> String:
@@ -7045,6 +11083,8 @@ func _default_map_preview_node_id() -> String:
 func _map_node_preview_text(node_id: String) -> String:
 	var node: Dictionary = _node_by_id(node_id)
 	if node.is_empty():
+		last_map_preview_risk_level = ""
+		last_map_preview_reward_summary = ""
 		return "节点详情：暂无可预览节点。"
 	var next_ids: Array[String] = _successor_node_ids(node_id)
 	var next_parts: Array[String] = []
@@ -7053,12 +11093,93 @@ func _map_node_preview_text(node_id: String) -> String:
 		next_parts.append("%s [%s]" % [next_node.get("name", next_id), _node_type_display_name(str(next_node.get("type", "")))])
 	if next_parts.is_empty():
 		next_parts.append("终点或当前路线末端")
-	return "节点详情\n%s [%s]\n%s\n后续可达：%s" % [
+	var risk_summary: String = _node_risk_summary(node)
+	var reward_summary: String = _node_reward_summary(node)
+	last_map_preview_risk_level = _node_risk_level(node)
+	last_map_preview_reward_summary = reward_summary
+	return "节点详情\n%s [%s]\n%s\n风险：%s\n收益：%s\n后续可达：%s" % [
 		node.get("name", node_id),
 		_node_type_display_name(str(node.get("type", ""))),
 		_node_detail_text(node),
+		risk_summary,
+		reward_summary,
 		", ".join(next_parts)
 	]
+
+func _node_risk_level(node: Dictionary) -> String:
+	var node_type: String = str(node.get("type", ""))
+	if node_type == "boss":
+		return "极高"
+	if node_type == "elite":
+		return "高"
+	if node_type == "combat":
+		var encounter: Dictionary = _encounter_by_id(str(node.get("encounter_id", "")))
+		var enemy_count: int = encounter.get("enemy_ids", []).size()
+		if current_chapter_id == "chapter_three" or enemy_count >= 2:
+			return "中"
+		return "低"
+	if node_type == "event":
+		return "未知"
+	if node_type == "shop" or node_type == "campfire" or node_type == "treasure":
+		return "低"
+	return "未知"
+
+func _node_risk_summary(node: Dictionary) -> String:
+	var node_type: String = str(node.get("type", ""))
+	var level: String = _node_risk_level(node)
+	if _is_battle_node(node_type):
+		var encounter: Dictionary = _encounter_by_id(str(node.get("encounter_id", "")))
+		var enemy_count: int = encounter.get("enemy_ids", []).size()
+		var tier: String = str(encounter.get("tier", node_type))
+		var pressure: String = "敌人 %d 个" % enemy_count
+		if tier == "elite":
+			pressure = "精英战，敌方数值和行动压力更高"
+		elif tier == "boss":
+			pressure = "Boss 战，击败后推进章节或结局"
+		return "%s - %s" % [level, pressure]
+	if node_type == "event":
+		return "%s - 结果依赖选项，可能用生命换资源" % level
+	if node_type == "shop":
+		return "%s - 无战斗，但会消耗金币" % level
+	if node_type == "campfire":
+		return "%s - 安全休整节点" % level
+	if node_type == "treasure":
+		return "%s - 低风险构筑强化" % level
+	return "%s - 规则未明" % level
+
+func _node_reward_summary(node: Dictionary) -> String:
+	var node_type: String = str(node.get("type", ""))
+	if _is_battle_node(node_type):
+		var encounter_id: String = str(node.get("encounter_id", ""))
+		var encounter: Dictionary = _encounter_by_id(encounter_id)
+		if _encounter_skips_economy_rewards(encounter):
+			return "最终战结算，无战后选牌奖励"
+		var reward_key: String = _combat_reward_key(node, encounter_id)
+		var gold_reward: int = _encounter_gold_reward(encounter_id, reward_key)
+		var parts: Array[String] = []
+		if gold_reward > 0:
+			parts.append("%d 金币" % gold_reward)
+		var card_count: int = int(encounter.get("card_reward_count", 3))
+		if card_count > 0:
+			parts.append("%d 选 1 卡牌" % card_count)
+		if bool(encounter.get("relic_reward", false)):
+			parts.append("遗物选择")
+		if parts.is_empty():
+			parts.append("无额外奖励")
+		return "、".join(parts)
+	if node_type == "event":
+		return "事件选项可能提供金币、删卡、遗物、药水或卡牌"
+	if node_type == "shop":
+		return "购买卡牌/遗物/药水，删卡 %d 金币" % _remove_card_price()
+	if node_type == "campfire":
+		return "恢复 %d%% 最大生命或升级 1 张牌" % _campfire_heal_percent()
+	if node_type == "treasure":
+		return "%d-%d 金币，%d 件遗物中选 1" % [
+			int(economy_data.get("treasure", {}).get("gold_min", 18)),
+			int(economy_data.get("treasure", {}).get("gold_max", 35)),
+			_treasure_relic_choice_count()
+		]
+	return "无明确奖励"
 
 func _successor_node_ids(node_id: String) -> Array[String]:
 	var result: Array[String] = []
@@ -7146,6 +11267,8 @@ func _node_type_display_name(node_type: String) -> String:
 			return "商店"
 		"campfire":
 			return "篝火"
+		"treasure":
+			return "宝箱"
 		_:
 			return node_type
 
@@ -7252,9 +11375,17 @@ func _node_detail_text(node: Dictionary) -> String:
 		return "购买卡牌和药水，或花费 %d 金币移除一张牌。" % _remove_card_price()
 	if node_type == "campfire":
 		return "恢复 %d%% 最大生命，或升级一张未升级卡牌。" % _campfire_heal_percent()
+	if node_type == "treasure":
+		return "获得 %d-%d 金币，并从 %d 件遗物中选择 1 件。" % [
+			int(economy_data.get("treasure", {}).get("gold_min", 18)),
+			int(economy_data.get("treasure", {}).get("gold_max", 35)),
+			_treasure_relic_choice_count()
+		]
 	return ""
 
-func _clear_container(container: Container) -> void:
+func _clear_container(container: Node) -> void:
+	if container == null:
+		return
 	for child in container.get_children():
 		container.remove_child(child)
 		child.free()
@@ -7264,7 +11395,7 @@ func _create_save_state() -> Dictionary:
 	if combat != null:
 		hp_to_save = int(combat.player.get("hp", run_hp))
 	return {
-		"version": 1,
+		"version": 2,
 		"selected_character_id": selected_character_id,
 		"run_deck_ids": run_deck_ids.duplicate(true),
 		"run_relic_ids": run_relic_ids.duplicate(true),
@@ -7273,6 +11404,10 @@ func _create_save_state() -> Dictionary:
 		"run_max_hp": run_max_hp,
 		"run_gold": run_gold,
 		"run_shop_remove_count": run_shop_remove_count,
+		"run_progression_node_ids": run_progression_node_ids.duplicate(true),
+		"run_character_config": run_character_config.duplicate(true),
+		"run_skill_book_id": run_skill_book_id,
+		"run_deck_mastery_id": run_deck_mastery_id,
 		"current_challenge_level": current_challenge_level,
 		"current_chapter_id": current_chapter_id,
 		"completed_chapter_ids": completed_chapter_ids.duplicate(true),
@@ -7381,8 +11516,12 @@ func _start_next_chapter() -> bool:
 	reward_options.clear()
 	relic_reward_options.clear()
 	potion_reward_options.clear()
+	treasure_reward_gold = 0
+	combat_reward_gold = 0
+	shop_relic_options.clear()
 	reward_generated_for = ""
 	shop_generated_for = -1
+	shop_remove_selection_open = false
 	card_reward_done = false
 	relic_reward_done = true
 	potion_reward_done = true

@@ -86,7 +86,7 @@ static func load_settings() -> Dictionary:
 
 static func default_profile() -> Dictionary:
 	return {
-		"version": 1,
+		"version": 2,
 		"stats": {
 			"runs_started": 0,
 			"runs_completed": 0,
@@ -101,6 +101,9 @@ static func default_profile() -> Dictionary:
 		"character_completions": [],
 		"unlocked_achievement_ids": [],
 		"last_unlock_ids": [],
+		"forge_marks": 0,
+		"purchased_upgrade_node_ids": [],
+		"equipped_skill_book_by_character": {},
 		"discovered": _empty_discovered()
 	}
 
@@ -115,6 +118,9 @@ static func normalized_profile(raw_profile: Dictionary) -> Dictionary:
 	profile["character_completions"] = _unique_string_array(raw_profile.get("character_completions", []))
 	profile["unlocked_achievement_ids"] = _unique_string_array(raw_profile.get("unlocked_achievement_ids", []))
 	profile["last_unlock_ids"] = _unique_string_array(raw_profile.get("last_unlock_ids", []))
+	profile["forge_marks"] = max(0, int(raw_profile.get("forge_marks", 0)))
+	profile["purchased_upgrade_node_ids"] = _unique_string_array(raw_profile.get("purchased_upgrade_node_ids", []))
+	profile["equipped_skill_book_by_character"] = _normalized_string_dictionary(raw_profile.get("equipped_skill_book_by_character", {}))
 	profile["discovered"] = _normalized_discovered(raw_profile.get("discovered", {}))
 	return profile
 
@@ -147,6 +153,15 @@ static func _unique_string_array(raw_array: Array) -> Array:
 		var value_id: String = str(value)
 		if not value_id.is_empty() and not normalized.has(value_id):
 			normalized.append(value_id)
+	return normalized
+
+static func _normalized_string_dictionary(raw_dictionary: Dictionary) -> Dictionary:
+	var normalized: Dictionary = {}
+	for key_value in raw_dictionary.keys():
+		var key: String = str(key_value).strip_edges()
+		var value: String = str(raw_dictionary.get(key_value, "")).strip_edges()
+		if not key.is_empty() and not value.is_empty():
+			normalized[key] = value
 	return normalized
 
 static func _empty_discovered() -> Dictionary:

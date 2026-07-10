@@ -1,0 +1,16 @@
+{
+  "_comment": "关卡树硬约束。map_generation.json 提供权重与遭遇池，本文件提供可验证的章节结构预算。",
+  "chapters": {
+    "chapter_one": { "layers": 8, "node_budget": { "combat": [3, 4], "elite": [0, 1], "campfire": [1, 2], "shop": [1, 1], "event": [1, 2], "treasure": [0, 1], "boss": [1, 1] }, "early_elite_latest_layer": 3, "early_elite_max_count": 1, "boss_safe_window_layers": 2 },
+    "chapter_two": { "layers": 9, "node_budget": { "combat": [4, 5], "elite": [1, 2], "campfire": [1, 2], "shop": [1, 1], "event": [1, 2], "treasure": [0, 1], "boss": [1, 1] }, "early_elite_latest_layer": 3, "early_elite_max_count": 1, "boss_safe_window_layers": 2 },
+    "chapter_three": { "layers": 10, "node_budget": { "combat": [4, 5], "elite": [1, 2], "campfire": [1, 2], "shop": [1, 1], "event": [1, 2], "treasure": [1, 1], "boss": [1, 1] }, "early_elite_latest_layer": 3, "early_elite_max_count": 1, "boss_safe_window_layers": 2 }
+  },
+  "route_constraints": {
+    "minimum_branching_layers": 3,
+    "minimum_choices_on_branch_layer": 2,
+    "no_forced_elite_after_treasure": true,
+    "require_campfire_or_shop_before_boss": true,
+    "design_note": "路线树应提供风险和收益交换，不能让高收益节点成为唯一强制路径。",
+    "balance_note": "每章至少保留三层分支，并在 Boss 前提供一次恢复或消费机会，避免单一路线把失败归因于随机数。"
+  }
+}

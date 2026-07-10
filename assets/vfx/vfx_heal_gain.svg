@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <radialGradient id="heal" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#f6fff0"/>
+      <stop offset="0.48" stop-color="#65ff89" stop-opacity="0.72"/>
+      <stop offset="1" stop-color="#14582b" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <circle cx="128" cy="128" r="90" fill="url(#heal)" opacity="0.78"/>
+  <path d="M112 53 H144 V112 H203 V144 H144 V203 H112 V144 H53 V112 H112 Z" fill="#65ff89" fill-opacity="0.7" stroke="#efffde" stroke-width="7" stroke-linejoin="round"/>
+  <circle cx="128" cy="128" r="74" fill="none" stroke="#b9ffc4" stroke-width="6" opacity="0.72"/>
+</svg>

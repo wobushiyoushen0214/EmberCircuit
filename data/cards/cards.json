@@ -173,14 +173,14 @@
       "type": "skill",
       "rarity": "common",
       "target": "self",
-      "description": "获得 4 点护甲。抽 1 张牌。",
+      "description": "获得 5 点护甲。抽 1 张牌。",
       "effects": [
-        { "type": "block", "amount": 4 },
+        { "type": "block", "amount": 5 },
         { "type": "draw", "amount": 1 }
       ],
-      "upgrade": { "cost": 0, "description": "获得 4 点护甲。抽 1 张牌。", "effects": [ { "type": "block", "amount": 4 }, { "type": "draw", "amount": 1 } ] },
+      "upgrade": { "cost": 0, "description": "获得 5 点护甲。抽 1 张牌。", "effects": [ { "type": "block", "amount": 5 }, { "type": "draw", "amount": 1 } ] },
       "design_note": "低强度防御过牌，提供手感。",
-      "balance_note": "1 费 4 护甲加抽 1，实际强度依赖抽到的牌。",
+      "balance_note": "1 费 5 护甲加抽 1，仍低于纯防御牌，但能缓冲电弧工匠的低生命并维持连打。",
       "upgrade_note": "降为 0 费，显著提升连打流价值。"
     },
     {
@@ -212,7 +212,7 @@
       ],
       "upgrade": { "cost": 0, "description": "造成 6 点伤害。", "effects": [ { "type": "damage", "amount": 6 } ] },
       "design_note": "低费连打流基础件。",
-      "balance_note": "0 费 4 伤害本身不赚牌，不构成循环。",
+      "balance_note": "0 费 4 伤害处于免费攻击预算下限；起始牌组只保留三张，避免过牌和药水资源把免费伤害放大过度。",
       "upgrade_note": "纯伤害升级，让它在后期不至于过早淘汰。"
     },
     {
@@ -430,7 +430,7 @@
       ],
       "upgrade": { "cost": 1, "description": "造成 7 点伤害。抽 1 张牌。", "effects": [ { "type": "damage", "amount": 7 }, { "type": "draw", "amount": 1 } ] },
       "design_note": "攻击过牌，让攻击流不完全依赖技能。",
-      "balance_note": "1 费 5 伤害加抽牌，数值低但流畅。",
+      "balance_note": "1 费 5 伤害加抽牌低于纯攻击预算，主要价值是维持行动密度；与三张免费攻击共同出现时不再提供额外高伤害。",
       "upgrade_note": "补足伤害。"
     },
     {
@@ -483,6 +483,74 @@
       "design_note": "以生命换爆发，是高手向风险牌。",
       "balance_note": "抽 3 加能量很强，必须有明确生命代价。",
       "upgrade_note": "降低生命代价。"
+    },
+    {
+      "id": "venting_slash",
+      "name": "泄压斩",
+      "cost": 1,
+      "type": "attack",
+      "rarity": "common",
+      "target": "enemy",
+      "description": "造成 6 点伤害。若你至少有 3 点势能，抽 1 张牌。",
+      "effects": [
+        { "type": "damage", "amount": 6 },
+        { "type": "draw", "amount": 1, "requires_momentum_at_least": 3 }
+      ],
+      "upgrade": { "cost": 1, "description": "造成 8 点伤害。若你至少有 3 点势能，抽 1 张牌。", "effects": [ { "type": "damage", "amount": 8 }, { "type": "draw", "amount": 1, "requires_momentum_at_least": 3 } ] },
+      "design_note": "给攻击构筑一张需要势能门槛的顺滑过牌，鼓励先铺资源再连续出牌。",
+      "balance_note": "无势能时 1 费 6 伤害偏低；达到 3 势能后才成为攻击过牌，避免普通奖励池出现无条件循环牌。",
+      "upgrade_note": "只提升伤害，不降低势能门槛，保持它作为中后段连招牌的定位。"
+    },
+    {
+      "id": "stoke_guard",
+      "name": "添炉守势",
+      "cost": 1,
+      "type": "skill",
+      "rarity": "common",
+      "target": "self",
+      "description": "获得 5 点护甲。获得 1 点势能。",
+      "effects": [
+        { "type": "block", "amount": 5 },
+        { "type": "gain_momentum", "amount": 1 }
+      ],
+      "upgrade": { "cost": 1, "description": "获得 7 点护甲。获得 1 点势能。", "effects": [ { "type": "block", "amount": 7 }, { "type": "gain_momentum", "amount": 1 } ] },
+      "design_note": "共享防御蓄势牌，让非专属角色也能通过防守积累势能并进入下一回合爆发。",
+      "balance_note": "1 费 5 护甲低于标准防御，势能是主要补偿；升级后仍低于纯防御牌峰值。",
+      "upgrade_note": "提高护甲，保持势能收益不变，避免升级后成为资源核心。"
+    },
+    {
+      "id": "rupture_signal",
+      "name": "裂隙信标",
+      "cost": 1,
+      "type": "skill",
+      "rarity": "uncommon",
+      "target": "all_enemies",
+      "description": "对所有敌人施加 1 层虚弱。",
+      "effects": [
+        { "type": "apply_status", "target": "all_enemies", "status": "weak", "amount": 1 }
+      ],
+      "upgrade": { "cost": 1, "description": "对所有敌人施加 1 层虚弱。抽 1 张牌。", "effects": [ { "type": "apply_status", "target": "all_enemies", "status": "weak", "amount": 1 }, { "type": "draw", "amount": 1 } ] },
+      "design_note": "提供一张明确服务多敌人战斗的防御战术牌，减少高层小怪围攻时只能堆护甲的单一解法。",
+      "balance_note": "1 费全体虚弱在多敌人回合很强，但不提供护甲和伤害；单敌人战斗中价值回落。",
+      "upgrade_note": "升级后补 1 张牌，减少打出非数值牌的节奏损失。"
+    },
+    {
+      "id": "redline_engine",
+      "name": "赤线引擎",
+      "cost": 1,
+      "type": "power",
+      "rarity": "rare",
+      "target": "self",
+      "description": "本场战斗中，你的攻击造成的伤害 +1。获得 2 点势能。获得 1 层灼烧。",
+      "effects": [
+        { "type": "apply_status", "target": "self", "status": "strength", "amount": 1 },
+        { "type": "gain_momentum", "amount": 2 },
+        { "type": "apply_status", "target": "self", "status": "burn", "amount": 1 }
+      ],
+      "upgrade": { "cost": 1, "description": "本场战斗中，你的攻击造成的伤害 +1。获得 2 点势能。", "effects": [ { "type": "apply_status", "target": "self", "status": "strength", "amount": 1 }, { "type": "gain_momentum", "amount": 2 } ] },
+      "design_note": "高风险启动能力牌，把力量和势能启动绑在一起，适合攻击密度高或能承受灼烧代价的构筑。",
+      "balance_note": "基础版比熔炉祷言更快，但带自我灼烧；升级移除代价，符合稀有能力牌的火力成长。",
+      "upgrade_note": "移除自我灼烧，保留费用和收益，让升级价值集中在风险控制。"
     },
     {
       "id": "static_primer",
@@ -601,14 +669,14 @@
       "rarity": "starter",
       "target": "enemy",
       "character_ids": [ "pyre_ascetic" ],
-      "description": "造成 6 点伤害。施加 1 层灼烧。",
+      "description": "造成 7 点伤害。施加 1 层灼烧。",
       "effects": [
-        { "type": "damage", "amount": 6 },
+        { "type": "damage", "amount": 7 },
         { "type": "apply_status", "target": "enemy", "status": "burn", "amount": 1 }
       ],
-      "upgrade": { "cost": 1, "description": "造成 8 点伤害。施加 1 层灼烧。", "effects": [ { "type": "damage", "amount": 8 }, { "type": "apply_status", "target": "enemy", "status": "burn", "amount": 1 } ] },
+      "upgrade": { "cost": 1, "description": "造成 9 点伤害。施加 1 层灼烧。", "effects": [ { "type": "damage", "amount": 9 }, { "type": "apply_status", "target": "enemy", "status": "burn", "amount": 1 } ] },
       "design_note": "熔痕苦修者基础攻击，尽早让玩家看到灼烧是角色身份的一部分。",
-      "balance_note": "1 费 6 伤害偏低，用 1 层灼烧补长期价值，避免起手爆发过强。",
+      "balance_note": "1 费 7 伤害接近基础攻击线，附带 1 层延迟灼烧，补足苦修者前两章击杀速度但不提高持续层数。",
       "upgrade_note": "提高直接伤害，不提高灼烧层数，控制持续伤害叠加速度。"
     },
     {
@@ -619,14 +687,14 @@
       "rarity": "starter",
       "target": "self",
       "character_ids": [ "pyre_ascetic" ],
-      "description": "获得 6 点护甲。获得 1 点势能。",
+      "description": "获得 7 点护甲。获得 1 点势能。",
       "effects": [
-        { "type": "block", "amount": 6 },
+        { "type": "block", "amount": 7 },
         { "type": "gain_momentum", "amount": 1 }
       ],
-      "upgrade": { "cost": 1, "description": "获得 9 点护甲。获得 1 点势能。", "effects": [ { "type": "block", "amount": 9 }, { "type": "gain_momentum", "amount": 1 } ] },
+      "upgrade": { "cost": 1, "description": "获得 10 点护甲。获得 1 点势能。", "effects": [ { "type": "block", "amount": 10 }, { "type": "gain_momentum", "amount": 1 } ] },
       "design_note": "熔痕苦修者基础防御牌，用较低护甲换势能上限玩法的入口。",
-      "balance_note": "未升级 6 护甲仍低于纯防御牌，但能缓和第一章连续战斗掉血并保留势能入口。",
+      "balance_note": "未升级 7 护甲达到基础防御线，同时只给 1 势能；用于抵消角色自伤，不改变高风险牌的代价。",
       "upgrade_note": "只提高护甲，保持势能节奏稳定。"
     },
     {
@@ -759,6 +827,31 @@
       "design_note": "专属稀有能力牌，将长期攻击成长和灼伤收益绑定。",
       "balance_note": "2 费 1 力量偏慢，生成灼伤可触发角色遗物但也污染牌堆。",
       "upgrade_note": "降费提高打出窗口，而不增加力量层数。"
+    },
+    {
+      "id": "calibration_protocol",
+      "name": "校准协议",
+      "cost": 1,
+      "type": "power",
+      "rarity": "rare",
+      "target": "self",
+      "pool_tags": [ "event_chain" ],
+      "description": "本场战斗中，你每次获得护甲时额外获得 1 点护甲。获得 1 点势能。",
+      "effects": [
+        { "type": "apply_status", "target": "self", "status": "plating", "amount": 1 },
+        { "type": "gain_momentum", "amount": 1 }
+      ],
+      "upgrade": {
+        "cost": 0,
+        "description": "本场战斗中，你每次获得护甲时额外获得 1 点护甲。获得 1 点势能。",
+        "effects": [
+          { "type": "apply_status", "target": "self", "status": "plating", "amount": 1 },
+          { "type": "gain_momentum", "amount": 1 }
+        ]
+      },
+      "design_note": "两章连锁事件的专属回报，把校准员修复的防护协议转化为持续护甲效率。",
+      "balance_note": "强度接近熔铸镀层并附带 1 势能，但无法从普通奖励或商店获得，价值由跨章前置成本承担。",
+      "upgrade_note": "升级降为 0 费，提高终局构筑的打出窗口，不增加长期护甲倍率。"
     },
     {
       "id": "searing_wound",

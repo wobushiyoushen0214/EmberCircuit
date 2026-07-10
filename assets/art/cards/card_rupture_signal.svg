@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="220" height="160" viewBox="0 0 220 160">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#111018"/>
+      <stop offset="0.50" stop-color="#16202a"/>
+      <stop offset="1" stop-color="#06070a"/>
+    </linearGradient>
+    <radialGradient id="pulse" cx="50%" cy="45%" r="64%">
+      <stop offset="0" stop-color="#b18cff" stop-opacity="0.54"/>
+      <stop offset="0.45" stop-color="#45d8ff" stop-opacity="0.20"/>
+      <stop offset="1" stop-color="#45d8ff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="tower" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#8fffff"/>
+      <stop offset="0.48" stop-color="#202b44"/>
+      <stop offset="1" stop-color="#08090d"/>
+    </linearGradient>
+    <linearGradient id="beam" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#45d8ff" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#d9b8ff" stop-opacity="0.88"/>
+      <stop offset="1" stop-color="#45d8ff" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="2.4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="220" height="160" rx="16" fill="url(#bg)"/>
+  <rect width="220" height="160" rx="16" fill="url(#pulse)"/>
+  <path d="M11 127 C54 111 166 111 209 127 L209 160 L11 160 Z" fill="#030507" opacity="0.44"/>
+  <rect x="23" y="42" width="12" height="74" rx="3" fill="#081018" opacity="0.35"/>
+  <rect x="185" y="42" width="12" height="74" rx="3" fill="#081018" opacity="0.35"/>
+  <path d="M102 26 H118 L130 118 H90 Z" fill="url(#tower)" stroke="#8beeff" stroke-width="4" filter="url(#glow)"/>
+  <circle cx="110" cy="48" r="16" fill="#12182a" stroke="#d9b8ff" stroke-width="4"/>
+  <circle cx="110" cy="48" r="7" fill="#d9b8ff" opacity="0.88"/>
+  <path d="M110 48 C78 59 54 72 31 91" stroke="url(#beam)" stroke-width="7" stroke-linecap="round" filter="url(#glow)"/>
+  <path d="M110 48 C142 59 166 72 189 91" stroke="url(#beam)" stroke-width="7" stroke-linecap="round" filter="url(#glow)"/>
+  <path d="M110 48 C98 76 95 99 96 124" stroke="#8beeff" stroke-width="4" stroke-linecap="round" opacity="0.62"/>
+  <path d="M110 48 C122 76 125 99 124 124" stroke="#8beeff" stroke-width="4" stroke-linecap="round" opacity="0.62"/>
+  <circle cx="37" cy="93" r="11" fill="#151022" stroke="#b18cff" stroke-width="3"/>
+  <circle cx="183" cy="93" r="11" fill="#151022" stroke="#b18cff" stroke-width="3"/>
+  <path d="M32 90 L42 96 M42 90 L32 96 M178 90 L188 96 M188 90 L178 96" stroke="#e9d6ff" stroke-width="2" stroke-linecap="round"/>
+  <path d="M57 123 H88 M132 123 H163" stroke="#61717a" stroke-width="3" stroke-linecap="round" opacity="0.58"/>
+  <path d="M28 28 H77 M143 28 H192" stroke="#45d8ff" stroke-width="3" stroke-linecap="round" opacity="0.48"/>
+  <circle cx="190" cy="31" r="12" fill="#080a0d" stroke="#d9b8ff" stroke-width="3"/>
+  <text x="190" y="36" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="#f0ddff">W</text>
+  <rect x="7" y="7" width="206" height="146" rx="13" fill="none" stroke="#9cdcff" stroke-width="2.5" opacity="0.82"/>
+  <rect x="17" y="17" width="186" height="126" rx="9" fill="none" stroke="#11161a" stroke-width="2" opacity="0.78"/>
+</svg>
