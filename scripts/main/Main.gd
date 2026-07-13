@@ -1194,7 +1194,10 @@ func _open_welcome(play_audio: bool = true) -> void:
 	_refresh()
 
 func _on_new_run_pressed() -> void:
-	_open_character_select()
+	if is_inside_tree():
+		_open_character_select.call_deferred()
+	else:
+		_open_character_select()
 
 func _on_welcome_pressed() -> void:
 	_open_welcome()
@@ -2192,6 +2195,7 @@ func _set_page_regions(character_visible: bool, hud_visible: bool, map_visible: 
 		hand_row.visible = hand_visible
 	if reward_scroll != null:
 		reward_scroll.visible = rewards_visible
+		reward_scroll.set("vertical_scroll_mode", 0 if _is_pc_layout() and (welcome_open or character_select_open) else 1)
 	if reward_row != null:
 		reward_row.visible = rewards_visible
 	if controls_scroll != null:
@@ -3028,6 +3032,8 @@ func _refresh_welcome() -> void:
 	run_label.text = "牌组构筑 Roguelike"
 	status_label.text = "穿过三章失控回路，在敌人的行动意图中构筑自己的战斗协议。"
 	_set_page_regions(false, false, false, false, false, true, false, true)
+	if reward_scroll != null:
+		reward_scroll.set("vertical_scroll_mode", 0 if _is_pc_layout() else 1)
 	feedback_label.visible = false
 	_hide_cinematic_prompt()
 	_clear_container(potion_row)
@@ -3094,6 +3100,8 @@ func _refresh_character_select() -> void:
 	run_label.text = "新跑团 | %s" % last_character_selection_title
 	status_label.text = "选择本次跑团的角色和挑战等级。不同角色拥有独立初始牌组、起始遗物、生命、势能和药水槽。"
 	_set_page_regions(false, false, false, false, false, true, false, true)
+	if reward_scroll != null:
+		reward_scroll.set("vertical_scroll_mode", 0 if _is_pc_layout() else 1)
 	if _is_pc_layout():
 		status_label.visible = false
 	feedback_label.visible = false
