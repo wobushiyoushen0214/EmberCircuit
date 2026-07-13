@@ -513,7 +513,7 @@ func _build_layout() -> void:
 	page_scroll.set_anchors_preset(Control.PRESET_FULL_RECT)
 	page_scroll.clip_contents = true
 	page_scroll.set("horizontal_scroll_mode", 0)
-	page_scroll.set("vertical_scroll_mode", 1)
+	page_scroll.set("vertical_scroll_mode", 0 if _is_pc_layout() else 1)
 	add_child(page_scroll)
 
 	page_margin = MarginContainer.new()
@@ -904,6 +904,8 @@ func _build_layout() -> void:
 	_build_cinematic_overlay()
 
 func _sync_layout_widths() -> void:
+	if page_scroll != null:
+		page_scroll.set("vertical_scroll_mode", 0 if _is_pc_layout() else 1)
 	var content_width: float = _scroll_content_width()
 	var page_width: float = content_width + _root_horizontal_margin()
 	if page_margin != null:
