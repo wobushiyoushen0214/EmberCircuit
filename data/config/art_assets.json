@@ -510,6 +510,38 @@
       "implementation_note": "当前 asset_path 已指向第一版独立 SVG 插图；未来正式插画仍保持同一 slot_path，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
     },
     {
+      "id": "relay_strike",
+      "asset_path": "res://assets/art/cards/card_relay_strike.svg",
+      "slot_path": "res://assets/art/cards/card_relay_strike.svg",
+      "design_note": "继电突击应表现电弧沿机械接点连续跳转到武器。",
+      "replacement_note": "正式位图需突出攻击方向和三点势能门槛的蓄能感。",
+      "implementation_note": "当前使用第一版 SVG 插图，不参与伤害和抽牌结算。"
+    },
+    {
+      "id": "induction_coil",
+      "asset_path": "res://assets/art/cards/card_induction_coil.svg",
+      "slot_path": "res://assets/art/cards/card_induction_coil.svg",
+      "design_note": "感应线圈应表现线圈生成环形护盾并积蓄电荷。",
+      "replacement_note": "正式位图要同时读出防御与蓄能，而不是普通闪电攻击。",
+      "implementation_note": "当前使用第一版 SVG 插图，不参与护甲和势能结算。"
+    },
+    {
+      "id": "grounding_field",
+      "asset_path": "res://assets/art/cards/card_grounding_field.svg",
+      "slot_path": "res://assets/art/cards/card_grounding_field.svg",
+      "design_note": "接地力场应表现过量电荷导入地面并形成防护层。",
+      "replacement_note": "正式位图需明确资源消耗换高护甲的泄压动作。",
+      "implementation_note": "当前使用第一版 SVG 插图，不参与势能消耗和护甲结算。"
+    },
+    {
+      "id": "feedback_shell",
+      "asset_path": "res://assets/art/cards/card_feedback_shell.svg",
+      "slot_path": "res://assets/art/cards/card_feedback_shell.svg",
+      "design_note": "反馈外壳应表现多层电容甲片形成持续反馈回路。",
+      "replacement_note": "正式位图应呈现长期能力感，避免像一次性格挡牌。",
+      "implementation_note": "当前使用第一版 SVG 插图，不参与镀层和势能结算。"
+    },
+    {
       "id": "penitent_cut",
       "asset_path": "res://assets/art/generated/card_penitent_cut_pc.png",
       "slot_path": "res://assets/art/cards/card_penitent_cut.svg",

@@ -662,6 +662,106 @@
       "upgrade_note": "降费以匹配电弧工匠的高节奏身份。"
     },
     {
+      "id": "relay_strike",
+      "name": "继电突击",
+      "cost": 1,
+      "type": "attack",
+      "rarity": "common",
+      "target": "enemy",
+      "character_ids": ["arc_tinker"],
+      "description": "造成 7 点伤害。若你至少有 3 点势能，抽 1 张牌。",
+      "effects": [
+        {"type": "damage", "amount": 7},
+        {"type": "draw", "amount": 1, "requires_momentum_at_least": 3}
+      ],
+      "upgrade": {
+        "cost": 1,
+        "description": "造成 10 点伤害。若你至少有 3 点势能，抽 1 张牌。",
+        "effects": [
+          {"type": "damage", "amount": 10},
+          {"type": "draw", "amount": 1, "requires_momentum_at_least": 3}
+        ]
+      },
+      "design_note": "势能门槛攻击，让蓄能回合转化为不卡手的进攻节奏。",
+      "balance_note": "未达门槛时是标准 1 费攻击；过牌收益要求先建立 3 势能，避免无条件替代共享攻击。",
+      "upgrade_note": "只提高伤害，保留相同门槛与过牌数量。"
+    },
+    {
+      "id": "induction_coil",
+      "name": "感应线圈",
+      "cost": 1,
+      "type": "skill",
+      "rarity": "common",
+      "target": "self",
+      "character_ids": ["arc_tinker"],
+      "description": "获得 6 点护甲和 1 点势能。",
+      "effects": [
+        {"type": "block", "amount": 6},
+        {"type": "gain_momentum", "amount": 1}
+      ],
+      "upgrade": {
+        "cost": 1,
+        "description": "获得 9 点护甲和 1 点势能。",
+        "effects": [
+          {"type": "block", "amount": 9},
+          {"type": "gain_momentum", "amount": 1}
+        ]
+      },
+      "design_note": "基础防御蓄能牌，稳定连接防守回合与下一轮势能门槛牌。",
+      "balance_note": "1 费 6 护甲低于纯防御牌，用 1 势能补足长期节奏价值。",
+      "upgrade_note": "提高护甲而不增加势能，避免资源增长过快。"
+    },
+    {
+      "id": "grounding_field",
+      "name": "接地力场",
+      "cost": 1,
+      "type": "skill",
+      "rarity": "uncommon",
+      "target": "self",
+      "character_ids": ["arc_tinker"],
+      "description": "失去 2 点势能。获得 13 点护甲。",
+      "effects": [
+        {"type": "lose_momentum", "amount": 2},
+        {"type": "block", "amount": 13}
+      ],
+      "upgrade": {
+        "cost": 1,
+        "description": "失去 1 点势能。获得 13 点护甲。",
+        "effects": [
+          {"type": "lose_momentum", "amount": 1},
+          {"type": "block", "amount": 13}
+        ]
+      },
+      "design_note": "把积累势能转换为紧急高护甲，提供低生命角色需要的防御泄压阀。",
+      "balance_note": "13 护甲显著高于标准牌，但基础版消耗 2 势能，会推迟进攻门槛。",
+      "upgrade_note": "降低势能代价，强化资源效率而不继续抬高护甲上限。"
+    },
+    {
+      "id": "feedback_shell",
+      "name": "反馈外壳",
+      "cost": 2,
+      "type": "power",
+      "rarity": "rare",
+      "target": "self",
+      "character_ids": ["arc_tinker"],
+      "description": "本场战斗中，你每次获得护甲时额外获得 1 点护甲。获得 2 点势能。",
+      "effects": [
+        {"type": "apply_status", "target": "self", "status": "plating", "amount": 1},
+        {"type": "gain_momentum", "amount": 2}
+      ],
+      "upgrade": {
+        "cost": 1,
+        "description": "本场战斗中，你每次获得护甲时额外获得 1 点护甲。获得 2 点势能。",
+        "effects": [
+          {"type": "apply_status", "target": "self", "status": "plating", "amount": 1},
+          {"type": "gain_momentum", "amount": 2}
+        ]
+      },
+      "design_note": "电弧工匠的防御能力核心，把高频小护甲牌转化为长期成长。",
+      "balance_note": "2 费能力牌首回合节奏较慢，2 势能用于降低空过风险；效果不与攻击增伤能力重叠。",
+      "upgrade_note": "降费扩大可打出窗口，不叠加更多镀层。"
+    },
+    {
       "id": "penitent_cut",
       "name": "苦修斩",
       "cost": 1,

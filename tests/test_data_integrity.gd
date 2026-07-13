@@ -178,7 +178,7 @@ func _init() -> void:
 			exclusive_card_count_by_character[card_character_id] = int(exclusive_card_count_by_character.get(card_character_id, 0)) + 1
 	for character_id in exclusive_card_count_by_character.keys():
 		if str(character_id) == "arc_tinker":
-			_check(int(exclusive_card_count_by_character.get(character_id, 0)) >= 6, "arc tinker has a dedicated card pool")
+			_check(int(exclusive_card_count_by_character.get(character_id, 0)) >= 10, "arc tinker has a ten-card dedicated pool")
 		if str(character_id) == "pyre_ascetic":
 			_check(int(exclusive_card_count_by_character.get(character_id, 0)) >= 9, "pyre ascetic has a dedicated card pool")
 

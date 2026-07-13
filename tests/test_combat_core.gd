@@ -49,6 +49,24 @@ func _init() -> void:
 	_check(arc_relic_combat.play_card(0, 0), "arc dedicated relic test can play a zero-cost card")
 	_check(int(arc_relic_combat.player.get("momentum", 0)) == momentum_before_arc_relic + 1, "spark coil grants momentum on first zero-cost card")
 
+	var induction_combat = CombatStateScript.new()
+	induction_combat.setup(card_data, enemy_data, relic_data, encounter_data, arc_player_data, "intro_patrol", ["induction_coil"], ["__test_no_relic__"], 68)
+	var induction_momentum_before: int = int(induction_combat.player.get("momentum", 0))
+	_check(induction_combat.play_card(0, 0), "induction coil can be played")
+	_check(int(induction_combat.player.get("block", 0)) == 6 and int(induction_combat.player.get("momentum", 0)) == induction_momentum_before + 1, "induction coil grants configured block and momentum")
+
+	var grounding_combat = CombatStateScript.new()
+	grounding_combat.setup(card_data, enemy_data, relic_data, encounter_data, arc_player_data, "intro_patrol", ["grounding_field"], ["__test_no_relic__"], 68)
+	grounding_combat.player["momentum"] = 3
+	_check(grounding_combat.play_card(0, 0), "grounding field can be played")
+	_check(int(grounding_combat.player.get("block", 0)) == 13 and int(grounding_combat.player.get("momentum", 0)) == 1, "grounding field converts momentum into high block")
+
+	var feedback_shell_combat = CombatStateScript.new()
+	feedback_shell_combat.setup(card_data, enemy_data, relic_data, encounter_data, arc_player_data, "intro_patrol", ["feedback_shell"], ["__test_no_relic__"], 68)
+	var shell_momentum_before: int = int(feedback_shell_combat.player.get("momentum", 0))
+	_check(feedback_shell_combat.play_card(0, 0), "feedback shell can be played")
+	_check(int(feedback_shell_combat.player.get("statuses", {}).get("plating", 0)) == 1 and int(feedback_shell_combat.player.get("momentum", 0)) == shell_momentum_before + 2, "feedback shell grants plating and momentum")
+
 	var pyre_player_data: Dictionary = player_data.duplicate(true)
 	pyre_player_data["selected_character_id"] = "pyre_ascetic"
 	var pyre_combat = CombatStateScript.new()

@@ -67,6 +67,10 @@
 - `short_circuit` / 短路跳线：0 费势能换即时伤害。
 - `bottle_surge` / 瓶装涌流：一次性爆发资源转换。
 - `livewire_matrix` / 带电矩阵：稀有长期增伤能力。
+- `relay_strike` / 继电突击：势能达到 3 时附带过牌的基础攻击。
+- `induction_coil` / 感应线圈：稳定获得护甲与势能的基础防御蓄能牌。
+- `grounding_field` / 接地力场：消耗势能换取高额护甲的紧急防御牌。
+- `feedback_shell` / 反馈外壳：提供镀层与势能的稀有防御能力核心。
 
 当前熔痕苦修者专属卡：
 
