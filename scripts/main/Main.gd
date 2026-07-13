@@ -100,6 +100,7 @@ var debug_viewport_size_override: Vector2 = Vector2.ZERO
 var selected_enemy_index: int = 0
 var selected_character_id: String = "ember_exile"
 var profile_character_id: String = "ember_exile"
+var welcome_open: bool = true
 var character_select_open: bool = false
 var card_data: Dictionary = {}
 var enemy_data: Dictionary = {}
@@ -358,6 +359,8 @@ var last_run_completion_unlock_chip_count: int = 0
 var last_run_completion_action_count: int = 0
 var last_character_selection_title: String = ""
 var last_character_selection_ids: Array[String] = []
+var last_welcome_action_count: int = 0
+var last_welcome_continue_available: bool = false
 var last_character_button_icon_count: int = 0
 var last_campfire_button_style_count: int = 0
 var last_shop_button_style_count: int = 0
@@ -475,7 +478,7 @@ func _ready() -> void:
 	_apply_runtime_settings()
 	_load_all_data()
 	selected_character_id = _valid_character_id(selected_character_id)
-	_open_character_select(false)
+	_open_welcome(false)
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_RESIZED:
@@ -1101,6 +1104,7 @@ func _start_new_run(character_id: String = "") -> void:
 	run_progression_node_ids = _purchased_upgrade_node_ids().duplicate(true)
 	run_character_config = _effective_character_config(selected_character_id)
 	_close_pile_view(false)
+	welcome_open = false
 	character_select_open = false
 	deck_view_open = false
 	settings_open = false
@@ -1152,6 +1156,7 @@ func _open_character_select(play_audio: bool = true) -> void:
 	selected_character_id = _valid_character_id(selected_character_id)
 	selected_challenge_level = _valid_challenge_level(selected_challenge_level)
 	_close_pile_view(false)
+	welcome_open = false
 	character_select_open = true
 	deck_view_open = false
 	settings_open = false
@@ -1168,8 +1173,27 @@ func _open_character_select(play_audio: bool = true) -> void:
 		_audio_event("ui_click")
 	_refresh()
 
+func _open_welcome(play_audio: bool = true) -> void:
+	if player_data.is_empty():
+		_load_all_data()
+	welcome_open = true
+	character_select_open = false
+	deck_view_open = false
+	settings_open = false
+	tutorial_open = false
+	profile_open = false
+	compendium_open = false
+	run_character_config.clear()
+	combat = null
+	if play_audio:
+		_audio_event("ui_click")
+	_refresh()
+
 func _on_new_run_pressed() -> void:
 	_open_character_select()
+
+func _on_welcome_pressed() -> void:
+	_open_welcome()
 
 func _on_character_selected(character_id: String) -> void:
 	_start_new_run(character_id)
@@ -2005,6 +2029,11 @@ func _refresh() -> void:
 	last_profile_panel_visible = false
 	last_tutorial_page_visible = false
 	last_compendium_panel_visible = false
+	if welcome_open:
+		_music_context("menu")
+		_set_run_controls_enabled(false)
+		_refresh_welcome()
+		return
 	if character_select_open:
 		_music_context("menu")
 		_set_run_controls_enabled(false)
@@ -2063,7 +2092,7 @@ func _refresh() -> void:
 func _refresh_screen_backdrop() -> void:
 	if screen_background_art == null:
 		return
-	var menu_page: bool = character_select_open and not settings_open and not profile_open and not tutorial_open and not compendium_open
+	var menu_page: bool = (welcome_open or character_select_open) and not settings_open and not profile_open and not tutorial_open and not compendium_open
 	var path: String = UI_MENU_BACKDROP_PATH if menu_page else UI_BACKDROP_PATH
 	screen_background_art.texture = _load_texture(path)
 	screen_background_art.visible = screen_background_art.texture != null
@@ -2328,12 +2357,14 @@ func _apply_controls_layout_constraints(combat_primary: bool = false) -> void:
 			_apply_button_skin(end_turn_button, "primary")
 
 func _is_pc_character_menu_controls() -> bool:
-	return _is_pc_layout() and character_select_open and not settings_open and not profile_open and not tutorial_open and not compendium_open
+	return _is_pc_layout() and (welcome_open or character_select_open) and not settings_open and not profile_open and not tutorial_open and not compendium_open
 
 func _control_button_visible_for_layout(button: Button, pc_combat: bool, pc_character_menu: bool) -> bool:
 	if pc_combat:
 		return button == deck_button or button == settings_button
 	if pc_character_menu:
+		if welcome_open:
+			return button == profile_button or button == compendium_button or button == settings_button
 		return button == restart_button or button == load_button or button == profile_button or button == compendium_button or button == tutorial_button or button == settings_button
 	return true
 
@@ -2978,6 +3009,64 @@ func _estimated_control_height(control: Control) -> float:
 		var label := control as Label
 		return max(label.size.y, float(label.get_theme_font_size("font_size")) + 6.0)
 	return max(control.size.y, 0.0)
+
+func _refresh_welcome() -> void:
+	last_welcome_action_count = 0
+	last_welcome_continue_available = not SaveManagerScript.load_run().is_empty()
+	run_label.text = "牌组构筑 Roguelike"
+	status_label.text = "穿过三章失控回路，在敌人的行动意图中构筑自己的战斗协议。"
+	_set_page_regions(false, false, false, false, false, true, false, true)
+	feedback_label.visible = false
+	_hide_cinematic_prompt()
+	_clear_container(potion_row)
+	_clear_container(enemy_row)
+	_clear_container(hand_row)
+	_clear_container(reward_row)
+	end_turn_button.disabled = true
+	_set_content_heights(74.0, 360.0 if _is_pc_layout() else 300.0)
+	log_label.text = "余烬回路已失去控制。选择一名回路行者，沿分叉路线战斗、改造牌组并关闭核心。"
+	log_label.tooltip_text = "当前版本包含三名角色、三章路线、普通/精英/Boss 战斗、事件、商店、篝火、宝箱与局外成长。"
+
+	var action_width: float = clamp((_scroll_content_width() - 16.0) / 3.0, 220.0, 390.0)
+	var start_button := _add_reward_action_button(
+		"开始新跑团",
+		"选择角色与挑战等级",
+		"从第一章启程，建立新的牌组与路线记录。",
+		UI_NEW_RUN_ICON_PATH,
+		"primary",
+		false,
+		Callable(self, "_on_new_run_pressed")
+	)
+	start_button.custom_minimum_size = Vector2(action_width, 150.0)
+	reward_row.add_child(start_button)
+	last_welcome_action_count += 1
+
+	var continue_button := _add_reward_action_button(
+		"继续跑团",
+		"返回最近一次保存",
+		"读取当前角色、牌组、遗物、生命和路线进度。" if last_welcome_continue_available else "当前没有可读取的跑团存档。",
+		UI_LOAD_RUN_ICON_PATH,
+		"neutral",
+		not last_welcome_continue_available,
+		Callable(self, "_on_load_pressed")
+	)
+	continue_button.custom_minimum_size = Vector2(action_width, 150.0)
+	reward_row.add_child(continue_button)
+	last_welcome_action_count += 1
+
+	var compendium_entry := _add_reward_action_button(
+		"回路档案",
+		"图鉴、角色成长与记录",
+		"查看已发现卡牌、遗物、敌人和事件，检查长期解锁进度。",
+		UI_COMPENDIUM_ICON_PATH,
+		"event",
+		false,
+		Callable(self, "_on_compendium_pressed")
+	)
+	compendium_entry.custom_minimum_size = Vector2(action_width, 150.0)
+	reward_row.add_child(compendium_entry)
+	last_welcome_action_count += 1
+	_record_layout_metrics()
 
 func _refresh_character_select() -> void:
 	last_character_selection_title = "选择角色"
@@ -10256,7 +10345,7 @@ func _change_music_volume(delta: float) -> void:
 	_refresh()
 
 func _on_save_pressed() -> void:
-	if character_select_open or run_deck_ids.is_empty():
+	if welcome_open or character_select_open or run_deck_ids.is_empty():
 		_audio_event("error")
 		return
 	var state := _create_save_state()
@@ -10276,6 +10365,7 @@ func _on_load_pressed() -> void:
 		return
 	_load_all_data()
 	selected_character_id = _valid_character_id(str(state.get("selected_character_id", _default_character_id())))
+	welcome_open = false
 	character_select_open = false
 	deck_view_open = false
 	settings_open = false

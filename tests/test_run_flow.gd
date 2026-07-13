@@ -13,7 +13,18 @@ func _run() -> void:
 	var main = scene.instantiate()
 	main._ready()
 
-	if not _check(main.character_select_open, "main scene starts at character selection"):
+	if not _check(main.welcome_open and not main.character_select_open, "main scene starts at welcome page"):
+		return
+	if not _check(main.last_music_context == "menu", "welcome page uses menu music context"):
+		return
+	if not _check(main.last_welcome_action_count == 3, "welcome page exposes new run, continue and archive actions"):
+		return
+	if not _check(main.reward_scroll.visible and main.reward_row.get_child_count() >= 3, "welcome page renders a bounded primary action area"):
+		return
+	if not _check(not main.battle_board_panel.visible and not main.hand_frame.visible and not main.character_frame.visible, "welcome page hides run-only regions"):
+		return
+	main._on_new_run_pressed()
+	if not _check(not main.welcome_open and main.character_select_open, "new run opens character selection"):
 		return
 	if not _check(main.last_music_context == "menu", "character selection uses menu music context"):
 		return
@@ -192,6 +203,9 @@ func _run() -> void:
 	var compact_main = scene.instantiate()
 	compact_main.debug_viewport_size_override = Vector2(540, 540)
 	compact_main._ready()
+	if not _check(compact_main.welcome_open and compact_main.last_combat_layout_overflow <= 0.0, "compact welcome page fits a 540px viewport"):
+		return
+	compact_main._on_new_run_pressed()
 	if not _check(compact_main.page_scroll != null and compact_main.last_combat_layout_overflow <= 0.0, "compact character selection fits a 540px viewport with page scroll fallback"):
 		return
 	var compact_roster_scroll := compact_main.reward_row.get_child(1) as ScrollContainer

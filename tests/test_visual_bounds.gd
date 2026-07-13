@@ -129,6 +129,11 @@ func _run() -> void:
 	await process_frame
 	await process_frame
 	_check(_control_width_fits(desktop_main.page_scroll, desktop_size.x), "desktop page scroll fits viewport width")
+	_check(desktop_main.welcome_open and desktop_main.last_welcome_action_count == 3, "desktop welcome page exposes complete primary navigation")
+	_check(_visible_children_fit_horizontally(desktop_main.reward_row, desktop_size.x), "desktop welcome actions fit viewport width")
+	desktop_main._on_new_run_pressed()
+	await process_frame
+	await process_frame
 	_check(_visible_children_fit_horizontally(desktop_main.root_box, desktop_size.x), "desktop character select visible page sections fit width")
 	_check(desktop_main.last_combat_layout_overflow <= 0.0, "desktop character select fits intended height budget")
 	_check(desktop_main.reward_row.get_child_count() >= 2, "desktop character select separates challenge controls and roster")
