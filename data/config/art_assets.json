@@ -223,11 +223,11 @@
     },
     {
       "id": "chain_cut",
-      "asset_path": "res://assets/art/cards/card_chain_cut.svg",
+      "asset_path": "res://assets/art/generated/card_chain_cut_v2_pc.png",
       "slot_path": "res://assets/art/cards/card_chain_cut.svg",
       "design_note": "连锁斩强调连续命中，正式插画应表现链刃或多段切线。",
       "replacement_note": "攻击轨迹要有方向感，便于和多段伤害反馈对应。",
-      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 插图；未来正式插画仍保持同一 slot_path，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
+      "implementation_note": "当前 asset_path 接入 gpt-image-2 生成位图，以双重链刃轨迹和连续破甲表现多段攻击；slot_path 保留为稳定替换槽位，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
     },
     {
       "id": "counter_pressure",
@@ -239,11 +239,11 @@
     },
     {
       "id": "pierce_rivet",
-      "asset_path": "res://assets/art/cards/card_pierce_rivet.svg",
+      "asset_path": "res://assets/art/generated/card_pierce_rivet_v2_pc.png",
       "slot_path": "res://assets/art/cards/card_pierce_rivet.svg",
       "design_note": "穿甲铆钉应表现高速铆钉击穿护甲。",
       "replacement_note": "主体应可在小图标中读出穿刺方向。",
-      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 插图；未来正式插画仍保持同一 slot_path，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
+      "implementation_note": "当前 asset_path 接入 gpt-image-2 生成位图，以炽热铆钉贯穿多层黑甲表现破甲启动；slot_path 保留为稳定替换槽位，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
     },
     {
       "id": "iron_sweep",
