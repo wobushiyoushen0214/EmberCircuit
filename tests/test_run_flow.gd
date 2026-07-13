@@ -482,6 +482,12 @@ func _run() -> void:
 			return
 		if not _check(main.battle_foreground_layer != null and main.last_stage_foreground_layer_count >= 4, "PC combat renders foreground depth shading over the battle stage"):
 			return
+		if not _check(main.player_stage_plate != null and main.last_player_stage_plate_visible, "PC combat renders a player health plate inside the battle stage"):
+			return
+		if not _check(main.last_player_stage_hp_text == "%d/%d" % [int(main.combat.player.get("hp", 0)), int(main.combat.player.get("max_hp", 0))], "player stage plate records current health"):
+			return
+		if not _check(main.player_stage_block_icon != null and main.player_stage_block_icon.texture != null and not main.last_player_stage_block_text.is_empty(), "player stage plate uses a shield icon and visible block value"):
+			return
 	if not _check(main.hand_frame.visible and main.last_hand_frame_style_applied and main.hand_frame.get_theme_stylebox("panel") != null, "combat renders a styled hand frame"):
 		return
 	if not _check(main.hand_scroll.visible and main.hand_row.get_parent() == main.hand_scroll, "combat hand is constrained inside a horizontal scroll region"):
@@ -627,6 +633,7 @@ func _run() -> void:
 		return
 	var target_line_count_before_play: int = main.last_card_target_line_count
 	var play_animation_count_before: int = main.last_card_play_animation_count
+	var player_action_count_before: int = main.last_player_action_animation_count
 	main._on_card_pressed(playable_card_index)
 	if not _check(main.last_card_play_animation_count == play_animation_count_before + 1, "playing a card requests card flight animation"):
 		return
@@ -637,6 +644,12 @@ func _run() -> void:
 	if not _check(main.last_card_play_trajectory_points.size() == 3, "card flight records a three-point trajectory"):
 		return
 	if not _check(main.last_card_target_line_count > target_line_count_before_play, "playing a card also requests a persistent target line"):
+		return
+	if not _check(main.last_card_trail_segment_count >= 16, "card targeting records a curved multi-segment trajectory"):
+		return
+	if not _check(main.last_player_action_animation_count == player_action_count_before + 1, "playing a card requests a player stage action"):
+		return
+	if not _check(main.last_player_action_animation_type == playable_card_type, "player stage action follows the played card type"):
 		return
 	if not _check(main.last_card_effect_profile == _expected_card_effect_profile(playable_card_type), "card flight records type-specific effect profile"):
 		return
@@ -657,8 +670,17 @@ func _run() -> void:
 		return
 	if not _check(main.last_card_flight_uses_card_art, "card flight uses the played card art instead of a flat text tile"):
 		return
+	var enemy_action_payloads: Array[Dictionary] = main._capture_enemy_action_visuals()
+	if not _check(not enemy_action_payloads.is_empty(), "combat exposes enemy stage actions from forecast intents"):
+		return
+	main._play_enemy_action_visuals(enemy_action_payloads)
+	if not _check(main.last_enemy_action_animation_count == enemy_action_payloads.size(), "enemy stage actions animate every living forecast actor"):
+		return
+	if not _check(main.last_enemy_action_ids.size() == enemy_action_payloads.size(), "enemy stage action telemetry records actor ids"):
+		return
 
 	main.run_potion_ids = ["volatile_vial"]
+	var enemy_reaction_count_before: int = main.last_enemy_reaction_animation_count
 	var first_enemy_hp_before: int = int(main.combat.enemies[0].get("hp", 0))
 	main._on_potion_pressed(0)
 	if not _check(main.run_potion_ids.is_empty(), "using a potion consumes a run potion slot"):
@@ -697,6 +719,36 @@ func _run() -> void:
 	if not _check(main.last_impact_vfx_asset_loaded, "enemy hit impact loads configured vfx asset"):
 		return
 	if not _check(int(hit_vfx_profile.get("ray_count", 0)) == main.last_impact_ray_count, "enemy hit impact uses configured ray count"):
+		return
+	if not _check(main.last_enemy_reaction_animation_count > enemy_reaction_count_before, "enemy hit feedback requests actor recoil motion"):
+		return
+	var player_reaction_count_before: int = main.last_player_reaction_animation_count
+	main.combat.feedback_events.append({
+		"type": "player_hit",
+		"message": "玩家动作反馈测试",
+		"target_id": "player",
+		"amount": 3,
+		"severity": "danger",
+		"turn": main.combat.turn
+	})
+	main._refresh_feedback()
+	if not _check(main.last_player_reaction_animation_count > player_reaction_count_before, "player hit feedback requests actor recoil motion"):
+		return
+	var block_reaction_count_before: int = main.last_player_reaction_animation_count
+	main.combat.feedback_events.append({
+		"type": "block_absorb",
+		"message": "护甲吸收 6",
+		"target_id": "player",
+		"amount": 6,
+		"severity": "block",
+		"turn": main.combat.turn
+	})
+	main._refresh_feedback()
+	if not _check(main.last_feedback_audio_event == "block", "shield absorption feedback maps to block audio"):
+		return
+	if not _check(main.last_impact_vfx_profile == main._feedback_vfx_profile("block_absorb"), "shield absorption uses configured shield impact profile"):
+		return
+	if not _check(main.last_player_reaction_animation_count > block_reaction_count_before, "shield absorption requests a defensive player pulse"):
 		return
 
 	main.user_settings["screen_shake_enabled"] = false

@@ -11,6 +11,8 @@
     "enemy_hit": "impact_enemy_hit",
     "player_hit": "impact_player_hit",
     "block": "impact_block_gain",
+    "block_absorb": "impact_block_gain",
+    "enemy_block_absorb": "impact_block_gain",
     "heal": "impact_heal_gain",
     "enemy_defeated": "impact_enemy_defeated",
     "phase": "impact_phase"

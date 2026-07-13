@@ -531,7 +531,10 @@ func _damage_enemy(enemy: Dictionary, amount: int, card: Dictionary) -> void:
 	var hp_damage: int = amount - blocked
 	enemy["hp"] = max(0, int(enemy.get("hp", 0)) - hp_damage)
 	_log("%s 对 %s 造成 %d 点伤害（格挡 %d）。" % [card.get("name", "攻击"), enemy.get("name", "敌人"), hp_damage, blocked])
-	_push_feedback("enemy_hit", "%s -%d" % [enemy.get("name", "敌人"), hp_damage], str(enemy.get("id", "")), hp_damage, "hit")
+	if hp_damage > 0:
+		_push_feedback("enemy_hit", "%s -%d" % [enemy.get("name", "敌人"), hp_damage], str(enemy.get("id", "")), hp_damage, "hit")
+	elif blocked > 0:
+		_push_feedback("enemy_block_absorb", "%s 格挡 %d" % [enemy.get("name", "敌人"), blocked], str(enemy.get("id", "")), blocked, "block")
 
 	if before_block > 0 and int(enemy.get("block", 0)) == 0:
 		_apply_relics("enemy_block_broken", {"enemy": enemy})
@@ -559,7 +562,10 @@ func _damage_player(amount: int, enemy: Dictionary) -> void:
 	var hp_damage: int = amount - blocked
 	_lose_player_hp(hp_damage, "%s 的攻击" % enemy.get("name", "敌人"))
 	_log("%s 攻击造成 %d 点生命伤害（格挡 %d）。" % [enemy.get("name", "敌人"), hp_damage, blocked])
-	_push_feedback("player_hit", "玩家 -%d" % hp_damage, "player", hp_damage, "danger")
+	if hp_damage > 0:
+		_push_feedback("player_hit", "玩家 -%d" % hp_damage, "player", hp_damage, "danger")
+	elif blocked > 0:
+		_push_feedback("block_absorb", "护甲吸收 %d" % blocked, "player", blocked, "block")
 	_apply_player_thorn_to_enemy(enemy)
 
 func _attack_source_triggers_thorn(source: Dictionary) -> bool:

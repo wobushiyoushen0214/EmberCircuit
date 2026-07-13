@@ -205,6 +205,11 @@ var battle_stage_scrim: ColorRect
 var battle_forecast_layer: Control
 var battle_foreground_layer: Control
 var player_stage_art: TextureRect
+var player_stage_plate: PanelContainer
+var player_stage_hp_fill: ColorRect
+var player_stage_hp_label: Label
+var player_stage_block_icon: TextureRect
+var player_stage_block_label: Label
 var hand_frame: PanelContainer
 var hand_dock_row: HBoxContainer
 var hand_left_hud: VBoxContainer
@@ -274,12 +279,22 @@ var last_card_play_animation_count: int = 0
 var last_card_play_card_id: String = ""
 var last_card_play_target_id: String = ""
 var last_card_play_trajectory_points: Array[Vector2] = []
+var last_card_trail_segment_count: int = 0
 var last_card_flight_uses_card_art: bool = false
 var last_card_effect_profile: String = ""
 var last_card_particle_count: int = 0
 var last_card_audio_event: String = ""
 var last_card_vfx_asset_path: String = ""
 var last_card_vfx_asset_loaded: bool = false
+var last_player_action_animation_count: int = 0
+var last_player_action_animation_type: String = ""
+var last_player_reaction_animation_count: int = 0
+var last_enemy_reaction_animation_count: int = 0
+var last_enemy_action_animation_count: int = 0
+var last_enemy_action_ids: Array[String] = []
+var last_player_stage_plate_visible: bool = false
+var last_player_stage_hp_text: String = ""
+var last_player_stage_block_text: String = ""
 var last_hand_card_art_path: String = ""
 var last_hand_card_art_loaded: bool = false
 var last_hand_card_layout_count: int = 0
@@ -696,6 +711,86 @@ func _build_layout() -> void:
 	player_stage_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	player_stage_art.modulate = Color(1.0, 1.0, 1.0, 0.92)
 	enemy_stage_stack.add_child(player_stage_art)
+
+	player_stage_plate = PanelContainer.new()
+	player_stage_plate.name = "PlayerStagePlate"
+	player_stage_plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	player_stage_plate.custom_minimum_size = Vector2(238, 30)
+	player_stage_plate.add_theme_stylebox_override("panel", _player_stage_plate_style())
+	enemy_stage_stack.add_child(player_stage_plate)
+
+	var player_plate_margin := MarginContainer.new()
+	player_plate_margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	player_plate_margin.add_theme_constant_override("margin_left", 6)
+	player_plate_margin.add_theme_constant_override("margin_right", 6)
+	player_plate_margin.add_theme_constant_override("margin_top", 4)
+	player_plate_margin.add_theme_constant_override("margin_bottom", 4)
+	player_stage_plate.add_child(player_plate_margin)
+
+	var player_plate_row := HBoxContainer.new()
+	player_plate_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	player_plate_row.add_theme_constant_override("separation", 5)
+	player_plate_margin.add_child(player_plate_row)
+
+	var hp_icon := TextureRect.new()
+	hp_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hp_icon.custom_minimum_size = Vector2(20, 20)
+	hp_icon.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+	hp_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	hp_icon.texture = _load_texture(_hud_icon_path("生命"))
+	hp_icon.modulate = Color(1.0, 0.54, 0.38, 1.0)
+	player_plate_row.add_child(hp_icon)
+
+	var player_hp_bar := Control.new()
+	player_hp_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	player_hp_bar.custom_minimum_size = Vector2(138, 18)
+	player_hp_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	player_hp_bar.clip_contents = true
+	player_plate_row.add_child(player_hp_bar)
+
+	var player_hp_bg := ColorRect.new()
+	player_hp_bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	player_hp_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	player_hp_bg.color = Color(0.040, 0.028, 0.026, 0.96)
+	player_hp_bar.add_child(player_hp_bg)
+
+	player_stage_hp_fill = ColorRect.new()
+	player_stage_hp_fill.anchor_left = 0.0
+	player_stage_hp_fill.anchor_top = 0.0
+	player_stage_hp_fill.anchor_right = 1.0
+	player_stage_hp_fill.anchor_bottom = 1.0
+	player_stage_hp_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	player_stage_hp_fill.color = Color(0.78, 0.12, 0.075, 0.96)
+	player_hp_bar.add_child(player_stage_hp_fill)
+
+	player_stage_hp_label = Label.new()
+	player_stage_hp_label.set_anchors_preset(Control.PRESET_FULL_RECT)
+	player_stage_hp_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	player_stage_hp_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	player_stage_hp_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	player_stage_hp_label.add_theme_font_size_override("font_size", 11)
+	player_stage_hp_label.add_theme_color_override("font_color", Color(1.0, 0.90, 0.80))
+	player_stage_hp_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.92))
+	player_stage_hp_label.add_theme_constant_override("shadow_offset_x", 1)
+	player_stage_hp_label.add_theme_constant_override("shadow_offset_y", 1)
+	player_hp_bar.add_child(player_stage_hp_label)
+
+	player_stage_block_icon = TextureRect.new()
+	player_stage_block_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	player_stage_block_icon.custom_minimum_size = Vector2(20, 20)
+	player_stage_block_icon.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+	player_stage_block_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	player_stage_block_icon.texture = _load_texture(_hud_icon_path("护甲"))
+	player_stage_block_icon.modulate = Color(0.48, 0.90, 1.0, 0.96)
+	player_plate_row.add_child(player_stage_block_icon)
+
+	player_stage_block_label = Label.new()
+	player_stage_block_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	player_stage_block_label.custom_minimum_size = Vector2(24, 0)
+	player_stage_block_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	player_stage_block_label.add_theme_font_size_override("font_size", 12)
+	player_stage_block_label.add_theme_color_override("font_color", Color(0.76, 0.94, 1.0))
+	player_plate_row.add_child(player_stage_block_label)
 
 	enemy_row = HBoxContainer.new()
 	enemy_row.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -2730,6 +2825,17 @@ func _apply_combat_layout_constraints(reward_visible: bool) -> void:
 			player_stage_art.offset_top = 20.0
 			player_stage_art.offset_right = 356.0
 			player_stage_art.offset_bottom = -2.0
+	if player_stage_plate != null:
+		player_stage_plate.visible = _is_pc_layout() and not reward_visible
+		player_stage_plate.z_index = 6
+		player_stage_plate.anchor_left = 0.0
+		player_stage_plate.anchor_top = 1.0
+		player_stage_plate.anchor_right = 0.0
+		player_stage_plate.anchor_bottom = 1.0
+		player_stage_plate.offset_left = 72.0
+		player_stage_plate.offset_top = -43.0
+		player_stage_plate.offset_right = 310.0
+		player_stage_plate.offset_bottom = -13.0
 	if enemy_row != null:
 		var enemy_row_height := 378.0 if _is_pc_layout() else 136.0
 		enemy_row.custom_minimum_size = Vector2(0, clamp(round(enemy_row_height * scale_y), 98.0, 408.0 if _is_pc_layout() else 136.0))
@@ -6025,7 +6131,36 @@ func _refresh_combat_hud() -> void:
 		combat_hud_row.add_child(spacer)
 		combat_hud_row.add_child(preserved_potion_row)
 	last_combat_hud_text = " | ".join(text_parts)
+	_refresh_player_stage_plate()
 	_refresh_pc_hand_dock_hud()
+
+func _refresh_player_stage_plate() -> void:
+	last_player_stage_plate_visible = false
+	last_player_stage_hp_text = ""
+	last_player_stage_block_text = ""
+	if player_stage_plate == null or combat == null:
+		return
+	var hp: int = int(combat.player.get("hp", 0))
+	var max_hp: int = max(1, int(combat.player.get("max_hp", 1)))
+	var block: int = int(combat.player.get("block", 0))
+	var hp_ratio: float = clamp(float(hp) / float(max_hp), 0.0, 1.0)
+	if player_stage_hp_fill != null:
+		player_stage_hp_fill.anchor_right = hp_ratio
+		player_stage_hp_fill.color = Color(0.82, 0.18, 0.09, 0.96) if hp_ratio > 0.32 else Color(0.92, 0.07, 0.045, 0.98)
+	last_player_stage_hp_text = "%d/%d" % [hp, max_hp]
+	last_player_stage_block_text = str(block)
+	if player_stage_hp_label != null:
+		player_stage_hp_label.text = last_player_stage_hp_text
+	if player_stage_block_label != null:
+		player_stage_block_label.text = last_player_stage_block_text
+	if player_stage_block_icon != null:
+		player_stage_block_icon.modulate = Color(0.48, 0.90, 1.0, 0.96 if block > 0 else 0.34)
+	player_stage_plate.tooltip_text = "生命 %s | 护甲 %d%s" % [
+		last_player_stage_hp_text,
+		block,
+		_status_text(combat.player.get("statuses", {}))
+	]
+	last_player_stage_plate_visible = player_stage_plate.visible
 
 func _create_hand_energy_panel() -> PanelContainer:
 	var panel := PanelContainer.new()
@@ -7283,6 +7418,7 @@ func _add_pc_enemy_stage_layout(panel: Control, enemy: Dictionary, enemy_index: 
 	art.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
 	art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	art.texture = _enemy_texture(enemy)
+	art.set_meta("enemy_index", enemy_index)
 	var art_scale: float = _pc_enemy_stage_art_scale(enemy)
 	if art_scale > 1.0:
 		art.scale = Vector2(art_scale, art_scale)
@@ -8681,7 +8817,7 @@ func _apply_feedback_effects(events: Array, primary_event: Dictionary) -> void:
 		var event_dict: Dictionary = event
 		var event_type: String = str(event_dict.get("type", ""))
 		match str(event_dict.get("type", "")):
-			"enemy_hit", "enemy_defeated", "phase":
+			"enemy_hit", "enemy_block_absorb", "enemy_defeated", "phase":
 				var target_id: String = str(event_dict.get("target_id", ""))
 				if not target_id.is_empty():
 					last_flash_target_id = target_id
@@ -8689,7 +8825,7 @@ func _apply_feedback_effects(events: Array, primary_event: Dictionary) -> void:
 			"player_hit":
 				last_flash_target_id = "player"
 				_flash_player_target(true)
-			"block", "heal":
+			"block", "block_absorb", "heal":
 				last_flash_target_id = "player"
 				_flash_player_target(false)
 			"won", "lost":
@@ -8714,7 +8850,7 @@ func _feedback_audio_event(event_type: String) -> String:
 	match event_type:
 		"enemy_hit", "enemy_defeated", "player_hit":
 			return "hit"
-		"block":
+		"block", "block_absorb", "enemy_block_absorb":
 			return "block"
 		"heal":
 			return "heal"
@@ -8800,6 +8936,8 @@ func _cinematic_hold_duration(event_type: String) -> float:
 	return 0.92 if event_type == "phase" else 1.15
 
 func _flash_enemy_target(target_id: String, severity: String) -> void:
+	if severity != "phase":
+		_play_enemy_reaction(target_id, severity)
 	if DisplayServer.get_name() == "headless" or not is_inside_tree():
 		return
 	var visual: Dictionary = enemy_visuals_by_id.get(target_id, {})
@@ -8812,6 +8950,8 @@ func _flash_enemy_target(target_id: String, severity: String) -> void:
 		flash_color = Color(0.55, 1.0, 0.62, 1.0)
 	elif severity == "phase":
 		flash_color = Color(0.92, 0.58, 1.0, 1.0)
+	elif severity == "block":
+		flash_color = Color(0.48, 0.88, 1.0, 1.0)
 	if button != null:
 		var tween := create_tween()
 		button.modulate = flash_color
@@ -8825,6 +8965,7 @@ func _flash_enemy_target(target_id: String, severity: String) -> void:
 
 func _flash_player_target(danger: bool) -> void:
 	if DisplayServer.get_name() == "headless" or not is_inside_tree():
+		_play_player_reaction(null, danger)
 		return
 	var flash_color := Color(1.0, 0.36, 0.30, 1.0) if danger else Color(0.48, 0.78, 1.0, 1.0)
 	var target: Control = _player_combat_target_control()
@@ -8832,15 +8973,120 @@ func _flash_player_target(danger: bool) -> void:
 		return
 	var tween := create_tween()
 	target.modulate = flash_color
-	target.scale = Vector2(1.02, 1.02)
 	tween.tween_property(target, "modulate", Color.WHITE, 0.20)
-	tween.parallel().tween_property(target, "scale", Vector2.ONE, 0.20)
+	_play_player_reaction(target, danger)
+
+func _play_enemy_reaction(target_id: String, severity: String) -> void:
+	last_enemy_reaction_animation_count += 1
+	if DisplayServer.get_name() == "headless" or not is_inside_tree():
+		return
+	var visual: Dictionary = enemy_visuals_by_id.get(target_id, {})
+	if visual.is_empty():
+		return
+	var art := visual.get("art") as Control
+	if art == null or not is_instance_valid(art):
+		return
+	var motion: Dictionary = _begin_stage_actor_motion(art)
+	var base_position: Vector2 = motion.get("position", art.position)
+	var base_scale: Vector2 = motion.get("scale", art.scale)
+	var base_rotation: float = float(motion.get("rotation", art.rotation))
+	art.pivot_offset = art.size * 0.5
+	var tween := create_tween().bind_node(art)
+	art.set_meta("stage_motion_tween", tween)
+	if severity == "success":
+		art.position = base_position + Vector2(15.0, -2.0)
+		art.rotation = base_rotation + 0.045
+		tween.tween_property(art, "position", base_position + Vector2(-12.0, 4.0), 0.075).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tween.parallel().tween_property(art, "scale", base_scale * 0.94, 0.075)
+		tween.tween_property(art, "position", base_position, 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		tween.parallel().tween_property(art, "scale", base_scale, 0.18)
+		tween.parallel().tween_property(art, "rotation", base_rotation, 0.18)
+	elif severity == "block":
+		tween.tween_property(art, "scale", base_scale * 1.028, 0.08).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		tween.tween_property(art, "scale", base_scale, 0.14).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	else:
+		art.position = base_position + Vector2(13.0, 0.0)
+		art.rotation = base_rotation + 0.028
+		tween.tween_property(art, "position", base_position + Vector2(-8.0, 1.0), 0.065).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tween.parallel().tween_property(art, "scale", base_scale * 0.97, 0.065)
+		tween.tween_property(art, "position", base_position, 0.14).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		tween.parallel().tween_property(art, "scale", base_scale, 0.14)
+		tween.parallel().tween_property(art, "rotation", base_rotation, 0.14)
+	tween.tween_callback(Callable(self, "_finish_stage_actor_motion").bind(art, true))
+
+func _play_player_reaction(target: Control, danger: bool) -> void:
+	last_player_reaction_animation_count += 1
+	if DisplayServer.get_name() == "headless" or not is_inside_tree() or target == null or not is_instance_valid(target):
+		return
+	var motion: Dictionary = _begin_stage_actor_motion(target)
+	var base_position: Vector2 = motion.get("position", target.position)
+	var base_scale: Vector2 = motion.get("scale", target.scale)
+	var base_rotation: float = float(motion.get("rotation", target.rotation))
+	target.pivot_offset = target.size * 0.5
+	var tween := create_tween().bind_node(target)
+	target.set_meta("stage_motion_tween", tween)
+	if danger:
+		target.position = base_position + Vector2(-14.0, 2.0)
+		target.rotation = base_rotation - 0.022
+		tween.tween_property(target, "position", base_position + Vector2(7.0, 0.0), 0.07).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tween.parallel().tween_property(target, "scale", base_scale * 0.975, 0.07)
+		tween.tween_property(target, "position", base_position, 0.15).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		tween.parallel().tween_property(target, "scale", base_scale, 0.15)
+		tween.parallel().tween_property(target, "rotation", base_rotation, 0.15)
+	else:
+		tween.tween_property(target, "scale", base_scale * 1.045, 0.11).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		tween.tween_property(target, "scale", base_scale, 0.16).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tween.tween_callback(Callable(self, "_finish_stage_actor_motion").bind(target, false))
+
+func _begin_stage_actor_motion(target: Control) -> Dictionary:
+	if target == null or not is_instance_valid(target):
+		return {}
+	if target.has_meta("stage_motion_tween"):
+		var active_tween := target.get_meta("stage_motion_tween") as Tween
+		if active_tween != null and active_tween.is_valid():
+			active_tween.kill()
+	if target.has_meta("stage_motion_base_position"):
+		target.position = target.get_meta("stage_motion_base_position")
+		target.scale = target.get_meta("stage_motion_base_scale")
+		target.rotation = float(target.get_meta("stage_motion_base_rotation"))
+		target.remove_meta("stage_motion_base_position")
+		target.remove_meta("stage_motion_base_scale")
+		target.remove_meta("stage_motion_base_rotation")
+	target.remove_meta("stage_motion_tween")
+	if target.has_meta("idle_motion_tween"):
+		var idle_tween := target.get_meta("idle_motion_tween") as Tween
+		if idle_tween != null and idle_tween.is_valid():
+			idle_tween.kill()
+		target.remove_meta("idle_motion_tween")
+	var motion := {
+		"position": target.position,
+		"scale": target.scale,
+		"rotation": target.rotation
+	}
+	target.set_meta("stage_motion_base_position", target.position)
+	target.set_meta("stage_motion_base_scale", target.scale)
+	target.set_meta("stage_motion_base_rotation", target.rotation)
+	return motion
+
+func _finish_stage_actor_motion(target: Control, restart_idle: bool) -> void:
+	if target == null or not is_instance_valid(target):
+		return
+	if target.has_meta("stage_motion_base_position"):
+		target.position = target.get_meta("stage_motion_base_position")
+		target.scale = target.get_meta("stage_motion_base_scale")
+		target.rotation = float(target.get_meta("stage_motion_base_rotation"))
+		target.remove_meta("stage_motion_base_position")
+		target.remove_meta("stage_motion_base_scale")
+		target.remove_meta("stage_motion_base_rotation")
+	target.remove_meta("stage_motion_tween")
+	if restart_idle and target is TextureRect and target.has_meta("enemy_index"):
+		_start_enemy_idle_motion(target as TextureRect, int(target.get_meta("enemy_index")))
 
 func _feedback_spawns_float(event_type: String) -> bool:
-	return ["enemy_hit", "player_hit", "block", "heal", "enemy_defeated", "phase", "won", "lost"].has(event_type)
+	return ["enemy_hit", "player_hit", "block", "block_absorb", "enemy_block_absorb", "heal", "enemy_defeated", "phase", "won", "lost"].has(event_type)
 
 func _feedback_spawns_impact(event_type: String) -> bool:
-	return ["enemy_hit", "player_hit", "block", "heal", "enemy_defeated", "phase"].has(event_type)
+	return ["enemy_hit", "player_hit", "block", "block_absorb", "enemy_block_absorb", "heal", "enemy_defeated", "phase"].has(event_type)
 
 func _stage_feedback_replaces_label(event_type: String) -> bool:
 	return _is_pc_layout() and not _is_strong_feedback(event_type)
@@ -9021,27 +9267,31 @@ func _enemy_visual_for_index(enemy_index: int) -> Dictionary:
 
 func _request_card_target_line(payload: Dictionary, persistent: bool) -> void:
 	last_card_target_line_count += 1
+	last_card_trail_segment_count = 24 if persistent else 16
 	if DisplayServer.get_name() == "headless" or not is_inside_tree() or feedback_overlay == null:
 		return
 	var points: Array = payload.get("points", [])
-	if points.size() < 2:
+	if points.size() < 3:
 		return
-	var start: Vector2 = points[0]
-	var end: Vector2 = points[points.size() - 1]
-	var delta: Vector2 = end - start
-	var length: float = max(delta.length(), 1.0)
-	var line := ColorRect.new()
-	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	line.color = _card_visual_color(str(payload.get("card_type", "")))
-	line.size = Vector2(length, 4.0 if persistent else 3.0)
-	line.pivot_offset = Vector2(0, line.size.y * 0.5)
-	line.position = start - Vector2(0, line.size.y * 0.5)
-	line.rotation = delta.angle()
-	line.modulate = Color(1, 1, 1, 0.62 if persistent else 0.44)
-	feedback_overlay.add_child(line)
-	var tween := create_tween()
-	tween.tween_property(line, "modulate", Color(1, 1, 1, 0), 0.22 if persistent else 0.16)
-	tween.tween_callback(Callable(line, "queue_free"))
+	var color: Color = _card_visual_color(str(payload.get("card_type", "")))
+	var duration: float = 0.34 if persistent else 0.20
+	var curve_points := PackedVector2Array()
+	for segment_index in range(last_card_trail_segment_count + 1):
+		var point_t: float = float(segment_index) / float(last_card_trail_segment_count)
+		curve_points.append(_quadratic_bezier(points[0], points[1], points[2], point_t))
+	for pass_index in range(2):
+		var line := Line2D.new()
+		line.points = curve_points
+		line.width = (8.0 if persistent else 6.0) if pass_index == 0 else (2.6 if persistent else 2.0)
+		line.default_color = Color(color.r, color.g, color.b, 0.18 if pass_index == 0 else (0.80 if persistent else 0.56))
+		line.antialiased = true
+		line.z_index = 2 + pass_index
+		feedback_overlay.add_child(line)
+		var tween := create_tween().bind_node(line)
+		tween.tween_property(line, "modulate", Color(1, 1, 1, 0), duration)
+		tween.tween_callback(Callable(line, "queue_free"))
+	if persistent:
+		_spawn_card_pulse(points[2], 42.0, color, 0.28)
 
 func _request_card_play_visual(payload: Dictionary) -> void:
 	var points: Array = payload.get("points", [])
@@ -9101,6 +9351,16 @@ func _request_card_play_visual(payload: Dictionary) -> void:
 		fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		fill.color = Color(0.08, 0.075, 0.07, 0.92)
 		stack.add_child(fill)
+	var material_frame_texture: Texture2D = _load_texture(_pc_card_material_frame_path(str(payload.get("card_type", ""))))
+	if material_frame_texture != null:
+		var material_frame := TextureRect.new()
+		material_frame.set_anchors_preset(Control.PRESET_FULL_RECT)
+		material_frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		material_frame.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		material_frame.stretch_mode = TextureRect.STRETCH_SCALE
+		material_frame.texture = material_frame_texture
+		material_frame.modulate = Color(1.0, 1.0, 1.0, 0.94)
+		stack.add_child(material_frame)
 
 	var label := Label.new()
 	label.anchor_left = 0.0
@@ -9129,6 +9389,105 @@ func _request_card_play_visual(payload: Dictionary) -> void:
 	tween.parallel().tween_property(ghost, "modulate", Color(1, 1, 1, 0.16), 0.27)
 	tween.tween_callback(Callable(self, "_spawn_card_resolution_effect").bind(payload))
 	tween.tween_callback(Callable(ghost, "queue_free"))
+
+func _play_player_card_action(payload: Dictionary) -> void:
+	var card_type: String = str(payload.get("card_type", "default"))
+	last_player_action_animation_count += 1
+	last_player_action_animation_type = card_type
+	if DisplayServer.get_name() == "headless" or not is_inside_tree():
+		return
+	var target: Control = _player_combat_target_control()
+	if target == null or not is_instance_valid(target):
+		return
+	var motion: Dictionary = _begin_stage_actor_motion(target)
+	var base_position: Vector2 = motion.get("position", target.position)
+	var base_scale: Vector2 = motion.get("scale", target.scale)
+	var base_rotation: float = float(motion.get("rotation", target.rotation))
+	target.pivot_offset = target.size * 0.5
+	var tween := create_tween().bind_node(target)
+	target.set_meta("stage_motion_tween", tween)
+	match card_type:
+		"attack":
+			tween.tween_property(target, "position", base_position + Vector2(34.0, -3.0), 0.09).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+			tween.parallel().tween_property(target, "scale", base_scale * 1.055, 0.09)
+			tween.parallel().tween_property(target, "rotation", base_rotation + 0.025, 0.09)
+			tween.tween_property(target, "position", base_position, 0.16).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+			tween.parallel().tween_property(target, "scale", base_scale, 0.16)
+			tween.parallel().tween_property(target, "rotation", base_rotation, 0.16)
+		"power":
+			tween.tween_property(target, "scale", base_scale * 0.97, 0.06).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+			tween.tween_property(target, "scale", base_scale * 1.075, 0.16).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+			tween.parallel().tween_property(target, "rotation", base_rotation - 0.018, 0.16)
+			tween.tween_property(target, "scale", base_scale, 0.18).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+			tween.parallel().tween_property(target, "rotation", base_rotation, 0.18)
+		_:
+			tween.tween_property(target, "position", base_position + Vector2(8.0, -6.0), 0.10).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+			tween.parallel().tween_property(target, "scale", base_scale * 1.035, 0.10)
+			tween.tween_property(target, "position", base_position, 0.16).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+			tween.parallel().tween_property(target, "scale", base_scale, 0.16)
+	tween.tween_callback(Callable(self, "_finish_stage_actor_motion").bind(target, false))
+
+func _capture_enemy_action_visuals() -> Array[Dictionary]:
+	var payloads: Array[Dictionary] = []
+	if combat == null:
+		return payloads
+	for enemy_index in range(combat.enemies.size()):
+		var enemy: Dictionary = combat.enemies[enemy_index]
+		if int(enemy.get("hp", 0)) <= 0:
+			continue
+		var action: Dictionary = enemy.get("current_action", {})
+		var intent: Dictionary = action.get("intent", {})
+		payloads.append({
+			"enemy_id": str(enemy.get("id", "")),
+			"enemy_index": enemy_index,
+			"intent_type": str(intent.get("type", "none"))
+		})
+	return payloads
+
+func _play_enemy_action_visuals(payloads: Array[Dictionary]) -> void:
+	last_enemy_action_animation_count = payloads.size()
+	last_enemy_action_ids.clear()
+	for payload in payloads:
+		var enemy_id: String = str(payload.get("enemy_id", ""))
+		if not enemy_id.is_empty():
+			last_enemy_action_ids.append(enemy_id)
+	if DisplayServer.get_name() == "headless" or not is_inside_tree():
+		return
+	for payload_index in range(payloads.size()):
+		var payload: Dictionary = payloads[payload_index]
+		var enemy_id: String = str(payload.get("enemy_id", ""))
+		var enemy_index: int = int(payload.get("enemy_index", -1))
+		var visual: Dictionary = _enemy_visual_for_index(enemy_index)
+		if visual.is_empty():
+			visual = enemy_visuals_by_id.get(enemy_id, {})
+		var art := visual.get("art") as Control
+		if art == null or not is_instance_valid(art):
+			continue
+		_play_enemy_stage_action(art, str(payload.get("intent_type", "none")), float(payload_index) * 0.055)
+
+func _play_enemy_stage_action(art: Control, intent_type: String, delay: float) -> void:
+	var motion: Dictionary = _begin_stage_actor_motion(art)
+	var base_position: Vector2 = motion.get("position", art.position)
+	var base_scale: Vector2 = motion.get("scale", art.scale)
+	var base_rotation: float = float(motion.get("rotation", art.rotation))
+	art.pivot_offset = art.size * 0.5
+	var tween := create_tween().bind_node(art)
+	art.set_meta("stage_motion_tween", tween)
+	if delay > 0.0:
+		tween.tween_interval(delay)
+	if _intent_projects_to_player(intent_type):
+		tween.tween_property(art, "position", base_position + Vector2(-30.0, -2.0), 0.10).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tween.parallel().tween_property(art, "scale", base_scale * 1.045, 0.10)
+		tween.parallel().tween_property(art, "rotation", base_rotation - 0.022, 0.10)
+		tween.tween_property(art, "position", base_position, 0.17).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		tween.parallel().tween_property(art, "scale", base_scale, 0.17)
+		tween.parallel().tween_property(art, "rotation", base_rotation, 0.17)
+	else:
+		tween.tween_property(art, "position", base_position + Vector2(0.0, -7.0), 0.12).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tween.parallel().tween_property(art, "scale", base_scale * 1.035, 0.12)
+		tween.tween_property(art, "position", base_position, 0.18).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		tween.parallel().tween_property(art, "scale", base_scale, 0.18)
+	tween.tween_callback(Callable(self, "_finish_stage_actor_motion").bind(art, true))
 
 func _update_card_flight_position(progress: float, ghost: Control, points: Array, ghost_size: Vector2) -> void:
 	if ghost == null or points.size() < 3:
@@ -9477,6 +9836,8 @@ func _floating_feedback_text(event: Dictionary) -> String:
 			return "-%d" % amount
 		"block":
 			return "+%d 护甲" % amount
+		"block_absorb", "enemy_block_absorb":
+			return "格挡 %d" % amount
 		"heal":
 			return "+%d 生命" % amount
 		"enemy_defeated":
@@ -9496,6 +9857,8 @@ func _floating_feedback_color(event: Dictionary) -> Color:
 			return Color(1.0, 0.34, 0.30)
 		"hit":
 			return Color(1.0, 0.72, 0.30)
+		"block":
+			return Color(0.48, 0.90, 1.0)
 		"success":
 			return Color(0.48, 1.0, 0.58)
 		"phase":
@@ -9592,6 +9955,8 @@ func _feedback_hit_stop_duration(event: Dictionary) -> float:
 	match str(event.get("type", "")):
 		"enemy_hit", "player_hit":
 			return clamp(0.024 + float(int(event.get("amount", 0))) * 0.0010, 0.028, 0.060)
+		"block_absorb", "enemy_block_absorb":
+			return clamp(0.012 + float(int(event.get("amount", 0))) * 0.0005, 0.014, 0.026)
 		"enemy_defeated":
 			return 0.070
 		"phase":
@@ -9607,6 +9972,8 @@ func _feedback_shake_intensity(event: Dictionary) -> float:
 			return clamp(2.0 + float(int(event.get("amount", 0))) * 0.16, 2.0, 7.0)
 		"player_hit":
 			return clamp(4.0 + float(int(event.get("amount", 0))) * 0.22, 4.0, 11.0)
+		"block_absorb", "enemy_block_absorb":
+			return clamp(0.8 + float(int(event.get("amount", 0))) * 0.06, 0.8, 2.4)
 		"enemy_defeated":
 			return 7.0
 		"phase":
@@ -9662,7 +10029,9 @@ func _primary_feedback_event(events: Array) -> Dictionary:
 		"phase": 90,
 		"enemy_defeated": 80,
 		"player_hit": 70,
+		"block_absorb": 65,
 		"enemy_hit": 60,
+		"enemy_block_absorb": 58,
 		"heal": 55,
 		"potion": 50,
 		"block": 40
@@ -9996,6 +10365,7 @@ func _on_enemy_pressed(index: int) -> void:
 	_refresh()
 
 func _on_card_pressed(index: int) -> void:
+	var played_payload: Dictionary = {}
 	if combat != null and combat.phase == "player":
 		var target_index: int = _normalize_selected_enemy()
 		var payload: Dictionary = {}
@@ -10004,19 +10374,24 @@ func _on_card_pressed(index: int) -> void:
 		if combat.play_card(index, selected_enemy_index):
 			if not payload.is_empty():
 				_request_card_play_visual(payload)
+				played_payload = payload
 			else:
 				last_card_audio_event = "card_play"
 				_audio_event("card_play")
 			selected_enemy_index = _normalize_selected_enemy()
 	_refresh()
+	if not played_payload.is_empty():
+		_play_player_card_action(played_payload)
 
 func _on_end_turn_pressed() -> void:
 	if combat == null:
 		return
+	var action_payloads: Array[Dictionary] = _capture_enemy_action_visuals()
 	_audio_event("turn_end")
 	combat.end_player_turn()
 	selected_enemy_index = _normalize_selected_enemy()
 	_refresh()
+	_play_enemy_action_visuals(action_payloads)
 
 func _on_potion_pressed(slot_index: int) -> void:
 	if combat == null or slot_index < 0 or slot_index >= run_potion_ids.size():
@@ -10696,6 +11071,16 @@ func _is_raster_texture_path(path: String) -> bool:
 func _player_panel_style() -> StyleBoxFlat:
 	return _button_style(Color(0.12, 0.16, 0.16, 0.94), Color(0.46, 0.72, 0.66), 2, 8)
 
+func _player_stage_plate_style() -> StyleBoxFlat:
+	var style := _button_style(Color(0.035, 0.050, 0.052, 0.94), Color(0.34, 0.78, 0.78, 0.92), 2, 7)
+	style.shadow_color = Color(0, 0, 0, 0.72)
+	style.shadow_size = 5
+	style.content_margin_left = 0
+	style.content_margin_right = 0
+	style.content_margin_top = 0
+	style.content_margin_bottom = 0
+	return style
+
 func _battle_board_style() -> StyleBoxFlat:
 	return _button_style(Color(0.085, 0.095, 0.10, 0.96), Color(0.40, 0.44, 0.48), 2, 8)
 
@@ -11092,6 +11477,8 @@ func _feedback_style(severity: String) -> StyleBoxFlat:
 				return _button_style(Color(0.22, 0.055, 0.045, 0.82), Color(0.95, 0.35, 0.28, 0.82), 1, 8)
 			"hit":
 				return _button_style(Color(0.18, 0.10, 0.045, 0.82), Color(0.95, 0.55, 0.24, 0.82), 1, 8)
+			"block":
+				return _button_style(Color(0.045, 0.12, 0.17, 0.82), Color(0.42, 0.84, 1.0, 0.84), 1, 8)
 			"success":
 				return _button_style(Color(0.06, 0.16, 0.09, 0.80), Color(0.36, 0.86, 0.48, 0.80), 1, 8)
 			"phase":
@@ -11103,6 +11490,8 @@ func _feedback_style(severity: String) -> StyleBoxFlat:
 			return _button_style(Color(0.28, 0.09, 0.08), Color(0.95, 0.35, 0.28), 2, 6)
 		"hit":
 			return _button_style(Color(0.25, 0.14, 0.08), Color(0.95, 0.55, 0.24), 2, 6)
+		"block":
+			return _button_style(Color(0.07, 0.16, 0.22), Color(0.42, 0.84, 1.0), 2, 6)
 		"success":
 			return _button_style(Color(0.10, 0.22, 0.15), Color(0.30, 0.78, 0.45), 2, 6)
 		"phase":

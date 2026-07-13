@@ -158,6 +158,7 @@ func _run() -> void:
 	_check(_hand_cards_fit_hand_tray(desktop_main), "desktop combat rotated hand cards stay inside hand tray")
 	_check(_hand_card_rotation_readable(desktop_main, 2.5), "desktop combat hand card rotation stays readable")
 	_check(_pc_card_description_blocks_readable(desktop_main, 64.0), "desktop combat hand card descriptions have readable space")
+	_check(_control_inside_horizontal(desktop_main.player_stage_plate, desktop_main.enemy_stage_panel) and _control_inside_vertical(desktop_main.player_stage_plate, desktop_main.enemy_stage_panel), "desktop player health plate stays inside battle stage")
 
 	var default_pc_size := Vector2(1280, 720)
 	var default_pc_host := Control.new()
@@ -186,6 +187,7 @@ func _run() -> void:
 	_check(_hand_card_rotation_readable(default_pc_main, 2.5), "default PC hand card rotation stays readable")
 	_check(_pc_card_description_blocks_readable(default_pc_main, 62.0), "default PC hand card descriptions have readable space")
 	_check(_potion_belt_stays_outside_enemy_stage(default_pc_main), "default PC potion belt stays out of the enemy stage")
+	_check(_control_inside_horizontal(default_pc_main.player_stage_plate, default_pc_main.enemy_stage_panel) and _control_inside_vertical(default_pc_main.player_stage_plate, default_pc_main.enemy_stage_panel), "default PC player health plate stays inside battle stage")
 	default_pc_main._on_pile_hud_pressed("抽牌")
 	await process_frame
 	await process_frame

@@ -95,6 +95,29 @@ func _init() -> void:
 	combat.end_player_turn()
 	_check(combat.phase == "player" or combat.phase == "won" or combat.phase == "lost", "turn loop advances after enemy turn")
 
+	var absorb_combat = CombatStateScript.new()
+	absorb_combat.setup(card_data, enemy_data, relic_data, encounter_data, player_data, "intro_patrol", ["ash_guard"], ["__test_no_relic__"], 70)
+	absorb_combat.consume_feedback_events()
+	absorb_combat.player["block"] = 20
+	var absorb_hp_before: int = int(absorb_combat.player.get("hp", 0))
+	absorb_combat._damage_player(7, absorb_combat.enemies[0])
+	var absorb_feedback: Array = absorb_combat.consume_feedback_events()
+	_check(int(absorb_combat.player.get("hp", 0)) == absorb_hp_before, "fully blocked attack does not reduce player health")
+	_check(int(absorb_combat.player.get("block", 0)) == 13, "fully blocked attack consumes the correct block amount")
+	_check(_has_feedback_type(absorb_feedback, "block_absorb"), "fully blocked attack emits shield absorption feedback")
+	_check(not _has_feedback_type(absorb_feedback, "player_hit"), "fully blocked attack does not emit misleading player hit feedback")
+
+	var enemy_absorb_combat = CombatStateScript.new()
+	enemy_absorb_combat.setup(card_data, enemy_data, relic_data, encounter_data, player_data, "intro_patrol", ["ember_strike"], ["__test_no_relic__"], 70)
+	enemy_absorb_combat.consume_feedback_events()
+	enemy_absorb_combat.enemies[0]["block"] = 20
+	var enemy_absorb_hp_before: int = int(enemy_absorb_combat.enemies[0].get("hp", 0))
+	enemy_absorb_combat._damage_enemy(enemy_absorb_combat.enemies[0], 7, {"name": "测试攻击", "type": "attack"})
+	var enemy_absorb_feedback: Array = enemy_absorb_combat.consume_feedback_events()
+	_check(int(enemy_absorb_combat.enemies[0].get("hp", 0)) == enemy_absorb_hp_before, "fully blocked player attack does not reduce enemy health")
+	_check(_has_feedback_type(enemy_absorb_feedback, "enemy_block_absorb"), "fully blocked player attack emits enemy shield absorption feedback")
+	_check(not _has_feedback_type(enemy_absorb_feedback, "enemy_hit"), "fully blocked player attack does not emit misleading enemy hit feedback")
+
 	var upgraded_combat = CombatStateScript.new()
 	upgraded_combat.setup(card_data, enemy_data, relic_data, encounter_data, player_data, "intro_patrol", ["ember_strike+"], [], 72)
 	_check(upgraded_combat.hand.size() == 1, "upgraded one-card deck draws one card")
