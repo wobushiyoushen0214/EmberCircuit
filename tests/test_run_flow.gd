@@ -802,7 +802,7 @@ func _run() -> void:
 		return
 	if not _check(main.map_scroll != null and main.map_scroll.visible and main.map_view.get_parent() == main.map_scroll, "map choice constrains the visual map inside a scroll region"):
 		return
-	if not _check(main.last_combat_layout_overflow <= 0.0 and main.map_view.custom_minimum_size.y <= 330.0 and main.log_label.custom_minimum_size.y <= 120.0, "map choice keeps map, log, and controls inside the viewport"):
+	if not _check(main.last_combat_layout_overflow <= 0.0 and main.map_view.custom_minimum_size.y <= 680.0 and main.log_label.custom_minimum_size.y <= 120.0, "map choice keeps immersive map, log, and controls inside the viewport"):
 		return
 	if not _check(main.map_view.get_node_button_count() == main.route_nodes.size(), "map view renders every route node"):
 		return

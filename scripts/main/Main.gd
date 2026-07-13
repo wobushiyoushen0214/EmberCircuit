@@ -2224,15 +2224,36 @@ func _apply_character_select_layout_constraints() -> void:
 
 func _apply_map_layout_constraints() -> void:
 	var scale_y: float = _page_layout_scale()
-	var map_height: float = clamp(round(316.0 * scale_y), 244.0, 330.0)
+	var map_height: float = clamp(_layout_viewport_size().y - 252.0, 430.0, 680.0) if _is_pc_layout() else clamp(round(316.0 * scale_y), 244.0, 330.0)
 	if map_scroll != null:
 		map_scroll.custom_minimum_size = Vector2(0, map_height)
 	if map_view != null:
 		var map_width: float = _map_view_required_width()
 		map_view.custom_minimum_size = Vector2(map_width, map_height)
 		map_view.size = Vector2(map_width, map_height)
-	_set_content_heights(clamp(round(104.0 * scale_y), 82.0, 120.0), 0.0)
+	var log_height: float = clamp(round(92.0 * scale_y), 76.0, 104.0)
+	_set_content_heights(log_height, 0.0)
 	_record_scroll_region_metrics()
+
+func _apply_pc_map_chrome() -> void:
+	if not _is_pc_layout():
+		return
+	title_label.visible = false
+	run_label.visible = false
+	status_label.visible = false
+	for button_value in [restart_button, load_button, compendium_button, tutorial_button]:
+		var button := button_value as Button
+		if button != null:
+			button.visible = false
+	for button_value in [save_button, deck_button, profile_button, settings_button]:
+		var button := button_value as Button
+		if button != null:
+			button.visible = true
+	if controls_spacer != null:
+		controls_spacer.visible = true
+	if controls_row != null:
+		controls_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		controls_row.custom_minimum_size = Vector2(_scroll_content_width(), 36.0)
 
 func _apply_reward_page_layout_constraints(log_height: float = 170.0, reward_height: float = 190.0) -> void:
 	var scale_y: float = _page_layout_scale()
@@ -3682,6 +3703,7 @@ func _run_completion_unlocks() -> Array[String]:
 func _refresh_map_choices() -> void:
 	_set_page_regions(true, false, true, false, false, true, false, false)
 	_apply_map_layout_constraints()
+	_apply_pc_map_chrome()
 	run_label.text = "%s | %s | 挑战 %d | 地图选择 | 金币：%d | 生命：%d/%d | 牌组：%d 张 | 遗物：%s | 药水：%s" % [
 		_character_display_name(),
 		_chapter_display_name(current_chapter_id),
