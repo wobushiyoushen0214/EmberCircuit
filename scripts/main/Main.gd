@@ -2255,6 +2255,29 @@ func _apply_pc_map_chrome() -> void:
 		controls_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		controls_row.custom_minimum_size = Vector2(_scroll_content_width(), 36.0)
 
+func _apply_pc_event_chrome() -> void:
+	if not _is_pc_layout():
+		return
+	title_label.visible = false
+	run_label.visible = false
+	status_label.visible = false
+	log_label.visible = false
+	var reward_height: float = clamp(_layout_viewport_size().y - 154.0, 520.0, 760.0)
+	_set_content_heights(0.0, reward_height)
+	for button_value in [restart_button, load_button, compendium_button, tutorial_button]:
+		var button := button_value as Button
+		if button != null:
+			button.visible = false
+	for button_value in [save_button, deck_button, profile_button, settings_button]:
+		var button := button_value as Button
+		if button != null:
+			button.visible = true
+	if controls_spacer != null:
+		controls_spacer.visible = true
+	if controls_row != null:
+		controls_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		controls_row.custom_minimum_size = Vector2(_scroll_content_width(), 36.0)
+
 func _apply_reward_page_layout_constraints(log_height: float = 170.0, reward_height: float = 190.0) -> void:
 	var scale_y: float = _page_layout_scale()
 	var target_log_height: float = round(log_height * scale_y)
@@ -2849,8 +2872,8 @@ func _reward_action_button_size(compact: bool = false) -> Vector2:
 
 func _event_story_panel_size() -> Vector2:
 	if _is_pc_layout():
-		var pc_width: float = _bounded_width(_scroll_content_width() * 0.50, 620.0, 760.0)
-		var pc_height: float = clamp(round(220.0 * _page_layout_scale()), 196.0, 236.0)
+		var pc_width: float = _bounded_width(_scroll_content_width() * 0.48, 600.0, 820.0)
+		var pc_height: float = clamp(_layout_viewport_size().y - 392.0, 320.0, 470.0)
 		return Vector2(pc_width, pc_height)
 	var width: float = _bounded_width(_scroll_content_width(), 286.0, 520.0)
 	var height: float = clamp(round(138.0 * _page_layout_scale()), 118.0, 138.0)
@@ -2858,8 +2881,8 @@ func _event_story_panel_size() -> Vector2:
 
 func _event_story_art_size(panel_width: float) -> Vector2:
 	if _is_pc_layout():
-		var art_width: float = clamp(panel_width * 0.34, 210.0, 250.0)
-		var art_height: float = clamp(round(198.0 * _page_layout_scale()), 176.0, 214.0)
+		var art_width: float = clamp(panel_width * 0.42, 290.0, 380.0)
+		var art_height: float = clamp(_event_story_panel_size().y - 20.0, 300.0, 450.0)
 		return Vector2(art_width, art_height)
 	var art_width: float = 130.0
 	if panel_width < 340.0:
@@ -2876,7 +2899,7 @@ func _event_choice_button_size(choice_count: int) -> Vector2:
 		var story_width: float = _event_story_panel_size().x
 		var available_width: float = max(0.0, _scroll_content_width() - story_width - float(count) * 6.0)
 		var width: float = clamp(floor(available_width / float(count)), 176.0, 226.0)
-		return Vector2(width, clamp(round(144.0 * scale_y), 128.0, 148.0))
+		return Vector2(width, clamp(_event_story_panel_size().y * 0.72, 230.0, 330.0))
 	return Vector2(196, clamp(round(122.0 * scale_y), 108.0, 126.0))
 
 func _cinematic_panel_size() -> Vector2:
@@ -6684,6 +6707,7 @@ func _refresh_event(node: Dictionary) -> void:
 	last_event_panel_choice_count = 0
 	_set_page_regions(true, false, false, false, false, true, false, true)
 	_apply_reward_page_layout_constraints(132.0, 204.0)
+	_apply_pc_event_chrome()
 	var event: Dictionary = _event_by_id(str(node.get("event_id", "")))
 	status_label.text = "问号事件：阅读现场信息并选择回应。"
 	feedback_label.visible = false
