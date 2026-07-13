@@ -251,22 +251,22 @@
       "id": "rust_colossus",
       "name": "锈蚀巨构",
       "tier": "elite",
-	      "max_hp": 100,
+	      "max_hp": 106,
       "sprite_key": "placeholder_rust_colossus",
       "actions": [
 	        { "id": "magnetic_armor", "intent": { "type": "block_buff", "amount": 14, "status": "strength" }, "effects": [ { "type": "block", "amount": 14, "target": "self" }, { "type": "apply_status", "target": "self", "status": "strength", "amount": 1 } ] },
-	        { "id": "rail_slam", "intent": { "type": "attack", "amount": 15, "hits": 1 }, "effects": [ { "type": "damage", "amount": 15, "target": "player" } ] },
+	        { "id": "rail_slam", "intent": { "type": "attack", "amount": 17, "hits": 1 }, "effects": [ { "type": "damage", "amount": 17, "target": "player" } ] },
 	        { "id": "shrapnel_wave", "intent": { "type": "attack", "amount": 6, "hits": 3 }, "effects": [ { "type": "damage", "amount": 6, "hits": 3, "target": "player" } ] }
       ],
       "design_note": "第二章精英，混合高护甲、力量成长和多段爆发。",
-      "balance_note": "需要比第一章精英更厚的防御或更快斩杀；多段攻击惩罚没有持续护甲的构筑。",
+      "balance_note": "单体 106 生命和 18 点多段峰值作为第二章精英基线，要求第一章成型构筑具备稳定输出与防御。",
       "intent_note": "护甲强化、重击、多段循环。"
     },
     {
       "id": "storm_archon",
       "name": "风暴执政官",
       "tier": "boss",
-	      "max_hp": 100,
+	      "max_hp": 116,
       "sprite_key": "placeholder_storm_archon",
       "actions": [
 	        { "id": "charge_crown", "intent": { "type": "buff", "status": "strength", "amount": 1 }, "effects": [ { "type": "apply_status", "target": "self", "status": "strength", "amount": 1 } ] },
@@ -308,7 +308,7 @@
         }
       ],
       "design_note": "第二章 Boss，强化多段伤害、脆弱和终局爆发，检验玩家第一章后的构筑强度。",
-	      "balance_note": "100 生命用于当前第二章 Boss 调试基线；两个阶段仍提供多段、脆弱和终局压力，但已压低开场力量、生命、护甲与爆发以便普通模式样本进入第三章，后续会随 AI 与卡池调整回调。",
+	      "balance_note": "116 生命用于第二章 Boss 基线；相较第一章 Boss 有成长，但伤害峰值仍控制在 24 内，避免靠单回合秒杀制造难度。",
       "intent_note": "基础阶段为强化、多段、脆弱、防御、重击循环；66% 后增加多段密度；33% 后进入高压终局循环。"
     },
     {
@@ -348,34 +348,34 @@
       "max_hp": 50,
       "sprite_key": "placeholder_core_mimic",
       "actions": [
-        { "id": "copy_strike", "intent": { "type": "attack", "amount": 6, "hits": 3 }, "effects": [ { "type": "damage", "amount": 6, "hits": 3, "target": "player" } ] },
+        { "id": "copy_strike", "intent": { "type": "attack", "amount": 5, "hits": 3 }, "effects": [ { "type": "damage", "amount": 5, "hits": 3, "target": "player" } ] },
         { "id": "copy_guard", "intent": { "type": "block", "amount": 14 }, "effects": [ { "type": "block", "amount": 14, "target": "self" } ] },
         { "id": "copy_flaw", "intent": { "type": "debuff", "status": "weak", "amount": 1 }, "effects": [ { "type": "apply_status", "target": "player", "status": "weak", "amount": 1 } ] }
       ],
       "design_note": "第三章混合型普通敌人，覆盖多段、防御和虚弱三种压力。",
-      "balance_note": "50 生命用于第三章调试基线；多段伤害和护甲已降低，仍保留虚弱窗口。",
+      "balance_note": "50 生命用于第三章调试基线；多段伤害降为 15 点，避免与枪骑重击叠加后超过普通遭遇峰值预算。",
       "intent_note": "多段、防御、虚弱循环。"
     },
     {
       "id": "singularity_knight",
       "name": "奇点骑士",
       "tier": "elite",
-      "max_hp": 100,
+      "max_hp": 104,
       "sprite_key": "placeholder_singularity_knight",
       "actions": [
-        { "id": "event_horizon", "intent": { "type": "block_buff", "amount": 16, "status": "strength" }, "effects": [ { "type": "block", "amount": 16, "target": "self" }, { "type": "apply_status", "target": "self", "status": "strength", "amount": 1 } ] },
-        { "id": "collapse_combo", "intent": { "type": "attack", "amount": 6, "hits": 4 }, "effects": [ { "type": "damage", "amount": 6, "hits": 4, "target": "player" } ] },
-        { "id": "singularity_cut", "intent": { "type": "attack_debuff", "amount": 18, "status": "vulnerable" }, "effects": [ { "type": "damage", "amount": 18, "target": "player" }, { "type": "apply_status", "target": "player", "status": "vulnerable", "amount": 1 } ] }
+        { "id": "event_horizon", "intent": { "type": "block_buff", "amount": 12, "status": "strength" }, "effects": [ { "type": "block", "amount": 12, "target": "self" }, { "type": "apply_status", "target": "self", "status": "strength", "amount": 1 } ] },
+        { "id": "collapse_combo", "intent": { "type": "attack", "amount": 4, "hits": 4 }, "effects": [ { "type": "damage", "amount": 4, "hits": 4, "target": "player" } ] },
+        { "id": "singularity_cut", "intent": { "type": "attack_debuff", "amount": 15, "status": "vulnerable" }, "effects": [ { "type": "damage", "amount": 15, "target": "player" }, { "type": "apply_status", "target": "player", "status": "vulnerable", "amount": 1 } ] }
       ],
       "design_note": "第三章精英，作为最终章构筑检查点，混合高护甲、力量成长和易伤惩罚。",
-      "balance_note": "100 生命用于第三章精英调试基线；护甲、力量成长和爆发已压低，后续可随卡池成熟回调。",
+      "balance_note": "104 生命用于第三章精英基线；峰值从 24 下调到 16，降低其在完整跑团模拟中成为唯一死亡墙的概率。",
       "intent_note": "护甲强化、多段、易伤重击循环。"
     },
     {
       "id": "nexus_heart",
       "name": "回路核心",
       "tier": "boss",
-      "max_hp": 120,
+      "max_hp": 128,
       "sprite_key": "placeholder_nexus_heart",
       "actions": [
         { "id": "core_warmup", "intent": { "type": "buff", "status": "strength", "amount": 1 }, "effects": [ { "type": "apply_status", "target": "self", "status": "strength", "amount": 1 } ] },
@@ -418,7 +418,7 @@
         }
       ],
       "design_note": "最终章 Boss，综合检验多段防御、状态污染、爆发斩杀和长线资源管理。",
-      "balance_note": "120 生命用于当前最终 Boss 调试基线；阶段、污染和爆发保留，但生命、护甲和多段峰值已大幅下调，后续需要随成熟卡池回调并补正式演出音效。",
+      "balance_note": "128 生命用于当前最终 Boss 基线；高于前两章 Boss，阶段、污染和爆发保留，但峰值仍受预算约束，后续随卡池成熟继续回调。",
       "intent_note": "基础阶段为强化、多段、污染、防御、重击循环；66% 后加速压力；33% 后进入终局极限循环。"
     }
   ]

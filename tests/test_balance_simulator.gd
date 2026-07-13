@@ -69,6 +69,7 @@ func _run() -> void:
 		"challenge_levels": [0]
 	})
 	_check(str(campaign_report.get("simulation_model", "")) == "campaign_route_heuristic_ai", "campaign simulator reports model")
+	_check(str(campaign_report.get("seed_model", "")) == "paired_by_iteration", "campaign simulator pairs random environments across characters and challenges")
 	_check(int(campaign_report.get("case_count", 0)) == 1, "campaign simulator creates one case per character and challenge")
 	var campaign_cases: Array = campaign_report.get("cases", [])
 	_check(campaign_cases.size() == 1, "campaign simulator returns case rows")
@@ -81,6 +82,9 @@ func _run() -> void:
 	_check(campaign_case.has("failure_reasons") and campaign_case.has("failure_points"), "campaign records failure breakdowns")
 	_check(campaign_case.has("failure_node_types") and campaign_case.has("failure_encounters"), "campaign records failure node types and encounter ids")
 	_check(_valid_campaign_risk_flag(str(campaign_case.get("risk_flag", ""))), "campaign risk flag is recognized")
+	_check(str(campaign_case.get("risk_flag", "")) == "campaign_insufficient_samples", "small campaign samples are not treated as balance proof")
+	_check((campaign_report.get("summary", {}).get("target_issues", []) as Array).has("challenge_0:insufficient_samples"), "campaign summary reports an insufficient hard-gate sample")
+	_check(campaign_report.get("summary", {}).has("challenge_targets"), "campaign summary exposes configured challenge target rows")
 	var campaign_samples: Array = campaign_case.get("sample_runs", [])
 	_check(not campaign_samples.is_empty() and str(campaign_samples[0].get("skill_book_id", "")) == "steel_manual", "campaign reports the active default skill book")
 
@@ -111,10 +115,16 @@ func _graph_has_event(graph: Dictionary, event_id: String) -> bool:
 func _valid_campaign_risk_flag(flag: String) -> bool:
 	return [
 		"ok",
+		"campaign_insufficient_samples",
+		"campaign_win_rate_low",
+		"campaign_win_rate_high",
+		"campaign_gold_starved",
+		"campaign_gold_hoarding",
+		"campaign_deck_too_thin",
+		"campaign_deck_bloat",
+		"campaign_failure_concentration",
 		"campaign_fails_chapter_one",
 		"campaign_fails_before_finale",
-		"campaign_low_win_rate",
-		"campaign_too_easy"
 	].has(flag)
 
 func _check(condition: bool, message: String) -> void:

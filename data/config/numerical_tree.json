@@ -1,0 +1,179 @@
+{
+  "_comment": "统一数值树。这里把卡牌、敌人、经济和局外成长换算到同一套效果点，作为后续调平衡的机器可读基线。",
+  "version": 1,
+  "effect_points": {
+    "_comment": "效果点不是 UI 展示数值，而是设计预算单位。1 点直接伤害约等于 1 效果点；护甲略低；抽牌、能量和势能按长期胜率权重折算。",
+    "damage": 1.0,
+    "block": 0.88,
+    "draw": 4.6,
+    "gain_energy": 7.2,
+    "gain_momentum": 2.7,
+    "lose_momentum": -2.4,
+    "damage_self": -1.7,
+    "create_searing_wound_discard": -3.2,
+    "create_searing_wound_hand": -5.0,
+    "create_other_card": 0.4,
+    "conditional_multiplier": 0.72,
+    "exhaust_multiplier": 0.78,
+    "power_setup_multiplier": 1.32,
+    "upgrade_cost_saving": 4.8,
+    "expected_momentum": 2,
+    "target_multipliers": {
+      "enemy": 1.0,
+      "self": 1.0,
+      "random_enemy": 0.82,
+      "all_enemies": 1.85
+    },
+    "statuses": {
+      "vulnerable_enemy": 4.2,
+      "vulnerable_self": -4.0,
+      "weak_enemy": 4.8,
+      "weak_self": -4.4,
+      "frail_self": -3.8,
+      "burn_enemy": 2.4,
+      "burn_self": -2.2,
+      "strength_self": 5.2,
+      "strength_enemy": 1.8,
+      "plating_self": 4.0,
+      "counter_pressure_self": 4.3,
+      "counter_pressure_plus_self": 5.4,
+      "livewire_matrix_self": 5.8,
+      "feedback_shell_self": 5.6,
+      "furnace_prayer_self": 5.2,
+      "calibration_protocol_self": 5.2,
+      "redline_engine_self": 5.5,
+      "white_flame_oath_self": 5.5
+    }
+  },
+  "cards": {
+    "_comment": "卡牌按未升级效果点进入费用预算；升级只看增量。稀有度扩大上限，不允许无代价直接越级。",
+    "cost_targets": {
+      "0": { "min": 3.0, "max": 6.2, "upgrade_delta_min": 1.2, "upgrade_delta_max": 4.0 },
+      "1": { "min": 7.0, "max": 10.4, "upgrade_delta_min": 2.0, "upgrade_delta_max": 5.2 },
+      "2": { "min": 14.0, "max": 18.5, "upgrade_delta_min": 3.0, "upgrade_delta_max": 7.2 },
+      "3": { "min": 21.0, "max": 26.5, "upgrade_delta_min": 4.0, "upgrade_delta_max": 9.0 }
+    },
+    "rarity_modifiers": {
+      "starter": { "min_multiplier": 0.68, "max_multiplier": 1.00 },
+      "common": { "min_multiplier": 1.00, "max_multiplier": 1.00 },
+      "uncommon": { "min_multiplier": 0.95, "max_multiplier": 1.22 },
+      "rare": { "min_multiplier": 0.90, "max_multiplier": 1.45 }
+    },
+    "hard_tolerance": 1.6,
+    "starter_deck": {
+      "target_size": 10,
+      "attack_count_range": [4, 5],
+      "skill_count_range": [5, 6],
+      "zero_cost_count_range": [1, 4],
+      "design_note": "起始牌组应保证首局稳定理解机制，不追求强构筑上限。"
+    }
+  },
+  "players": {
+    "_comment": "角色预算同时约束基础资源和起始牌组。总牌组分数使用 cards/effect_points 的同一套公式，避免只调生命而忽略起手质量。",
+    "max_hp_range": [68, 72],
+    "starting_hp_must_equal_max": true,
+    "required_max_energy": 3,
+    "momentum_max_range": [5, 7],
+    "starting_gold_range": [90, 100],
+    "potion_slot_range": [2, 3],
+    "starter_relic_count_range": [2, 2],
+    "character_targets": {
+      "ember_exile": {
+        "max_hp": [70, 70],
+        "starter_deck_score": [76.0, 84.0],
+        "starter_attack_count": [5, 5],
+        "starter_skill_count": [5, 5],
+        "starter_zero_cost_count": [1, 1],
+        "role_note": "教学与稳定性基线，生命最高，起始牌组总预算也最高。"
+      },
+      "arc_tinker": {
+        "max_hp": [68, 68],
+        "starter_deck_score": [66.0, 74.0],
+        "starter_attack_count": [5, 5],
+        "starter_skill_count": [5, 5],
+        "starter_zero_cost_count": [4, 4],
+        "role_note": "低生命节奏角色，用零费密度、初始势能和药水槽换取稳定性。"
+      },
+      "pyre_ascetic": {
+        "max_hp": [72, 72],
+        "starter_deck_score": [72.0, 82.0],
+        "starter_attack_count": [4, 4],
+        "starter_skill_count": [6, 6],
+        "starter_zero_cost_count": [2, 2],
+        "role_note": "自伤与状态污染角色，较高生命用于支付构筑成本，不代表低风险。"
+      }
+    },
+    "design_note": "默认角色必须是最容易理解且最稳定的入口；其他角色通过资源结构而不是单纯加减伤害形成差异。"
+  },
+  "monsters": {
+    "_comment": "敌人预算按遭遇读取，而不是只看单只怪。普通双敌战允许总峰值高于单怪，但不应超过章节压力线。",
+    "chapter_targets": {
+      "chapter_one": {
+        "normal": { "encounter_hp": [55, 86], "peak_damage": [12, 23], "expected_turns": [3, 6] },
+        "elite": { "encounter_hp": [82, 108], "peak_damage": [16, 22], "expected_turns": [5, 8] },
+        "boss": { "encounter_hp": [100, 116], "peak_damage": [18, 24], "expected_turns": [8, 12] }
+      },
+      "chapter_two": {
+        "normal": { "encounter_hp": [88, 112], "peak_damage": [17, 29], "expected_turns": [4, 7] },
+        "elite": { "encounter_hp": [104, 122], "peak_damage": [17, 25], "expected_turns": [6, 9] },
+        "boss": { "encounter_hp": [114, 136], "peak_damage": [22, 29], "expected_turns": [9, 13] }
+      },
+      "chapter_three": {
+        "normal": { "encounter_hp": [96, 122], "peak_damage": [20, 32], "expected_turns": [5, 8] },
+        "elite": { "encounter_hp": [100, 122], "peak_damage": [15, 24], "expected_turns": [7, 10] },
+        "boss": { "encounter_hp": [126, 150], "peak_damage": [24, 34], "expected_turns": [10, 15] }
+      }
+    },
+    "single_enemy_caps": {
+      "chapter_one": { "normal_hp_max": 48, "elite_hp_max": 108, "boss_hp_max": 116 },
+      "chapter_two": { "normal_hp_max": 58, "elite_hp_max": 126, "boss_hp_max": 142 },
+      "chapter_three": { "normal_hp_max": 62, "elite_hp_max": 128, "boss_hp_max": 158 }
+    }
+  },
+  "economy": {
+    "_comment": "目标是让玩家每章有明确消费压力：能买强卡或删卡，但不能三章结束仍大量囤钱。",
+    "expected_final_gold_range": [110, 260],
+    "expected_final_deck_size_range": [16, 19],
+    "campaign_metric_tolerance": 0.5,
+    "combat_card_reward_accept_score": 8.2,
+    "skip_reward_when_deck_at_least": 15,
+    "potion_drop_chance_percent": 45,
+    "normal_gold": [13, 20],
+    "elite_gold": [34, 50],
+    "boss_gold": [64, 88],
+    "treasure_gold": [12, 24],
+    "shop_remove_base": 60,
+    "shop_remove_increase": 30,
+    "design_note": "用更少免费资源和更高删卡价格压住牌组膨胀与金币沉淀。"
+  },
+  "progression": {
+    "_comment": "局外成长只能提供轻量容错，不能成为数值碾压。单角色树目标约三次完整通关解锁。",
+    "character_tree_node_count_range": [5, 7],
+    "character_tree_total_cost_range": [24, 30],
+    "full_run_unlock_count_range": [2.7, 3.4],
+    "boss_reward": 2,
+    "full_run_bonus": 2,
+    "allowed_effects": [
+      "max_hp_bonus",
+      "starting_gold_bonus",
+      "starting_momentum_bonus",
+      "potion_slot_bonus",
+      "combat_start_block"
+    ],
+    "design_note": "成长树以路线弹性和开局容错为主，禁止直接给永久力量、额外初始能量或每回合持续收益。"
+  },
+  "campaign_targets": {
+    "_comment": "自动战役模拟目标。启发式 AI 不是人类水平，因此目标胜率低于真实玩家预期，用于观察相对平衡。",
+    "normal_win_rate_range": [0.27, 0.33],
+    "max_character_win_rate_gap": 0.09,
+    "human_playtest_win_rate_gap_target": 0.05,
+    "individual_win_rate_tolerance": 0.03,
+    "challenge_1_win_rate_range": [0.17, 0.26],
+    "challenge_2_win_rate_range": [0.12, 0.23],
+    "challenge_3_win_rate_range": [0.08, 0.15],
+    "challenge_monotonic_tolerance": 0.01,
+    "single_failure_encounter_share_max": 0.36,
+    "minimum_iterations_for_hard_gate": 128,
+	    "design_note": "挑战档整体均值严格使用目标区间；单角色允许 2% 样本容差，启发式 AI 的角色差距硬门槛为 9%，人工试玩继续以 5% 为目标。胜率必须和失败点分布一起看。"
+  }
+}

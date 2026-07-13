@@ -170,10 +170,15 @@ func _run() -> void:
 	default_pc_host.add_child(default_pc_main)
 	await process_frame
 	await process_frame
+	_check(int(default_pc_main.controls_scroll.get("horizontal_scroll_mode")) == 0, "default PC welcome controls do not use a horizontal scrollbar")
+	_check(_control_inside_horizontal(default_pc_main.profile_button, default_pc_main.controls_scroll), "default PC welcome profile button stays inside the control strip")
+	_check(_control_inside_horizontal(default_pc_main.compendium_button, default_pc_main.controls_scroll), "default PC welcome compendium button stays inside the control strip")
+	_check(_control_inside_horizontal(default_pc_main.settings_button, default_pc_main.controls_scroll), "default PC welcome settings button stays inside the control strip")
 	default_pc_main._on_character_selected("arc_tinker")
 	await process_frame
 	await process_frame
 	_check(default_pc_main._is_pc_layout(), "default 1280x720 viewport uses PC combat layout")
+	_check(int(default_pc_main.hand_scroll.get("horizontal_scroll_mode")) == 3, "default PC hand keeps horizontal navigation without a visible scrollbar")
 	_check(not default_pc_main.title_label.visible and not default_pc_main.character_frame.visible, "default PC combat hides non-combat chrome")
 	_check(default_pc_main.last_combat_layout_overflow <= 0.0, "default PC combat fits 720p height budget")
 	_check(_control_above(default_pc_main.hand_frame, default_pc_main.controls_scroll), "default PC combat hand stays above bottom controls")
@@ -305,6 +310,16 @@ func _control_inside_vertical(child: Control, parent: Control) -> bool:
 	var parent_rect: Rect2 = parent.get_global_rect()
 	if child_rect.position.y < parent_rect.position.y - 1.0 or child_rect.end.y > parent_rect.end.y + 1.0:
 		push_error("Vertical overflow: child=%s parent=%s" % [str(child_rect), str(parent_rect)])
+		return false
+	return true
+
+func _control_inside_horizontal(child: Control, parent: Control) -> bool:
+	if child == null or parent == null or not child.visible or not parent.visible:
+		return false
+	var child_rect: Rect2 = child.get_global_rect()
+	var parent_rect: Rect2 = parent.get_global_rect()
+	if child_rect.position.x < parent_rect.position.x - 1.0 or child_rect.end.x > parent_rect.end.x + 1.0:
+		push_error("Horizontal overflow: child=%s parent=%s" % [str(child_rect), str(parent_rect)])
 		return false
 	return true
 

@@ -507,7 +507,7 @@ func _validate_progression_systems(progression_data: Dictionary, character_ids: 
 		seen_tree_characters[character_id] = true
 		_check(not str(tree.get("name", "")).is_empty(), "character tree has name: %s" % character_id)
 		var nodes: Array = tree.get("nodes", [])
-		_check(nodes.size() == 3, "character tree has three nodes: %s" % character_id)
+		_check(nodes.size() >= 5, "character tree has at least five nodes: %s" % character_id)
 		var local_node_ids: Dictionary = {}
 		for node_value in nodes:
 			var node: Dictionary = node_value

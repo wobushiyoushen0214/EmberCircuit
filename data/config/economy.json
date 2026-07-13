@@ -7,9 +7,9 @@
     "upgrade_note": "每个篝火只能升级 1 张牌。升级通过牌组条目追加 + 表示。"
   },
   "shop": {
-    "remove_card_price": 50,
-    "remove_card_price_increase": 25,
-    "remove_card_note": "删卡价格初始 50，每次成功在商店删卡后本局后续删卡价格 +25。问号事件删卡不增加商店删卡价格。",
+    "remove_card_price": 60,
+    "remove_card_price_increase": 30,
+    "remove_card_note": "删卡价格初始 60，每次成功在商店删卡后本局后续删卡价格 +30。问号事件删卡不增加商店删卡价格。",
     "card_prices": {
       "common": 50,
       "uncommon": 75,
@@ -25,28 +25,28 @@
       "uncommon": 165,
       "rare": 220
     },
-    "price_note": "价格按稀有度定档。普通卡价格低于一场普通战斗金币收益的三倍；遗物价格高于单张卡牌，作为路线经济中的长期投资。"
+    "price_note": "价格按稀有度定档。普通卡价格约为两到三场普通战斗金币收益；删卡价格更高，用来压住成型后无脑净化牌组。"
   },
   "treasure": {
-    "gold_min": 18,
-    "gold_max": 35,
+    "gold_min": 12,
+    "gold_max": 24,
     "relic_choices": 3,
     "design_note": "宝箱节点提供一笔小额金币和 1 件遗物选择，定位为低风险构筑强化点，用来替代《杀戮尖塔》中路线上的无战斗奖励节奏。",
     "balance_note": "金币范围低于一场精英战后的综合收益，但足以影响下一次商店购买；遗物选项为 3 个，保持选择感并避免直接给随机遗物造成构筑失控。"
   },
   "combat_gold_rewards": {
     "by_tier": {
-      "normal": { "min": 18, "max": 28 },
-      "elite": { "min": 42, "max": 62 },
-      "boss": { "min": 90, "max": 125 }
+      "normal": { "min": 13, "max": 20 },
+      "elite": { "min": 34, "max": 50 },
+      "boss": { "min": 64, "max": 88 }
     },
     "chapter_bonus": {
       "chapter_one": 0,
-      "chapter_two": 8,
-      "chapter_three": 14
+      "chapter_two": 3,
+      "chapter_three": 6
     },
     "design_note": "战斗金币奖励作为商店、删卡和事件选择的长期经济来源。普通战提供基础现金流，精英和 Boss 额外奖励玩家承担路线风险。",
-    "balance_note": "普通战金币约为普通卡牌价格的一半，精英约等于一张普通卡或一瓶中价药水，Boss 奖励服务跨章商店规划；章节加成抵消后期商品价格不变带来的购买力下降。",
+    "balance_note": "普通战金币约为普通卡牌价格三分之一到二分之一，精英约等于一张普通卡或一瓶中价药水，Boss 奖励服务跨章商店规划；章节加成只轻微抵消后期购买力下降，避免三章后期大量囤钱。",
     "implementation_note": "Main.gd 会按当前节点、章节、角色和挑战等级确定性生成金币；遭遇表中的 gold_reward 仅作为缺失配置时的兼容回退，最终 Boss 可通过 0 卡牌奖励、无遗物和 gold_reward=0 跳过战后经济奖励。"
   },
   "reward_generation": {
@@ -75,10 +75,14 @@
       "uncommon": 30,
       "rare": 10
     },
+    "combat_card_accept_score": 8.2,
+    "shop_card_accept_score": 8.8,
+    "skip_reward_when_deck_at_least": 15,
     "weight_note": "战斗奖励偏向普通牌，商店略提高罕见/稀有牌权重；遗物和药水同样按稀有度权重抽取。生成逻辑不允许重复同一奖励选项。"
   },
   "potion_reward": {
     "combat_drop_count": 1,
-    "combat_drop_note": "MVP 阶段每场战斗在有空药水槽时提供 1 个药水奖励选项，先保证系统可测；后续再改为概率掉落。"
+    "drop_chance_percent": 45,
+    "combat_drop_note": "每场战斗在有空药水槽时按 45% 概率提供 1 个药水奖励选项。药水仍是重要危机资源，但不再每战稳定补满。"
   }
 }

@@ -2369,6 +2369,8 @@ func _apply_controls_layout_constraints(combat_primary: bool = false) -> void:
 	var pc_wide_controls: bool = pc_combat or pc_character_menu
 	if controls_scroll != null:
 		controls_scroll.custom_minimum_size = Vector2(0, 46.0 if pc_wide_controls else 34.0)
+		controls_scroll.set("horizontal_scroll_mode", 0 if pc_wide_controls else 1)
+		controls_scroll.scroll_horizontal = 0
 	if controls_row != null:
 		controls_row.add_theme_constant_override("separation", 10 if pc_character_menu else (8 if pc_combat else 8))
 		controls_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL if pc_wide_controls else Control.SIZE_SHRINK_BEGIN
@@ -2382,8 +2384,10 @@ func _apply_controls_layout_constraints(combat_primary: bool = false) -> void:
 	if controls_row != null and controls_spacer != null and controls_spacer.get_parent() == controls_row:
 		if pc_combat:
 			controls_row.move_child(controls_spacer, max(0, controls_row.get_child_count() - 2))
-		elif pc_character_menu and load_button != null and load_button.get_parent() == controls_row:
-			controls_row.move_child(controls_spacer, min(load_button.get_index() + 1, controls_row.get_child_count() - 1))
+		elif pc_character_menu:
+			var split_button: Button = profile_button if welcome_open else load_button
+			if split_button != null and split_button.get_parent() == controls_row:
+				controls_row.move_child(controls_spacer, max(0, split_button.get_index()))
 
 	var utility_buttons: Array = [restart_button, save_button, load_button, deck_button, profile_button, compendium_button, tutorial_button, settings_button]
 	for button_value in utility_buttons:
@@ -2769,6 +2773,7 @@ func _apply_combat_layout_constraints(reward_visible: bool) -> void:
 	if hand_scroll != null:
 		hand_scroll.custom_minimum_size = Vector2(0, hand_scroll_height)
 		hand_scroll.clip_contents = not _is_pc_layout()
+		hand_scroll.set("horizontal_scroll_mode", 3 if _is_pc_layout() else 1)
 	if hand_row != null:
 		var hand_width: float = _hand_required_width()
 		var hand_height: float = hand_scroll_height
@@ -9709,7 +9714,7 @@ func _refresh_rewards() -> void:
 		else:
 			relic_reward_options.clear()
 			relic_reward_done = true
-		if card_reward_count > 0 and _has_empty_potion_slot():
+		if card_reward_count > 0 and _has_empty_potion_slot() and _should_offer_potion_reward(reward_key):
 			potion_reward_options = _generate_potion_rewards(_potion_reward_count())
 			potion_reward_done = potion_reward_options.is_empty()
 		else:
@@ -11415,6 +11420,19 @@ func _campfire_heal_percent() -> int:
 func _potion_reward_count() -> int:
 	return int(economy_data.get("potion_reward", {}).get("combat_drop_count", 1))
 
+func _should_offer_potion_reward(reward_key: String) -> bool:
+	var potion_config: Dictionary = economy_data.get("potion_reward", {})
+	var chance_percent: int = clampi(int(potion_config.get("drop_chance_percent", 100)), 0, 100)
+	if chance_percent <= 0:
+		return false
+	if chance_percent >= 100:
+		return true
+	return _deterministic_index("potion_drop|%s|%s|%d" % [
+		selected_character_id,
+		reward_key,
+		current_challenge_level
+	], 100) < chance_percent
+
 func _max_potion_slots() -> int:
 	return int(_current_player_config().get("potion_slots", 2))
 
@@ -11999,7 +12017,7 @@ func _clear_container(container: Node) -> void:
 		return
 	for child in container.get_children():
 		container.remove_child(child)
-		child.free()
+		child.queue_free()
 
 func _create_save_state() -> Dictionary:
 	var hp_to_save: int = run_hp

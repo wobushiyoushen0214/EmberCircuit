@@ -21,6 +21,7 @@ var economy_data: Dictionary = {}
 var map_generation_data: Dictionary = {}
 var level_tree_data: Dictionary = {}
 var progression_data: Dictionary = {}
+var numerical_tree_data: Dictionary = {}
 
 func load_default_data() -> void:
 	card_data = DataLoaderScript.load_json("res://data/cards/cards.json")
@@ -35,6 +36,7 @@ func load_default_data() -> void:
 	map_generation_data = DataLoaderScript.load_json("res://data/config/map_generation.json")
 	level_tree_data = DataLoaderScript.load_json("res://data/config/level_tree.json")
 	progression_data = DataLoaderScript.load_json("res://data/config/progression_systems.json")
+	numerical_tree_data = DataLoaderScript.load_json("res://data/config/numerical_tree.json")
 
 func run_suite(options: Dictionary = {}) -> Dictionary:
 	if card_data.is_empty():
@@ -78,6 +80,7 @@ func run_campaign_suite(options: Dictionary = {}) -> Dictionary:
 	var report := {
 		"version": 1,
 		"simulation_model": "campaign_route_heuristic_ai",
+		"seed_model": "paired_by_iteration",
 		"iterations_per_case": iterations,
 		"max_turns_per_combat": max_turns,
 		"case_count": character_ids.size() * challenge_levels.size(),
@@ -109,7 +112,7 @@ func _run_campaign_case(character_id: String, challenge_level: int, iterations: 
 	var challenge: Dictionary = _challenge_config(challenge_level)
 	var runs: Array = []
 	for iteration in range(iterations):
-		var seed_text: String = "campaign|%s|%d|%d" % [character_id, challenge_level, iteration]
+		var seed_text: String = "campaign|%d" % iteration
 		runs.append(_run_campaign_once(character_id, challenge_level, max_turns, _stable_text_seed(seed_text)))
 	return _aggregate_campaign_case(character, challenge, runs)
 
@@ -231,7 +234,7 @@ func _resolve_campaign_combat(state: Dictionary, node: Dictionary, chapter_id: S
 		int(state.get("challenge_level", 0)),
 		encounter_id,
 		max_turns,
-		_stable_text_seed("%s|%s|%s|%d" % [state.get("character_id", ""), chapter_id, encounter_id, int(state.get("nodes_completed", 0)) + seed_value]),
+		_stable_text_seed("%s|%s|%s|%d|%d" % [chapter_id, str(node.get("id", "")), encounter_id, int(state.get("nodes_completed", 0)), seed_value]),
 		state.get("deck_ids", []),
 		state.get("relic_ids", []),
 		int(state.get("hp", 1)),
@@ -258,7 +261,7 @@ func _resolve_campaign_combat(state: Dictionary, node: Dictionary, chapter_id: S
 		state["bosses_won"] = int(state.get("bosses_won", 0)) + 1
 
 	var encounter: Dictionary = _encounter_config(encounter_id)
-	state["gold"] = int(state.get("gold", 0)) + int(encounter.get("gold_reward", 0))
+	state["gold"] = int(state.get("gold", 0)) + _campaign_encounter_gold_reward(encounter, chapter_id, reward_seed_text(state, node, encounter_id, seed_value))
 	var reward_seed: String = "campaign_reward|%s|%s|%s|%d|%d" % [
 		chapter_id,
 		str(node.get("id", "")),
@@ -275,6 +278,33 @@ func _resolve_campaign_combat(state: Dictionary, node: Dictionary, chapter_id: S
 		state["deck_mastery_id"] = _choose_campaign_deck_mastery(state.get("deck_ids", []))
 
 	return {"completed": true, "reason": "ok", "encounter_id": encounter_id}
+
+func reward_seed_text(state: Dictionary, node: Dictionary, encounter_id: String, seed_value: int) -> String:
+	return "%s|%s|%d|%d" % [
+		str(node.get("id", "")),
+		encounter_id,
+		seed_value,
+		int(state.get("nodes_completed", 0))
+	]
+
+func _campaign_encounter_gold_reward(encounter: Dictionary, chapter_id: String, reward_key: String) -> int:
+	if encounter.is_empty() or _encounter_skips_economy_rewards(encounter):
+		return 0
+	var tier: String = str(encounter.get("tier", "normal"))
+	var by_tier: Dictionary = economy_data.get("combat_gold_rewards", {}).get("by_tier", {})
+	if not by_tier.has(tier):
+		return max(0, int(encounter.get("gold_reward", 0)))
+	var tier_range: Dictionary = by_tier.get(tier, {})
+	var min_gold: int = int(tier_range.get("min", encounter.get("gold_reward", 0)))
+	var max_gold: int = int(tier_range.get("max", min_gold))
+	if max_gold < min_gold:
+		max_gold = min_gold
+	var span: int = max_gold - min_gold + 1
+	var chapter_bonus: int = int(economy_data.get("combat_gold_rewards", {}).get("chapter_bonus", {}).get(chapter_id, 0))
+	return max(0, min_gold + _deterministic_index("campaign_gold|%s|%s|%s" % [chapter_id, reward_key, tier], span) + chapter_bonus)
+
+func _encounter_skips_economy_rewards(encounter: Dictionary) -> bool:
+	return int(encounter.get("card_reward_count", 3)) <= 0 and not bool(encounter.get("relic_reward", false)) and int(encounter.get("gold_reward", 0)) <= 0
 
 func _simulate_campaign_event(state: Dictionary, node: Dictionary, chapter_id: String, seed_value: int) -> void:
 	state["events_seen"] = int(state.get("events_seen", 0)) + 1
@@ -567,7 +597,8 @@ func _simulate_campaign_shop(state: Dictionary, chapter_id: String, seed_value: 
 	var best_card: Dictionary = _best_card_option(card_options, str(state.get("character_id", "")))
 	if not best_card.is_empty():
 		var card_price: int = _card_price(best_card)
-		if int(state.get("gold", 0)) >= card_price and _card_reward_score(best_card, str(state.get("character_id", ""))) >= 7.0:
+		var shop_accept_score: float = float(economy_data.get("reward_generation", {}).get("shop_card_accept_score", 7.0))
+		if int(state.get("gold", 0)) >= card_price and _card_reward_score(best_card, str(state.get("character_id", ""))) >= shop_accept_score:
 			deck_ids.append(str(best_card.get("id", "")))
 			state["gold"] = int(state.get("gold", 0)) - card_price
 			state["cards_added"] = int(state.get("cards_added", 0)) + 1
@@ -1306,7 +1337,10 @@ func _offer_card_reward(state: Dictionary, amount: int, seed_text: String) -> vo
 	var best_card: Dictionary = _best_card_option(options, str(state.get("character_id", "")))
 	if best_card.is_empty():
 		return
-	if _card_reward_score(best_card, str(state.get("character_id", ""))) < 5.0 and (state.get("deck_ids", []) as Array).size() >= 13:
+	var reward_config: Dictionary = economy_data.get("reward_generation", {})
+	var accept_score: float = float(reward_config.get("combat_card_accept_score", 5.0))
+	var skip_deck_size: int = int(reward_config.get("skip_reward_when_deck_at_least", 13))
+	if _card_reward_score(best_card, str(state.get("character_id", ""))) < accept_score and (state.get("deck_ids", []) as Array).size() >= skip_deck_size:
 		return
 	var deck_ids: Array = state.get("deck_ids", [])
 	deck_ids.append(str(best_card.get("id", "")))
@@ -1329,6 +1363,9 @@ func _offer_relic_reward(state: Dictionary, seed_text: String) -> void:
 
 func _offer_potion_reward(state: Dictionary, seed_text: String) -> void:
 	if not _has_empty_potion_slot(state):
+		return
+	var chance_percent: int = clampi(int(economy_data.get("potion_reward", {}).get("drop_chance_percent", 100)), 0, 100)
+	if chance_percent <= 0 or _deterministic_index("potion_drop|%s" % seed_text, 100) >= chance_percent:
 		return
 	var options: Array = _generate_potion_options(2, seed_text)
 	var best_potion: Dictionary = _best_potion_option(options)
@@ -1921,32 +1958,142 @@ func _build_campaign_report_summary(cases: Array) -> Dictionary:
 	var flagged := 0
 	var total_win_rate := 0.0
 	var total_chapters := 0.0
+	var cases_by_challenge: Dictionary = {}
 	for case in cases:
 		var case_dict: Dictionary = case
 		total_win_rate += float(case_dict.get("win_rate", 0.0))
 		total_chapters += float(case_dict.get("avg_chapters_completed", 0.0))
 		if str(case_dict.get("risk_flag", "ok")) != "ok":
 			flagged += 1
+		var challenge_level: int = int(case_dict.get("challenge_level", 0))
+		if not cases_by_challenge.has(challenge_level):
+			cases_by_challenge[challenge_level] = []
+		(cases_by_challenge[challenge_level] as Array).append(case_dict)
 	var count: int = max(1, cases.size())
+	var target_issues: Array = []
+	var challenge_rows: Array = []
+	var targets: Dictionary = numerical_tree_data.get("campaign_targets", {})
+	var minimum_iterations: int = int(targets.get("minimum_iterations_for_hard_gate", 64))
+	var max_character_gap: float = float(targets.get("max_character_win_rate_gap", 1.0))
+	for challenge_level_value in cases_by_challenge.keys():
+		var challenge_level: int = int(challenge_level_value)
+		var challenge_cases: Array = cases_by_challenge.get(challenge_level, [])
+		var average_rate := 0.0
+		var minimum_rate := 1.0
+		var maximum_rate := 0.0
+		var enough_samples := true
+		for case_value in challenge_cases:
+			var case_dict: Dictionary = case_value
+			var rate: float = float(case_dict.get("win_rate", 0.0))
+			average_rate += rate
+			minimum_rate = min(minimum_rate, rate)
+			maximum_rate = max(maximum_rate, rate)
+			if int(case_dict.get("runs", 0)) < minimum_iterations:
+				enough_samples = false
+		average_rate /= float(max(1, challenge_cases.size()))
+		var target_range: Array = _campaign_win_rate_target(challenge_level)
+		var gap: float = maximum_rate - minimum_rate
+		var row_issues: Array = []
+		if not enough_samples:
+			row_issues.append("insufficient_samples")
+		elif target_range.size() >= 2:
+			if average_rate < float(target_range[0]):
+				row_issues.append("average_win_rate_low")
+			elif average_rate > float(target_range[1]):
+				row_issues.append("average_win_rate_high")
+			if challenge_cases.size() > 1 and gap > max_character_gap:
+				row_issues.append("character_win_rate_gap_high")
+		for issue_value in row_issues:
+			target_issues.append("challenge_%d:%s" % [challenge_level, str(issue_value)])
+		challenge_rows.append({
+			"challenge_level": challenge_level,
+			"case_count": challenge_cases.size(),
+			"average_win_rate": _rounded_rate(average_rate),
+			"target_win_rate_range": target_range,
+			"character_win_rate_gap": _rounded_rate(gap),
+			"max_character_win_rate_gap": max_character_gap,
+			"minimum_iterations_required": minimum_iterations,
+			"enough_samples": enough_samples,
+			"issues": row_issues
+		})
+	challenge_rows.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a.get("challenge_level", 0)) < int(b.get("challenge_level", 0)))
+	var monotonic_tolerance: float = float(targets.get("challenge_monotonic_tolerance", 0.0))
+	for row_index in range(1, challenge_rows.size()):
+		var previous_row: Dictionary = challenge_rows[row_index - 1]
+		var current_row: Dictionary = challenge_rows[row_index]
+		if not bool(previous_row.get("enough_samples", false)) or not bool(current_row.get("enough_samples", false)):
+			continue
+		if float(current_row.get("average_win_rate", 0.0)) > float(previous_row.get("average_win_rate", 0.0)) + monotonic_tolerance:
+			var monotonic_issue := "challenge_%d:win_rate_not_monotonic" % int(current_row.get("challenge_level", 0))
+			target_issues.append(monotonic_issue)
+			(current_row.get("issues", []) as Array).append("win_rate_not_monotonic")
 	return {
 		"average_campaign_win_rate": _rounded_rate(total_win_rate / float(count)),
 		"average_chapters_completed": _rounded_rate(total_chapters / float(count)),
 		"flagged_case_count": flagged,
-		"ok_case_count": cases.size() - flagged
+		"ok_case_count": cases.size() - flagged,
+		"target_pass": target_issues.is_empty(),
+		"target_issues": target_issues,
+		"challenge_targets": challenge_rows
 	}
 
 func _campaign_risk_flag(case: Dictionary) -> String:
 	var win_rate: float = float(case.get("win_rate", 0.0))
 	var avg_chapters: float = float(case.get("avg_chapters_completed", 0.0))
+	var targets: Dictionary = numerical_tree_data.get("campaign_targets", {})
+	var minimum_iterations: int = int(targets.get("minimum_iterations_for_hard_gate", 64))
+	if int(case.get("runs", 0)) < minimum_iterations:
+		return "campaign_insufficient_samples"
+	var target_range: Array = _campaign_win_rate_target(int(case.get("challenge_level", 0)))
+	var individual_tolerance: float = float(targets.get("individual_win_rate_tolerance", 0.0))
+	if target_range.size() >= 2:
+		if win_rate < float(target_range[0]) - individual_tolerance:
+			return "campaign_win_rate_low"
+		if win_rate > float(target_range[1]) + individual_tolerance:
+			return "campaign_win_rate_high"
+	var economy_targets: Dictionary = numerical_tree_data.get("economy", {})
+	var tolerance: float = float(economy_targets.get("campaign_metric_tolerance", 0.0))
+	var gold_range: Array = economy_targets.get("expected_final_gold_range", [])
+	var avg_gold: float = float(case.get("avg_final_gold", 0.0))
+	if gold_range.size() >= 2:
+		if avg_gold < float(gold_range[0]) - tolerance:
+			return "campaign_gold_starved"
+		if avg_gold > float(gold_range[1]) + tolerance:
+			return "campaign_gold_hoarding"
+	var deck_range: Array = economy_targets.get("expected_final_deck_size_range", [])
+	var avg_deck_size: float = float(case.get("avg_final_deck_size", 0.0))
+	if deck_range.size() >= 2:
+		if avg_deck_size < float(deck_range[0]) - tolerance:
+			return "campaign_deck_too_thin"
+		if avg_deck_size > float(deck_range[1]) + tolerance:
+			return "campaign_deck_bloat"
+	var losses: int = int(case.get("losses", 0))
+	if losses > 0:
+		var peak_failure_count := 0
+		for failure_count_value in (case.get("failure_encounters", {}) as Dictionary).values():
+			peak_failure_count = max(peak_failure_count, int(failure_count_value))
+		var peak_share: float = float(peak_failure_count) / float(losses)
+		if peak_share > float(targets.get("single_failure_encounter_share_max", 1.0)):
+			return "campaign_failure_concentration"
 	if win_rate < 0.05 and avg_chapters < 1.0:
 		return "campaign_fails_chapter_one"
 	if win_rate < 0.10 and avg_chapters < 2.0:
 		return "campaign_fails_before_finale"
-	if win_rate < 0.15:
-		return "campaign_low_win_rate"
-	if win_rate > 0.40:
-		return "campaign_too_easy"
 	return "ok"
+
+func _campaign_win_rate_target(challenge_level: int) -> Array:
+	var targets: Dictionary = numerical_tree_data.get("campaign_targets", {})
+	match challenge_level:
+		0:
+			return targets.get("normal_win_rate_range", [])
+		1:
+			return targets.get("challenge_1_win_rate_range", [])
+		2:
+			return targets.get("challenge_2_win_rate_range", [])
+		3:
+			return targets.get("challenge_3_win_rate_range", [])
+		_:
+			return []
 
 func _risk_flag(case: Dictionary) -> String:
 	var tier: String = str(case.get("encounter_tier", "normal"))

@@ -4,8 +4,8 @@
   "player": {
     "id": "ember_exile",
     "name": "余烬流亡者",
-    "max_hp": 72,
-    "starting_hp": 72,
+    "max_hp": 70,
+    "starting_hp": 70,
     "max_energy": 3,
     "starting_momentum": 0,
     "momentum_max": 6,
@@ -37,15 +37,15 @@
     },
     "archetype_note": "均衡型角色，覆盖攻击、防御、势能积累和基础过牌。",
     "design_note": "第一个角色偏均衡，能体验攻击、护甲、势能和状态污染。",
-    "balance_note": "72 生命略高于常见卡牌肉鸽起始值，用于抵消早期 UI 和数值未完全打磨的挫败。",
+    "balance_note": "70 生命为教学角色保留少量容错，但不再用过高生命掩盖路线与构筑错误。",
     "potion_slots_note": "初始 2 个药水槽，低于成熟版本常见 3 槽，方便 MVP 阶段观察药水对战斗难度的影响。"
   },
   "characters": [
     {
       "id": "ember_exile",
       "name": "余烬流亡者",
-      "max_hp": 72,
-      "starting_hp": 72,
+      "max_hp": 70,
+      "starting_hp": 70,
       "max_energy": 3,
       "starting_momentum": 0,
       "momentum_max": 6,
@@ -77,7 +77,7 @@
       },
       "archetype_note": "均衡型角色，覆盖攻击、防御、势能积累和基础过牌。",
       "design_note": "默认角色。牌组简单、容错较高，适合验证主流程和平衡基线。",
-      "balance_note": "5 攻击、4 防御、1 过牌是最稳的起手结构；两个弱启动遗物降低第一章随机波动。",
+      "balance_note": "70 生命、5 攻击、4 防御、1 过牌构成稳定的教学基线；两个弱启动遗物降低第一章随机波动，但不提供后期成长上限。",
       "implementation_note": "同时保留在 player 字段，保证旧测试、旧存档和旧 CombatState 调用仍能读取。"
     },
     {
@@ -123,8 +123,8 @@
     {
       "id": "pyre_ascetic",
       "name": "熔痕苦修者",
-      "max_hp": 70,
-      "starting_hp": 70,
+      "max_hp": 72,
+      "starting_hp": 72,
       "max_energy": 3,
       "starting_momentum": 0,
       "momentum_max": 7,
@@ -157,7 +157,7 @@
       },
       "archetype_note": "高风险角色，利用灼伤、自伤和灼烧把负面状态转化为爆发节奏。",
       "design_note": "第三名可玩角色，验证状态牌污染、自伤资源和持续伤害构筑的完整角色管线。",
-      "balance_note": "70 生命、强化后的苦修香炉和灰烬念珠让角色保留高风险定位但拥有普通模式开局容错；7 点势能上限给爆发规划空间，但仍需要主动承担灼伤和自伤。",
+      "balance_note": "72 生命、强化后的苦修香炉和灰烬念珠抵消自伤构筑的基础损耗；7 点势能上限给爆发规划空间，但仍需要主动承担灼伤和自伤。",
       "implementation_note": "复用 create_card、damage_self、burn、card_created 和角色专属奖励过滤，不新增战斗解释器语义。"
     }
   ]

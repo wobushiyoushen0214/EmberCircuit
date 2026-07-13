@@ -12,6 +12,15 @@ func _run() -> void:
 	var scene: PackedScene = load("res://scenes/main/Main.tscn")
 	var main = scene.instantiate()
 	main._ready()
+	var signal_clear_probe := HBoxContainer.new()
+	var signal_clear_button := Button.new()
+	root.add_child(signal_clear_probe)
+	signal_clear_probe.add_child(signal_clear_button)
+	signal_clear_button.pressed.connect(func() -> void: main._clear_container(signal_clear_probe))
+	signal_clear_button.pressed.emit()
+	if not _check(signal_clear_probe.get_child_count() == 0 and signal_clear_button.is_queued_for_deletion(), "active signal buttons are detached and queued instead of freed synchronously"):
+		return
+	signal_clear_probe.queue_free()
 
 	if not _check(main.welcome_open and not main.character_select_open, "main scene starts at welcome page"):
 		return
@@ -327,7 +336,7 @@ func _run() -> void:
 		return
 	if not _check(main.player_portrait != null and main.player_portrait.texture != null, "pyre ascetic portrait loads"):
 		return
-	if not _check(main.run_max_hp == 70 and main.run_hp == 70, "pyre ascetic HP loads from character data"):
+	if not _check(main.run_max_hp == 72 and main.run_hp == 72, "pyre ascetic HP loads from character data"):
 		return
 	if not _check(main.run_deck_ids.has("penitent_cut") and main.run_deck_ids.has("kindle_pain"), "pyre ascetic starter deck loads from character data"):
 		return

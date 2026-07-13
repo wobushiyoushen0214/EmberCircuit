@@ -4,9 +4,9 @@
     "id": "forge_marks",
     "name": "炉印",
     "boss_reward": 2,
-    "full_run_bonus": 3,
+    "full_run_bonus": 2,
     "design_note": "只奖励 Boss 击败和完整通关，避免失败刷局外数值。",
-    "balance_note": "每棵角色树总成本 12；完成约三次完整跑团能解锁一棵树。"
+    "balance_note": "每棵角色树总成本 25；三章完整跑团提供 8 炉印，约三次完整通关解锁一棵树。"
   },
   "character_trees": [
     {
@@ -15,7 +15,9 @@
       "nodes": [
         { "id": "exile_tempered_body", "name": "固炉体魄", "cost": 3, "prerequisites": [], "effects": [ { "type": "max_hp_bonus", "amount": 3 } ], "description": "最大生命和初始生命 +3。", "design_note": "基础容错节点。", "balance_note": "不提高伤害或能量。" },
         { "id": "exile_old_wound_charm", "name": "旧伤护符", "cost": 4, "prerequisites": [ "exile_tempered_body" ], "effects": [ { "type": "combat_start_block", "amount": 3 } ], "description": "每场战斗开始时获得 3 点护甲。", "design_note": "稳定开局防御。", "balance_note": "每场一次，不随回合增长。" },
-        { "id": "exile_ember_cache", "name": "余烬库存", "cost": 5, "prerequisites": [ "exile_old_wound_charm" ], "effects": [ { "type": "starting_gold_bonus", "amount": 20 } ], "description": "新跑团起始金币 +20。", "design_note": "提供路线与商店弹性。", "balance_note": "不直接提高战斗数值。" }
+        { "id": "exile_ember_cache", "name": "余烬库存", "cost": 5, "prerequisites": [ "exile_old_wound_charm" ], "effects": [ { "type": "starting_gold_bonus", "amount": 20 } ], "description": "新跑团起始金币 +20。", "design_note": "提供路线与商店弹性。", "balance_note": "不直接提高战斗数值。" },
+        { "id": "exile_route_cache", "name": "路线余财", "cost": 6, "prerequisites": [ "exile_ember_cache" ], "effects": [ { "type": "starting_gold_bonus", "amount": 15 } ], "description": "新跑团起始金币额外 +15。", "design_note": "让默认角色更容易在第一章商店完成删卡或关键购买。", "balance_note": "只给经济弹性，不提供战斗内输出。" },
+        { "id": "exile_guarded_steps", "name": "护炉步法", "cost": 7, "prerequisites": [ "exile_route_cache" ], "effects": [ { "type": "combat_start_block", "amount": 2 } ], "description": "每场战斗开始时额外获得 2 点护甲。", "design_note": "补足完整成长树的终点容错。", "balance_note": "每场一次，和旧伤护符叠加后仍低于一张防御牌。" }
       ]
     },
     {
@@ -24,7 +26,9 @@
       "nodes": [
         { "id": "arc_insulated_lining", "name": "绝缘内衬", "cost": 3, "prerequisites": [], "effects": [ { "type": "max_hp_bonus", "amount": 3 } ], "description": "最大生命和初始生命 +3。", "design_note": "缓冲低生命角色的连续战斗压力。", "balance_note": "仍低于默认角色的基础生命。" },
         { "id": "arc_auxiliary_coil", "name": "辅助线圈", "cost": 4, "prerequisites": [ "arc_insulated_lining" ], "effects": [ { "type": "starting_momentum_bonus", "amount": 1 } ], "description": "新跑团初始势能 +1。", "design_note": "更快进入低费连打窗口。", "balance_note": "不提高势能上限。" },
-        { "id": "arc_spare_rack", "name": "备用瓶架", "cost": 5, "prerequisites": [ "arc_auxiliary_coil" ], "effects": [ { "type": "potion_slot_bonus", "amount": 1, "cap": 4 } ], "description": "药水槽 +1，最多 4 个。", "design_note": "强化角色药水身份。", "balance_note": "不会直接提供药水。" }
+        { "id": "arc_spare_rack", "name": "备用瓶架", "cost": 5, "prerequisites": [ "arc_auxiliary_coil" ], "effects": [ { "type": "potion_slot_bonus", "amount": 1, "cap": 4 } ], "description": "药水槽 +1，最多 4 个。", "design_note": "强化角色药水身份。", "balance_note": "不会直接提供药水。" },
+        { "id": "arc_charge_guard", "name": "充能护栏", "cost": 6, "prerequisites": [ "arc_spare_rack" ], "effects": [ { "type": "combat_start_block", "amount": 2 } ], "description": "每场战斗开始时获得 2 点护甲。", "design_note": "缓冲低生命角色的第一回合随机压力。", "balance_note": "只影响开局，不提高电弧工匠的爆发上限。" },
+        { "id": "arc_salvage_float", "name": "回收浮金", "cost": 7, "prerequisites": [ "arc_charge_guard" ], "effects": [ { "type": "starting_gold_bonus", "amount": 18 } ], "description": "新跑团起始金币 +18。", "design_note": "让药水槽角色更容易围绕商店规划。", "balance_note": "经济节点替代直接战斗数值，避免电弧工匠继续扩大胜率优势。" }
       ]
     },
     {
@@ -33,7 +37,9 @@
       "nodes": [
         { "id": "pyre_ash_skin", "name": "灰烬皮肤", "cost": 3, "prerequisites": [], "effects": [ { "type": "max_hp_bonus", "amount": 3 } ], "description": "最大生命和初始生命 +3。", "design_note": "抵消自伤构筑的起步压力。", "balance_note": "不降低自伤或灼伤代价。" },
         { "id": "pyre_prayer_barrier", "name": "祈火屏障", "cost": 4, "prerequisites": [ "pyre_ash_skin" ], "effects": [ { "type": "combat_start_block", "amount": 3 } ], "description": "每场战斗开始时获得 3 点护甲。", "design_note": "给自伤换资源留出安全空间。", "balance_note": "每场一次。" },
-        { "id": "pyre_ember_vessel", "name": "焰种容器", "cost": 5, "prerequisites": [ "pyre_prayer_barrier" ], "effects": [ { "type": "starting_momentum_bonus", "amount": 1 } ], "description": "新跑团初始势能 +1。", "design_note": "让高势能角色更早建立爆发。", "balance_note": "不提高势能上限或灼伤伤害。" }
+        { "id": "pyre_ember_vessel", "name": "焰种容器", "cost": 5, "prerequisites": [ "pyre_prayer_barrier" ], "effects": [ { "type": "starting_momentum_bonus", "amount": 1 } ], "description": "新跑团初始势能 +1。", "design_note": "让高势能角色更早建立爆发。", "balance_note": "不提高势能上限或灼伤伤害。" },
+        { "id": "pyre_scarred_bulwark", "name": "焦痕壁垒", "cost": 6, "prerequisites": [ "pyre_ember_vessel" ], "effects": [ { "type": "combat_start_block", "amount": 2 } ], "description": "每场战斗开始时获得 2 点护甲。", "design_note": "给自伤角色更多第一回合缓冲。", "balance_note": "只提供一次性护甲，不降低灼伤和自伤的真实代价。" },
+        { "id": "pyre_ash_tithe_box", "name": "灰税匣", "cost": 7, "prerequisites": [ "pyre_scarred_bulwark" ], "effects": [ { "type": "starting_gold_bonus", "amount": 18 } ], "description": "新跑团起始金币 +18。", "design_note": "让苦修者可以更稳定购买防御牌、删卡或药水。", "balance_note": "经济弹性替代直接伤害，避免高风险构筑在后期变成无脑爆发。" }
       ]
     }
   ],

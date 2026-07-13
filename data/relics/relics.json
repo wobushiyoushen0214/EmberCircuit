@@ -208,12 +208,12 @@
       "name": "灰烬念珠",
       "rarity": "common",
       "character_ids": [ "pyre_ascetic" ],
-      "description": "战斗开始时获得 9 点护甲。",
+      "description": "战斗开始时获得 7 点护甲。",
       "effects": [
-        { "trigger": "combat_start", "type": "gain_block", "amount": 9 }
+        { "trigger": "combat_start", "type": "gain_block", "amount": 7 }
       ],
       "design_note": "熔痕苦修者专属容错遗物，缓冲自伤和灼烧带来的早期血量压力。",
-      "balance_note": "只在战斗开始触发，9 点护甲用于吸收首轮高压和角色自伤；后续回合仍必须靠牌组防御。",
+      "balance_note": "只在战斗开始触发，7 点护甲抵消轻微自伤但不覆盖完整敌方意图；后续回合仍必须靠牌组防御。",
       "implementation_note": "复用 combat_start/gain_block 遗物效果。"
     },
     {

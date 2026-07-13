@@ -8,13 +8,13 @@
     },
     "chapter_two": {
       "normal": { "hp_min": 42, "hp_max": 56, "max_action_damage": 18, "max_block": 16, "expected_turns_min": 4, "expected_turns_max": 6 },
-      "elite": { "hp_min": 96, "hp_max": 108, "max_action_damage": 21, "max_block": 18, "expected_turns_min": 6, "expected_turns_max": 9 },
-      "boss": { "hp_min": 100, "hp_max": 112, "max_action_damage": 24, "max_block": 14, "expected_turns_min": 9, "expected_turns_max": 13 }
+      "elite": { "hp_min": 104, "hp_max": 118, "max_action_damage": 21, "max_block": 18, "expected_turns_min": 6, "expected_turns_max": 9 },
+      "boss": { "hp_min": 114, "hp_max": 136, "max_action_damage": 24, "max_block": 14, "expected_turns_min": 9, "expected_turns_max": 13 }
     },
     "chapter_three": {
       "normal": { "hp_min": 50, "hp_max": 66, "max_action_damage": 22, "max_block": 20, "expected_turns_min": 4, "expected_turns_max": 7 },
-      "elite": { "hp_min": 100, "hp_max": 108, "max_action_damage": 26, "max_block": 22, "expected_turns_min": 7, "expected_turns_max": 10 },
-      "boss": { "hp_min": 120, "hp_max": 132, "max_action_damage": 32, "max_block": 22, "expected_turns_min": 10, "expected_turns_max": 15 }
+      "elite": { "hp_min": 104, "hp_max": 116, "max_action_damage": 22, "max_block": 18, "expected_turns_min": 7, "expected_turns_max": 10 },
+      "boss": { "hp_min": 126, "hp_max": 148, "max_action_damage": 32, "max_block": 22, "expected_turns_min": 10, "expected_turns_max": 15 }
     }
   },
   "encounter_constraints": {

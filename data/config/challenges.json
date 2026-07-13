@@ -55,15 +55,15 @@
       "level": 3,
       "name": "挑战 3：高压意图",
       "short_name": "挑战 3",
-      "description": "敌人最大生命提高 10%，敌人攻击伤害提高 10%，玩家开局失去 6 点生命。",
+      "description": "敌人最大生命提高 13%，玩家开局失去 10 点生命。",
       "modifiers": {
-        "enemy_hp_multiplier": 1.1,
-        "enemy_damage_multiplier": 1.1,
-        "player_starting_hp_loss": 6
+        "enemy_hp_multiplier": 1.13,
+        "enemy_damage_multiplier": 1.0,
+        "player_starting_hp_loss": 10
       },
       "reward_note": "当前最高挑战等级，后续版本会继续扩展。",
-      "design_note": "第三档同时压迫输出和防御，作为当前本地挑战上限。",
-      "balance_note": "10% 敌人伤害会让多段攻击和易伤回合更危险，但仍保留通过护甲和药水修正的空间。",
+      "design_note": "第三档通过更低的整局生命预算压迫路线、休息与药水规划，作为当前本地挑战上限。",
+      "balance_note": "敌血 +13% 与开局 -10 生命形成当前上限；不提高敌伤，避免多段攻击和易伤叠乘造成难度断崖，同时要求更稳定的输出与补给规划。",
       "implementation_note": "CombatState.gd 在解析敌人 damage 效果时应用 enemy_damage_multiplier。"
     }
   ]
