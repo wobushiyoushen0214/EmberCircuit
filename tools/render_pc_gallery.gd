@@ -19,7 +19,9 @@ func _run() -> void:
 	SaveManagerScript.save_profile(SaveManagerScript.default_profile())
 	_set_audio_stream_loading_suppressed(true)
 	var scene: PackedScene = load("res://scenes/main/Main.tscn")
-	await _capture(scene, "01_character_select", Callable())
+	await _capture(scene, "00_welcome", Callable())
+	await _capture(scene, "01_character_select", func(main): main._on_new_run_pressed())
+	await _capture(scene, "01_character_select_wide", func(main): main._on_new_run_pressed(), WIDE_SNAPSHOT_SIZE)
 	await _capture(scene, "02_combat", func(main): main._on_character_selected("ember_exile"))
 	await _capture(scene, "03_reward", func(main):
 		main._on_character_selected("ember_exile")

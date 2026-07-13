@@ -2202,7 +2202,7 @@ func _set_content_heights(log_height: float = 210.0, reward_height: float = 112.
 func _apply_character_select_layout_constraints() -> void:
 	var scale_y: float = _page_layout_scale()
 	var log_height: float = clamp(round(52.0 * scale_y), 44.0, 56.0)
-	var reward_height: float = clamp(round(322.0 * scale_y), 232.0, 322.0)
+	var reward_height: float = clamp(_layout_viewport_size().y - 286.0, 390.0, 620.0) if _is_pc_layout() else clamp(round(322.0 * scale_y), 232.0, 322.0)
 	_set_content_heights(log_height, reward_height)
 	_record_scroll_region_metrics()
 
@@ -2775,7 +2775,7 @@ func _character_select_card_size() -> Vector2:
 		columns = 2
 	var width: float = floor((available_width - gap * float(columns - 1)) / float(columns))
 	width = _bounded_width(width, 286.0, 430.0 if _is_pc_layout() else 380.0)
-	var target_height := 232.0 if _is_pc_layout() else 204.0
+	var target_height: float = clamp(_layout_viewport_size().y - 610.0, 260.0, 360.0) if _is_pc_layout() else 204.0
 	var height: float = clamp(round(target_height * _page_layout_scale()), 146.0, target_height)
 	return Vector2(width, height)
 
