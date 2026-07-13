@@ -178,6 +178,8 @@ var card_reward_done: bool = false
 var relic_reward_done: bool = true
 var potion_reward_done: bool = true
 var deck_view_open: bool = false
+var deck_view_filter: String = "all"
+var deck_view_sort: String = "type"
 
 var screen_background: ColorRect
 var screen_background_art: TextureRect
@@ -306,6 +308,11 @@ var last_campfire_card_layout_count: int = 0
 var last_campfire_card_art_node_count: int = 0
 var last_deck_view_card_layout_count: int = 0
 var last_deck_view_card_art_node_count: int = 0
+var last_deck_view_visible_card_count: int = 0
+var last_deck_view_filter_button_count: int = 0
+var last_deck_view_sort_option_count: int = 0
+var last_deck_view_toolbar_visible: bool = false
+var last_deck_view_cost_curve_text: String = ""
 var last_relic_icon_path: String = ""
 var last_relic_icon_loaded: bool = false
 var last_relic_belt_layout_count: int = 0
@@ -2146,6 +2153,10 @@ func _set_page_regions(character_visible: bool, hud_visible: bool, map_visible: 
 		reward_scroll.visible = rewards_visible
 	if reward_row != null:
 		reward_row.visible = rewards_visible
+	if controls_scroll != null:
+		controls_scroll.visible = true
+	if controls_row != null:
+		controls_row.visible = true
 	_apply_controls_layout_constraints(hud_visible and hand_visible and not rewards_visible)
 
 func _set_content_heights(log_height: float = 210.0, reward_height: float = 112.0) -> void:
@@ -3562,21 +3573,23 @@ func _refresh_map_choices() -> void:
 
 func _refresh_deck_view() -> void:
 	_set_page_regions(true, false, false, false, false, true, false, true)
-	_apply_reward_page_layout_constraints(160.0, 204.0)
+	_apply_deck_view_layout_constraints()
 	last_deck_view_card_layout_count = 0
 	last_deck_view_card_art_node_count = 0
-	run_label.text = "%s | %s | 挑战 %d | 牌组查看 | 金币：%d | 生命：%d/%d | 牌组：%d 张 | 遗物：%s | 药水：%s" % [
+	last_deck_view_visible_card_count = 0
+	last_deck_view_filter_button_count = 0
+	last_deck_view_sort_option_count = 0
+	last_deck_view_toolbar_visible = false
+	run_label.text = "%s · %s · 挑战 %d · 当前牌组 %d 张 · 生命 %d/%d · 金币 %d" % [
 		_character_display_name(),
 		_chapter_display_name(current_chapter_id),
 		current_challenge_level,
-		run_gold,
+		run_deck_ids.size(),
 		run_hp,
 		run_max_hp,
-		run_deck_ids.size(),
-		", ".join(run_relic_ids),
-		_potion_summary()
+		run_gold
 	]
-	status_label.text = "当前牌组。升级牌以 + 标记；后续会升级为可悬停详情和排序筛选。"
+	status_label.text = "当前牌组"
 	feedback_label.visible = false
 	_hide_cinematic_prompt()
 	_clear_container(potion_row)
@@ -3586,30 +3599,24 @@ func _refresh_deck_view() -> void:
 	end_turn_button.disabled = true
 
 	var summary: Dictionary = _deck_summary()
-	log_label.text = "牌组统计\n攻击：%d\n技能：%d\n能力：%d\n状态/诅咒：%d\n升级牌：%d\n\n%s" % [
+	last_deck_view_cost_curve_text = _deck_cost_curve_text()
+	log_label.text = "构成  攻击 %d  ·  技能 %d  ·  能力 %d  ·  状态/诅咒 %d  ·  升级牌 +%d\n%s" % [
 		int(summary.get("attack", 0)),
 		int(summary.get("skill", 0)),
 		int(summary.get("power", 0)),
 		int(summary.get("other", 0)),
 		int(summary.get("upgraded", 0)),
-		_deck_list_text()
+		last_deck_view_cost_curve_text
 	]
 
-	var close_button := Button.new()
-	close_button.custom_minimum_size = _small_action_button_size()
-	close_button.text = "关闭牌组"
-	_apply_button_skin(close_button, "neutral")
-	close_button.pressed.connect(_on_close_deck_view_pressed)
-	reward_row.add_child(close_button)
-
-	var shown: int = 0
-	for entry_value in run_deck_ids:
-		var card: Dictionary = _deck_display_card(str(entry_value))
-		if card.is_empty():
-			continue
+	_add_deck_view_toolbar()
+	var visible_cards: Array[Dictionary] = _deck_view_cards()
+	last_deck_view_visible_card_count = visible_cards.size()
+	for card in visible_cards:
 		var card_button := Button.new()
 		card_button.custom_minimum_size = _large_card_button_size()
 		card_button.text = ""
+		card_button.focus_mode = Control.FOCUS_NONE
 		card_button.tooltip_text = "%s [%d]\n%s\n%s" % [
 			card.get("name", "卡牌"),
 			int(card.get("cost", 0)),
@@ -3619,13 +3626,170 @@ func _refresh_deck_view() -> void:
 		var art_path: String = _card_art_path(card)
 		var card_texture: Texture2D = _load_texture(art_path)
 		_apply_card_button_skin(card_button, str(card.get("type", "")))
-		card_button.disabled = true
 		_add_structured_card_layout(card_button, card, card_texture, "deck_view")
 		reward_row.add_child(card_button)
-		shown += 1
-		if shown >= 5:
-			break
+	if visible_cards.is_empty():
+		_add_deck_view_empty_state()
 	_record_layout_metrics()
+
+func _apply_deck_view_layout_constraints() -> void:
+	if not _is_pc_layout():
+		_apply_reward_page_layout_constraints(112.0, 250.0)
+		return
+	if title_label != null:
+		title_label.visible = false
+	if status_label != null:
+		status_label.visible = false
+	if character_frame != null:
+		character_frame.visible = false
+	if character_panel != null:
+		character_panel.visible = false
+	if controls_scroll != null:
+		controls_scroll.visible = false
+	var deck_height: float = clamp(_layout_viewport_size().y - 165.0, 500.0, 660.0)
+	_set_content_heights(64.0, deck_height)
+	_record_scroll_region_metrics()
+
+func _add_deck_view_toolbar() -> void:
+	var toolbar := HBoxContainer.new()
+	toolbar.name = "DeckToolbar"
+	toolbar.custom_minimum_size = Vector2(_scroll_content_width(), 44)
+	toolbar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	toolbar.add_theme_constant_override("separation", 7)
+	reward_row.add_child(toolbar)
+	last_deck_view_toolbar_visible = true
+
+	var filter_specs := [
+		["all", "全部"],
+		["attack", "攻击"],
+		["skill", "技能"],
+		["power", "能力"],
+		["other", "状态"],
+		["upgraded", "已升级"]
+	]
+	for spec_value in filter_specs:
+		var spec: Array = spec_value
+		var filter_id: String = str(spec[0])
+		var button := Button.new()
+		button.name = "DeckFilter_%s" % filter_id
+		button.custom_minimum_size = Vector2(66 if filter_id != "upgraded" else 80, 34)
+		button.text = str(spec[1])
+		button.tooltip_text = "筛选%s牌" % str(spec[1])
+		_apply_button_skin(button, "primary" if deck_view_filter == filter_id else "neutral")
+		button.pressed.connect(_on_deck_view_filter_pressed.bind(filter_id))
+		toolbar.add_child(button)
+		last_deck_view_filter_button_count += 1
+
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	toolbar.add_child(spacer)
+
+	var sort_menu := OptionButton.new()
+	sort_menu.name = "DeckSortMenu"
+	sort_menu.custom_minimum_size = Vector2(128, 34)
+	sort_menu.tooltip_text = "调整牌组排列顺序"
+	var sort_specs := [["type", "按类型"], ["cost", "按费用"], ["name", "按名称"], ["upgrade", "升级优先"]]
+	var selected_sort_index := 0
+	for i in range(sort_specs.size()):
+		var sort_spec: Array = sort_specs[i]
+		sort_menu.add_item(str(sort_spec[1]))
+		sort_menu.set_item_metadata(i, str(sort_spec[0]))
+		if str(sort_spec[0]) == deck_view_sort:
+			selected_sort_index = i
+	sort_menu.select(selected_sort_index)
+	_apply_button_skin(sort_menu, "neutral")
+	sort_menu.item_selected.connect(_on_deck_view_sort_selected.bind(sort_menu))
+	toolbar.add_child(sort_menu)
+	last_deck_view_sort_option_count = sort_specs.size()
+
+	var close_button := Button.new()
+	close_button.name = "DeckCloseButton"
+	close_button.custom_minimum_size = Vector2(104, 34)
+	close_button.text = "返回游戏"
+	_apply_button_skin(close_button, "event")
+	close_button.pressed.connect(_on_close_deck_view_pressed)
+	toolbar.add_child(close_button)
+
+func _deck_view_cards() -> Array[Dictionary]:
+	var cards: Array[Dictionary] = []
+	for entry_value in run_deck_ids:
+		var entry: String = str(entry_value)
+		var card: Dictionary = _deck_display_card(entry)
+		if card.is_empty():
+			continue
+		card["_deck_entry"] = entry
+		card["_deck_upgraded"] = entry.ends_with("+")
+		if not _deck_view_card_matches_filter(card):
+			continue
+		cards.append(card)
+	cards.sort_custom(Callable(self, "_deck_view_card_less"))
+	return cards
+
+func _deck_view_card_matches_filter(card: Dictionary) -> bool:
+	var card_type: String = str(card.get("type", "other"))
+	match deck_view_filter:
+		"attack", "skill", "power":
+			return card_type == deck_view_filter
+		"other":
+			return not ["attack", "skill", "power"].has(card_type)
+		"upgraded":
+			return bool(card.get("_deck_upgraded", false))
+	return true
+
+func _deck_view_card_less(a: Dictionary, b: Dictionary) -> bool:
+	return _deck_view_sort_key(a) < _deck_view_sort_key(b)
+
+func _deck_view_sort_key(card: Dictionary) -> String:
+	var card_type: String = str(card.get("type", "other"))
+	var type_order := {"attack": 0, "skill": 1, "power": 2}
+	var type_index: int = int(type_order.get(card_type, 3))
+	var cost: int = int(card.get("cost", 0))
+	var name: String = str(card.get("name", ""))
+	var upgraded: int = 0 if bool(card.get("_deck_upgraded", false)) else 1
+	match deck_view_sort:
+		"cost":
+			return "%03d|%02d|%s" % [cost, type_index, name]
+		"name":
+			return "%s|%02d|%03d" % [name, type_index, cost]
+		"upgrade":
+			return "%d|%02d|%03d|%s" % [upgraded, type_index, cost, name]
+	return "%02d|%03d|%s" % [type_index, cost, name]
+
+func _deck_cost_curve_text() -> String:
+	var curve := [0, 0, 0, 0]
+	var total_cost := 0
+	for entry_value in run_deck_ids:
+		var card: Dictionary = _deck_display_card(str(entry_value))
+		if card.is_empty():
+			continue
+		var cost: int = max(0, int(card.get("cost", 0)))
+		total_cost += cost
+		curve[min(cost, 3)] = int(curve[min(cost, 3)]) + 1
+	var average: float = float(total_cost) / float(max(1, run_deck_ids.size()))
+	return "费用曲线  0费 %d  ·  1费 %d  ·  2费 %d  ·  3费以上 %d  ·  平均 %.1f" % [curve[0], curve[1], curve[2], curve[3], average]
+
+func _add_deck_view_empty_state() -> void:
+	var empty := Label.new()
+	empty.name = "DeckFilterEmptyState"
+	empty.custom_minimum_size = Vector2(_scroll_content_width(), 150)
+	empty.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	empty.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	empty.text = "当前筛选没有卡牌"
+	empty.add_theme_font_size_override("font_size", 18)
+	empty.add_theme_color_override("font_color", Color(0.66, 0.70, 0.68))
+	reward_row.add_child(empty)
+
+func _on_deck_view_filter_pressed(filter_id: String) -> void:
+	deck_view_filter = filter_id if ["all", "attack", "skill", "power", "other", "upgraded"].has(filter_id) else "all"
+	_audio_event("ui_click")
+	_refresh_deck_view()
+
+func _on_deck_view_sort_selected(index: int, sort_menu: OptionButton) -> void:
+	if sort_menu == null or index < 0 or index >= sort_menu.item_count:
+		return
+	deck_view_sort = str(sort_menu.get_item_metadata(index))
+	_audio_event("ui_click")
+	_refresh_deck_view()
 
 func _refresh_settings_view() -> void:
 	last_settings_panel_visible = true

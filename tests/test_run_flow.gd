@@ -832,10 +832,30 @@ func _run() -> void:
 		return
 	if not _check(main.log_label.text.contains("+"), "deck view shows upgraded card marker"):
 		return
-	if not _check(main.last_deck_view_card_layout_count > 0 and main.last_deck_view_card_art_node_count == main.last_deck_view_card_layout_count, "deck view renders structured card previews"):
+	if not _check(main.last_deck_view_toolbar_visible and main.last_deck_view_filter_button_count == 6 and main.last_deck_view_sort_option_count == 4, "deck view renders filter and sort controls"):
+		return
+	if not _check(main.last_deck_view_visible_card_count == main.run_deck_ids.size() and main.last_deck_view_card_layout_count == main.run_deck_ids.size(), "deck view renders the complete deck instead of a five-card preview"):
+		return
+	if not _check(main.last_deck_view_card_art_node_count == main.last_deck_view_card_layout_count, "deck view renders artwork for every visible card"):
 		return
 	var first_deck_preview_button := main.reward_row.get_child(1) as Button
 	if not _check(first_deck_preview_button != null and first_deck_preview_button.get_child_count() >= 1 and first_deck_preview_button.get_child(0) is MarginContainer, "deck view preview card contains a visual layout root"):
+		return
+	var deck_summary: Dictionary = main._deck_summary()
+	main._on_deck_view_filter_pressed("attack")
+	if not _check(main.deck_view_filter == "attack" and main.last_deck_view_visible_card_count == int(deck_summary.get("attack", 0)), "deck view filters attack cards"):
+		return
+	main._on_deck_view_filter_pressed("upgraded")
+	if not _check(main.last_deck_view_visible_card_count == int(deck_summary.get("upgraded", 0)), "deck view filters upgraded cards"):
+		return
+	main.deck_view_filter = "all"
+	main.deck_view_sort = "cost"
+	main._refresh_deck_view()
+	var cost_sorted_cards: Array[Dictionary] = main._deck_view_cards()
+	for i in range(1, cost_sorted_cards.size()):
+		if not _check(int(cost_sorted_cards[i - 1].get("cost", 0)) <= int(cost_sorted_cards[i].get("cost", 0)), "deck cost sorting is nondecreasing"):
+			return
+	if not _check(main.last_deck_view_cost_curve_text.contains("0费") and main.last_deck_view_cost_curve_text.contains("平均"), "deck view reports a cost curve and average cost"):
 		return
 	main._on_close_deck_view_pressed()
 	if not _check(not main.deck_view_open, "deck view closes"):

@@ -87,6 +87,7 @@ func _run() -> void:
 	await _capture(scene, "25_executor_elite_art_720p", _encounter_snapshot_setup("executor_elite", "arc_tinker"), DEFAULT_PC_SNAPSHOT_SIZE)
 	await _capture(scene, "26_forge_bishop_art_720p", _encounter_snapshot_setup("chapter_one_boss", "pyre_ascetic"), DEFAULT_PC_SNAPSHOT_SIZE)
 	await _capture(scene, "27_power_card_frame_720p", Callable(self, "_setup_power_card_snapshot"), DEFAULT_PC_SNAPSHOT_SIZE)
+	await _capture(scene, "28_deck_grid_720p", Callable(self, "_setup_deck_grid_snapshot"), DEFAULT_PC_SNAPSHOT_SIZE)
 	_release_audio_streams()
 	print("Saved PC gallery snapshots to %s" % OUT_DIR)
 	quit(0)
@@ -172,6 +173,15 @@ func _setup_power_card_snapshot(main) -> void:
 	var skill_card: Dictionary = main.combat.cards_by_id.get("ash_guard", {}).duplicate(true)
 	main.combat.hand = [attack_card, skill_card, power_card, power_card.duplicate(true), skill_card.duplicate(true)]
 	main._refresh_combat()
+
+func _setup_deck_grid_snapshot(main) -> void:
+	main._on_character_selected("ember_exile")
+	main.run_deck_ids = [
+		"ember_strike+", "ember_strike", "spark_throw", "pressure_probe",
+		"ash_guard+", "ash_guard", "cooling_breath", "soot_step",
+		"counter_pressure", "smelt_plating", "furnace_prayer", "searing_wound"
+	]
+	main._on_deck_view_pressed()
 
 func _setup_profile_progression_snapshot(main) -> void:
 	main.player_profile["forge_marks"] = 9

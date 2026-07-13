@@ -183,6 +183,19 @@ func _run() -> void:
 	_check(_control_inside_viewport(default_pc_main.pile_panel, default_pc_size), "default PC pile viewer stays inside 720p viewport")
 	_check(default_pc_main.pile_cards_flow.custom_minimum_size.x <= default_pc_main.pile_panel.custom_minimum_size.x, "default PC pile card grid stays bounded by the modal")
 	default_pc_main._close_pile_view(false)
+	default_pc_main._on_deck_view_pressed()
+	await process_frame
+	await process_frame
+	var deck_toolbar := default_pc_main.reward_row.get_node_or_null("DeckToolbar") as Control
+	_check(deck_toolbar != null and default_pc_main.last_deck_view_toolbar_visible, "default PC deck view renders its toolbar")
+	_check(_control_inside_viewport(default_pc_main.reward_scroll, default_pc_size), "default PC deck grid viewport stays inside 720p")
+	_check(_control_inside_vertical(deck_toolbar, default_pc_main.reward_scroll), "default PC deck toolbar stays inside the deck viewport")
+	_check(not default_pc_main.controls_scroll.visible, "default PC deck view hides the unrelated bottom control strip")
+	_check(default_pc_main.last_deck_view_visible_card_count == default_pc_main.run_deck_ids.size(), "default PC deck view exposes the complete deck")
+	default_pc_main._on_close_deck_view_pressed()
+	await process_frame
+	await process_frame
+	_check(default_pc_main.controls_scroll.visible and default_pc_main.hand_frame.visible, "closing the deck view restores combat controls and hand")
 	default_pc_main.combat.phase = "won"
 	default_pc_main._refresh_combat()
 	await process_frame
