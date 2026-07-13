@@ -38,6 +38,12 @@ func _run() -> void:
 		return
 	if not _check(main.reward_row.visible and main.last_character_button_icon_count >= 3, "character selection shows visible art-backed character cards"):
 		return
+	if not _check(main.last_character_selection_confirm_visible and main.last_character_selection_selected_id == "ember_exile", "character selection shows explicit confirmation for the selected character"):
+		return
+	main._on_character_preview_selected("arc_tinker")
+	if not _check(main.character_select_open and main.combat == null and main.selected_character_id == "arc_tinker" and main.last_character_selection_selected_id == "arc_tinker", "character click previews without starting the run"):
+		return
+	main._on_character_preview_selected("ember_exile")
 	if not _check(main.reward_scroll.visible and main.reward_row is HFlowContainer, "character selection uses a bounded wrapping reward area"):
 		return
 	if not _check(main.last_combat_layout_overflow <= 0.0, "character selection page fits inside the configured viewport"):
@@ -215,7 +221,8 @@ func _run() -> void:
 		return
 	if not _check(compact_card != null and compact_roster.custom_minimum_size.x >= compact_card.custom_minimum_size.x, "compact character cards are available inside the horizontal roster"):
 		return
-	compact_main._on_character_selected("arc_tinker")
+	compact_main._on_character_preview_selected("arc_tinker")
+	compact_main._on_character_confirm_pressed()
 	if not _check(compact_main.last_combat_layout_overflow <= 0.0, "compact combat layout fits a 540px viewport"):
 		return
 	var compact_hud_width: float = compact_main.last_combat_hud_block_count * compact_main._hud_block_width() + float(compact_main.last_combat_hud_block_count - 1) * 6.0

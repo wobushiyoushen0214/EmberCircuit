@@ -359,6 +359,8 @@ var last_run_completion_unlock_chip_count: int = 0
 var last_run_completion_action_count: int = 0
 var last_character_selection_title: String = ""
 var last_character_selection_ids: Array[String] = []
+var last_character_selection_confirm_visible: bool = false
+var last_character_selection_selected_id: String = ""
 var last_welcome_action_count: int = 0
 var last_welcome_continue_available: bool = false
 var last_character_button_icon_count: int = 0
@@ -1197,6 +1199,14 @@ func _on_welcome_pressed() -> void:
 
 func _on_character_selected(character_id: String) -> void:
 	_start_new_run(character_id)
+
+func _on_character_preview_selected(character_id: String) -> void:
+	selected_character_id = _valid_character_id(character_id)
+	_audio_event("ui_click")
+	_refresh()
+
+func _on_character_confirm_pressed() -> void:
+	_start_new_run(selected_character_id)
 
 func _load_all_data() -> void:
 	card_data = DataLoaderScript.load_json("res://data/cards/cards.json")
@@ -3073,6 +3083,8 @@ func _refresh_character_select() -> void:
 	last_character_selection_ids.clear()
 	last_character_button_icon_count = 0
 	last_challenge_button_count = 0
+	last_character_selection_confirm_visible = false
+	last_character_selection_selected_id = selected_character_id
 	for character in player_data.get("characters", []):
 		var character_dict: Dictionary = character
 		last_character_selection_ids.append(str(character_dict.get("id", "")))
@@ -3154,13 +3166,36 @@ func _refresh_character_select() -> void:
 			last_character_button_icon_count += 1
 		button.add_theme_font_size_override("font_size", 15)
 		button.add_theme_color_override("font_color", Color(0.95, 0.96, 0.92))
-		button.add_theme_stylebox_override("normal", _character_button_style(character_id, false, false))
+		button.add_theme_stylebox_override("normal", _character_button_style(character_id, character_id == selected_character_id, false))
 		button.add_theme_stylebox_override("hover", _character_button_style(character_id, true, false))
 		button.add_theme_stylebox_override("pressed", _character_button_style(character_id, true, true))
 		_configure_button_bounds(button)
 		_add_character_select_card_layout(button, character_dict, character_texture)
-		button.pressed.connect(_on_character_selected.bind(character_id))
+		button.pressed.connect(_on_character_preview_selected.bind(character_id))
 		roster_parent.add_child(button)
+
+	var action_row := HBoxContainer.new()
+	action_row.custom_minimum_size = Vector2(character_select_width, 48.0)
+	action_row.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	action_row.alignment = BoxContainer.ALIGNMENT_END
+	action_row.add_theme_constant_override("separation", 10)
+	reward_row.add_child(action_row)
+
+	var back_button := Button.new()
+	back_button.text = "返回主菜单"
+	back_button.custom_minimum_size = Vector2(156, 42)
+	_apply_button_skin(back_button, "neutral")
+	back_button.pressed.connect(_on_welcome_pressed)
+	action_row.add_child(back_button)
+
+	var confirm_button := Button.new()
+	confirm_button.text = "以%s开始" % _character_display_name(selected_character_id)
+	confirm_button.custom_minimum_size = Vector2(220, 42)
+	confirm_button.tooltip_text = "使用当前角色和挑战 %d 开始新的跑团。" % selected_challenge_level
+	_apply_button_skin(confirm_button, "primary")
+	confirm_button.pressed.connect(_on_character_confirm_pressed)
+	action_row.add_child(confirm_button)
+	last_character_selection_confirm_visible = true
 	_record_layout_metrics()
 
 func _refresh_run_header(node: Dictionary) -> void:
