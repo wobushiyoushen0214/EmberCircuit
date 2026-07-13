@@ -1,23 +1,23 @@
 # EmberCircuit Delivery State
 
 stage_state:
-  state: S5_PICK_BATCH
-  loop_mode: L1
+  state: S7_CREATE_TASKS
+  loop_mode: L2
   audit_scope: full
   current_round: 1
   max_rounds: 6
   open_gaps: 7
-  tasks_created: 0
+  tasks_created: 3
   tasks_completed: 0
   carry_over: 0
   critical_review_issues: 0
-  next_legal_action: request confirmation for delivery-batch-001
-  stop_conditions: first full audit confirmation gate
+  next_legal_action: implement 01-art-asset-auditor with TDD
+  stop_conditions: none
 ---
 
-loop_mode: L1
+loop_mode: L2
 current_round: 1
-next_loop_recommendation: pause-human-needed
+next_loop_recommendation: continue-next-batch
 carry_over: 0
 
 ## 基线
@@ -25,10 +25,10 @@ carry_over: 0
 - source_requirements: `docs/00_MASTER_PLAN.md`（由 `docs/01-08` 细化）
 - mvp_baseline_commit: `7b3f050`
 - last_audited_commit: `7b3f050`
-- loop_mode: `L1`
+- loop_mode: `L2`
 - current_round: `1`
 - max_rounds: `6`
-- current_batch_id: `delivery-batch-001-proposed`
+- current_batch_id: `delivery-batch-001`
 
 ## 需求状态
 
@@ -49,7 +49,7 @@ carry_over: 0
 
 ## 当前批次
 
-- batch_id: `delivery-batch-001-proposed`
+- batch_id: `delivery-batch-001`
 - scope: `P1 正式美术资产完整性`
 - selected_reqs:
   - `REQ-008`
@@ -62,12 +62,12 @@ carry_over: 0
 
 | 条目 | 原因 | 需要人工提供什么 | 起始轮次 |
 | --- | --- | --- | --- |
-| delivery-batch-001 | 首次 full audit 安全门 | 确认差距矩阵和第一批范围 | 1 |
 | git-push | GitHub HTTPS 间歇性返回 403 | 凭据/仓库写权限恢复，或稍后重试 | 1 |
 
 ## 人工决策
 
 - 2026-07-13: 用户要求安装并使用 Trellis skills 继续游戏开发。
+- 2026-07-13: 用户确认 `delivery-batch-001`，并授权任务写好后直接进入开发。
 
 ## 预算快照
 
@@ -79,6 +79,6 @@ carry_over: 0
 
 ## 下一轮建议
 
-- action: `pause-human-needed`
-- reason: `等待确认首次 full audit 和 delivery-batch-001`
-- next_audit_scope: `none`
+- action: `continue-next-batch`
+- reason: `delivery-batch-001 已确认，先实现美术资源审计器`
+- next_audit_scope: `delta`
