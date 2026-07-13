@@ -463,11 +463,11 @@
     },
     {
       "id": "static_primer",
-      "asset_path": "res://assets/art/cards/card_static_primer.svg",
+      "asset_path": "res://assets/art/generated/card_static_primer_pc.png",
       "slot_path": "res://assets/art/cards/card_static_primer.svg",
       "design_note": "静电预充是电弧工匠专属准备牌，正式插画应表现电荷积蓄。",
       "replacement_note": "使用蓝白电弧，与余烬角色牌形成角色差异。",
-      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 插图；未来正式插画仍保持同一 slot_path，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
+      "implementation_note": "当前 asset_path 接入 PC 生成位图，以黄铜电容、陶瓷线圈和受控青色电弧表现一次性预充；slot_path 保留为稳定替换槽位，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
     },
     {
       "id": "arc_needles",
