@@ -317,6 +317,8 @@ func _run() -> void:
 	var arc_reward_pool: Array = main._generate_card_rewards(999)
 	if not _check(_reward_pool_has_card(arc_reward_pool, "static_primer") and _reward_pool_has_card(arc_reward_pool, "arc_needles"), "arc tinker reward pool includes dedicated cards"):
 		return
+	if not _check(_reward_pool_has_card(arc_reward_pool, "overcharge_loop") and _reward_pool_has_card(arc_reward_pool, "arc_battery") and _reward_pool_has_card(arc_reward_pool, "magnetic_lance"), "arc tinker reward pool includes expanded charge package"):
+		return
 	var arc_relic_pool: Array = main._generate_relic_rewards(999)
 	if not _check(_reward_pool_has_relic(arc_relic_pool, "spark_coil") and _reward_pool_has_relic(arc_relic_pool, "micro_dynamo"), "arc tinker relic pool includes dedicated relics"):
 		return
@@ -346,6 +348,8 @@ func _run() -> void:
 		return
 	var pyre_reward_pool: Array = main._generate_card_rewards(999)
 	if not _check(_reward_pool_has_card(pyre_reward_pool, "blood_kindling") and _reward_pool_has_card(pyre_reward_pool, "white_flame_oath"), "pyre ascetic reward pool includes dedicated cards"):
+		return
+	if not _check(_reward_pool_has_card(pyre_reward_pool, "ash_reversal") and _reward_pool_has_card(pyre_reward_pool, "white_cinder") and _reward_pool_has_card(pyre_reward_pool, "martyrs_bell"), "pyre ascetic reward pool includes expanded sacrifice package"):
 		return
 	if not _check(not _reward_pool_has_card(pyre_reward_pool, "static_primer") and not _reward_pool_has_card(pyre_reward_pool, "arc_needles"), "pyre ascetic reward pool excludes arc tinker dedicated cards"):
 		return
@@ -378,6 +382,8 @@ func _run() -> void:
 		return
 	discovery_main.free()
 	var ember_reward_pool: Array = main._generate_card_rewards(999)
+	if not _check(_reward_pool_has_card(ember_reward_pool, "furnace_stride") and _reward_pool_has_card(ember_reward_pool, "pressure_surge") and _reward_pool_has_card(ember_reward_pool, "slag_armor"), "ember exile reward pool includes expanded pressure package"):
+		return
 	if not _check(not _reward_pool_has_card(ember_reward_pool, "static_primer") and not _reward_pool_has_card(ember_reward_pool, "arc_needles"), "default character reward pool excludes arc tinker dedicated cards"):
 		return
 	if not _check(not _reward_pool_has_card(ember_reward_pool, "blood_kindling") and not _reward_pool_has_card(ember_reward_pool, "white_flame_oath"), "default character reward pool excludes pyre ascetic dedicated cards"):

@@ -454,6 +454,78 @@
       "implementation_note": "当前 asset_path 指向第一版 SVG 插图；战斗逻辑复用 strength、gain_momentum 和自我 burn。"
     },
     {
+      "id": "furnace_stride",
+      "asset_path": "res://assets/art/generated/card_furnace_stride_v2_pc.png",
+      "slot_path": "res://assets/art/cards/card_furnace_stride.svg",
+      "design_note": "炉压步进是余烬流亡者的低费势能启动攻击。",
+      "replacement_note": "动作方向需清晰，保留卡面下方文字读区。",
+      "implementation_note": "当前 asset_path 接入 gpt-image-2 生成的 PC 位图，战斗逻辑由卡牌数据结算。"
+    },
+    {
+      "id": "pressure_surge",
+      "asset_path": "res://assets/art/generated/card_pressure_surge_v2_pc.png",
+      "slot_path": "res://assets/art/cards/card_pressure_surge.svg",
+      "design_note": "压力涌升是余烬流亡者的势能门槛爆发。",
+      "replacement_note": "集中冲击需明确指向单体目标。",
+      "implementation_note": "当前 asset_path 接入 gpt-image-2 生成的 PC 位图，战斗逻辑由卡牌数据结算。"
+    },
+    {
+      "id": "slag_armor",
+      "asset_path": "res://assets/art/generated/card_slag_armor_v2_pc.png",
+      "slot_path": "res://assets/art/cards/card_slag_armor.svg",
+      "design_note": "熔渣装甲是余烬流亡者的高费防御终点。",
+      "replacement_note": "重甲轮廓要比普通护盾更厚重。",
+      "implementation_note": "当前 asset_path 接入 gpt-image-2 生成的 PC 位图，战斗逻辑由卡牌数据结算。"
+    },
+    {
+      "id": "overcharge_loop",
+      "asset_path": "res://assets/art/generated/card_overcharge_loop_v2_pc.png",
+      "slot_path": "res://assets/art/cards/card_overcharge_loop.svg",
+      "design_note": "过载回路是电弧工匠的长期多段攻击能力。",
+      "replacement_note": "闭合电路要读作持续能力而非单次闪电。",
+      "implementation_note": "当前 asset_path 接入 gpt-image-2 生成的 PC 位图，战斗逻辑由卡牌数据结算。"
+    },
+    {
+      "id": "arc_battery",
+      "asset_path": "res://assets/art/generated/card_arc_battery_v2_pc.png",
+      "slot_path": "res://assets/art/cards/card_arc_battery.svg",
+      "design_note": "备用电池是电弧工匠的一次性爆发资源。",
+      "replacement_note": "电池和充能方向需在小尺寸下可辨识。",
+      "implementation_note": "当前 asset_path 接入 gpt-image-2 生成的 PC 位图，战斗逻辑由卡牌数据结算。"
+    },
+    {
+      "id": "magnetic_lance",
+      "asset_path": "res://assets/art/generated/card_magnetic_lance_v2_pc.png",
+      "slot_path": "res://assets/art/cards/card_magnetic_lance.svg",
+      "design_note": "磁轨长枪是电弧工匠消耗势能的终结攻击。",
+      "replacement_note": "贯穿方向和集中光束必须成为第一视觉焦点。",
+      "implementation_note": "当前 asset_path 接入 gpt-image-2 生成的 PC 位图，战斗逻辑由卡牌数据结算。"
+    },
+    {
+      "id": "ash_reversal",
+      "asset_path": "res://assets/art/generated/card_ash_reversal_v2_pc.png",
+      "slot_path": "res://assets/art/cards/card_ash_reversal.svg",
+      "design_note": "灰烬逆流把苦修者的生命代价转换为护甲和势能。",
+      "replacement_note": "红色代价与白色防御必须同时可读。",
+      "implementation_note": "当前 asset_path 接入 gpt-image-2 生成的 PC 位图，战斗逻辑由卡牌数据结算。"
+    },
+    {
+      "id": "white_cinder",
+      "asset_path": "res://assets/art/generated/card_white_cinder_v2_pc.png",
+      "slot_path": "res://assets/art/cards/card_white_cinder.svg",
+      "design_note": "白烬连燃是苦修者的多段灼烧核心。",
+      "replacement_note": "两道白焰轨迹需清楚表达多段攻击。",
+      "implementation_note": "当前 asset_path 接入 gpt-image-2 生成的 PC 位图，战斗逻辑由卡牌数据结算。"
+    },
+    {
+      "id": "martyrs_bell",
+      "asset_path": "res://assets/art/generated/card_martyrs_bell_v2_pc.png",
+      "slot_path": "res://assets/art/cards/card_martyrs_bell.svg",
+      "design_note": "苦行钟是苦修者的长期自伤能力。",
+      "replacement_note": "仪式和持续力量感要区别于一次性攻击。",
+      "implementation_note": "当前 asset_path 接入 gpt-image-2 生成的 PC 位图，战斗逻辑由卡牌数据结算。"
+    },
+    {
       "id": "calibration_protocol",
       "asset_path": "res://assets/art/cards/card_calibration_protocol.svg",
       "slot_path": "res://assets/art/cards/card_calibration_protocol.svg",

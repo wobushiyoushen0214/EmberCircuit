@@ -154,7 +154,17 @@ func can_play_card(hand_index: int) -> bool:
 	if hand_index < 0 or hand_index >= hand.size():
 		return false
 	var card: Dictionary = hand[hand_index]
-	return int(card.get("cost", 0)) <= int(player.get("energy", 0))
+	if int(card.get("cost", 0)) > int(player.get("energy", 0)):
+		return false
+	return _card_required_momentum(card) <= int(player.get("momentum", 0))
+
+func _card_required_momentum(card: Dictionary) -> int:
+	var required := 0
+	for effect_value in card.get("effects", []):
+		var effect: Dictionary = effect_value
+		if str(effect.get("type", "")) == "lose_momentum":
+			required += max(0, int(effect.get("amount", 0)))
+	return required
 
 func play_card(hand_index: int, target_index: int = -1) -> bool:
 	if not can_play_card(hand_index):

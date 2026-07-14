@@ -61,6 +61,23 @@ func _init() -> void:
 	_check(grounding_combat.play_card(0, 0), "grounding field can be played")
 	_check(int(grounding_combat.player.get("block", 0)) == 13 and int(grounding_combat.player.get("momentum", 0)) == 1, "grounding field converts momentum into high block")
 
+	var momentum_gate_combat = CombatStateScript.new()
+	momentum_gate_combat.setup(card_data, enemy_data, relic_data, encounter_data, arc_player_data, "intro_patrol", ["magnetic_lance"], ["__test_no_relic__"], 68)
+	momentum_gate_combat.player["momentum"] = 1
+	_check(not momentum_gate_combat.can_play_card(0), "momentum-spending cards are disabled below their resource cost")
+	momentum_gate_combat.player["momentum"] = 2
+	var lance_enemy_hp_before: int = int(momentum_gate_combat.enemies[0].get("hp", 0))
+	_check(momentum_gate_combat.play_card(0, 0), "magnetic lance can be played at its momentum requirement")
+	_check(int(momentum_gate_combat.player.get("momentum", 0)) == 0 and lance_enemy_hp_before - int(momentum_gate_combat.enemies[0].get("hp", 0)) == 22, "magnetic lance consumes momentum and deals configured damage")
+
+	var battery_combat = CombatStateScript.new()
+	battery_combat.setup(card_data, enemy_data, relic_data, encounter_data, arc_player_data, "intro_patrol", ["arc_battery"], ["__test_no_relic__"], 68)
+	var battery_energy_before: int = int(battery_combat.player.get("energy", 0))
+	var battery_momentum_before: int = int(battery_combat.player.get("momentum", 0))
+	_check(battery_combat.play_card(0, 0), "spare battery can be played")
+	_check(int(battery_combat.player.get("energy", 0)) == battery_energy_before + 1 and int(battery_combat.player.get("momentum", 0)) == battery_momentum_before + 1, "spare battery grants its one-shot resource package")
+	_check(battery_combat.exhaust_pile.size() == 1, "spare battery exhausts after use")
+
 	var feedback_shell_combat = CombatStateScript.new()
 	feedback_shell_combat.setup(card_data, enemy_data, relic_data, encounter_data, arc_player_data, "intro_patrol", ["feedback_shell"], ["__test_no_relic__"], 68)
 	var shell_momentum_before: int = int(feedback_shell_combat.player.get("momentum", 0))
@@ -75,6 +92,14 @@ func _init() -> void:
 	_check(int(pyre_combat.player.get("max_hp", 0)) == 72, "combat can load pyre ascetic HP")
 	_check(pyre_combat.owned_relic_ids.has("penitent_censer"), "combat can load pyre ascetic starter relic")
 	_check(_combat_has_card(pyre_combat, "penitent_cut"), "combat can load pyre ascetic starter deck")
+
+	var reversal_combat = CombatStateScript.new()
+	reversal_combat.setup(card_data, enemy_data, relic_data, encounter_data, pyre_player_data, "intro_patrol", ["ash_reversal"], ["__test_no_relic__"], 72)
+	var reversal_hp_before: int = int(reversal_combat.player.get("hp", 0))
+	var reversal_momentum_before: int = int(reversal_combat.player.get("momentum", 0))
+	_check(reversal_combat.play_card(0, 0), "ash reversal can be played")
+	_check(int(reversal_combat.player.get("hp", 0)) == reversal_hp_before - 1 and int(reversal_combat.player.get("block", 0)) == 8, "ash reversal converts health into block")
+	_check(int(reversal_combat.player.get("momentum", 0)) == reversal_momentum_before + 2, "ash reversal grants configured momentum")
 
 	var pyre_relic_combat = CombatStateScript.new()
 	pyre_relic_combat.setup(card_data, enemy_data, relic_data, encounter_data, pyre_player_data, "intro_patrol", ["wound_offering"], ["penitent_censer"], 72)

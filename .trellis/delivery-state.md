@@ -7,8 +7,8 @@ stage_state:
   current_round: 1
   max_rounds: 6
   open_gaps: 5
-  tasks_created: 3
-  tasks_completed: 3
+  tasks_created: 4
+  tasks_completed: 4
   carry_over: 0
   critical_review_issues: 0
   next_legal_action: implement expand-character-card-pools from audit report
@@ -28,7 +28,7 @@ carry_over: 0
 - loop_mode: `L2`
 - current_round: `1`
 - max_rounds: `6`
-- current_batch_id: `delivery-batch-001`
+- current_batch_id: `delivery-batch-002`
 
 ## 需求状态
 
@@ -49,10 +49,11 @@ carry_over: 0
 
 ## 当前批次
 
-- batch_id: `delivery-batch-001`
-- scope: `P1 正式美术资产完整性`
+- batch_id: `delivery-batch-002`
+- scope: `P1 角色专属卡池与构筑闭环`
 - selected_reqs:
-  - `REQ-008`
+  - `REQ-004`
+  - `REQ-006`
 - excluded_this_round:
   - `REQ-004/005/006`: 内容量扩充在美术资产契约稳定后进入
   - `REQ-009`: 等待内容批次稳定

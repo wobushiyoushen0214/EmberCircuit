@@ -930,6 +930,234 @@
       "upgrade_note": "降费提高打出窗口，而不增加力量层数。"
     },
     {
+      "id": "furnace_stride",
+      "name": "炉压步进",
+      "cost": 0,
+      "type": "attack",
+      "rarity": "common",
+      "target": "enemy",
+      "character_ids": ["ember_exile"],
+      "description": "造成 5 点伤害。获得 1 点势能。",
+      "effects": [
+        { "type": "damage", "amount": 5 },
+        { "type": "gain_momentum", "amount": 1 }
+      ],
+      "upgrade": {
+        "cost": 0,
+        "description": "造成 7 点伤害。获得 1 点势能。",
+        "effects": [
+          { "type": "damage", "amount": 7 },
+          { "type": "gain_momentum", "amount": 1 }
+        ]
+      },
+      "design_note": "余烬流亡者的低费起手攻击，让势能构筑有稳定的第一步。",
+      "balance_note": "0 费 5 伤害低于普通 1 费攻击，势能收益使它依赖后续高压牌才能兑现。",
+      "upgrade_note": "只提高伤害，不提高势能，避免免费资源牌无限膨胀。"
+    },
+    {
+      "id": "pressure_surge",
+      "name": "压力涌升",
+      "cost": 1,
+      "type": "attack",
+      "rarity": "uncommon",
+      "target": "enemy",
+      "character_ids": ["ember_exile"],
+      "description": "造成 9 点伤害。若你至少有 3 点势能，额外造成 5 点伤害。",
+      "effects": [
+        { "type": "damage", "amount": 9, "bonus_if_momentum_at_least": 3, "bonus": 5 }
+      ],
+      "upgrade": {
+        "cost": 1,
+        "description": "造成 11 点伤害。若你至少有 3 点势能，额外造成 5 点伤害。",
+        "effects": [
+          { "type": "damage", "amount": 11, "bonus_if_momentum_at_least": 3, "bonus": 5 }
+        ]
+      },
+      "design_note": "把前几回合积攒的势能转换成一次清晰的单体爆发。",
+      "balance_note": "未达门槛时只有 9 点伤害，达到门槛后才接近 1 费稀有攻击的收益。",
+      "upgrade_note": "提高未达门槛时的基础伤害，不提高门槛奖励。"
+    },
+    {
+      "id": "slag_armor",
+      "name": "熔渣装甲",
+      "cost": 2,
+      "type": "skill",
+      "rarity": "rare",
+      "target": "self",
+      "character_ids": ["ember_exile"],
+      "description": "获得 16 点护甲。获得 1 点势能。",
+      "effects": [
+        { "type": "block", "amount": 16 },
+        { "type": "gain_momentum", "amount": 1 }
+      ],
+      "upgrade": {
+        "cost": 1,
+        "description": "获得 16 点护甲。获得 1 点势能。",
+        "effects": [
+          { "type": "block", "amount": 16 },
+          { "type": "gain_momentum", "amount": 1 }
+        ]
+      },
+      "design_note": "为均衡角色提供高费防御终点，同时继续推动下一回合势能计划。",
+      "balance_note": "2 费 16 点护甲处于单回合防御预算上沿，升级降费而非继续提高护甲。",
+      "upgrade_note": "降为 1 费，提升打出窗口，不叠加资源。"
+    },
+    {
+      "id": "overcharge_loop",
+      "name": "过载回路",
+      "cost": 1,
+      "type": "power",
+      "rarity": "uncommon",
+      "target": "self",
+      "character_ids": ["arc_tinker"],
+      "description": "本场战斗中，你的攻击造成的伤害 +1。获得 1 点势能。",
+      "effects": [
+        { "type": "apply_status", "target": "self", "status": "strength", "amount": 1 },
+        { "type": "gain_momentum", "amount": 1 }
+      ],
+      "upgrade": {
+        "cost": 0,
+        "description": "本场战斗中，你的攻击造成的伤害 +1。获得 1 点势能。",
+        "effects": [
+          { "type": "apply_status", "target": "self", "status": "strength", "amount": 1 },
+          { "type": "gain_momentum", "amount": 1 }
+        ]
+      },
+      "design_note": "电弧工匠的长期多段攻击核心，和低费连打及势能循环互相强化。",
+      "balance_note": "只给 1 层力量且不提供即时能量，必须经过多次攻击才能回本。",
+      "upgrade_note": "降为 0 费，提高部署窗口，不增加力量层数。"
+    },
+    {
+      "id": "arc_battery",
+      "name": "备用电池",
+      "cost": 0,
+      "type": "skill",
+      "rarity": "uncommon",
+      "target": "self",
+      "character_ids": ["arc_tinker"],
+      "description": "获得 1 点能量。获得 1 点势能。消耗。",
+      "effects": [
+        { "type": "gain_energy", "amount": 1 },
+        { "type": "gain_momentum", "amount": 1 }
+      ],
+      "exhaust": true,
+      "upgrade": {
+        "cost": 0,
+        "description": "获得 1 点能量。获得 2 点势能。消耗。",
+        "effects": [
+          { "type": "gain_energy", "amount": 1 },
+          { "type": "gain_momentum", "amount": 2 }
+        ]
+      },
+      "design_note": "把一次性资源转化为电弧工匠的爆发回合，和药水槽身份形成差异。",
+      "balance_note": "消耗限制保证每场最多一次，不会形成无限能量循环。",
+      "upgrade_note": "只提高势能，不提高能量，强化终局爆发规划。"
+    },
+    {
+      "id": "magnetic_lance",
+      "name": "磁轨长枪",
+      "cost": 2,
+      "type": "attack",
+      "rarity": "rare",
+      "target": "enemy",
+      "character_ids": ["arc_tinker"],
+      "description": "失去 2 点势能。造成 22 点伤害。",
+      "effects": [
+        { "type": "lose_momentum", "amount": 2 },
+        { "type": "damage", "amount": 22 }
+      ],
+      "upgrade": {
+        "cost": 1,
+        "description": "失去 2 点势能。造成 22 点伤害。",
+        "effects": [
+          { "type": "lose_momentum", "amount": 2 },
+          { "type": "damage", "amount": 22 }
+        ]
+      },
+      "design_note": "为电弧工匠提供明确的势能转伤害终点，避免所有构筑只堆多段攻击。",
+      "balance_note": "2 费 22 伤害并消耗势能，未准备资源时无法使用，爆发上限受势能供给约束。",
+      "upgrade_note": "降为 1 费，不提高伤害，避免资源转换牌同时获得过高效率。"
+    },
+    {
+      "id": "ash_reversal",
+      "name": "灰烬逆流",
+      "cost": 1,
+      "type": "skill",
+      "rarity": "common",
+      "target": "self",
+      "character_ids": ["pyre_ascetic"],
+      "description": "失去 1 点生命。获得 8 点护甲和 2 点势能。",
+      "effects": [
+        { "type": "damage_self", "amount": 1 },
+        { "type": "block", "amount": 8 },
+        { "type": "gain_momentum", "amount": 2 }
+      ],
+      "upgrade": {
+        "cost": 0,
+        "description": "失去 1 点生命。获得 8 点护甲和 2 点势能。",
+        "effects": [
+          { "type": "damage_self", "amount": 1 },
+          { "type": "block", "amount": 8 },
+          { "type": "gain_momentum", "amount": 2 }
+        ]
+      },
+      "design_note": "把苦修者的生命代价转为安全和势能，连接自伤与防御两条构筑线。",
+      "balance_note": "1 费 8 护甲低于纯防御牌，额外势能由 1 点生命支付。",
+      "upgrade_note": "降为 0 费但保留生命代价，提升自伤回合的动作密度。"
+    },
+    {
+      "id": "white_cinder",
+      "name": "白烬连燃",
+      "cost": 1,
+      "type": "attack",
+      "rarity": "uncommon",
+      "target": "enemy",
+      "character_ids": ["pyre_ascetic"],
+      "description": "造成 4 点伤害 2 次。施加 2 层灼烧。",
+      "effects": [
+        { "type": "damage", "amount": 4, "hits": 2 },
+        { "type": "apply_status", "target": "enemy", "status": "burn", "amount": 2 }
+      ],
+      "upgrade": {
+        "cost": 1,
+        "description": "造成 5 点伤害 2 次。施加 2 层灼烧。",
+        "effects": [
+          { "type": "damage", "amount": 5, "hits": 2 },
+          { "type": "apply_status", "target": "enemy", "status": "burn", "amount": 2 }
+        ]
+      },
+      "design_note": "提供灼烧构筑需要的高频多段攻击，并让力量和遗物收益更容易兑现。",
+      "balance_note": "1 费 8 点分段伤害加 2 灼烧，单回合直接伤害低于预算，依赖持续灼烧滚动。",
+      "upgrade_note": "提高每段伤害，不增加灼烧层数，控制持续伤害叠加速度。"
+    },
+    {
+      "id": "martyrs_bell",
+      "name": "苦行钟",
+      "cost": 2,
+      "type": "power",
+      "rarity": "rare",
+      "target": "self",
+      "character_ids": ["pyre_ascetic"],
+      "description": "失去 2 点生命。本场战斗中，你的攻击造成的伤害 +1。获得 2 点势能。",
+      "effects": [
+        { "type": "damage_self", "amount": 2 },
+        { "type": "apply_status", "target": "self", "status": "strength", "amount": 1 },
+        { "type": "gain_momentum", "amount": 2 }
+      ],
+      "upgrade": {
+        "cost": 1,
+        "description": "失去 2 点生命。本场战斗中，你的攻击造成的伤害 +1。获得 2 点势能。",
+        "effects": [
+          { "type": "damage_self", "amount": 2 },
+          { "type": "apply_status", "target": "self", "status": "strength", "amount": 1 },
+          { "type": "gain_momentum", "amount": 2 }
+        ]
+      },
+      "design_note": "苦修者的长期自伤引擎，让生命成为主动资源而非单纯惩罚。",
+      "balance_note": "2 费力量部署加势能并承担生命代价，必须通过灼烧和防御牌建立回本窗口。",
+      "upgrade_note": "降为 1 费，不提高力量或势能，避免长期成长超出预算。"
+    },
+    {
       "id": "calibration_protocol",
       "name": "校准协议",
       "cost": 1,
