@@ -5,6 +5,7 @@ const DataLoaderScript = preload("res://scripts/core/DataLoader.gd")
 const SaveManagerScript = preload("res://scripts/core/SaveManager.gd")
 const MapGeneratorScript = preload("res://scripts/map/MapGenerator.gd")
 const MapViewScript = preload("res://scripts/map/MapView.gd")
+const CurveTrailScript = preload("res://scripts/ui/CurveTrail.gd")
 
 const ENEMY_ART_PATHS := {
 	"placeholder_soot_raider": "res://assets/art/generated/enemy_soot_raider_pc.png",
@@ -483,6 +484,24 @@ var last_tutorial_completed_count: int = 0
 var last_tutorial_summary: String = ""
 var enemy_visuals_by_id: Dictionary = {}
 var hand_buttons_by_index: Dictionary = {}
+var card_drag_candidate_index: int = -1
+var card_drag_active: bool = false
+var card_drag_index: int = -1
+var card_drag_target_index: int = -1
+var card_drag_start_mouse: Vector2 = Vector2.ZERO
+var card_drag_pointer: Vector2 = Vector2.ZERO
+var card_drag_ghost: Button
+var card_drag_curve: Control
+var card_drag_target_ring: PanelContainer
+var card_drag_source_button: Button
+var card_drag_suppress_click_index: int = -1
+var last_card_drag_started_count: int = 0
+var last_card_drag_played_count: int = 0
+var last_card_drag_cancelled_count: int = 0
+var last_card_drag_valid: bool = false
+var last_card_drag_target_id: String = ""
+var last_card_drag_ghost_uses_art: bool = false
+var last_card_drag_curve_point_count: int = 0
 var hit_stop_ticket: int = 0
 var last_music_context: String = ""
 var last_music_stream_path: String = ""
@@ -501,7 +520,42 @@ func _notification(what: int) -> void:
 	if what == NOTIFICATION_RESIZED:
 		_sync_layout_widths()
 
+func _input(event: InputEvent) -> void:
+	if _handle_card_drag_input(event):
+		get_viewport().set_input_as_handled()
+
+func _handle_card_drag_input(event: InputEvent) -> bool:
+	if not _is_pc_layout() or combat == null:
+		return false
+	if event is InputEventMouseMotion and card_drag_candidate_index >= 0:
+		var motion := event as InputEventMouseMotion
+		card_drag_pointer = motion.position
+		if not card_drag_active and (motion.button_mask & MOUSE_BUTTON_MASK_LEFT) != 0 and card_drag_start_mouse.distance_to(card_drag_pointer) >= 10.0:
+			_begin_card_drag(card_drag_candidate_index, card_drag_pointer)
+		if card_drag_active:
+			_update_card_drag(card_drag_pointer)
+			return true
+		return false
+	if event is InputEventMouseButton:
+		var mouse_button := event as InputEventMouseButton
+		if mouse_button.button_index == MOUSE_BUTTON_RIGHT and mouse_button.pressed and card_drag_active:
+			_cancel_card_drag()
+			return true
+		if mouse_button.button_index == MOUSE_BUTTON_LEFT and not mouse_button.pressed and card_drag_candidate_index >= 0:
+			if card_drag_active:
+				card_drag_pointer = mouse_button.position
+				_update_card_drag(card_drag_pointer)
+				_finish_card_drag(last_card_drag_valid)
+				return true
+			else:
+				card_drag_candidate_index = -1
+	return false
+
 func _unhandled_input(event: InputEvent) -> void:
+	if card_drag_active and event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE:
+		_cancel_card_drag()
+		get_viewport().set_input_as_handled()
+		return
 	if pile_view_open and event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE:
 		_close_pile_view()
 		get_viewport().set_input_as_handled()
@@ -8067,7 +8121,8 @@ func _refresh_hand() -> void:
 		button.focus_entered.connect(_on_card_previewed.bind(i))
 		button.focus_entered.connect(_on_hand_card_hovered.bind(i, true))
 		button.focus_exited.connect(_on_hand_card_hovered.bind(i, false))
-		button.pressed.connect(_on_card_pressed.bind(i))
+		button.gui_input.connect(_on_hand_card_gui_input.bind(i))
+		button.pressed.connect(_on_card_button_pressed.bind(i))
 		hand_row.add_child(button)
 		hand_buttons_by_index[i] = button
 	call_deferred("_apply_hand_card_transforms")
@@ -9157,6 +9212,212 @@ func _on_hand_card_hovered(index: int, hovered: bool) -> void:
 		exit_tween.parallel().tween_property(button, "position", base_position, 0.12).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 		button.remove_meta("hand_hover_base_position")
 
+func _on_hand_card_gui_input(event: InputEvent, index: int) -> void:
+	if not _is_pc_layout() or combat == null or combat.phase != "player":
+		return
+	if event is InputEventMouseButton:
+		var mouse_button := event as InputEventMouseButton
+		if mouse_button.button_index == MOUSE_BUTTON_LEFT and mouse_button.pressed and not mouse_button.double_click and combat.can_play_card(index):
+			card_drag_candidate_index = index
+			card_drag_index = index
+			card_drag_start_mouse = mouse_button.global_position
+			if card_drag_start_mouse == Vector2.ZERO:
+				card_drag_start_mouse = get_viewport().get_mouse_position()
+			card_drag_pointer = card_drag_start_mouse
+			card_drag_source_button = hand_buttons_by_index.get(index, null) as Button
+
+func _on_card_button_pressed(index: int) -> void:
+	card_drag_candidate_index = -1
+	card_drag_index = -1
+	if card_drag_suppress_click_index == index:
+		card_drag_suppress_click_index = -1
+		return
+	_on_card_pressed(index)
+
+func _begin_card_drag(index: int, pointer: Vector2) -> void:
+	if combat == null or combat.phase != "player" or index < 0 or index >= combat.hand.size() or not combat.can_play_card(index):
+		return
+	card_drag_active = true
+	card_drag_candidate_index = index
+	card_drag_index = index
+	card_drag_target_index = -1
+	card_drag_pointer = pointer
+	last_card_drag_started_count += 1
+	last_card_drag_valid = false
+	last_card_drag_target_id = ""
+	last_card_drag_curve_point_count = 0
+	card_drag_source_button = hand_buttons_by_index.get(index, null) as Button
+	var card: Dictionary = combat.hand[index]
+	last_card_drag_ghost_uses_art = _asset_loaded(_card_art_path(card))
+	if DisplayServer.get_name() == "headless" or not is_inside_tree() or feedback_overlay == null:
+		return
+	if card_drag_source_button != null:
+		card_drag_source_button.modulate = Color(1, 1, 1, 0.28)
+	var card_texture: Texture2D = _load_texture(_card_art_path(card))
+	last_card_drag_ghost_uses_art = card_texture != null
+	card_drag_ghost = Button.new()
+	card_drag_ghost.name = "CardDragGhost"
+	card_drag_ghost.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	card_drag_ghost.focus_mode = Control.FOCUS_NONE
+	card_drag_ghost.custom_minimum_size = Vector2(132, 202)
+	card_drag_ghost.size = card_drag_ghost.custom_minimum_size
+	card_drag_ghost.pivot_offset = card_drag_ghost.size * 0.5
+	card_drag_ghost.add_theme_stylebox_override("normal", _card_button_style(str(card.get("type", "")), true, false))
+	_add_structured_card_layout(card_drag_ghost, card, card_texture, "drag")
+	card_drag_ghost.scale = Vector2(1.04, 1.04)
+	card_drag_ghost.z_index = 110
+	feedback_overlay.add_child(card_drag_ghost)
+
+	card_drag_curve = CurveTrailScript.new()
+	card_drag_curve.z_index = 103
+	feedback_overlay.add_child(card_drag_curve)
+
+	card_drag_target_ring = PanelContainer.new()
+	card_drag_target_ring.name = "CardDragTargetRing"
+	card_drag_target_ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	card_drag_target_ring.custom_minimum_size = Vector2(60, 60)
+	card_drag_target_ring.size = card_drag_target_ring.custom_minimum_size
+	card_drag_target_ring.z_index = 104
+	feedback_overlay.add_child(card_drag_target_ring)
+	_update_card_drag(pointer)
+
+func _update_card_drag(pointer: Vector2) -> void:
+	if not card_drag_active or combat == null or card_drag_index < 0 or card_drag_index >= combat.hand.size():
+		return
+	card_drag_pointer = pointer
+	var card: Dictionary = combat.hand[card_drag_index]
+	if card_drag_ghost != null and is_instance_valid(card_drag_ghost):
+		var ghost_center: Vector2 = pointer + Vector2(0, -78.0)
+		card_drag_ghost.position = _clamp_feedback_overlay_position(ghost_center - card_drag_ghost.size * 0.5, card_drag_ghost.size)
+	var target_index: int = _card_drag_target_index_at(pointer)
+	var over_stage: bool = _card_drag_pointer_over_stage(pointer)
+	last_card_drag_valid = _card_drag_accepts_target(card, target_index, over_stage)
+	card_drag_target_index = target_index if _card_targets_enemy(card) else -1
+	if last_card_drag_valid:
+		last_card_drag_target_id = _card_visual_target_id(card, target_index)
+		if _card_targets_enemy(card) and target_index >= 0 and target_index != selected_enemy_index:
+			selected_enemy_index = target_index
+			_queue_stage_forecast_refresh()
+	else:
+		last_card_drag_target_id = ""
+	var start: Vector2 = pointer + Vector2(0, -24.0)
+	if card_drag_ghost != null and is_instance_valid(card_drag_ghost):
+		start = card_drag_ghost.position + Vector2(card_drag_ghost.size.x * 0.5, card_drag_ghost.size.y * 0.38)
+	var end: Vector2 = pointer
+	if last_card_drag_valid:
+		end = _card_target_position(last_card_drag_target_id, target_index)
+	var mid: Vector2 = (start + end) * 0.5 + Vector2(0, -58.0)
+	var curve_points := PackedVector2Array()
+	var point_count := 24
+	for point_index in range(point_count + 1):
+		var point_t: float = float(point_index) / float(point_count)
+		curve_points.append(_quadratic_bezier(start, mid, end, point_t))
+	last_card_drag_curve_point_count = curve_points.size()
+	var color: Color = _card_visual_color(str(card.get("type", ""))) if last_card_drag_valid else Color(0.92, 0.30, 0.24, 1.0)
+	if card_drag_curve != null and is_instance_valid(card_drag_curve):
+		card_drag_curve.set_curve(curve_points, color, last_card_drag_valid, true)
+	if card_drag_target_ring != null and is_instance_valid(card_drag_target_ring):
+		card_drag_target_ring.visible = over_stage or target_index >= 0
+		card_drag_target_ring.position = end - card_drag_target_ring.size * 0.5
+		card_drag_target_ring.add_theme_stylebox_override("panel", _card_drag_target_style(color, last_card_drag_valid))
+
+func _card_drag_target_index_at(pointer: Vector2) -> int:
+	if combat == null or not _card_drag_pointer_over_stage(pointer):
+		return -1
+	var nearest_index := -1
+	var nearest_distance := INF
+	for enemy_index in range(combat.enemies.size()):
+		if int(combat.enemies[enemy_index].get("hp", 0)) <= 0:
+			continue
+		var control := _enemy_combat_target_control(str(combat.enemies[enemy_index].get("id", "")), enemy_index)
+		if control == null or not is_instance_valid(control):
+			continue
+		var rect: Rect2 = control.get_global_rect().grow(18.0)
+		if rect.has_point(pointer):
+			return enemy_index
+		var distance: float = (rect.position + rect.size * 0.5).distance_to(pointer)
+		if distance < nearest_distance:
+			nearest_distance = distance
+			nearest_index = enemy_index
+	return nearest_index if nearest_distance <= 170.0 else -1
+
+func _card_drag_pointer_over_stage(pointer: Vector2) -> bool:
+	if enemy_stage_panel == null or not is_instance_valid(enemy_stage_panel) or not enemy_stage_panel.visible:
+		return false
+	return enemy_stage_panel.get_global_rect().grow(8.0).has_point(pointer)
+
+func _card_drag_accepts_target(card: Dictionary, target_index: int, over_stage: bool) -> bool:
+	if combat == null or card_drag_index < 0 or card_drag_index >= combat.hand.size() or not combat.can_play_card(card_drag_index):
+		return false
+	if _card_targets_all_enemies(card):
+		return over_stage and not combat.get_alive_enemies().is_empty()
+	if _card_targets_enemy(card):
+		return target_index >= 0 and target_index < combat.enemies.size() and int(combat.enemies[target_index].get("hp", 0)) > 0
+	return over_stage
+
+func _finish_card_drag(play_card: bool) -> void:
+	if not card_drag_active:
+		return
+	var index: int = card_drag_index
+	var target_index: int = card_drag_target_index
+	var source_button := card_drag_source_button
+	var ghost := card_drag_ghost
+	card_drag_active = false
+	card_drag_candidate_index = -1
+	card_drag_index = -1
+	card_drag_target_index = -1
+	card_drag_source_button = null
+	card_drag_ghost = null
+	_clear_card_drag_target_visuals()
+	if play_card and last_card_drag_valid:
+		last_card_drag_played_count += 1
+		if source_button != null and is_instance_valid(source_button):
+			source_button.modulate = Color.WHITE
+		if ghost != null and is_instance_valid(ghost):
+			ghost.queue_free()
+		if target_index >= 0:
+			selected_enemy_index = target_index
+		card_drag_suppress_click_index = index
+		_on_card_pressed(index)
+		call_deferred("_clear_card_drag_click_suppression", index)
+		return
+	last_card_drag_cancelled_count += 1
+	if ghost != null and is_instance_valid(ghost):
+		var return_center: Vector2 = _card_source_position(index)
+		var tween := create_tween().bind_node(ghost)
+		tween.tween_property(ghost, "position", return_center - ghost.size * 0.5, 0.16).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tween.parallel().tween_property(ghost, "scale", Vector2(0.86, 0.86), 0.16)
+		tween.parallel().tween_property(ghost, "modulate", Color(1, 1, 1, 0.12), 0.16)
+		tween.tween_callback(Callable(self, "_complete_card_drag_cancel").bind(ghost, source_button))
+	elif source_button != null and is_instance_valid(source_button):
+		source_button.modulate = Color.WHITE
+
+func _cancel_card_drag() -> void:
+	if card_drag_active:
+		last_card_drag_valid = false
+		last_card_drag_target_id = ""
+		_finish_card_drag(false)
+	else:
+		card_drag_candidate_index = -1
+		card_drag_index = -1
+
+func _clear_card_drag_target_visuals() -> void:
+	for visual in [card_drag_curve, card_drag_target_ring]:
+		if visual != null and is_instance_valid(visual):
+			visual.queue_free()
+	card_drag_curve = null
+	card_drag_target_ring = null
+
+func _complete_card_drag_cancel(ghost: Control, source_button: Button) -> void:
+	if ghost != null and is_instance_valid(ghost):
+		ghost.queue_free()
+	if source_button != null and is_instance_valid(source_button):
+		source_button.modulate = Color.WHITE
+
+func _clear_card_drag_click_suppression(index: int) -> void:
+	if card_drag_suppress_click_index == index:
+		card_drag_suppress_click_index = -1
+
 func _on_card_previewed(index: int) -> void:
 	if combat == null or combat.phase != "player" or index < 0 or index >= combat.hand.size():
 		return
@@ -9279,17 +9540,13 @@ func _request_card_target_line(payload: Dictionary, persistent: bool) -> void:
 	for segment_index in range(last_card_trail_segment_count + 1):
 		var point_t: float = float(segment_index) / float(last_card_trail_segment_count)
 		curve_points.append(_quadratic_bezier(points[0], points[1], points[2], point_t))
-	for pass_index in range(2):
-		var line := Line2D.new()
-		line.points = curve_points
-		line.width = (8.0 if persistent else 6.0) if pass_index == 0 else (2.6 if persistent else 2.0)
-		line.default_color = Color(color.r, color.g, color.b, 0.18 if pass_index == 0 else (0.80 if persistent else 0.56))
-		line.antialiased = true
-		line.z_index = 2 + pass_index
-		feedback_overlay.add_child(line)
-		var tween := create_tween().bind_node(line)
-		tween.tween_property(line, "modulate", Color(1, 1, 1, 0), duration)
-		tween.tween_callback(Callable(line, "queue_free"))
+	var curve := CurveTrailScript.new()
+	curve.z_index = 3
+	feedback_overlay.add_child(curve)
+	curve.set_curve(curve_points, color, true, persistent)
+	var tween := create_tween().bind_node(curve)
+	tween.tween_property(curve, "modulate", Color(1, 1, 1, 0), duration)
+	tween.tween_callback(Callable(curve, "queue_free"))
 	if persistent:
 		_spawn_card_pulse(points[2], 42.0, color, 0.28)
 
@@ -9692,6 +9949,16 @@ func _card_pulse_style(color: Color) -> StyleBoxFlat:
 	style.border_color = Color(color.r, color.g, color.b, 0.88)
 	style.set_border_width_all(3)
 	style.set_corner_radius_all(64)
+	return style
+
+func _card_drag_target_style(color: Color, valid: bool) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(color.r, color.g, color.b, 0.08 if valid else 0.035)
+	style.border_color = Color(color.r, color.g, color.b, 0.94 if valid else 0.54)
+	style.set_border_width_all(3 if valid else 2)
+	style.set_corner_radius_all(30)
+	style.shadow_color = Color(color.r, color.g, color.b, 0.28 if valid else 0.12)
+	style.shadow_size = 7 if valid else 3
 	return style
 
 func _spawn_impact_effect(event: Dictionary) -> void:

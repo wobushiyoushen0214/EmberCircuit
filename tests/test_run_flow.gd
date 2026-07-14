@@ -631,10 +631,33 @@ func _run() -> void:
 		return
 	if not _check(main.last_card_target_line_count > 0, "card hover preview requests a target line"):
 		return
+	var drag_started_before: int = main.last_card_drag_started_count
+	var drag_cancelled_before: int = main.last_card_drag_cancelled_count
+	main._begin_card_drag(playable_card_index, Vector2(520, 420))
+	if not _check(main.card_drag_active and main.last_card_drag_started_count == drag_started_before + 1, "playable hand card can enter PC drag state"):
+		return
+	if not _check(main.last_card_drag_ghost_uses_art, "card drag ghost uses the card art manifest asset"):
+		return
+	if main._card_targets_enemy(playable_card):
+		if not _check(main._card_drag_accepts_target(playable_card, 0, true) and not main._card_drag_accepts_target(playable_card, -1, true), "enemy-target card drag requires a living enemy target"):
+			return
+	else:
+		if not _check(main._card_drag_accepts_target(playable_card, -1, true) and not main._card_drag_accepts_target(playable_card, -1, false), "self or area card drag requires a battlefield drop"):
+			return
+	main._cancel_card_drag()
+	if not _check(not main.card_drag_active and main.last_card_drag_cancelled_count == drag_cancelled_before + 1, "cancelled card drag returns to the hand without playing"):
+		return
 	var target_line_count_before_play: int = main.last_card_target_line_count
 	var play_animation_count_before: int = main.last_card_play_animation_count
 	var player_action_count_before: int = main.last_player_action_animation_count
-	main._on_card_pressed(playable_card_index)
+	var drag_played_before: int = main.last_card_drag_played_count
+	main._begin_card_drag(playable_card_index, Vector2(520, 420))
+	main.card_drag_target_index = 0 if main._card_targets_enemy(playable_card) else -1
+	main.last_card_drag_target_id = main._card_visual_target_id(playable_card, main.card_drag_target_index)
+	main.last_card_drag_valid = true
+	main._finish_card_drag(true)
+	if not _check(main.last_card_drag_played_count == drag_played_before + 1, "valid card drag resolves through the normal play-card path"):
+		return
 	if not _check(main.last_card_play_animation_count == play_animation_count_before + 1, "playing a card requests card flight animation"):
 		return
 	if not _check(not main.last_card_play_card_id.is_empty(), "card flight records played card id"):
