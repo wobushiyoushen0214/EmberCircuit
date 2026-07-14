@@ -803,67 +803,67 @@
   "potion_icon_slots": [
     {
       "id": "volatile_vial",
-      "asset_path": "res://assets/art/potions/potion_volatile_vial.svg",
+      "asset_path": "res://assets/art/generated/potions/potion_volatile_vial_v2_pc.png",
       "slot_path": "res://assets/art/potions/potion_volatile_vial.svg",
       "design_note": "挥发瓶是伤害药水，正式图标应表现红橙不稳定液体。",
       "replacement_note": "瓶身外轮廓需清楚，和遗物瓶子保持差异。",
-      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 药水图标；未来正式图标仍保持同一 slot_path，药水效果继续由 potion 数据和 CombatState.use_potion 结算。"
+      "implementation_note": "当前 asset_path 已接入生图模型生成并完成透明底处理的 PC 正式药水位图；slot_path 保留原 SVG 稳定槽位，药水效果继续由 potion 数据和 CombatState.use_potion 结算。"
     },
     {
       "id": "guard_tonic",
-      "asset_path": "res://assets/art/potions/potion_guard_tonic.svg",
+      "asset_path": "res://assets/art/generated/potions/potion_guard_tonic_v2_pc.png",
       "slot_path": "res://assets/art/potions/potion_guard_tonic.svg",
       "design_note": "守护补剂是防御药水，正式图标应表现蓝色护盾药液。",
       "replacement_note": "防御药水颜色应偏冷，避免和伤害药水混淆。",
-      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 药水图标；未来正式图标仍保持同一 slot_path，药水效果继续由 potion 数据和 CombatState.use_potion 结算。"
+      "implementation_note": "当前 asset_path 已接入生图模型生成并完成透明底处理的 PC 正式药水位图；slot_path 保留原 SVG 稳定槽位，药水效果继续由 potion 数据和 CombatState.use_potion 结算。"
     },
     {
       "id": "steam_cell",
-      "asset_path": "res://assets/art/potions/potion_steam_cell.svg",
+      "asset_path": "res://assets/art/generated/potions/potion_steam_cell_v2_pc.png",
       "slot_path": "res://assets/art/potions/potion_steam_cell.svg",
       "design_note": "蒸汽电池是资源药水，正式图标应表现小型蒸汽罐。",
       "replacement_note": "可使用金属罐外形，区别于玻璃瓶。",
-      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 药水图标；未来正式图标仍保持同一 slot_path，药水效果继续由 potion 数据和 CombatState.use_potion 结算。"
+      "implementation_note": "当前 asset_path 已接入生图模型生成并完成透明底处理的 PC 正式药水位图；slot_path 保留原 SVG 稳定槽位，药水效果继续由 potion 数据和 CombatState.use_potion 结算。"
     },
     {
       "id": "focus_draught",
-      "asset_path": "res://assets/art/potions/potion_focus_draught.svg",
+      "asset_path": "res://assets/art/generated/potions/potion_focus_draught_v2_pc.png",
       "slot_path": "res://assets/art/potions/potion_focus_draught.svg",
       "design_note": "聚焦饮剂应表现稳定心智或精准调校。",
       "replacement_note": "颜色可偏紫/青，但不要和 Boss 阶段 VFX 混淆。",
-      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 药水图标；未来正式图标仍保持同一 slot_path，药水效果继续由 potion 数据和 CombatState.use_potion 结算。"
+      "implementation_note": "当前 asset_path 已接入生图模型生成并完成透明底处理的 PC 正式药水位图；slot_path 保留原 SVG 稳定槽位，药水效果继续由 potion 数据和 CombatState.use_potion 结算。"
     },
     {
       "id": "spark_bomb",
-      "asset_path": "res://assets/art/potions/potion_spark_bomb.svg",
+      "asset_path": "res://assets/art/generated/potions/potion_spark_bomb_v2_pc.png",
       "slot_path": "res://assets/art/potions/potion_spark_bomb.svg",
       "design_note": "火星爆弹是范围伤害药水，正式图标应表现可投掷爆弹。",
       "replacement_note": "轮廓应更像炸弹而不是普通药瓶。",
-      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 药水图标；未来正式图标仍保持同一 slot_path，药水效果继续由 potion 数据和 CombatState.use_potion 结算。"
+      "implementation_note": "当前 asset_path 已接入生图模型生成并完成透明底处理的 PC 正式药水位图；slot_path 保留原 SVG 稳定槽位，药水效果继续由 potion 数据和 CombatState.use_potion 结算。"
     },
     {
       "id": "clockwork_injector",
-      "asset_path": "res://assets/art/potions/potion_clockwork_injector.svg",
+      "asset_path": "res://assets/art/generated/potions/potion_clockwork_injector_v2_pc.png",
       "slot_path": "res://assets/art/potions/potion_clockwork_injector.svg",
       "design_note": "发条注射器应表现机械注射装置。",
       "replacement_note": "细长轮廓要在 32px 下仍可辨认。",
-      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 药水图标；未来正式图标仍保持同一 slot_path，药水效果继续由 potion 数据和 CombatState.use_potion 结算。"
+      "implementation_note": "当前 asset_path 已接入生图模型生成并完成透明底处理的 PC 正式药水位图；slot_path 保留原 SVG 稳定槽位，药水效果继续由 potion 数据和 CombatState.use_potion 结算。"
     },
     {
       "id": "smoke_ampoule",
-      "asset_path": "res://assets/art/potions/potion_smoke_ampoule.svg",
+      "asset_path": "res://assets/art/generated/potions/potion_smoke_ampoule_v2_pc.png",
       "slot_path": "res://assets/art/potions/potion_smoke_ampoule.svg",
       "design_note": "烟幕安瓿应表现灰色烟雾和玻璃安瓿。",
       "replacement_note": "烟雾不能遮挡瓶身轮廓，否则小尺寸难以识别。",
-      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 药水图标；未来正式图标仍保持同一 slot_path，药水效果继续由 potion 数据和 CombatState.use_potion 结算。"
+      "implementation_note": "当前 asset_path 已接入生图模型生成并完成透明底处理的 PC 正式药水位图；slot_path 保留原 SVG 稳定槽位，药水效果继续由 potion 数据和 CombatState.use_potion 结算。"
     },
     {
       "id": "coolant_phial",
-      "asset_path": "res://assets/art/potions/potion_coolant_phial.svg",
+      "asset_path": "res://assets/art/generated/potions/potion_coolant_phial_v2_pc.png",
       "slot_path": "res://assets/art/potions/potion_coolant_phial.svg",
       "design_note": "冷却小瓶是稀有恢复药水，正式图标应表现高价值冷却液。",
       "replacement_note": "可用更亮的冷青色和金属封口体现稀有度。",
-      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 药水图标；未来正式图标仍保持同一 slot_path，药水效果继续由 potion 数据和 CombatState.use_potion 结算。"
+      "implementation_note": "当前 asset_path 已接入生图模型生成并完成透明底处理的 PC 正式药水位图；slot_path 保留原 SVG 稳定槽位，药水效果继续由 potion 数据和 CombatState.use_potion 结算。"
     }
   ]
 }
