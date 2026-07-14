@@ -300,7 +300,7 @@ func _run() -> void:
 		return
 	if not _check(main.player_portrait != null and main.player_portrait.texture != null, "arc tinker portrait loads"):
 		return
-	if not _check(main.run_max_hp == 68 and main.run_hp == 68, "arc tinker HP loads from character data"):
+	if not _check(main.run_max_hp == 69 and main.run_hp == 69, "arc tinker HP loads from character data"):
 		return
 	if not _check(main.run_deck_ids.has("spark_throw") and main.run_deck_ids.has("pressure_probe"), "arc tinker starter deck loads from character data"):
 		return
@@ -338,7 +338,7 @@ func _run() -> void:
 		return
 	if not _check(main.player_portrait != null and main.player_portrait.texture != null, "pyre ascetic portrait loads"):
 		return
-	if not _check(main.run_max_hp == 72 and main.run_hp == 72, "pyre ascetic HP loads from character data"):
+	if not _check(main.run_max_hp == 70 and main.run_hp == 70, "pyre ascetic HP loads from character data"):
 		return
 	if not _check(main.run_deck_ids.has("penitent_cut") and main.run_deck_ids.has("kindle_pain"), "pyre ascetic starter deck loads from character data"):
 		return
@@ -657,11 +657,14 @@ func _run() -> void:
 	var play_animation_count_before: int = main.last_card_play_animation_count
 	var player_action_count_before: int = main.last_player_action_animation_count
 	var drag_played_before: int = main.last_card_drag_played_count
+	var refresh_count_before_card: int = main.refresh_call_count
 	main._begin_card_drag(playable_card_index, Vector2(520, 420))
 	main.card_drag_target_index = 0 if main._card_targets_enemy(playable_card) else -1
 	main.last_card_drag_target_id = main._card_visual_target_id(playable_card, main.card_drag_target_index)
 	main.last_card_drag_valid = true
 	main._finish_card_drag(true)
+	if not _check(main.refresh_call_count == refresh_count_before_card + 1, "playing a card refreshes the combat UI exactly once"):
+		return
 	if not _check(main.last_card_drag_played_count == drag_played_before + 1, "valid card drag resolves through the normal play-card path"):
 		return
 	if not _check(main.last_card_play_animation_count == play_animation_count_before + 1, "playing a card requests card flight animation"):
@@ -711,7 +714,10 @@ func _run() -> void:
 	main.run_potion_ids = ["volatile_vial"]
 	var enemy_reaction_count_before: int = main.last_enemy_reaction_animation_count
 	var first_enemy_hp_before: int = int(main.combat.enemies[0].get("hp", 0))
+	var refresh_count_before_potion: int = main.refresh_call_count
 	main._on_potion_pressed(0)
+	if not _check(main.refresh_call_count == refresh_count_before_potion + 1, "potion state change refreshes the combat UI exactly once"):
+		return
 	if not _check(main.run_potion_ids.is_empty(), "using a potion consumes a run potion slot"):
 		return
 	if not _check(int(main.combat.enemies[0].get("hp", 0)) == first_enemy_hp_before - 12, "main scene potion button applies combat effect"):
@@ -750,6 +756,15 @@ func _run() -> void:
 	if not _check(int(hit_vfx_profile.get("ray_count", 0)) == main.last_impact_ray_count, "enemy hit impact uses configured ray count"):
 		return
 	if not _check(main.last_enemy_reaction_animation_count > enemy_reaction_count_before, "enemy hit feedback requests actor recoil motion"):
+		return
+	main._apply_feedback_effects([
+		{"type": "enemy_hit", "target_id": str(main.combat.enemies[0].get("id", "")), "amount": 4, "severity": "hit"},
+		{"type": "enemy_hit", "target_id": str(main.combat.enemies[0].get("id", "")), "amount": 12, "severity": "hit"},
+		{"type": "block_absorb", "target_id": "player", "amount": 6, "severity": "block"}
+	], {"type": "enemy_hit", "target_id": str(main.combat.enemies[0].get("id", "")), "amount": 12})
+	if not _check(main.last_hit_stop_request_count == 1, "multi-event feedback batches request one consolidated hit stop"):
+		return
+	if not _check(is_equal_approx(main.last_hit_stop_duration, main._feedback_hit_stop_duration({"type": "enemy_hit", "amount": 12})), "feedback batches keep the maximum requested hit-stop duration"):
 		return
 	var player_reaction_count_before: int = main.last_player_reaction_animation_count
 	main.combat.feedback_events.append({
@@ -861,6 +876,7 @@ func _run() -> void:
 		return
 
 	var gold_before_combat_reward: int = main.run_gold
+	main.economy_data["potion_reward"]["drop_chance_percent"] = 100
 	main.combat.phase = "won"
 	main._refresh_combat()
 	if not _check(main.last_combat_gold_reward > 0 and main.run_gold == gold_before_combat_reward + main.last_combat_gold_reward, "combat reward grants configured gold once"):

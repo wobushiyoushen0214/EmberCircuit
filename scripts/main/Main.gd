@@ -262,6 +262,7 @@ var last_feedback_audio_event: String = ""
 var last_flash_target_id: String = ""
 var last_feedback_visual_type: String = ""
 var last_hit_stop_duration: float = 0.0
+var last_hit_stop_request_count: int = 0
 var last_screen_shake_intensity: float = 0.0
 var last_floating_text_count: int = 0
 var last_cinematic_event_type: String = ""
@@ -505,6 +506,9 @@ var last_card_drag_target_id: String = ""
 var last_card_drag_ghost_uses_art: bool = false
 var last_card_drag_curve_point_count: int = 0
 var hit_stop_ticket: int = 0
+var hit_stop_active: bool = false
+var hit_stop_restore_scale: float = 1.0
+var refresh_call_count: int = 0
 var last_music_context: String = ""
 var last_music_stream_path: String = ""
 var last_music_stream_loaded: bool = false
@@ -2154,7 +2158,7 @@ func _start_current_node() -> void:
 			_save_player_profile()
 		combat = CombatStateScript.new()
 		combat.setup(card_data, enemy_data, relic_data, encounter_data, _player_data_for_current_character(), encounter_id, run_deck_ids, run_relic_ids, run_hp)
-		combat.changed.connect(_refresh)
+		combat.changed.connect(_on_combat_changed)
 	else:
 		if node_type == "event":
 			var event_id: String = str(node.get("event_id", ""))
@@ -2164,6 +2168,7 @@ func _start_current_node() -> void:
 	_refresh()
 
 func _refresh() -> void:
+	refresh_call_count += 1
 	if status_label != null:
 		status_label.visible = true
 	_refresh_screen_backdrop()
@@ -8866,6 +8871,7 @@ func _apply_feedback_effects(events: Array, primary_event: Dictionary) -> void:
 	last_feedback_visual_type = str(primary_event.get("type", ""))
 	last_feedback_audio_event = _feedback_audio_event_for_event(primary_event)
 	last_hit_stop_duration = 0.0
+	last_hit_stop_request_count = 0
 	last_screen_shake_intensity = 0.0
 	last_floating_text_count = 0
 	last_impact_effect_type = ""
@@ -8878,6 +8884,7 @@ func _apply_feedback_effects(events: Array, primary_event: Dictionary) -> void:
 	if not last_feedback_audio_event.is_empty():
 		_audio_event(last_feedback_audio_event)
 
+	var batch_hit_stop_duration := 0.0
 	for event in events:
 		var event_dict: Dictionary = event
 		var event_type: String = str(event_dict.get("type", ""))
@@ -8901,8 +8908,7 @@ func _apply_feedback_effects(events: Array, primary_event: Dictionary) -> void:
 		if _feedback_spawns_impact(event_type):
 			_spawn_impact_effect(event_dict)
 		var stop_duration: float = _feedback_hit_stop_duration(event_dict)
-		if stop_duration > 0.0:
-			_request_hit_stop(stop_duration)
+		batch_hit_stop_duration = max(batch_hit_stop_duration, stop_duration)
 		var shake_intensity: float = _feedback_shake_intensity(event_dict)
 		if shake_intensity > 0.0:
 			_request_screen_shake(shake_intensity, _feedback_shake_duration(event_dict))
@@ -8910,6 +8916,8 @@ func _apply_feedback_effects(events: Array, primary_event: Dictionary) -> void:
 			_show_cinematic_prompt(event_dict)
 		if event_type == "phase":
 			_play_phase_character_animation(str(event_dict.get("target_id", "")), int(event_dict.get("amount", 0)))
+	if batch_hit_stop_duration > 0.0:
+		_request_hit_stop(batch_hit_stop_duration)
 
 func _feedback_audio_event_for_event(event: Dictionary) -> String:
 	var event_type: String = str(event.get("type", ""))
@@ -10304,17 +10312,22 @@ func _feedback_shake_duration(event: Dictionary) -> float:
 func _request_hit_stop(duration: float) -> void:
 	if not _setting_enabled("hit_stop_enabled", true):
 		return
+	last_hit_stop_request_count += 1
 	last_hit_stop_duration = max(last_hit_stop_duration, duration)
 	if DisplayServer.get_name() == "headless" or not is_inside_tree():
 		return
+	if not hit_stop_active:
+		hit_stop_restore_scale = Engine.time_scale
+		hit_stop_active = true
 	hit_stop_ticket += 1
-	_play_hit_stop(duration, hit_stop_ticket, Engine.time_scale)
+	_play_hit_stop(duration, hit_stop_ticket)
 
-func _play_hit_stop(duration: float, ticket: int, restore_scale: float) -> void:
-	Engine.time_scale = min(restore_scale, 0.28)
+func _play_hit_stop(duration: float, ticket: int) -> void:
+	Engine.time_scale = min(hit_stop_restore_scale, 0.28)
 	await get_tree().create_timer(duration, true, false, true).timeout
 	if ticket == hit_stop_ticket:
-		Engine.time_scale = restore_scale
+		Engine.time_scale = hit_stop_restore_scale
+		hit_stop_active = false
 
 func _request_screen_shake(intensity: float, duration: float) -> void:
 	if not _setting_enabled("screen_shake_enabled", true):
@@ -10679,6 +10692,10 @@ func _on_enemy_pressed(index: int) -> void:
 	selected_enemy_index = index
 	_refresh()
 
+func _on_combat_changed() -> void:
+	selected_enemy_index = _normalize_selected_enemy()
+	_refresh()
+
 func _on_card_pressed(index: int) -> void:
 	var played_payload: Dictionary = {}
 	if combat != null and combat.phase == "player":
@@ -10693,8 +10710,6 @@ func _on_card_pressed(index: int) -> void:
 			else:
 				last_card_audio_event = "card_play"
 				_audio_event("card_play")
-			selected_enemy_index = _normalize_selected_enemy()
-	_refresh()
 	if not played_payload.is_empty():
 		_play_player_card_action(played_payload)
 
@@ -10704,8 +10719,6 @@ func _on_end_turn_pressed() -> void:
 	var action_payloads: Array[Dictionary] = _capture_enemy_action_visuals()
 	_audio_event("turn_end")
 	combat.end_player_turn()
-	selected_enemy_index = _normalize_selected_enemy()
-	_refresh()
 	_play_enemy_action_visuals(action_payloads)
 
 func _on_potion_pressed(slot_index: int) -> void:
@@ -10715,11 +10728,17 @@ func _on_potion_pressed(slot_index: int) -> void:
 	if potion.is_empty():
 		_audio_event("error")
 		return
-	if combat.use_potion(potion, selected_enemy_index):
+	var changed_callable := Callable(self, "_on_combat_changed")
+	var changed_was_connected: bool = combat.changed.is_connected(changed_callable)
+	if changed_was_connected:
+		combat.changed.disconnect(changed_callable)
+	var potion_used: bool = combat.use_potion(potion, selected_enemy_index)
+	if potion_used:
 		run_potion_ids.remove_at(slot_index)
 		_audio_event("potion")
-	selected_enemy_index = _normalize_selected_enemy()
-	_refresh()
+	if changed_was_connected:
+		combat.changed.connect(changed_callable)
+	_on_combat_changed()
 
 func _on_reward_card_pressed(card_id: String) -> void:
 	if card_id.is_empty():

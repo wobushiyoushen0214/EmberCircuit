@@ -255,11 +255,11 @@
       "sprite_key": "placeholder_volt_cultist",
       "actions": [
         { "id": "resonant_ward", "intent": { "type": "block_buff", "amount": 12, "status": "strength" }, "effects": [ { "type": "block", "amount": 12, "target": "self" }, { "type": "apply_status", "target": "self", "status": "strength", "amount": 1 } ] },
-        { "id": "forked_chorus", "intent": { "type": "attack", "amount": 6, "hits": 3 }, "effects": [ { "type": "damage", "amount": 6, "hits": 3, "target": "player" } ] },
+        { "id": "forked_chorus", "intent": { "type": "attack", "amount": 5, "hits": 3 }, "effects": [ { "type": "damage", "amount": 5, "hits": 3, "target": "player" } ] },
         { "id": "static_refrain", "intent": { "type": "debuff", "status": "weak", "amount": 1 }, "effects": [ { "type": "apply_status", "target": "player", "status": "weak", "amount": 1 } ] }
       ],
       "design_note": "第二章延迟爆发敌人，先建立护甲和力量，再用多段攻击兑现压力，鼓励玩家识别优先击杀目标。",
-      "balance_note": "48 生命位于第二章普通敌人预算下段；18 点多段峰值触及本章上限，但每轮都有一个纯减益回合和明确蓄力预警。",
+      "balance_note": "48 生命位于第二章普通敌人预算下段；15 点多段峰值让双敌组合保持在第二章 29 点上限内，每轮仍有纯减益回合和明确蓄力预警。",
       "intent_note": "护甲强化、多段攻击、弱化循环；看到共振护幕时应为下一回合的三段攻击准备连续防御。"
     },
     {
@@ -271,10 +271,10 @@
       "actions": [
         { "id": "shard_tax", "intent": { "type": "attack_debuff", "amount": 8, "status": "frail" }, "effects": [ { "type": "damage", "amount": 8, "target": "player" }, { "type": "apply_status", "target": "player", "status": "frail", "amount": 1 } ] },
         { "id": "salvage_plate", "intent": { "type": "block", "amount": 16 }, "effects": [ { "type": "block", "amount": 16, "target": "self" } ] },
-        { "id": "scatter_cutter", "intent": { "type": "attack", "amount": 4, "hits": 4 }, "effects": [ { "type": "damage", "amount": 4, "hits": 4, "target": "player" } ] }
+        { "id": "scatter_cutter", "intent": { "type": "attack", "amount": 3, "hits": 4 }, "effects": [ { "type": "damage", "amount": 3, "hits": 4, "target": "player" } ] }
       ],
       "design_note": "第二章防御检查敌人，用脆弱状态压低下一次护甲收益，再以高护甲和四段切割惩罚单一防御手段。",
-      "balance_note": "52 生命、16 护甲和16 点多段伤害均在第二章普通预算内；脆弱只持续到下一次护甲效果，不形成长期锁死。",
+      "balance_note": "52 生命、16 护甲和 12 点四段伤害让其与力量成长型同伴组合时不越过第二章峰值预算；脆弱只持续到下一次护甲效果。",
       "intent_note": "脆弱攻击、防御、四段攻击循环；玩家可以在拆解工架设护甲时转向蓄力或处理其同伴。"
     },
     {
@@ -394,12 +394,12 @@
       "sprite_key": "placeholder_void_scribe",
       "actions": [
         { "id": "skim_memory", "intent": { "type": "status_card", "card_id": "searing_wound" }, "effects": [ { "type": "create_card", "target": "player", "card_id": "searing_wound", "destination": "discard", "amount": 1 } ] },
-        { "id": "feedback_pulse", "intent": { "type": "attack", "amount": 6, "hits": 3 }, "effects": [ { "type": "damage", "amount": 6, "hits": 3, "target": "player" } ] },
+        { "id": "feedback_pulse", "intent": { "type": "attack", "amount": 5, "hits": 3 }, "effects": [ { "type": "damage", "amount": 5, "hits": 3, "target": "player" } ] },
         { "id": "erase_rhythm", "intent": { "type": "debuff", "status": "weak", "amount": 1 }, "effects": [ { "type": "apply_status", "target": "player", "status": "weak", "amount": 1 } ] },
         { "id": "phase_shell", "intent": { "type": "block", "amount": 16 }, "effects": [ { "type": "block", "amount": 16, "target": "self" } ] }
       ],
       "design_note": "第三章资源侵蚀敌人，把牌堆污染、输出削弱和多段伤害放进较长循环，考验玩家在终章保持抽牌质量。",
-      "balance_note": "50 生命位于第三章普通预算下限；18 点伤害之后连续出现减益和防御回合，给受污染牌组重新组织手牌的窗口。",
+      "balance_note": "50 生命位于第三章普通预算下限；15 点多段伤害让记忆封存库组合保持在第三章峰值预算内，之后连续出现减益和防御回合。",
       "intent_note": "污染、多段、弱化、防御循环；污染本身不造成伤害，但会降低后续回合的可靠性。"
     },
     {

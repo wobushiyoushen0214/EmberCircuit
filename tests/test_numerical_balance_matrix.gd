@@ -66,6 +66,7 @@ func _check_inventory(inventory: Dictionary, cards: Dictionary, enemies: Diction
 	_check((encounters.get("encounters", []) as Array).size() == int(monster_inventory.get("encounter_count", -1)), "inventory tracks every encounter")
 	_check(_count_dictionaries_equal(_count_by_key(encounters.get("encounters", []), "tier"), monster_inventory.get("encounter_tier_counts", {})), "inventory tracks encounter tiers")
 	_check(int(summary.get("monster_encounter_count", -1)) == int(monster_inventory.get("audited_map_encounter_count", -2)), "static report encounter coverage matches inventory")
+	_check(int(summary.get("monster_warning_count", -1)) == 0, "every map encounter stays inside its numerical budget")
 
 	var progression_inventory: Dictionary = inventory.get("progression", {})
 	var trees: Array = progression.get("character_trees", [])

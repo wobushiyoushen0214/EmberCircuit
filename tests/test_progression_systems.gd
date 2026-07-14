@@ -38,7 +38,7 @@ func _run() -> void:
 	main.selected_character_id = "arc_tinker"
 	main._on_skill_book_equipped("steel_manual")
 	main._on_character_selected("arc_tinker")
-	_check(main.run_max_hp == 71 and main.run_hp == 71, "character tree max HP upgrade is snapshotted into a new run")
+	_check(main.run_max_hp == 72 and main.run_hp == 72, "character tree max HP upgrade is snapshotted into a new run")
 	_check(main._max_potion_slots() == 4, "character tree potion slot upgrade is snapshotted into a new run")
 	_check(main.run_skill_book_id == "steel_manual", "equipped skill book is snapshotted into a new run")
 	_check(int(main.combat.player.get("momentum", 0)) >= 3, "character tree starting momentum and starter relic both apply")
@@ -48,7 +48,7 @@ func _run() -> void:
 	_check(run_state.get("run_progression_node_ids", []).size() == 3 and not run_state.get("run_character_config", {}).is_empty(), "run save stores progression snapshot instead of reading live profile")
 	main.player_profile["forge_marks"] = 3
 	main._on_upgrade_node_pressed("pyre_ash_skin")
-	_check(main.run_max_hp == 71, "buying another meta node does not alter an active run snapshot")
+	_check(main.run_max_hp == 72, "buying another meta node does not alter an active run snapshot")
 
 	main.run_deck_ids = ["ember_strike", "ember_strike", "ember_strike", "ember_strike", "spark_throw", "pressure_probe", "ash_guard", "ash_guard", "shield_pulse", "shield_pulse"]
 	var eligible_mastery_ids: Array[String] = []

@@ -37,7 +37,7 @@ func _init() -> void:
 	var arc_combat = CombatStateScript.new()
 	arc_combat.setup(card_data, enemy_data, relic_data, encounter_data, arc_player_data, "intro_patrol")
 	_check(str(arc_combat.player.get("name", "")) == "电弧工匠", "combat can load selected character name")
-	_check(int(arc_combat.player.get("max_hp", 0)) == 68, "combat can load selected character HP")
+	_check(int(arc_combat.player.get("max_hp", 0)) == 69, "combat can load selected character HP")
 	_check(arc_combat.owned_relic_ids.has("arc_capacitor"), "combat can load selected character starter relic")
 	_check(_combat_has_card(arc_combat, "spark_throw"), "combat can load selected character starter deck")
 	_check(int(arc_combat.player.get("momentum", 0)) >= 2, "combat applies selected character starting momentum and starter relic")
@@ -89,7 +89,7 @@ func _init() -> void:
 	var pyre_combat = CombatStateScript.new()
 	pyre_combat.setup(card_data, enemy_data, relic_data, encounter_data, pyre_player_data, "intro_patrol")
 	_check(str(pyre_combat.player.get("name", "")) == "熔痕苦修者", "combat can load pyre ascetic character name")
-	_check(int(pyre_combat.player.get("max_hp", 0)) == 72, "combat can load pyre ascetic HP")
+	_check(int(pyre_combat.player.get("max_hp", 0)) == 70, "combat can load pyre ascetic HP")
 	_check(pyre_combat.owned_relic_ids.has("penitent_censer"), "combat can load pyre ascetic starter relic")
 	_check(_combat_has_card(pyre_combat, "penitent_cut"), "combat can load pyre ascetic starter deck")
 
