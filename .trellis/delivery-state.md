@@ -6,12 +6,12 @@ stage_state:
   audit_scope: full
   current_round: 1
   max_rounds: 6
-  open_gaps: 7
+  open_gaps: 6
   tasks_created: 3
-  tasks_completed: 1
+  tasks_completed: 2
   carry_over: 0
   critical_review_issues: 0
-  next_legal_action: implement 02-card-art-batch-01 from audit report
+  next_legal_action: implement 03-boss-presentation from audit report
   stop_conditions: none
 ---
 
@@ -80,5 +80,5 @@ carry_over: 0
 ## 下一轮建议
 
 - action: `continue-next-batch`
-- reason: `美术资源审计器已完成，按报告进入高频卡牌正式插画批次`
+- reason: `高频卡牌正式插画第一批已完成并通过全量回归，进入 Boss 舞台表现批次`
 - next_audit_scope: `delta`

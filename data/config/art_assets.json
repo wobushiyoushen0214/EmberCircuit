@@ -247,7 +247,7 @@
     },
     {
       "id": "iron_sweep",
-      "asset_path": "res://assets/art/cards/card_iron_sweep.svg",
+      "asset_path": "res://assets/art/generated/card_iron_sweep_v2_pc.png",
       "slot_path": "res://assets/art/cards/card_iron_sweep.svg",
       "design_note": "铁屑横扫是横向清场牌，正式插画应表现扇形铁屑或扫击。",
       "replacement_note": "插画要强调范围，而不是单点突刺。",
@@ -255,7 +255,7 @@
     },
     {
       "id": "overheat",
-      "asset_path": "res://assets/art/cards/card_overheat.svg",
+      "asset_path": "res://assets/art/generated/card_overheat_v2_pc.png",
       "slot_path": "res://assets/art/cards/card_overheat.svg",
       "design_note": "过热应表现主动提高炉压的风险感。",
       "replacement_note": "高温色可更强，但要保留技能牌边框的冷色识别。",
@@ -263,7 +263,7 @@
     },
     {
       "id": "shield_pulse",
-      "asset_path": "res://assets/art/cards/card_shield_pulse.svg",
+      "asset_path": "res://assets/art/generated/card_shield_pulse_v2_pc.png",
       "slot_path": "res://assets/art/cards/card_shield_pulse.svg",
       "design_note": "护盾脉冲应表现圆形防御波纹。",
       "replacement_note": "护盾边缘应清晰，便于和技能落点 VFX 形成一致语言。",
@@ -295,7 +295,7 @@
     },
     {
       "id": "emergency_steam",
-      "asset_path": "res://assets/art/cards/card_emergency_steam.svg",
+      "asset_path": "res://assets/art/generated/card_emergency_steam_v2_pc.png",
       "slot_path": "res://assets/art/cards/card_emergency_steam.svg",
       "design_note": "紧急蒸汽应表现瞬时泄压和防御爆发。",
       "replacement_note": "可使用强白烟，但按钮内文字必须保持可读。",
@@ -303,7 +303,7 @@
     },
     {
       "id": "ember_wall",
-      "asset_path": "res://assets/art/cards/card_ember_wall.svg",
+      "asset_path": "res://assets/art/generated/card_ember_wall_v2_pc.png",
       "slot_path": "res://assets/art/cards/card_ember_wall.svg",
       "design_note": "余烬墙是高防御牌，正式插画应表现燃烧但稳定的屏障。",
       "replacement_note": "屏障形状应比护盾脉冲更厚重。",
@@ -471,7 +471,7 @@
     },
     {
       "id": "arc_needles",
-      "asset_path": "res://assets/art/cards/card_arc_needles.svg",
+      "asset_path": "res://assets/art/generated/card_arc_needles_v2_pc.png",
       "slot_path": "res://assets/art/cards/card_arc_needles.svg",
       "design_note": "电弧针雨应表现多枚带电细针齐射。",
       "replacement_note": "针雨方向要清晰，支持多段攻击联想。",
@@ -479,7 +479,7 @@
     },
     {
       "id": "capacitor_guard",
-      "asset_path": "res://assets/art/cards/card_capacitor_guard.svg",
+      "asset_path": "res://assets/art/generated/card_capacitor_guard_v2_pc.png",
       "slot_path": "res://assets/art/cards/card_capacitor_guard.svg",
       "design_note": "电容护幕应表现电容阵列生成防护层。",
       "replacement_note": "突出电弧工匠的器械感，不要像普通盾牌。",
@@ -487,7 +487,7 @@
     },
     {
       "id": "short_circuit",
-      "asset_path": "res://assets/art/cards/card_short_circuit.svg",
+      "asset_path": "res://assets/art/generated/card_short_circuit_v2_pc.png",
       "slot_path": "res://assets/art/cards/card_short_circuit.svg",
       "design_note": "短路跳线应表现不稳定但精准的电击。",
       "replacement_note": "画面应有短路火花，提示可能的连锁或爆发。",
@@ -511,7 +511,7 @@
     },
     {
       "id": "relay_strike",
-      "asset_path": "res://assets/art/cards/card_relay_strike.svg",
+      "asset_path": "res://assets/art/generated/card_relay_strike_v2_pc.png",
       "slot_path": "res://assets/art/cards/card_relay_strike.svg",
       "design_note": "继电突击应表现电弧沿机械接点连续跳转到武器。",
       "replacement_note": "正式位图需突出攻击方向和三点势能门槛的蓄能感。",
@@ -519,7 +519,7 @@
     },
     {
       "id": "induction_coil",
-      "asset_path": "res://assets/art/cards/card_induction_coil.svg",
+      "asset_path": "res://assets/art/generated/card_induction_coil_v2_pc.png",
       "slot_path": "res://assets/art/cards/card_induction_coil.svg",
       "design_note": "感应线圈应表现线圈生成环形护盾并积蓄电荷。",
       "replacement_note": "正式位图要同时读出防御与蓄能，而不是普通闪电攻击。",
@@ -567,7 +567,7 @@
     },
     {
       "id": "blood_kindling",
-      "asset_path": "res://assets/art/cards/card_blood_kindling.svg",
+      "asset_path": "res://assets/art/generated/card_blood_kindling_v2_pc.png",
       "slot_path": "res://assets/art/cards/card_blood_kindling.svg",
       "design_note": "血火引燃是专属启动牌，正式插画应表现血滴点亮炉火。",
       "replacement_note": "血色使用要克制，保持项目整体工业奇幻方向。",
@@ -575,7 +575,7 @@
     },
     {
       "id": "brand_strike",
-      "asset_path": "res://assets/art/cards/card_brand_strike.svg",
+      "asset_path": "res://assets/art/generated/card_brand_strike_v2_pc.png",
       "slot_path": "res://assets/art/cards/card_brand_strike.svg",
       "design_note": "烙印重击是灼烧攻击，正式插画应表现烙印在敌甲上扩散。",
       "replacement_note": "烙印符号需在小尺寸下可读。",
