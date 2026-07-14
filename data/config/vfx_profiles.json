@@ -17,6 +17,77 @@
     "enemy_defeated": "impact_enemy_defeated",
     "phase": "impact_phase"
   },
+  "boss_phase_profiles": {
+    "forge_bishop": {
+      "design_note": "熔炉主教阶段切换使用炉火金和灼热红，表现布道升级为终末礼拜。",
+      "phases": [
+        {
+          "color": [1.0, 0.56, 0.20, 1.0],
+          "ray_count": 12,
+          "scale": 1.16,
+          "duration": 0.32,
+          "shake": 9.0,
+          "hit_stop": 0.080,
+          "audio_event": "phase_forge"
+        },
+        {
+          "color": [1.0, 0.22, 0.10, 1.0],
+          "ray_count": 16,
+          "scale": 1.22,
+          "duration": 0.38,
+          "shake": 12.0,
+          "hit_stop": 0.100,
+          "audio_event": "phase_forge"
+        }
+      ]
+    },
+    "storm_archon": {
+      "design_note": "风暴执政官阶段切换由冷青电离升级为白蓝绝对风暴。",
+      "phases": [
+        {
+          "color": [0.22, 0.86, 1.0, 1.0],
+          "ray_count": 14,
+          "scale": 1.18,
+          "duration": 0.34,
+          "shake": 10.0,
+          "hit_stop": 0.086,
+          "audio_event": "phase_storm"
+        },
+        {
+          "color": [0.74, 0.94, 1.0, 1.0],
+          "ray_count": 18,
+          "scale": 1.24,
+          "duration": 0.40,
+          "shake": 13.0,
+          "hit_stop": 0.105,
+          "audio_event": "phase_storm"
+        }
+      ]
+    },
+    "nexus_heart": {
+      "design_note": "回路核心阶段切换由外壳紫红破裂升级为裸露核心的白红冲击。",
+      "phases": [
+        {
+          "color": [0.82, 0.34, 1.0, 1.0],
+          "ray_count": 16,
+          "scale": 1.20,
+          "duration": 0.36,
+          "shake": 12.0,
+          "hit_stop": 0.095,
+          "audio_event": "phase_nexus"
+        },
+        {
+          "color": [1.0, 0.30, 0.18, 1.0],
+          "ray_count": 20,
+          "scale": 1.28,
+          "duration": 0.44,
+          "shake": 15.0,
+          "hit_stop": 0.120,
+          "audio_event": "phase_nexus"
+        }
+      ]
+    }
+  },
   "profiles": [
     {
       "id": "attack_slash",

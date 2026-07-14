@@ -811,7 +811,7 @@ func _run() -> void:
 		return
 	if not _check(main.cinematic_overlay.visible, "phase cinematic prompt is visible"):
 		return
-	if not _check(main.last_feedback_audio_event == "phase", "phase feedback maps to phase audio"):
+	if not _check(main.last_feedback_audio_event == "phase", "generic phase feedback keeps fallback phase audio"):
 		return
 	if not _check(main.last_impact_effect_type == "phase", "phase feedback requests phase impact effect"):
 		return
@@ -825,6 +825,17 @@ func _run() -> void:
 	if not _check(int(phase_vfx_profile.get("ray_count", 0)) == main.last_impact_ray_count, "phase impact uses configured ray count"):
 		return
 	if not _check(main.last_phase_animation_target_id == first_enemy_id, "phase feedback requests boss character animation"):
+		return
+	var forge_phase_profile: Dictionary = main._boss_phase_profile("forge_bishop", 1)
+	if not _check(not forge_phase_profile.is_empty(), "forge bishop exposes phase presentation profile"):
+		return
+	if not _check(str(forge_phase_profile.get("audio_event", "")) == "phase_forge", "forge bishop maps a boss-specific phase audio"):
+		return
+	if not _check(int(forge_phase_profile.get("ray_count", 0)) > 12, "forge bishop phase has an expanded boss-specific ray budget"):
+		return
+	if not _check(main._boss_phase_profile("storm_archon", 0).get("audio_event", "") == "phase_storm", "storm archon exposes dedicated phase audio"):
+		return
+	if not _check(main._boss_phase_profile("nexus_heart", 1).get("audio_event", "") == "phase_nexus", "nexus heart exposes dedicated phase audio"):
 		return
 
 	main.combat.feedback_events.append({

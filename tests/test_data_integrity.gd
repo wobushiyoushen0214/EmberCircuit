@@ -314,6 +314,10 @@ func _enemy_art_path(sprite_key: String) -> String:
 		return "res://assets/art/generated/enemy_twinblade_executor_v2_pc.png"
 	if sprite_key == "placeholder_forge_bishop":
 		return "res://assets/art/generated/enemy_forge_bishop_v2_pc.png"
+	if sprite_key == "placeholder_storm_archon":
+		return "res://assets/art/generated/enemy_storm_archon_v2_pc.png"
+	if sprite_key == "placeholder_nexus_heart":
+		return "res://assets/art/generated/enemy_nexus_heart_v2_pc.png"
 	if sprite_key == "placeholder_plague_alchemist":
 		return "res://assets/art/generated/enemy_plague_alchemist_v2_pc.png"
 	if sprite_key == "placeholder_bomb_mite":

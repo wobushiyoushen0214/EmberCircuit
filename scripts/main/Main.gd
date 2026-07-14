@@ -15,7 +15,9 @@ const ENEMY_ART_PATHS := {
 	"placeholder_iron_shell_guard": "res://assets/art/generated/enemy_iron_shell_guard_pc.png",
 	"placeholder_thorn_shield": "res://assets/art/generated/enemy_thorn_shield_pc.png",
 	"placeholder_twinblade_executor": "res://assets/art/generated/enemy_twinblade_executor_v2_pc.png",
-	"placeholder_forge_bishop": "res://assets/art/generated/enemy_forge_bishop_v2_pc.png"
+	"placeholder_forge_bishop": "res://assets/art/generated/enemy_forge_bishop_v2_pc.png",
+	"placeholder_storm_archon": "res://assets/art/generated/enemy_storm_archon_v2_pc.png",
+	"placeholder_nexus_heart": "res://assets/art/generated/enemy_nexus_heart_v2_pc.png"
 }
 const CARD_FRAME_PATHS := {
 	"attack": "res://assets/art/card_attack_frame.svg",
@@ -7520,6 +7522,10 @@ func _pc_enemy_stage_art_scale(enemy: Dictionary) -> float:
 			return 1.55
 		"placeholder_forge_bishop":
 			return 1.28
+		"placeholder_storm_archon":
+			return 1.12
+		"placeholder_nexus_heart":
+			return 1.18
 	return 1.0
 
 func _start_enemy_idle_motion(art: TextureRect, enemy_index: int) -> void:
@@ -8854,7 +8860,7 @@ func _refresh_feedback() -> void:
 func _apply_feedback_effects(events: Array, primary_event: Dictionary) -> void:
 	last_flash_target_id = ""
 	last_feedback_visual_type = str(primary_event.get("type", ""))
-	last_feedback_audio_event = _feedback_audio_event(last_feedback_visual_type)
+	last_feedback_audio_event = _feedback_audio_event_for_event(primary_event)
 	last_hit_stop_duration = 0.0
 	last_screen_shake_intensity = 0.0
 	last_floating_text_count = 0
@@ -8899,7 +8905,16 @@ func _apply_feedback_effects(events: Array, primary_event: Dictionary) -> void:
 		if _is_cinematic_feedback(event_type):
 			_show_cinematic_prompt(event_dict)
 		if event_type == "phase":
-			_play_phase_character_animation(str(event_dict.get("target_id", "")))
+			_play_phase_character_animation(str(event_dict.get("target_id", "")), int(event_dict.get("amount", 0)))
+
+func _feedback_audio_event_for_event(event: Dictionary) -> String:
+	var event_type: String = str(event.get("type", ""))
+	if event_type == "phase":
+		var profile: Dictionary = _boss_phase_profile(str(event.get("target_id", "")), int(event.get("amount", 0)))
+		var configured: String = str(profile.get("audio_event", ""))
+		if not configured.is_empty():
+			return configured
+	return _feedback_audio_event(event_type)
 
 func _feedback_audio_event(event_type: String) -> String:
 	match event_type:
@@ -9970,7 +9985,7 @@ func _spawn_impact_effect(event: Dictionary) -> void:
 	last_impact_vfx_profile = profile_id
 	last_impact_vfx_asset_path = _vfx_sprite_path(profile_data)
 	last_impact_vfx_asset_loaded = _asset_loaded(last_impact_vfx_asset_path)
-	var rays: int = _impact_ray_count(event_type)
+	var rays: int = _impact_ray_count(event)
 	last_impact_ray_count = rays
 	if DisplayServer.get_name() == "headless" or not is_inside_tree() or feedback_overlay == null:
 		return
@@ -10013,6 +10028,10 @@ func _feedback_vfx_profile(event_type: String) -> String:
 			return "impact_enemy_hit"
 
 func _impact_effect_color(event: Dictionary) -> Color:
+	if str(event.get("type", "")) == "phase":
+		var boss_profile: Dictionary = _boss_phase_profile(str(event.get("target_id", "")), int(event.get("amount", 0)))
+		if not boss_profile.is_empty():
+			return _vfx_profile_color(boss_profile)
 	var profile_data: Dictionary = _vfx_profile(_feedback_vfx_profile(str(event.get("type", ""))))
 	if not profile_data.is_empty():
 		return _vfx_profile_color(profile_data)
@@ -10026,8 +10045,13 @@ func _impact_effect_color(event: Dictionary) -> Color:
 		_:
 			return Color(1.0, 0.72, 0.26, 1.0)
 
-func _impact_ray_count(event_type: String) -> int:
+func _impact_ray_count(event: Dictionary) -> int:
+	var event_type: String = str(event.get("type", ""))
 	var profile_data: Dictionary = _vfx_profile(_feedback_vfx_profile(event_type))
+	if event_type == "phase":
+		var boss_profile: Dictionary = _boss_phase_profile(str(event.get("target_id", "")), int(event.get("amount", 0)))
+		if not boss_profile.is_empty():
+			return int(boss_profile.get("ray_count", profile_data.get("ray_count", 12)))
 	var configured_count: int = int(profile_data.get("ray_count", 0))
 	if configured_count > 0:
 		return configured_count
@@ -10039,7 +10063,7 @@ func _impact_ray_count(event_type: String) -> int:
 		_:
 			return 5
 
-func _play_phase_character_animation(target_id: String) -> void:
+func _play_phase_character_animation(target_id: String, phase_index: int = 0) -> void:
 	last_phase_animation_target_id = target_id
 	if target_id.is_empty() or DisplayServer.get_name() == "headless" or not is_inside_tree():
 		return
@@ -10048,18 +10072,36 @@ func _play_phase_character_animation(target_id: String) -> void:
 		return
 	var art := visual.get("art") as Control
 	var button := visual.get("button") as Control
+	var boss_profile: Dictionary = _boss_phase_profile(target_id, phase_index)
+	var phase_color: Color = _vfx_profile_color(boss_profile) if not boss_profile.is_empty() else Color(0.92, 0.58, 1.0, 1.0)
+	var phase_scale: float = float(boss_profile.get("scale", 1.16)) if not boss_profile.is_empty() else 1.16
+	var phase_duration: float = float(boss_profile.get("duration", 0.32)) if not boss_profile.is_empty() else 0.32
 	if art != null:
 		art.pivot_offset = art.size * 0.5
 		var art_tween := create_tween()
-		art.scale = Vector2(1.16, 1.16)
-		art.modulate = Color(1.0, 0.70, 1.0, 1.0)
-		art_tween.tween_property(art, "scale", Vector2.ONE, 0.32).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
-		art_tween.parallel().tween_property(art, "modulate", Color.WHITE, 0.32)
+		art.scale = Vector2(phase_scale, phase_scale)
+		art.modulate = phase_color
+		art_tween.tween_property(art, "scale", Vector2.ONE, phase_duration).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+		art_tween.parallel().tween_property(art, "modulate", Color.WHITE, phase_duration)
 	if button != null:
 		button.pivot_offset = button.size * 0.5
 		var button_tween := create_tween()
 		button.scale = Vector2(1.08, 1.08)
 		button_tween.tween_property(button, "scale", Vector2.ONE, 0.26).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+func _boss_phase_profile(target_id: String, phase_index: int) -> Dictionary:
+	var profiles: Dictionary = vfx_data.get("boss_phase_profiles", {})
+	var enemy_profile: Variant = profiles.get(target_id, {})
+	if enemy_profile is Array:
+		var entries: Array = enemy_profile
+		if phase_index >= 0 and phase_index < entries.size() and entries[phase_index] is Dictionary:
+			return entries[phase_index]
+	if enemy_profile is Dictionary:
+		var profile_dict: Dictionary = enemy_profile
+		var phases: Array = profile_dict.get("phases", [])
+		if phase_index >= 0 and phase_index < phases.size() and phases[phase_index] is Dictionary:
+			return phases[phase_index]
+	return {}
 
 func _spawn_floating_feedback(event: Dictionary) -> void:
 	if not _should_spawn_floating_feedback(event):
@@ -10227,7 +10269,8 @@ func _feedback_hit_stop_duration(event: Dictionary) -> float:
 		"enemy_defeated":
 			return 0.070
 		"phase":
-			return 0.085
+			var phase_profile: Dictionary = _boss_phase_profile(str(event.get("target_id", "")), int(event.get("amount", 0)))
+			return float(phase_profile.get("hit_stop", 0.085))
 		"won", "lost":
 			return 0.095
 		_:
@@ -10244,7 +10287,8 @@ func _feedback_shake_intensity(event: Dictionary) -> float:
 		"enemy_defeated":
 			return 7.0
 		"phase":
-			return 10.0
+			var phase_profile: Dictionary = _boss_phase_profile(str(event.get("target_id", "")), int(event.get("amount", 0)))
+			return float(phase_profile.get("shake", 10.0))
 		"won", "lost":
 			return 12.0
 		_:
