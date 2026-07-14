@@ -21,5 +21,7 @@ func set_curve(points: PackedVector2Array, color: Color, valid: bool = true, wid
 func _draw() -> void:
 	if curve_points.size() < 2:
 		return
-	draw_polyline(curve_points, glow_color, glow_width, true)
-	draw_polyline(curve_points, core_color, core_width, true)
+	# Godot 4.7's Metal path can flash the full canvas when antialiasing a
+	# rapidly-created polyline. The layered widths already provide soft edges.
+	draw_polyline(curve_points, glow_color, glow_width, false)
+	draw_polyline(curve_points, core_color, core_width, false)

@@ -11,7 +11,7 @@ stage_state:
   tasks_completed: 3
   carry_over: 0
   critical_review_issues: 0
-  next_legal_action: implement combat-stage-readability or expand-content-library from audit report
+  next_legal_action: implement expand-content-library or production-art-pass from audit report
   stop_conditions: none
 ---
 
@@ -24,11 +24,11 @@ carry_over: 0
 
 - source_requirements: `docs/00_MASTER_PLAN.md`（由 `docs/01-08` 细化）
 - mvp_baseline_commit: `7b3f050`
-- last_audited_commit: `96a07d6`
+- last_audited_commit: `6940893`
 - loop_mode: `L2`
 - current_round: `1`
 - max_rounds: `6`
-- current_batch_id: `delivery-batch-004`
+- current_batch_id: `delivery-batch-005`
 
 ## 需求状态
 
@@ -49,8 +49,8 @@ carry_over: 0
 
 ## 当前批次
 
-- batch_id: `delivery-batch-004`
-- scope: `P1 角色调平、遭遇预算与战斗刷新性能`
+- batch_id: `delivery-batch-005`
+- scope: `P1 战斗舞台信息、大卡预览与药水可读性`
 - selected_reqs:
   - `REQ-004`
   - `REQ-005`
@@ -81,5 +81,5 @@ carry_over: 0
 ## 下一轮建议
 
 - action: `continue-next-batch`
-- reason: `完成 256 次配对角色调平、地图遭遇零越界和战斗 UI 单次刷新，下一批强化敌人舞台可读性`
+- reason: `完成敌人常驻状态条、手牌大卡预览、药水快捷标识和目标曲线 Metal 闪屏修复`
 - next_audit_scope: `delta`

@@ -226,6 +226,7 @@ var hand_scroll: ScrollContainer
 var combat_hud_row: HBoxContainer
 var feedback_label: Label
 var feedback_overlay: Control
+var card_detail_preview: Button
 var pile_overlay: Control
 var pile_panel: PanelContainer
 var pile_title_label: Label
@@ -423,6 +424,11 @@ var last_hand_horizontal_scroll_needed: bool = false
 var last_enemy_intent_badge_count: int = 0
 var last_enemy_intent_badge_texts: Array[String] = []
 var last_enemy_intent_badge_types: Array[String] = []
+var last_enemy_stage_info_count: int = 0
+var last_enemy_stage_info_texts: Array[String] = []
+var last_card_detail_preview_visible: bool = false
+var last_card_detail_preview_card_id: String = ""
+var last_card_detail_preview_description: String = ""
 var last_map_preview_node_id: String = ""
 var last_map_preview_text: String = ""
 var last_map_preview_risk_level: String = ""
@@ -1054,6 +1060,7 @@ func _build_layout() -> void:
 	feedback_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	feedback_overlay.z_index = 20
 	add_child(feedback_overlay)
+	_build_card_detail_preview()
 
 	_build_pile_overlay()
 	_build_cinematic_overlay()
@@ -1069,6 +1076,19 @@ func _sync_layout_widths() -> void:
 		root_box.custom_minimum_size = Vector2(content_width, 0)
 		root_box.size = Vector2(content_width, root_box.size.y)
 	_sync_pile_overlay_layout()
+
+func _build_card_detail_preview() -> void:
+	card_detail_preview = Button.new()
+	card_detail_preview.name = "CardDetailPreview"
+	card_detail_preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	card_detail_preview.focus_mode = Control.FOCUS_NONE
+	card_detail_preview.custom_minimum_size = Vector2(228, 336)
+	card_detail_preview.size = card_detail_preview.custom_minimum_size
+	card_detail_preview.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	card_detail_preview.position = Vector2(22, 70)
+	card_detail_preview.z_index = 130
+	card_detail_preview.visible = false
+	feedback_overlay.add_child(card_detail_preview)
 
 func _build_pile_overlay() -> void:
 	pile_overlay = Control.new()
@@ -3179,7 +3199,7 @@ func _potion_slot_gap() -> int:
 
 func _potion_slot_button_size() -> Vector2:
 	if _is_pc_layout():
-		return Vector2(42.0, 32.0)
+		return Vector2(48.0, 36.0)
 	var scale_y: float = _combat_layout_scale()
 	var slots := 2
 	if player_data != null and not player_data.is_empty():
@@ -7236,7 +7256,7 @@ func _refresh_potions() -> void:
 				button.text = ""
 				button.tooltip_text = "%s\n%s" % [potion.get("name", run_potion_ids[i]), potion.get("description", "")]
 				_apply_pc_potion_slot_skin(button, true)
-				_add_pc_potion_slot_layout(button, potion_texture, true)
+				_add_pc_potion_slot_layout(button, potion_texture, true, i)
 				button.disabled = combat == null or combat.phase != "player"
 				button.pressed.connect(_on_potion_pressed.bind(i))
 			else:
@@ -7246,7 +7266,7 @@ func _refresh_potions() -> void:
 				button.text = ""
 				button.tooltip_text = "空药水槽"
 				_apply_pc_potion_slot_skin(button, false)
-				_add_pc_potion_slot_layout(button, empty_texture, false)
+				_add_pc_potion_slot_layout(button, empty_texture, false, i)
 				button.disabled = true
 			potion_row.add_child(button)
 		return
@@ -7319,7 +7339,7 @@ func _apply_pc_potion_slot_skin(button: Button, occupied: bool) -> void:
 	button.add_theme_stylebox_override("pressed", pressed)
 	button.add_theme_stylebox_override("disabled", _pc_potion_slot_style(occupied, false, true))
 
-func _add_pc_potion_slot_layout(button: Button, icon_texture: Texture2D, occupied: bool) -> void:
+func _add_pc_potion_slot_layout(button: Button, icon_texture: Texture2D, occupied: bool, slot_index: int) -> void:
 	var root := MarginContainer.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	root.offset_left = 4
@@ -7335,7 +7355,7 @@ func _add_pc_potion_slot_layout(button: Button, icon_texture: Texture2D, occupie
 	if occupied and icon_texture != null:
 		var icon := TextureRect.new()
 		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		icon.custom_minimum_size = Vector2(24, 24)
+		icon.custom_minimum_size = Vector2(27, 27)
 		icon.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
 		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		icon.texture = icon_texture
@@ -7355,6 +7375,15 @@ func _add_pc_potion_slot_layout(button: Button, icon_texture: Texture2D, occupie
 			empty_icon.texture = icon_texture
 			empty_icon.modulate = Color(0.62, 0.76, 0.74, 0.36)
 			socket.add_child(empty_icon)
+
+	var shortcut := Label.new()
+	shortcut.name = "PotionShortcutLabel"
+	shortcut.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	shortcut.text = str(slot_index + 1)
+	shortcut.position = Vector2(2, 0)
+	shortcut.add_theme_font_size_override("font_size", 9)
+	shortcut.add_theme_color_override("font_color", Color(0.94, 0.88, 0.68, 0.88 if occupied else 0.42))
+	button.add_child(shortcut)
 	_record_icon_item_layout("potion_slot", icon_texture != null)
 
 func _refresh_enemies() -> void:
@@ -7363,6 +7392,8 @@ func _refresh_enemies() -> void:
 	last_enemy_intent_badge_count = 0
 	last_enemy_intent_badge_texts.clear()
 	last_enemy_intent_badge_types.clear()
+	last_enemy_stage_info_count = 0
+	last_enemy_stage_info_texts.clear()
 	last_stage_forecast_marker_count = 0
 	last_stage_forecast_beam_count = 0
 	last_stage_forecast_icon_count = 0
@@ -7511,12 +7542,66 @@ func _add_pc_enemy_stage_layout(panel: Control, enemy: Dictionary, enemy_index: 
 	panel.add_child(hp_plate)
 	_add_pc_enemy_health_plate_layout(hp_plate, enemy, selected)
 
+	var info_width: float = clamp(round(panel_width * 0.72), 158.0, 232.0)
+	var info_strip := PanelContainer.new()
+	info_strip.name = "EnemyInfoStrip"
+	info_strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	info_strip.custom_minimum_size = Vector2(info_width, 21.0)
+	info_strip.size = info_strip.custom_minimum_size
+	info_strip.position = Vector2((panel_width - info_width) * 0.5, hp_plate_y - 24.0)
+	info_strip.add_theme_stylebox_override("panel", _button_style(Color(0.035, 0.038, 0.040, 0.88), Color(0.54, 0.48, 0.38, 0.76), 1, 5))
+	panel.add_child(info_strip)
+	_add_pc_enemy_info_strip_layout(info_strip, enemy, selected)
+
 	return {
 		"panel": panel,
 		"art": art,
 		"intent_badge": intent_badge,
 		"button": hit_area
 	}
+
+func _add_pc_enemy_info_strip_layout(info_strip: PanelContainer, enemy: Dictionary, selected: bool) -> void:
+	var margin := MarginContainer.new()
+	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	margin.add_theme_constant_override("margin_left", 6)
+	margin.add_theme_constant_override("margin_right", 6)
+	margin.add_theme_constant_override("margin_top", 2)
+	margin.add_theme_constant_override("margin_bottom", 2)
+	info_strip.add_child(margin)
+
+	var row := HBoxContainer.new()
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_theme_constant_override("separation", 5)
+	margin.add_child(row)
+
+	var name_label := Label.new()
+	name_label.name = "EnemyNameLabel"
+	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	name_label.text = "%s%s" % ["> " if selected else "", str(enemy.get("name", "敌人"))]
+	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_label.clip_text = true
+	name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	name_label.add_theme_font_size_override("font_size", 10)
+	name_label.add_theme_color_override("font_color", Color(1.0, 0.92, 0.76))
+	row.add_child(name_label)
+
+	var block: int = int(enemy.get("block", 0))
+	var status_text: String = _status_text(enemy.get("statuses", {}))
+	var state_label := Label.new()
+	state_label.name = "EnemyStateLabel"
+	state_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	state_label.text = "盾%d · %s" % [block, status_text]
+	state_label.custom_minimum_size = Vector2(68, 0)
+	state_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	state_label.clip_text = true
+	state_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	state_label.add_theme_font_size_override("font_size", 9)
+	state_label.add_theme_color_override("font_color", Color(0.68, 0.86, 0.88) if block > 0 else Color(0.68, 0.70, 0.68))
+	row.add_child(state_label)
+
+	var telemetry_text := "%s | 护甲 %d | %s" % [str(enemy.get("name", "敌人")), block, status_text]
+	last_enemy_stage_info_count += 1
+	last_enemy_stage_info_texts.append(telemetry_text)
 
 func _pc_enemy_stage_art_scale(enemy: Dictionary) -> float:
 	var sprite_key: String = str(enemy.get("data", {}).get("sprite_key", ""))
@@ -8098,6 +8183,7 @@ func _intent_badge_palette(intent_type: String) -> Dictionary:
 			return {"bg": Color(0.15, 0.16, 0.18), "border": Color(0.52, 0.56, 0.60), "font": Color(0.90, 0.92, 0.92)}
 
 func _refresh_hand() -> void:
+	_hide_card_detail_preview()
 	_clear_container(hand_row)
 	hand_buttons_by_index.clear()
 	last_hand_card_layout_count = 0
@@ -8132,9 +8218,11 @@ func _refresh_hand() -> void:
 		_add_structured_card_layout(button, card, card_texture, "hand")
 		button.mouse_entered.connect(_on_card_previewed.bind(i))
 		button.mouse_entered.connect(_on_hand_card_hovered.bind(i, true))
+		button.mouse_exited.connect(_hide_card_detail_preview.bind(i))
 		button.mouse_exited.connect(_on_hand_card_hovered.bind(i, false))
 		button.focus_entered.connect(_on_card_previewed.bind(i))
 		button.focus_entered.connect(_on_hand_card_hovered.bind(i, true))
+		button.focus_exited.connect(_hide_card_detail_preview.bind(i))
 		button.focus_exited.connect(_on_hand_card_hovered.bind(i, false))
 		button.gui_input.connect(_on_hand_card_gui_input.bind(i))
 		button.pressed.connect(_on_card_button_pressed.bind(i))
@@ -8278,11 +8366,12 @@ func _add_structured_card_layout(button: Button, card: Dictionary, card_texture:
 
 func _add_pc_hand_card_layout(button: Button, card: Dictionary, card_texture: Texture2D, card_type: String, card_name: String, cost_text: String, visible_type_text: String, telemetry_bucket: String) -> void:
 	button.clip_contents = true
+	var detail_preview: bool = telemetry_bucket == "detail_preview"
 	var material_frame_texture: Texture2D = _load_texture(_pc_card_material_frame_path(card_type))
 	var has_material_frame: bool = material_frame_texture != null
 	var card_height: float = button.custom_minimum_size.y
 	var top_height: float = clamp(round(card_height * 0.18), 30.0, 38.0)
-	var desc_height: float = clamp(round(card_height * 0.40), 72.0, 86.0)
+	var desc_height: float = 110.0 if detail_preview else clamp(round(card_height * 0.40), 72.0, 86.0)
 	var type_height: float = 20.0
 
 	var root := MarginContainer.new()
@@ -8522,9 +8611,9 @@ func _add_pc_hand_card_layout(button: Button, card: Dictionary, card_texture: Te
 	desc.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	desc.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	desc.clip_text = true
-	desc.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	desc.add_theme_font_size_override("font_size", 10)
+	desc.clip_text = not detail_preview
+	desc.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING if detail_preview else TextServer.OVERRUN_TRIM_ELLIPSIS
+	desc.add_theme_font_size_override("font_size", 11 if detail_preview else 10)
 	if card_height <= 200.0:
 		desc.add_theme_font_size_override("font_size", 9)
 	desc.add_theme_color_override("font_color", Color(0.94, 0.90, 0.78))
@@ -9448,15 +9537,48 @@ func _clear_card_drag_click_suppression(index: int) -> void:
 func _on_card_previewed(index: int) -> void:
 	if combat == null or combat.phase != "player" or index < 0 or index >= combat.hand.size():
 		return
-	if not combat.can_play_card(index):
-		return
 	var target_index: int = _normalize_selected_enemy()
 	var card: Dictionary = combat.hand[index]
+	_show_card_detail_preview(card, index)
 	var payload: Dictionary = _build_card_visual_payload(index, card, target_index)
 	last_card_preview_index = index
 	last_card_preview_card_id = str(card.get("id", ""))
 	last_card_preview_target_id = str(payload.get("target_id", ""))
-	_request_card_target_line(payload, false)
+	if combat.can_play_card(index):
+		_request_card_target_line(payload, false)
+
+func _show_card_detail_preview(card: Dictionary, index: int) -> void:
+	if not _is_pc_layout() or card_detail_preview == null:
+		return
+	_clear_container(card_detail_preview)
+	var card_type: String = str(card.get("type", "skill"))
+	card_detail_preview.add_theme_stylebox_override("normal", _card_button_style(card_type, true, false))
+	card_detail_preview.add_theme_stylebox_override("hover", _card_button_style(card_type, true, false))
+	card_detail_preview.tooltip_text = "%s\n%s" % [str(card.get("name", "卡牌")), str(card.get("description", ""))]
+	_add_structured_card_layout(card_detail_preview, card, _load_texture(_card_art_path(card)), "detail_preview")
+	var preview_position := Vector2(22, 70)
+	if hand_frame != null and is_inside_tree():
+		var hand_rect: Rect2 = hand_frame.get_global_rect()
+		var overlay_transform: Transform2D = feedback_overlay.get_global_transform_with_canvas()
+		preview_position = overlay_transform.affine_inverse() * Vector2(
+			hand_rect.position.x + 10.0,
+			hand_rect.position.y - card_detail_preview.size.y + 34.0
+		)
+	card_detail_preview.position = _clamp_feedback_overlay_position(preview_position, card_detail_preview.size)
+	card_detail_preview.visible = true
+	card_detail_preview.set_meta("hand_index", index)
+	last_card_detail_preview_visible = true
+	last_card_detail_preview_card_id = str(card.get("id", ""))
+	last_card_detail_preview_description = str(card.get("description", ""))
+
+func _hide_card_detail_preview(index: int = -1) -> void:
+	if card_detail_preview == null:
+		return
+	if index >= 0 and card_detail_preview.has_meta("hand_index") and int(card_detail_preview.get_meta("hand_index")) != index:
+		return
+	card_detail_preview.visible = false
+	card_detail_preview.remove_meta("hand_index")
+	last_card_detail_preview_visible = false
 
 func _build_card_visual_payload(hand_index: int, card: Dictionary, target_index: int) -> Dictionary:
 	var target_id: String = _card_visual_target_id(card, target_index)

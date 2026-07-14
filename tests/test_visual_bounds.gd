@@ -189,6 +189,10 @@ func _run() -> void:
 	_check(_pc_card_description_blocks_readable(default_pc_main, 62.0), "default PC hand card descriptions have readable space")
 	_check(_potion_belt_stays_outside_enemy_stage(default_pc_main), "default PC potion belt stays out of the enemy stage")
 	_check(_control_inside_horizontal(default_pc_main.player_stage_plate, default_pc_main.enemy_stage_panel) and _control_inside_vertical(default_pc_main.player_stage_plate, default_pc_main.enemy_stage_panel), "default PC player health plate stays inside battle stage")
+	default_pc_main._on_card_previewed(0)
+	_check(default_pc_main.card_detail_preview.visible, "default PC card hover shows the large detail preview")
+	_check(_control_inside_viewport(default_pc_main.card_detail_preview, default_pc_size), "default PC large card preview stays inside the 720p viewport")
+	default_pc_main._hide_card_detail_preview(0)
 	default_pc_main._on_pile_hud_pressed("抽牌")
 	await process_frame
 	await process_frame

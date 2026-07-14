@@ -484,6 +484,8 @@ func _run() -> void:
 	if main._is_pc_layout():
 		if not _check(main.battle_forecast_layer != null and main.last_stage_forecast_marker_count >= main.combat.enemies.size(), "PC combat renders battlefield forecast markers"):
 			return
+		if not _check(main.last_enemy_stage_info_count == main.combat.enemies.size() and main.last_enemy_stage_info_texts.size() == main.combat.enemies.size(), "PC enemy stage renders persistent name, block, and status information for every enemy"):
+			return
 		if not _check(main.last_stage_forecast_icon_count >= main.combat.enemies.size(), "PC combat renders visual intent icons"):
 			return
 		if not _check(main.battle_foreground_layer != null and main.last_stage_foreground_layer_count >= 4, "PC combat renders foreground depth shading over the battle stage"):
@@ -544,6 +546,10 @@ func _run() -> void:
 	var first_enemy_badge_label_text := _first_label_text(first_enemy_badge)
 	if not _check(not first_enemy_badge_label_text.is_empty(), "enemy intent badge renders readable label text"):
 		return
+	if main._is_pc_layout():
+		var first_enemy_info := first_enemy_panel.find_child("EnemyInfoStrip", true, false) as PanelContainer
+		if not _check(first_enemy_info != null and first_enemy_info.find_child("EnemyNameLabel", true, false) != null and first_enemy_info.find_child("EnemyStateLabel", true, false) != null, "PC enemy stage exposes persistent name and state labels"):
+			return
 	if main._is_pc_layout():
 		var first_enemy_hit_area := first_enemy_panel.find_child("EnemyHitArea", true, false) as Button
 		if not _check(first_enemy_hit_area != null and first_enemy_hit_area.get_theme_stylebox("normal") != null, "PC enemy uses a styled full-body click target"):
@@ -609,6 +615,10 @@ func _run() -> void:
 	if main._is_pc_layout():
 		if not _check(main.last_potion_slot_icon_node_count <= main.last_potion_slot_layout_count, "PC empty potion sockets do not render fake potion icons"):
 			return
+		if not _check(first_potion_button.custom_minimum_size.x >= 48.0 and first_potion_button.custom_minimum_size.y >= 36.0, "PC potion slot provides a readable click target"):
+			return
+		if not _check(first_potion_button.find_child("PotionShortcutLabel", true, false) != null, "PC potion slot displays its numeric shortcut marker"):
+			return
 	elif not _check(main.last_potion_slot_icon_node_count == main.last_potion_slot_layout_count, "potion slot layouts load icon nodes"):
 		return
 	if not _check(main.last_potion_icon_loaded and main._asset_loaded(main.last_potion_icon_path), "potion slot icon path loads from art manifest"):
@@ -637,6 +647,14 @@ func _run() -> void:
 		return
 	if not _check(main.last_card_target_line_count > 0, "card hover preview requests a target line"):
 		return
+	if main._is_pc_layout():
+		if not _check(main.card_detail_preview != null and main.card_detail_preview.visible and main.last_card_detail_preview_visible, "PC card hover opens a large detail preview"):
+			return
+		if not _check(main.last_card_detail_preview_card_id == str(playable_card.get("id", "")) and main.last_card_detail_preview_description == str(playable_card.get("description", "")), "large card preview preserves the complete card description"):
+			return
+		main._hide_card_detail_preview(playable_card_index)
+		if not _check(not main.card_detail_preview.visible and not main.last_card_detail_preview_visible, "large card preview closes when hover leaves the card"):
+			return
 	var drag_started_before: int = main.last_card_drag_started_count
 	var drag_cancelled_before: int = main.last_card_drag_cancelled_count
 	main._begin_card_drag(playable_card_index, Vector2(520, 420))
