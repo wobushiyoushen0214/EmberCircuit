@@ -27,8 +27,8 @@
       "treasure": 5
     },
     "encounter_by_type": {
-      "combat": ["intro_patrol", "polluted_lab", "iron_checkpoint"],
-      "elite": ["executor_elite"],
+      "combat": ["intro_patrol", "polluted_lab", "iron_checkpoint", "cinder_kennels"],
+      "elite": ["executor_elite", "furnace_colossus_elite"],
       "boss": ["chapter_one_boss"]
     },
     "event_pool": [
@@ -78,7 +78,7 @@
       "treasure": 4
     },
     "encounter_by_type": {
-      "combat": ["storm_patrol", "null_workshop", "glass_procession"],
+      "combat": ["storm_patrol", "null_workshop", "glass_procession", "storm_choir", "prism_breakers"],
       "elite": ["rust_colossus_elite"],
       "boss": ["chapter_two_boss"]
     },
@@ -129,7 +129,7 @@
       "treasure": 4
     },
     "encounter_by_type": {
-      "combat": ["void_archive", "gravity_bridge", "core_mirror"],
+      "combat": ["void_archive", "gravity_bridge", "core_mirror", "memory_vault", "orbital_silo"],
       "elite": ["singularity_elite"],
       "boss": ["chapter_three_boss"]
     },

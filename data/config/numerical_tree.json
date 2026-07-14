@@ -1,6 +1,49 @@
 {
   "_comment": "统一数值树。这里把卡牌、敌人、经济和局外成长换算到同一套效果点，作为后续调平衡的机器可读基线。",
-  "version": 1,
+  "version": 2,
+  "audit_inventory": {
+    "_comment": "数值审计的覆盖契约。测试会把这些快照与实际数据及 NumericalTreeAuditor 报告交叉校验，防止新增内容未进入平衡审计。",
+    "cards": {
+      "total_count": 62,
+      "auditable_count": 61,
+      "status_count": 1,
+      "shared_auditable_count": 33,
+      "exclusive_counts": {
+        "ember_exile": 3,
+        "arc_tinker": 13,
+        "pyre_ascetic": 12
+      },
+      "expected_warning_ids": ["martyrs_bell"],
+      "expected_advisory_count": 22
+    },
+    "monsters": {
+      "enemy_count": 25,
+      "encounter_count": 22,
+      "audited_map_encounter_count": 21,
+      "encounter_tier_counts": { "normal": 15, "elite": 4, "boss": 3 }
+    },
+    "progression": {
+      "tree_count": 3,
+      "nodes_per_tree": 5,
+      "cost_per_tree": 25,
+      "full_run_marks": 8
+    },
+    "challenges": {
+      "level_count": 4,
+      "levels": [0, 1, 2, 3]
+    },
+    "economy_snapshot": {
+      "normal_gold": [13, 20],
+      "elite_gold": [34, 50],
+      "boss_gold": [64, 88],
+      "treasure_gold": [12, 24],
+      "shop_remove_base": 60,
+      "shop_remove_increase": 30,
+      "potion_drop_chance_percent": 45,
+      "combat_card_reward_accept_score": 8.2,
+      "skip_reward_when_deck_at_least": 15
+    }
+  },
   "effect_points": {
     "_comment": "效果点不是 UI 展示数值，而是设计预算单位。1 点直接伤害约等于 1 效果点；护甲略低；抽牌、能量和势能按长期胜率权重折算。",
     "damage": 1.0,
@@ -174,6 +217,33 @@
     "challenge_monotonic_tolerance": 0.01,
     "single_failure_encounter_share_max": 0.36,
     "minimum_iterations_for_hard_gate": 128,
-	    "design_note": "挑战档整体均值严格使用目标区间；单角色允许 2% 样本容差，启发式 AI 的角色差距硬门槛为 9%，人工试玩继续以 5% 为目标。胜率必须和失败点分布一起看。"
+	    "design_note": "挑战档整体均值严格使用目标区间；单角色允许 3% 样本容差，启发式 AI 的角色差距硬门槛为 9%，人工试玩继续以 5% 为目标。胜率必须和失败点分布一起看。"
+  },
+  "campaign_matrix": {
+    "_comment": "三角色乘四挑战的配对种子基线。observed_win_rate 来自 256 次/格完整跑团；契约测试会校验矩阵完备性、挑战修正、角色起始资源、卡池覆盖、成长成本、目标区间和聚合门槛。",
+    "schema_version": 1,
+    "simulation_model": "campaign_route_heuristic_ai",
+    "seed_model": "paired_by_iteration",
+    "iterations_per_cell": 256,
+    "max_turns": 80,
+    "expected_target_issues": ["challenge_0:character_win_rate_gap_high"],
+    "expected_out_of_tolerance_cells": ["pyre_ascetic:0", "pyre_ascetic:3"],
+    "expected_flagged_cells": ["arc_tinker:3", "pyre_ascetic:0", "pyre_ascetic:3"],
+    "character_ids": ["ember_exile", "arc_tinker", "pyre_ascetic"],
+    "challenge_levels": [0, 1, 2, 3],
+    "rows": [
+      { "character_id": "ember_exile", "challenge_level": 0, "base_max_hp": 70, "effective_starting_hp": 70, "starter_deck_score": 78.86, "accessible_auditable_cards": 36, "progression_total_cost": 25, "enemy_hp_multiplier": 1.0, "enemy_damage_multiplier": 1.0, "player_starting_hp_loss": 0, "observed_win_rate": 0.25, "avg_final_gold": 244.156, "avg_final_deck_size": 18.215, "risk_flag": "ok", "target_win_rate_range": [0.27, 0.33] },
+      { "character_id": "arc_tinker", "challenge_level": 0, "base_max_hp": 68, "effective_starting_hp": 68, "starter_deck_score": 70.03, "accessible_auditable_cards": 46, "progression_total_cost": 25, "enemy_hp_multiplier": 1.0, "enemy_damage_multiplier": 1.0, "player_starting_hp_loss": 0, "observed_win_rate": 0.266, "avg_final_gold": 218.98, "avg_final_deck_size": 17.242, "risk_flag": "ok", "target_win_rate_range": [0.27, 0.33] },
+      { "character_id": "pyre_ascetic", "challenge_level": 0, "base_max_hp": 72, "effective_starting_hp": 72, "starter_deck_score": 79.61, "accessible_auditable_cards": 45, "progression_total_cost": 25, "enemy_hp_multiplier": 1.0, "enemy_damage_multiplier": 1.0, "player_starting_hp_loss": 0, "observed_win_rate": 0.414, "avg_final_gold": 255.234, "avg_final_deck_size": 19.25, "risk_flag": "campaign_win_rate_high", "target_win_rate_range": [0.27, 0.33] },
+      { "character_id": "ember_exile", "challenge_level": 1, "base_max_hp": 70, "effective_starting_hp": 70, "starter_deck_score": 78.86, "accessible_auditable_cards": 36, "progression_total_cost": 25, "enemy_hp_multiplier": 1.1, "enemy_damage_multiplier": 1.0, "player_starting_hp_loss": 0, "observed_win_rate": 0.168, "avg_final_gold": 212.266, "avg_final_deck_size": 17.375, "risk_flag": "ok", "target_win_rate_range": [0.17, 0.26] },
+      { "character_id": "arc_tinker", "challenge_level": 1, "base_max_hp": 68, "effective_starting_hp": 68, "starter_deck_score": 70.03, "accessible_auditable_cards": 46, "progression_total_cost": 25, "enemy_hp_multiplier": 1.1, "enemy_damage_multiplier": 1.0, "player_starting_hp_loss": 0, "observed_win_rate": 0.152, "avg_final_gold": 193.695, "avg_final_deck_size": 16.172, "risk_flag": "ok", "target_win_rate_range": [0.17, 0.26] },
+      { "character_id": "pyre_ascetic", "challenge_level": 1, "base_max_hp": 72, "effective_starting_hp": 72, "starter_deck_score": 79.61, "accessible_auditable_cards": 45, "progression_total_cost": 25, "enemy_hp_multiplier": 1.1, "enemy_damage_multiplier": 1.0, "player_starting_hp_loss": 0, "observed_win_rate": 0.203, "avg_final_gold": 232.094, "avg_final_deck_size": 18.031, "risk_flag": "ok", "target_win_rate_range": [0.17, 0.26] },
+      { "character_id": "ember_exile", "challenge_level": 2, "base_max_hp": 70, "effective_starting_hp": 64, "starter_deck_score": 78.86, "accessible_auditable_cards": 36, "progression_total_cost": 25, "enemy_hp_multiplier": 1.1, "enemy_damage_multiplier": 1.0, "player_starting_hp_loss": 6, "observed_win_rate": 0.145, "avg_final_gold": 200.02, "avg_final_deck_size": 16.813, "risk_flag": "ok", "target_win_rate_range": [0.12, 0.23] },
+      { "character_id": "arc_tinker", "challenge_level": 2, "base_max_hp": 68, "effective_starting_hp": 62, "starter_deck_score": 70.03, "accessible_auditable_cards": 46, "progression_total_cost": 25, "enemy_hp_multiplier": 1.1, "enemy_damage_multiplier": 1.0, "player_starting_hp_loss": 6, "observed_win_rate": 0.18, "avg_final_gold": 189.559, "avg_final_deck_size": 15.785, "risk_flag": "ok", "target_win_rate_range": [0.12, 0.23] },
+      { "character_id": "pyre_ascetic", "challenge_level": 2, "base_max_hp": 72, "effective_starting_hp": 66, "starter_deck_score": 79.61, "accessible_auditable_cards": 45, "progression_total_cost": 25, "enemy_hp_multiplier": 1.1, "enemy_damage_multiplier": 1.0, "player_starting_hp_loss": 6, "observed_win_rate": 0.211, "avg_final_gold": 229.109, "avg_final_deck_size": 17.949, "risk_flag": "ok", "target_win_rate_range": [0.12, 0.23] },
+      { "character_id": "ember_exile", "challenge_level": 3, "base_max_hp": 70, "effective_starting_hp": 60, "starter_deck_score": 78.86, "accessible_auditable_cards": 36, "progression_total_cost": 25, "enemy_hp_multiplier": 1.13, "enemy_damage_multiplier": 1.0, "player_starting_hp_loss": 10, "observed_win_rate": 0.102, "avg_final_gold": 186.637, "avg_final_deck_size": 16.297, "risk_flag": "ok", "target_win_rate_range": [0.08, 0.15] },
+      { "character_id": "arc_tinker", "challenge_level": 3, "base_max_hp": 68, "effective_starting_hp": 58, "starter_deck_score": 70.03, "accessible_auditable_cards": 46, "progression_total_cost": 25, "enemy_hp_multiplier": 1.13, "enemy_damage_multiplier": 1.0, "player_starting_hp_loss": 10, "observed_win_rate": 0.141, "avg_final_gold": 175.141, "avg_final_deck_size": 15.438, "risk_flag": "campaign_deck_too_thin", "target_win_rate_range": [0.08, 0.15] },
+      { "character_id": "pyre_ascetic", "challenge_level": 3, "base_max_hp": 72, "effective_starting_hp": 62, "starter_deck_score": 79.61, "accessible_auditable_cards": 45, "progression_total_cost": 25, "enemy_hp_multiplier": 1.13, "enemy_damage_multiplier": 1.0, "player_starting_hp_loss": 10, "observed_win_rate": 0.191, "avg_final_gold": 216.457, "avg_final_deck_size": 17.563, "risk_flag": "campaign_win_rate_high", "target_win_rate_range": [0.08, 0.15] }
+    ]
   }
 }

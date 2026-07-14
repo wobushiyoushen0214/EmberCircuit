@@ -1,13 +1,13 @@
 {
-  "_comment": "第一章问号事件数据。事件选择支持确定性效果、条件和权重随机结果。",
+  "_comment": "三章通用、角色专属与跨章连锁事件数据。事件选择支持确定性效果、条件和权重随机结果；扩展分支优先复用现有事件美术与解析 schema。",
   "schema_note": "choices[].effects 支持 gain_gold、lose_gold、lose_hp、heal_percent、add_card、gain_relic、gain_potion、remove_first_non_starter_card、complete_event；choices[].conditions 与 events[].availability_conditions 支持 min_gold、min_hp、has_empty_potion_slot、has_removable_card、missing_relic、has_relic、deck_contains_card、event_not_completed、event_completed；choices[].random_results[] 支持 weight 和 effects。",
   "events": [
     {
       "id": "broken_reactor",
       "name": "破裂反应炉",
       "body": "一台废弃反应炉仍在低声轰鸣。灰烬从裂缝里喷出，里面也许还有可用的炉芯币。",
-      "design_note": "第一个风险收益事件，让玩家在生命和经济之间做选择。",
-      "balance_note": "35 金币接近普通战斗奖励，但 6 点生命损失在第一章有实际压力。",
+      "design_note": "基础风险收益事件，让玩家在生命、稳定恢复、遗物和一次不确定的经济尝试之间做选择。",
+      "balance_note": "确定性搜刮给 35 金币并损失 6 生命；压力抽取的期望金币接近该值，但存在只拿到 24 金币并受伤的下行结果。",
       "choices": [
         {
           "id": "scavenge",
@@ -36,6 +36,33 @@
           "effects": [
             { "type": "gain_relic", "relic_id": "heavy_gear" }
           ]
+        },
+        {
+          "id": "tap_pressure_line",
+          "label": "抽取压力管",
+          "description": "尝试导出残余炉芯币，结果随机。",
+          "conditions": [
+            { "type": "min_hp", "amount": 7 }
+          ],
+          "random_results": [
+            {
+              "id": "clean_pressure_cell",
+              "label": "完整压力仓",
+              "weight": 60,
+              "effects": [
+                { "type": "gain_gold", "amount": 42 }
+              ]
+            },
+            {
+              "id": "cinder_backwash",
+              "label": "余烬回流",
+              "weight": 40,
+              "effects": [
+                { "type": "gain_gold", "amount": 24 },
+                { "type": "lose_hp", "amount": 6 }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -43,8 +70,8 @@
       "id": "ash_archive",
       "name": "灰烬档案馆",
       "body": "一排烧焦的金属书页记录着旧时代的战斗姿态。你只能带走其中一页。",
-      "design_note": "构筑修正事件，提供删卡或拿功能卡的选择。",
-      "balance_note": "删卡很强，因此只能删除第一张非初始牌；如果没有目标则没有效果。",
+      "design_note": "构筑修正事件，提供定向功能卡、删卡和付费解读随机战术页的选择。",
+      "balance_note": "删卡只删除第一张非初始牌；随机战术页统一收取 20 金币，以不确定性换取接触不同中低稀有度功能牌的机会。",
       "choices": [
         {
           "id": "study_defense",
@@ -71,6 +98,43 @@
           ],
           "effects": [
             { "type": "remove_first_non_starter_card", "amount": 1 }
+          ]
+        },
+        {
+          "id": "decode_fused_leaf",
+          "label": "解读熔合书页",
+          "description": "支付 20 金币，随机获得一张战术牌。",
+          "conditions": [
+            { "type": "min_gold", "amount": 20 }
+          ],
+          "random_results": [
+            {
+              "id": "piercing_diagram",
+              "label": "穿甲图解",
+              "weight": 40,
+              "effects": [
+                { "type": "lose_gold", "amount": 20 },
+                { "type": "add_card", "card_id": "pierce_rivet" }
+              ]
+            },
+            {
+              "id": "guard_diagram",
+              "label": "闭环图解",
+              "weight": 35,
+              "effects": [
+                { "type": "lose_gold", "amount": 20 },
+                { "type": "add_card", "card_id": "defensive_loop" }
+              ]
+            },
+            {
+              "id": "rupture_diagram",
+              "label": "裂隙图解",
+              "weight": 25,
+              "effects": [
+                { "type": "lose_gold", "amount": 20 },
+                { "type": "add_card", "card_id": "rupture_signal" }
+              ]
+            }
           ]
         }
       ]
@@ -118,8 +182,8 @@
       "id": "soot_market",
       "name": "煤烟黑市",
       "body": "戴着过滤面具的商贩摊开一块油布。货物都是真的，价格也都不干净。",
-      "design_note": "经济向事件，让玩家在即时金币、一次性资源和牌组压缩之间选择。",
-      "balance_note": "金币选择带生命代价；删卡不收金币但只移除第一张非初始牌。",
+      "design_note": "经济向事件，让玩家在即时金币、一次性资源、牌组压缩和付费盲盒之间选择。",
+      "balance_note": "金币选择带生命代价；删卡只移除第一张非初始牌；密封货箱固定花费 25 金币并受药水槽限制，随机性只改变战术用途。",
       "choices": [
         {
           "id": "sell_blood",
@@ -152,6 +216,44 @@
           "effects": [
             { "type": "remove_first_non_starter_card", "amount": 1 }
           ]
+        },
+        {
+          "id": "buy_sealed_lot",
+          "label": "购买密封货箱",
+          "description": "支付 25 金币，随机获得一瓶药水。",
+          "conditions": [
+            { "type": "min_gold", "amount": 25 },
+            { "type": "has_empty_potion_slot" }
+          ],
+          "random_results": [
+            {
+              "id": "sealed_guard_tonic",
+              "label": "守护补剂",
+              "weight": 40,
+              "effects": [
+                { "type": "lose_gold", "amount": 25 },
+                { "type": "gain_potion", "potion_id": "guard_tonic" }
+              ]
+            },
+            {
+              "id": "sealed_spark_bomb",
+              "label": "火星爆弹",
+              "weight": 35,
+              "effects": [
+                { "type": "lose_gold", "amount": 25 },
+                { "type": "gain_potion", "potion_id": "spark_bomb" }
+              ]
+            },
+            {
+              "id": "sealed_injector",
+              "label": "发条注射器",
+              "weight": 25,
+              "effects": [
+                { "type": "lose_gold", "amount": 25 },
+                { "type": "gain_potion", "potion_id": "clockwork_injector" }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -159,8 +261,8 @@
       "id": "ember_memorial",
       "name": "余烬纪念碑",
       "body": "倒塌的纪念碑下压着一块温热的铭牌。触摸它时，旧战场的记忆涌了上来。",
-      "design_note": "提供防御构筑、恢复和删卡三种低波动路线。",
-      "balance_note": "治疗比例低于篝火；删卡仍受第一张非初始牌限制。",
+      "design_note": "提供防御构筑、恢复、删卡和聆听战场回声四种路线，让纪念碑兼具稳定选择与低风险随机叙事。",
+      "balance_note": "确定性治疗低于篝火；删卡只影响第一张非初始牌；回声结果的金币、治疗或普通牌价值均低于定向选项。",
       "choices": [
         {
           "id": "take_oath",
@@ -187,6 +289,37 @@
           ],
           "effects": [
             { "type": "remove_first_non_starter_card", "amount": 1 }
+          ]
+        },
+        {
+          "id": "follow_battle_echo",
+          "label": "追随战场回声",
+          "description": "触碰另一段记忆，随机获得补给或战术。",
+          "random_results": [
+            {
+              "id": "echo_shelter",
+              "label": "避难回忆",
+              "weight": 45,
+              "effects": [
+                { "type": "heal_percent", "amount": 10 }
+              ]
+            },
+            {
+              "id": "echo_payroll",
+              "label": "军饷回忆",
+              "weight": 35,
+              "effects": [
+                { "type": "gain_gold", "amount": 20 }
+              ]
+            },
+            {
+              "id": "echo_repair_drill",
+              "label": "修补操典",
+              "weight": 20,
+              "effects": [
+                { "type": "add_card", "card_id": "cinder_patch" }
+              ]
+            }
           ]
         }
       ]
@@ -324,8 +457,8 @@
       "id": "sealed_gate",
       "name": "封锁闸门",
       "body": "一扇旧闸门挡住捷径。控制台还亮着，但每次尝试都会释放一阵热浪。",
-      "design_note": "围绕破盾、防守和直接绕行提供选择。",
-      "balance_note": "破盾楔是中等强度遗物，配 9 点生命代价；防守牌选项代价更低。",
+      "design_note": "围绕破盾、防守、直接绕行和已有破盾工具的跨章回收价值提供选择。",
+      "balance_note": "破盾楔配 9 点生命代价；防守牌代价更低；已持有破盾楔时可拆下执行器获得 36 金币，作为重复遇见事件的专属收益。",
       "choices": [
         {
           "id": "force_gate",
@@ -354,6 +487,17 @@
           "label": "绕路",
           "description": "没有效果。",
           "effects": []
+        },
+        {
+          "id": "strip_actuator",
+          "label": "拆下闸门执行器",
+          "description": "使用“破盾楔”拆取组件，获得 36 金币。",
+          "conditions": [
+            { "type": "has_relic", "relic_id": "shield_break_wedge" }
+          ],
+          "effects": [
+            { "type": "gain_gold", "amount": 36 }
+          ]
         }
       ]
     },
@@ -361,8 +505,8 @@
       "id": "furnace_confessor",
       "name": "炉边忏悔者",
       "body": "一个自称忏悔者的人守在炉边。他愿意替你承担一段过去，也愿意教你如何把过去烧成武器。",
-      "design_note": "把删卡、能力牌和状态污染构筑放在同一事件内。",
-      "balance_note": "删卡无额外收益；能力牌偏长期；污染构筑给强牌但附带生命代价。",
+      "design_note": "把删卡、能力牌、状态污染构筑和一段结果不确定的余烬判词放在同一事件内。",
+      "balance_note": "删卡无额外收益；能力牌偏长期；污染构筑附带生命代价；余烬判词多数提供小治疗，少数以 4 生命换一张基础修补牌。",
       "choices": [
         {
           "id": "confess",
@@ -390,6 +534,33 @@
           "effects": [
             { "type": "lose_hp", "amount": 6 },
             { "type": "add_card", "card_id": "ash_tithe" }
+          ]
+        },
+        {
+          "id": "hear_ember_verdict",
+          "label": "聆听余烬判词",
+          "description": "接受炉火裁定，结果随机。",
+          "conditions": [
+            { "type": "min_hp", "amount": 5 }
+          ],
+          "random_results": [
+            {
+              "id": "verdict_absolution",
+              "label": "赦免",
+              "weight": 60,
+              "effects": [
+                { "type": "heal_percent", "amount": 12 }
+              ]
+            },
+            {
+              "id": "verdict_service",
+              "label": "服役",
+              "weight": 40,
+              "effects": [
+                { "type": "lose_hp", "amount": 4 },
+                { "type": "add_card", "card_id": "cinder_patch" }
+              ]
+            }
           ]
         }
       ]

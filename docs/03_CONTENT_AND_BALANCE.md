@@ -106,6 +106,41 @@
 - 第二章 `calibrator_return` / 校准员归来：事件级 `availability_conditions` 要求完成“失声校准员”，地图在进入第二章时才把它加入事件池；`guaranteed_when_available` 确保本章地图至少放置一次，玩家仍需主动选择通往该节点的路线。回报可选事件专属稀有牌、70 金币，或删牌并恢复 12% 最大生命。
 - `event_completed` 与 `event_not_completed` 共用 `completed_event_ids`，该字典随跑团存档保存；平衡模拟器使用同一条件和 `lose_gold` / `complete_event` 语义。
 
+## 2.3.1 章节遭遇与事件扩展
+
+本批内容只修改敌人、遭遇、事件数据和本文档。新增遭遇尚未写入 `data/config/map_generation.json`，由负责地图配置的协作者按下列章节建议接入；这样不会在内容扩展阶段改变当前完整跑团路线和模拟基线。
+
+新增第二章敌人：
+
+- `storm_cantor` / 风暴唱诗者：48 HP，护甲强化后接 3 段攻击，再施加 1 层虚弱。用于制造可预警的延迟爆发和目标优先级。
+- `prism_scrapper` / 棱镜拆解工：52 HP，以脆弱攻击、16 护甲和 4 段切割检查连续防御。两者复用同阵营现有视觉键，不新增资产依赖。
+
+新增第三章敌人：
+
+- `memory_parasite` / 记忆寄生体：50 HP，按污染、多段、虚弱、防御循环侵蚀终章牌组稳定性。
+- `orbit_reclaimer` / 轨道回收者：56 HP，以 18 护甲强化、脆弱标记和 4 段齐射形成明确倒计时。两者同样复用现有终章阵营视觉键。
+
+新增遭遇候选：
+
+- 第一章普通 `cinder_kennels`：灰烬猎犬 + 余烬游魂，总生命 56；组合多段和灼烧，但保留足够非攻击回合。
+- 第一章精英 `furnace_colossus_elite`：熔炉巨像单体，补齐该敌人此前没有对应遭遇的问题，并提供与执行者不同的防御型精英检查。
+- 第二章普通 `storm_choir`：风暴唱诗者 + 虚空修补匠，总生命 90；区分短期爆发和长期污染优先级。
+- 第二章普通 `prism_breakers`：棱镜拆解工 + 电弧信徒，总生命 98；连续检查脆弱、多段和力量成长。
+- 第三章普通 `memory_vault`：记忆寄生体 + 炉心拟态，总生命 100；强化污染环境下的抽牌和防御稳定性。
+- 第三章普通 `orbital_silo`：轨道回收者 + 虚空书记官，总生命 106；把齐射倒计时与污染压力组合。
+- 第三章普通 `feedback_crossing`：记忆寄生体 + 轨道回收者，总生命 106；作为后段高压候选，重点测试目标切换而非首轮伤害。
+
+扩展事件分支：
+
+- `broken_reactor.tap_pressure_line`：生命门槛下的随机经济分支，可能获得 42 金币，也可能只获得 24 金币并损失 6 生命。
+- `ash_archive.decode_fused_leaf`：支付 20 金币，随机获得穿甲、防御或群体弱化战术牌。
+- `soot_market.buy_sealed_lot`：支付 25 金币并占用空药水槽，随机获得防御、伤害或回合资源药水。
+- `ember_memorial.follow_battle_echo`：低风险随机获得小治疗、20 金币或基础修补牌。
+- `sealed_gate.strip_actuator`：持有破盾楔时获得重复事件专属的 36 金币回收收益。
+- `furnace_confessor.hear_ember_verdict`：多数结果恢复 12% 最大生命，少数结果损失 4 生命并获得余火修补。
+
+所有新增动作沿用 `damage`、`block`、`apply_status`、`create_card`；所有事件分支沿用现有 `conditions`、`effects` 和 `random_results` schema。事件没有新增顶层 ID，因此继续复用已有事件美术槽位。
+
 ## 2.4 角色专属遗物
 
 遗物奖励池同样支持 `character_ids`。未声明的遗物默认共享；声明角色的遗物只会出现在对应角色的精英/Boss 遗物奖励池中。起始遗物仍由角色配置的 `starter_relic_ids` 控制。

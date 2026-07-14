@@ -2957,7 +2957,7 @@ func _page_layout_scale() -> float:
 
 func _is_pc_layout() -> bool:
 	var viewport_size: Vector2 = _layout_viewport_size()
-	return viewport_size.x >= 1180.0 and viewport_size.y >= 680.0
+	return viewport_size.x >= 1180.0 and viewport_size.y >= 720.0
 
 func _layout_viewport_size() -> Vector2:
 	if debug_viewport_size_override.x > 0.0 and debug_viewport_size_override.y > 0.0:
@@ -2976,7 +2976,8 @@ func _layout_viewport_size() -> Vector2:
 	return viewport_size
 
 func _scroll_content_width() -> float:
-	return max(MIN_SAFE_CONTENT_WIDTH, _layout_viewport_size().x - _root_horizontal_margin() - SCROLLBAR_WIDTH_RESERVE)
+	var scrollbar_reserve := 0.0 if _is_pc_layout() else SCROLLBAR_WIDTH_RESERVE
+	return max(MIN_SAFE_CONTENT_WIDTH, _layout_viewport_size().x - _root_horizontal_margin() - scrollbar_reserve)
 
 func _bounded_width(preferred_width: float, minimum_width: float, maximum_width: float) -> float:
 	var available_width: float = _scroll_content_width()
@@ -3065,8 +3066,11 @@ func _event_choice_button_size(choice_count: int) -> Vector2:
 		var count: int = max(1, choice_count)
 		var story_width: float = _event_story_panel_size().x
 		var available_width: float = max(0.0, _scroll_content_width() - story_width - float(count) * 6.0)
-		var width: float = clamp(floor(available_width / float(count)), 176.0, 226.0)
-		return Vector2(width, clamp(_event_story_panel_size().y * 0.72, 230.0, 330.0))
+		var width: float = clamp(floor(available_width / float(count)), 176.0, 204.0)
+		# Keep the event row inside the 720p combat shell; the story panel already
+		# carries the visual weight, so choices should remain readable without
+		# forcing the reward viewport below the fixed control strip.
+		return Vector2(width, clamp(_event_story_panel_size().y * 0.66, 210.0, 280.0))
 	return Vector2(196, clamp(round(122.0 * scale_y), 108.0, 126.0))
 
 func _cinematic_panel_size() -> Vector2:

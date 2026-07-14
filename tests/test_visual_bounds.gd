@@ -175,6 +175,7 @@ func _run() -> void:
 	_check(_control_inside_horizontal(default_pc_main.profile_button, default_pc_main.controls_scroll), "default PC welcome profile button stays inside the control strip")
 	_check(_control_inside_horizontal(default_pc_main.compendium_button, default_pc_main.controls_scroll), "default PC welcome compendium button stays inside the control strip")
 	_check(_control_inside_horizontal(default_pc_main.settings_button, default_pc_main.controls_scroll), "default PC welcome settings button stays inside the control strip")
+	_check(is_equal_approx(default_pc_main._scroll_content_width(), default_pc_size.x - default_pc_main._root_horizontal_margin()), "default PC layout does not reserve space for a disabled vertical scrollbar")
 	default_pc_main._on_character_selected("arc_tinker")
 	await process_frame
 	await process_frame
@@ -208,6 +209,23 @@ func _run() -> void:
 	await process_frame
 	await process_frame
 	_check(default_pc_main.controls_scroll.visible and default_pc_main.hand_frame.visible, "closing the deck view restores combat controls and hand")
+
+	var short_pc_size := Vector2(1280, 700)
+	var short_pc_host := Control.new()
+	short_pc_host.custom_minimum_size = short_pc_size
+	short_pc_host.size = short_pc_size
+	short_pc_host.clip_contents = true
+	root.add_child(short_pc_host)
+	var short_pc_main = scene.instantiate()
+	short_pc_main.debug_viewport_size_override = short_pc_size
+	short_pc_host.add_child(short_pc_main)
+	await process_frame
+	await process_frame
+	_check(not short_pc_main._is_pc_layout(), "a maximized window with less than 720 content pixels avoids the fixed PC layout")
+	_check(int(short_pc_main.page_scroll.get("vertical_scroll_mode")) == 1, "a short PC window keeps vertical scrolling available instead of clipping bottom controls")
+	short_pc_host.queue_free()
+	await process_frame
+
 	default_pc_main.combat.phase = "won"
 	default_pc_main._refresh_combat()
 	await process_frame

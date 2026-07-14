@@ -1,5 +1,5 @@
 {
-  "_comment": "EmberCircuit 第一章敌人数据。普通敌人 8 个、精英 2 个、Boss 1 个。actions 按顺序循环，确保 MVP 可预测并方便测试。",
+  "_comment": "EmberCircuit 三章敌人数据。actions 按顺序循环，确保意图可预测并方便测试；中后章扩展敌人复用同阵营现有视觉键，避免在内容数据中引入额外资产依赖。",
   "schema_note": "intent 只用于 UI 展示；effects 是实际结算。两者必须保持一致。",
   "enemies": [
     {
@@ -248,6 +248,36 @@
       "intent_note": "护甲、污染、攻击循环，污染回合给玩家输出窗口。"
     },
     {
+      "id": "storm_cantor",
+      "name": "风暴唱诗者",
+      "tier": "normal",
+      "max_hp": 48,
+      "sprite_key": "placeholder_volt_cultist",
+      "actions": [
+        { "id": "resonant_ward", "intent": { "type": "block_buff", "amount": 12, "status": "strength" }, "effects": [ { "type": "block", "amount": 12, "target": "self" }, { "type": "apply_status", "target": "self", "status": "strength", "amount": 1 } ] },
+        { "id": "forked_chorus", "intent": { "type": "attack", "amount": 6, "hits": 3 }, "effects": [ { "type": "damage", "amount": 6, "hits": 3, "target": "player" } ] },
+        { "id": "static_refrain", "intent": { "type": "debuff", "status": "weak", "amount": 1 }, "effects": [ { "type": "apply_status", "target": "player", "status": "weak", "amount": 1 } ] }
+      ],
+      "design_note": "第二章延迟爆发敌人，先建立护甲和力量，再用多段攻击兑现压力，鼓励玩家识别优先击杀目标。",
+      "balance_note": "48 生命位于第二章普通敌人预算下段；18 点多段峰值触及本章上限，但每轮都有一个纯减益回合和明确蓄力预警。",
+      "intent_note": "护甲强化、多段攻击、弱化循环；看到共振护幕时应为下一回合的三段攻击准备连续防御。"
+    },
+    {
+      "id": "prism_scrapper",
+      "name": "棱镜拆解工",
+      "tier": "normal",
+      "max_hp": 52,
+      "sprite_key": "placeholder_glass_sentinel",
+      "actions": [
+        { "id": "shard_tax", "intent": { "type": "attack_debuff", "amount": 8, "status": "frail" }, "effects": [ { "type": "damage", "amount": 8, "target": "player" }, { "type": "apply_status", "target": "player", "status": "frail", "amount": 1 } ] },
+        { "id": "salvage_plate", "intent": { "type": "block", "amount": 16 }, "effects": [ { "type": "block", "amount": 16, "target": "self" } ] },
+        { "id": "scatter_cutter", "intent": { "type": "attack", "amount": 4, "hits": 4 }, "effects": [ { "type": "damage", "amount": 4, "hits": 4, "target": "player" } ] }
+      ],
+      "design_note": "第二章防御检查敌人，用脆弱状态压低下一次护甲收益，再以高护甲和四段切割惩罚单一防御手段。",
+      "balance_note": "52 生命、16 护甲和16 点多段伤害均在第二章普通预算内；脆弱只持续到下一次护甲效果，不形成长期锁死。",
+      "intent_note": "脆弱攻击、防御、四段攻击循环；玩家可以在拆解工架设护甲时转向蓄力或处理其同伴。"
+    },
+    {
       "id": "rust_colossus",
       "name": "锈蚀巨构",
       "tier": "elite",
@@ -355,6 +385,37 @@
       "design_note": "第三章混合型普通敌人，覆盖多段、防御和虚弱三种压力。",
       "balance_note": "50 生命用于第三章调试基线；多段伤害降为 15 点，避免与枪骑重击叠加后超过普通遭遇峰值预算。",
       "intent_note": "多段、防御、虚弱循环。"
+    },
+    {
+      "id": "memory_parasite",
+      "name": "记忆寄生体",
+      "tier": "normal",
+      "max_hp": 50,
+      "sprite_key": "placeholder_void_scribe",
+      "actions": [
+        { "id": "skim_memory", "intent": { "type": "status_card", "card_id": "searing_wound" }, "effects": [ { "type": "create_card", "target": "player", "card_id": "searing_wound", "destination": "discard", "amount": 1 } ] },
+        { "id": "feedback_pulse", "intent": { "type": "attack", "amount": 6, "hits": 3 }, "effects": [ { "type": "damage", "amount": 6, "hits": 3, "target": "player" } ] },
+        { "id": "erase_rhythm", "intent": { "type": "debuff", "status": "weak", "amount": 1 }, "effects": [ { "type": "apply_status", "target": "player", "status": "weak", "amount": 1 } ] },
+        { "id": "phase_shell", "intent": { "type": "block", "amount": 16 }, "effects": [ { "type": "block", "amount": 16, "target": "self" } ] }
+      ],
+      "design_note": "第三章资源侵蚀敌人，把牌堆污染、输出削弱和多段伤害放进较长循环，考验玩家在终章保持抽牌质量。",
+      "balance_note": "50 生命位于第三章普通预算下限；18 点伤害之后连续出现减益和防御回合，给受污染牌组重新组织手牌的窗口。",
+      "intent_note": "污染、多段、弱化、防御循环；污染本身不造成伤害，但会降低后续回合的可靠性。"
+    },
+    {
+      "id": "orbit_reclaimer",
+      "name": "轨道回收者",
+      "tier": "normal",
+      "max_hp": 56,
+      "sprite_key": "placeholder_gravity_lancer",
+      "actions": [
+        { "id": "salvage_field", "intent": { "type": "block_buff", "amount": 18, "status": "strength" }, "effects": [ { "type": "block", "amount": 18, "target": "self" }, { "type": "apply_status", "target": "self", "status": "strength", "amount": 1 } ] },
+        { "id": "tractor_lock", "intent": { "type": "attack_debuff", "amount": 10, "status": "frail" }, "effects": [ { "type": "damage", "amount": 10, "target": "player" }, { "type": "apply_status", "target": "player", "status": "frail", "amount": 1 } ] },
+        { "id": "debris_salvo", "intent": { "type": "attack", "amount": 4, "hits": 4 }, "effects": [ { "type": "damage", "amount": 4, "hits": 4, "target": "player" } ] }
+      ],
+      "design_note": "第三章高优先级目标，用护甲强化和脆弱标记把四段齐射塑造成清晰倒计时，检验斩杀规划与连续防御。",
+      "balance_note": "56 生命和18 护甲位于第三章普通预算内；基础齐射为16 点，强化后首轮为20 点，且爆发前固定经过护甲与标记两个预警行动。",
+      "intent_note": "护甲强化、脆弱攻击、四段齐射循环；看到回收力场后有两个行动窗口处理目标或准备连续护甲。"
     },
     {
       "id": "singularity_knight",

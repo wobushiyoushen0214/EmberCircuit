@@ -1,5 +1,5 @@
 {
-  "_comment": "MVP 遭遇配置。当前主场景默认读取 intro_patrol，后续地图系统会按节点类型抽取。",
+  "_comment": "三章遭遇配置。当前地图池只引用已接入条目；扩展遭遇保持独立 ID 和完整注释，可由地图配置按章节与节点类型逐批接入。",
   "encounters": [
     {
       "id": "intro_patrol",
@@ -32,6 +32,16 @@
       "balance_note": "敌人输出偏低，但拖延会消耗玩家资源。"
     },
     {
+      "id": "cinder_kennels",
+      "name": "余烬驯化场",
+      "tier": "normal",
+      "enemy_ids": [ "ash_hound", "ember_wraith" ],
+      "gold_reward": 23,
+      "card_reward_count": 3,
+      "design_note": "第一章节奏遭遇，把多段攻击与持续灼烧组合在一起，要求玩家在即时护甲和快速击杀之间选择。",
+      "balance_note": "总生命 56，低于现有高护甲遭遇；猎犬与游魂都含非攻击行动，组合峰值可预警且适合作为第一章中段候选。"
+    },
+    {
       "id": "executor_elite",
       "name": "执行者伏击",
       "tier": "elite",
@@ -41,6 +51,17 @@
       "relic_reward": true,
       "design_note": "第一章攻击型精英。",
       "balance_note": "高伤害低防御，允许进攻竞速。"
+    },
+    {
+      "id": "furnace_colossus_elite",
+      "name": "熔炉巨像苏醒",
+      "tier": "elite",
+      "enemy_ids": [ "furnace_colossus" ],
+      "gold_reward": 46,
+      "card_reward_count": 3,
+      "relic_reward": true,
+      "design_note": "第一章防御型精英候选，让此前未进入遭遇表的熔炉巨像承担破甲、持续伤害和长线输出检查。",
+      "balance_note": "104 生命位于第一章精英预算上沿，但伤害峰值低于执行者；更高金币补偿较长战斗和灼烧压力。"
     },
     {
       "id": "chapter_one_boss",
@@ -82,6 +103,26 @@
       "card_reward_count": 3,
       "design_note": "高护甲和污染结合，检验破盾与持续输出。",
       "balance_note": "比第一章普通战更长，奖励金币也相应上调。"
+    },
+    {
+      "id": "storm_choir",
+      "name": "风暴合唱层",
+      "tier": "normal",
+      "enemy_ids": [ "storm_cantor", "null_mender" ],
+      "gold_reward": 35,
+      "card_reward_count": 3,
+      "design_note": "第二章目标优先级遭遇，唱诗者负责延迟爆发，修补匠负责污染牌堆，迫使玩家判断先处理节奏威胁还是长期威胁。",
+      "balance_note": "总生命 90，低于现有第二章组合；18 点多段峰值不会与修补匠攻击同步固定出现，适合作为章节前半候选。"
+    },
+    {
+      "id": "prism_breakers",
+      "name": "棱镜拆解班",
+      "tier": "normal",
+      "enemy_ids": [ "prism_scrapper", "volt_cultist" ],
+      "gold_reward": 37,
+      "card_reward_count": 3,
+      "design_note": "第二章防御连续性遭遇，用脆弱、多段和力量成长连续检查护甲质量，同时保留拆解工防御回合的输出窗口。",
+      "balance_note": "总生命 98，位于第二章普通组合中段；两名敌人的最高多段行动不会在首轮同时出现，金币略高于基础巡逻。"
     },
     {
       "id": "rust_colossus_elite",
@@ -134,6 +175,36 @@
       "card_reward_count": 3,
       "design_note": "第三章输出检查遭遇，双敌人都能制造明显回合压力。",
       "balance_note": "总生命 104，奖励金币略高，作为当前第三章普通战上限。"
+    },
+    {
+      "id": "memory_vault",
+      "name": "记忆封存库",
+      "tier": "normal",
+      "enemy_ids": [ "memory_parasite", "core_mimic" ],
+      "gold_reward": 45,
+      "card_reward_count": 3,
+      "design_note": "第三章牌组稳定性遭遇，把污染、虚弱和两种多段攻击组合起来，检验终章牌组是否仍能稳定抽到防御。",
+      "balance_note": "总生命 100，与现有虚空档案一致；寄生体的四行动循环降低连续伤害密度，避免污染和多段同时过度叠压。"
+    },
+    {
+      "id": "orbital_silo",
+      "name": "轨道回收井",
+      "tier": "normal",
+      "enemy_ids": [ "orbit_reclaimer", "void_scribe" ],
+      "gold_reward": 48,
+      "card_reward_count": 3,
+      "design_note": "第三章爆发倒计时遭遇，回收者用脆弱与齐射压低连续防御，书记官用污染和灼烧削弱玩家寻找答案的稳定性。",
+      "balance_note": "总生命 106，略高于现有第三章基线；回收者齐射前有两个固定预警行动，较高金币补偿资源侵蚀。"
+    },
+    {
+      "id": "feedback_crossing",
+      "name": "反馈交汇点",
+      "tier": "normal",
+      "enemy_ids": [ "memory_parasite", "orbit_reclaimer" ],
+      "gold_reward": 49,
+      "card_reward_count": 3,
+      "design_note": "第三章后段候选，用污染与弱化拖慢输出，再以脆弱后的四段齐射形成明确防御窗口。",
+      "balance_note": "总生命 106，与轨道回收井一致；两名敌人的爆发循环长度不同，且回收者先防御再标记，测试重点是目标切换而非首轮伤害。"
     },
     {
       "id": "singularity_elite",
