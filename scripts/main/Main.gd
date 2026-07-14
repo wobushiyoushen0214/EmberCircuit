@@ -429,6 +429,9 @@ var last_enemy_stage_info_texts: Array[String] = []
 var last_card_detail_preview_visible: bool = false
 var last_card_detail_preview_card_id: String = ""
 var last_card_detail_preview_description: String = ""
+var last_combat_hotkey_action: String = ""
+var last_combat_hotkey_count: int = 0
+var last_combat_hotkey_index: int = -1
 var last_map_preview_node_id: String = ""
 var last_map_preview_text: String = ""
 var last_map_preview_risk_level: String = ""
@@ -535,6 +538,9 @@ func _notification(what: int) -> void:
 func _input(event: InputEvent) -> void:
 	if _handle_card_drag_input(event):
 		get_viewport().set_input_as_handled()
+		return
+	if _handle_combat_hotkey(event):
+		get_viewport().set_input_as_handled()
 
 func _handle_card_drag_input(event: InputEvent) -> bool:
 	if not _is_pc_layout() or combat == null:
@@ -571,6 +577,74 @@ func _unhandled_input(event: InputEvent) -> void:
 	if pile_view_open and event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE:
 		_close_pile_view()
 		get_viewport().set_input_as_handled()
+		return
+	if _handle_combat_hotkey(event):
+		get_viewport().set_input_as_handled()
+
+func _handle_combat_hotkey(event: InputEvent) -> bool:
+	if not _combat_hotkeys_allowed() or not (event is InputEventKey):
+		return false
+	var key_event := event as InputEventKey
+	if not key_event.pressed or key_event.echo or key_event.ctrl_pressed or key_event.alt_pressed or key_event.meta_pressed:
+		return false
+	match key_event.keycode:
+		KEY_SPACE:
+			last_combat_hotkey_action = "end_turn"
+			last_combat_hotkey_index = -1
+			last_combat_hotkey_count += 1
+			_on_end_turn_pressed()
+			return true
+		KEY_TAB:
+			var next_index: int = _next_living_enemy_index()
+			if next_index < 0:
+				return false
+			last_combat_hotkey_action = "cycle_target"
+			last_combat_hotkey_index = next_index
+			last_combat_hotkey_count += 1
+			_on_enemy_pressed(next_index)
+			return true
+		KEY_1, KEY_2, KEY_3, KEY_KP_1, KEY_KP_2, KEY_KP_3:
+			var potion_index: int = _potion_index_for_key(key_event.keycode)
+			if potion_index < 0 or potion_index >= run_potion_ids.size():
+				return false
+			last_combat_hotkey_action = "use_potion"
+			last_combat_hotkey_index = potion_index
+			last_combat_hotkey_count += 1
+			_on_potion_pressed(potion_index)
+			return true
+	return false
+
+func _potion_index_for_key(keycode: Key) -> int:
+	match keycode:
+		KEY_1, KEY_KP_1:
+			return 0
+		KEY_2, KEY_KP_2:
+			return 1
+		KEY_3, KEY_KP_3:
+			return 2
+	return -1
+
+func _combat_hotkeys_allowed() -> bool:
+	if not _is_pc_layout() or combat == null or combat.phase != "player" or card_drag_active:
+		return false
+	if pile_view_open or deck_view_open or settings_open or profile_open or compendium_open or tutorial_open:
+		return false
+	if welcome_open or character_select_open or run_completed:
+		return false
+	if is_inside_tree():
+		var focus_owner: Control = get_viewport().gui_get_focus_owner()
+		if focus_owner is LineEdit or focus_owner is TextEdit:
+			return false
+	return true
+
+func _next_living_enemy_index() -> int:
+	if combat == null or combat.enemies.is_empty():
+		return -1
+	for offset in range(1, combat.enemies.size() + 1):
+		var candidate: int = (selected_enemy_index + offset) % combat.enemies.size()
+		if int(combat.enemies[candidate].get("hp", 0)) > 0:
+			return candidate
+	return -1
 
 func _build_layout() -> void:
 	screen_background = ColorRect.new()

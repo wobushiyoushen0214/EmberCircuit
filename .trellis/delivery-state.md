@@ -11,7 +11,7 @@ stage_state:
   tasks_completed: 3
   carry_over: 0
   critical_review_issues: 0
-  next_legal_action: implement expand-content-library or production-art-pass from audit report
+  next_legal_action: implement expand-content-library from audit report
   stop_conditions: none
 ---
 
@@ -24,11 +24,11 @@ carry_over: 0
 
 - source_requirements: `docs/00_MASTER_PLAN.md`（由 `docs/01-08` 细化）
 - mvp_baseline_commit: `7b3f050`
-- last_audited_commit: `6940893`
+- last_audited_commit: `65fbdb4`
 - loop_mode: `L2`
 - current_round: `1`
 - max_rounds: `6`
-- current_batch_id: `delivery-batch-005`
+- current_batch_id: `delivery-batch-006`
 
 ## 需求状态
 
@@ -49,8 +49,8 @@ carry_over: 0
 
 ## 当前批次
 
-- batch_id: `delivery-batch-005`
-- scope: `P1 战斗舞台信息、大卡预览与药水可读性`
+- batch_id: `delivery-batch-006`
+- scope: `P1 PC 战斗键盘操作闭环`
 - selected_reqs:
   - `REQ-004`
   - `REQ-005`
@@ -81,5 +81,5 @@ carry_over: 0
 ## 下一轮建议
 
 - action: `continue-next-batch`
-- reason: `完成敌人常驻状态条、手牌大卡预览、药水快捷标识和目标曲线 Metal 闪屏修复`
+- reason: `药水数字键、目标切换和结束回合热键已完成，并具备覆盖层、拖牌和文本输入保护`
 - next_audit_scope: `delta`
