@@ -48,6 +48,11 @@
         "production_tier": "production_preferred",
         "legacy_fallback_allowed": true
       },
+      "room_scene_slots": {
+        "contract_id": "room_illustration",
+        "production_tier": "production_preferred",
+        "legacy_fallback_allowed": false
+      },
       "relic_icon_slots": {
         "contract_id": "legacy_vector_art",
         "production_tier": "legacy_fallback",
@@ -222,6 +227,15 @@
         "alpha_requirement": "forbidden",
         "safe_area": {"check": "manual", "normalized_rect": [0.10, 0.08, 0.80, 0.84], "enforcement": "advisory", "note": "事件主体必须位于中心安全区，适配 PC 左侧叙事画框的 cover 裁切。"},
         "subject_occupancy": {"check": "manual", "metric": "visual_subject_area_ratio", "min": 0.24, "max": 0.78, "enforcement": "advisory", "note": "缩略和大图状态都应一眼识别事件主体；禁止文字、卡框、Logo 和水印。"}
+      },
+      "room_illustration": {
+        "allowed_extensions": ["png", "webp"],
+        "expected_dimensions": {"mode": "exact", "width": 1536, "height": 1024},
+        "expected_aspect_ratio": {"mode": "exact", "value": 1.5, "tolerance": 0.001},
+        "color_mode": "RGB",
+        "alpha_requirement": "forbidden",
+        "safe_area": {"check": "manual", "normalized_rect": [0.08, 0.08, 0.84, 0.84], "enforcement": "advisory", "note": "房间主体和交互暗示必须位于中心安全区，适配 PC 叙事画框裁切。"},
+        "subject_occupancy": {"check": "manual", "metric": "visual_subject_area_ratio", "min": 0.24, "max": 0.80, "enforcement": "advisory", "note": "房间图需提供明确场景焦点与可读纵深，禁止文字、UI、Logo 和水印。"}
       },
       "legacy_vector_art": {
         "allowed_extensions": ["svg", "png", "webp"],
@@ -700,6 +714,16 @@
       "design_note": "校准员归来插图应表现修复后的机械站在风暴高塔中继导轨上，并投影完整战斗协议。",
       "replacement_note": "与第一阶段保持同一机械轮廓，通过完整导轨、冷青电弧和展开协议体现跨章变化。",
       "implementation_note": "当前 asset_path 指向两章连锁事件第二阶段 SVG；事件只在前置完成后进入第二章事件池。"
+    }
+  ],
+  "room_scene_slots": [
+    {
+      "id": "campfire",
+      "asset_path": "res://assets/art/generated/rooms/room_campfire_v2_pc.png",
+      "slot_path": "res://assets/art/rooms/room_campfire.png",
+      "design_note": "篝火休整地应同时表现可恢复生命的炉火与可升级卡牌的铁砧工具区。",
+      "replacement_note": "人物、炉火和铁砧保持在中心安全区；暖橙与冷青需要平衡，不能把房间做成单一棕橙色。",
+      "implementation_note": "PC 篝火到达页从本槽位加载 1536x1024 RGB 正式候选图；休息、锻造和升级结算仍由 Main 的既有数据流程处理。"
     }
   ],
   "card_art_slots": [

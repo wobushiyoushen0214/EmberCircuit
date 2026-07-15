@@ -8,6 +8,7 @@ const REQUIRED_BITMAP_SECTIONS := [
 	"enemy_stage_slots",
 	"card_art_slots",
 	"event_art_slots",
+	"room_scene_slots",
 	"potion_icon_slots",
 	"hud_texture_slots"
 ]
@@ -166,6 +167,12 @@ func _test_real_manifest_contract() -> void:
 	var known_event := _find_item(report.get("items", []), "event_art_slots", "broken_reactor")
 	_check(known_event.get("width", 0) == 1536 and known_event.get("height", 0) == 1024, "real event illustration dimensions are audited")
 	_check(known_event.get("color_mode", "") == "RGB" and known_event.get("asset_tier", "") == "production_preferred", "real event illustration uses the production RGB contract")
+	var known_room := _find_item(report.get("items", []), "room_scene_slots", "campfire")
+	_check(known_room.get("width", 0) == 1536 and known_room.get("height", 0) == 1024, "real campfire room dimensions are audited")
+	_check(known_room.get("color_mode", "") == "RGB" and known_room.get("asset_tier", "") == "production_preferred", "real campfire room uses the production RGB contract")
+	_check(known_room.get("contract_id", "") == "room_illustration", "real campfire room is bound to the room illustration contract")
+	var room_defaults: Dictionary = section_defaults.get("room_scene_slots", {})
+	_check(room_defaults.get("contract_id", "") == "room_illustration" and not bool(room_defaults.get("legacy_fallback_allowed", true)), "campfire room section forbids legacy fallback")
 	var legacy_card := _find_item(report.get("items", []), "card_art_slots", "violent_discharge")
 	_check(legacy_card.get("asset_tier", "") == "legacy_fallback", "real SVG card remains a legacy fallback")
 	_check(legacy_card.get("hard_errors", []).is_empty(), "real SVG card does not hard fail")

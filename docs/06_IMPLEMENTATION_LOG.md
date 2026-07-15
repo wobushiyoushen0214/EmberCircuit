@@ -799,3 +799,13 @@ jq empty data/cards/cards.json data/enemies/enemies.json data/relics/relics.json
 - 本轮未修改角色、怪物、卡牌、成长或挑战数值；真人每角色/挑战格达到 12/30 个完成局前继续冻结硬调参。
 - 构建标记升级为 `0.1.0-alpha.3`，macOS bundle build number 升级为 3。
 - `0.1.0-alpha.3` 从源码提交 `d105255` 导出：Windows embedded-PCK 与 macOS universal 包均通过启动、压缩完整性和版本验证；SHA-256 分别为 `9e585b5908694064708720d09235373e7859e095a05da2fc17202015269281b2` 与 `66c38bf03d9d0445039506cc6ddac53e2781329b816067a9bfba2285a7c52719`。
+
+## PC 篝火流程重构与第四轮试玩准备
+
+- PC 篝火从横向日志和前四张升级牌的拥挤列表重构为双阶段流程：到达页左侧显示完整房间插画，右侧只保留“休息/锻造”两项决策；锻造页独立展示牌组内全部未升级且可升级的卡牌。
+- 锻造候选按真实 `deck_index` 保持牌组顺序，重复卡牌分别显示并升级正确实例；治疗比例、卡牌升级数据、遥测记录和节点结算继续复用既有逻辑，未修改任何卡牌、角色、怪物、成长或挑战数值。
+- 新增 `1536x1024 RGB PNG` 篝火房间正式候选插画，包含炉火、旅人和铁砧且无文字、UI、Logo 或水印；`art_assets.json` 新增严格 `room_illustration` 契约和稳定房间槽位。
+- `test_run_flow.gd` 使用真实按钮信号覆盖休息、进入锻造、完整候选数量和指定牌实例升级；`test_visual_bounds.gd` 覆盖到达页无滚动条、锻造页隐藏滚动条和完整五列卡牌网格。
+- PC 图库新增 `07_campfire_720p.png` 与 `07_campfire_forge_720p.png`；人工检查确认顶部角色 HUD、房间插画、两个动作按钮和十张起始牌在 `1280x720` 内完整显示，无裁切、重叠或可见页面滚动条。
+- 完整资源清单增加至 153 个槽位，预期保持 0 缺失、0 hard error、74 个 legacy fallback。
+- 构建标记升级为 `0.1.0-alpha.4`，macOS bundle build number 升级为 4。

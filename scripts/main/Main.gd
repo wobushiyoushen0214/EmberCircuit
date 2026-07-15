@@ -71,7 +71,7 @@ const UI_TUTORIAL_ICON_PATH := "res://assets/art/generated/ui/icons/control_tuto
 const UI_SKIP_REWARD_ICON_PATH := "res://assets/art/generated/ui/icons/control_skip_reward.svg"
 const UI_CONTINUE_ROUTE_ICON_PATH := "res://assets/art/generated/ui/icons/control_continue_route.svg"
 const UI_FONT_PATH := "res://assets/fonts/NotoSansSC-Variable.ttf"
-const PLAYTEST_BUILD_LABEL := "0.1.0-alpha.3"
+const PLAYTEST_BUILD_LABEL := "0.1.0-alpha.4"
 const PLAYER_ART_PATHS := {
 	"ember_exile": "res://assets/art/generated/player_ember_exile_pc.png",
 	"arc_tinker": "res://assets/art/generated/player_arc_tinker_pc.png",
@@ -187,6 +187,7 @@ var combat_reward_gold: int = 0
 var reward_generated_for: String = ""
 var shop_generated_for: int = -1
 var shop_remove_selection_open: bool = false
+var campfire_upgrade_selection_open: bool = false
 var card_reward_done: bool = false
 var relic_reward_done: bool = true
 var potion_reward_done: bool = true
@@ -336,6 +337,11 @@ var last_shop_remove_card_layout_count: int = 0
 var last_shop_remove_card_art_node_count: int = 0
 var last_campfire_card_layout_count: int = 0
 var last_campfire_card_art_node_count: int = 0
+var last_campfire_art_path: String = ""
+var last_campfire_art_loaded: bool = false
+var last_campfire_action_count: int = 0
+var last_campfire_upgrade_candidate_count: int = 0
+var last_campfire_reveal_animation_count: int = 0
 var last_deck_view_card_layout_count: int = 0
 var last_deck_view_card_art_node_count: int = 0
 var last_deck_view_visible_card_count: int = 0
@@ -1437,6 +1443,7 @@ func _start_new_run(character_id: String = "") -> void:
 	reward_generated_for = ""
 	shop_generated_for = -1
 	shop_remove_selection_open = false
+	campfire_upgrade_selection_open = false
 	card_reward_done = false
 	relic_reward_done = true
 	potion_reward_done = true
@@ -2505,6 +2512,7 @@ func _start_current_node() -> void:
 	shop_relic_options.clear()
 	reward_generated_for = ""
 	shop_remove_selection_open = false
+	campfire_upgrade_selection_open = false
 	card_reward_done = false
 	relic_reward_done = true
 	potion_reward_done = true
@@ -2777,7 +2785,7 @@ func _apply_pc_map_chrome() -> void:
 		controls_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		controls_row.custom_minimum_size = Vector2(_scroll_content_width(), 36.0)
 
-func _apply_pc_event_chrome() -> void:
+func _apply_pc_story_room_chrome() -> void:
 	if not _is_pc_layout():
 		return
 	title_label.visible = false
@@ -7056,8 +7064,14 @@ func _refresh_campfire(node: Dictionary) -> void:
 	last_campfire_button_style_count = 0
 	last_campfire_card_layout_count = 0
 	last_campfire_card_art_node_count = 0
+	last_campfire_art_path = ""
+	last_campfire_art_loaded = false
+	last_campfire_action_count = 0
+	last_campfire_upgrade_candidate_count = 0
+	last_campfire_reveal_animation_count = 0
 	_set_page_regions(true, false, false, false, false, true, false, true)
 	_apply_reward_page_layout_constraints(156.0, 204.0)
+	_apply_pc_story_room_chrome()
 	status_label.text = "篝火：选择恢复生命或升级一张牌。升级后的牌会在名称后显示 +。"
 	feedback_label.visible = false
 	_hide_cinematic_prompt()
@@ -7067,6 +7081,13 @@ func _refresh_campfire(node: Dictionary) -> void:
 	_clear_container(reward_row)
 	log_label.text = _route_preview()
 	end_turn_button.disabled = true
+	if _is_pc_layout():
+		if campfire_upgrade_selection_open:
+			_add_pc_campfire_forge_selection()
+		else:
+			_add_pc_campfire_experience(node)
+		_record_layout_metrics()
+		return
 
 	var heal_button := Button.new()
 	heal_button.custom_minimum_size = Vector2(180, 92)
@@ -7107,6 +7128,369 @@ func _refresh_campfire(node: Dictionary) -> void:
 		no_upgrade.text = "没有可升级卡牌。"
 		reward_row.add_child(no_upgrade)
 	_record_layout_metrics()
+
+func _campfire_upgrade_candidates() -> Array[Dictionary]:
+	var candidates: Array[Dictionary] = []
+	for deck_index in range(run_deck_ids.size()):
+		var entry_id: String = str(run_deck_ids[deck_index])
+		if entry_id.ends_with("+"):
+			continue
+		var card: Dictionary = _card_by_id(entry_id)
+		if card.is_empty() or not card.has("upgrade"):
+			continue
+		candidates.append({
+			"deck_index": deck_index,
+			"entry_id": entry_id,
+			"card": card
+		})
+	return candidates
+
+func _add_pc_campfire_experience(node: Dictionary) -> void:
+	if reward_scroll != null:
+		reward_scroll.set("vertical_scroll_mode", 0)
+		reward_scroll.scroll_vertical = 0
+	var stage := PanelContainer.new()
+	stage.name = "PcCampfireExperience"
+	var stage_size := Vector2(_scroll_content_width(), max(520.0, last_reward_scroll_height - 2.0))
+	stage.custom_minimum_size = stage_size
+	stage.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	stage.clip_contents = true
+	stage.add_theme_stylebox_override("panel", _pc_campfire_stage_style())
+	reward_row.add_child(stage)
+
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 16)
+	margin.add_theme_constant_override("margin_right", 16)
+	margin.add_theme_constant_override("margin_top", 14)
+	margin.add_theme_constant_override("margin_bottom", 14)
+	stage.add_child(margin)
+
+	var split := HBoxContainer.new()
+	split.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	split.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	split.add_theme_constant_override("separation", 18)
+	margin.add_child(split)
+
+	var content_width: float = max(960.0, stage_size.x - 32.0)
+	var content_height: float = max(490.0, stage_size.y - 28.0)
+	var story_width: float = floor((content_width - 18.0) * 0.64)
+	var action_width: float = max(340.0, content_width - story_width - 18.0)
+	_add_pc_campfire_story(split, node, Vector2(story_width, content_height))
+	var action_buttons := _add_pc_campfire_actions(split, Vector2(action_width, content_height))
+	last_campfire_reveal_animation_count = 1 + action_buttons.get_child_count()
+	if DisplayServer.get_name() != "headless":
+		call_deferred("_play_pc_room_reveal", stage, action_buttons)
+
+func _add_pc_campfire_story(parent: Container, node: Dictionary, story_size: Vector2) -> void:
+	var story := VBoxContainer.new()
+	story.name = "CampfireStory"
+	story.custom_minimum_size = story_size
+	story.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	story.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	story.add_theme_constant_override("separation", 8)
+	parent.add_child(story)
+
+	last_campfire_art_path = _room_scene_art_path("campfire")
+	last_campfire_art_loaded = _asset_loaded(last_campfire_art_path)
+	var art_frame := PanelContainer.new()
+	art_frame.name = "CampfireArtFrame"
+	art_frame.custom_minimum_size = Vector2(story_size.x, max(350.0, story_size.y - 106.0))
+	art_frame.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	art_frame.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	art_frame.clip_contents = true
+	art_frame.add_theme_stylebox_override("panel", _pc_campfire_art_frame_style())
+	story.add_child(art_frame)
+
+	var art := TextureRect.new()
+	art.name = "CampfireRoomArt"
+	art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	art.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	art.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	art.texture = _load_texture(last_campfire_art_path)
+	art_frame.add_child(art)
+
+	var title := Label.new()
+	title.text = str(node.get("name", "废墟锻炉"))
+	title.clip_text = true
+	title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	title.add_theme_font_size_override("font_size", 24)
+	title.add_theme_color_override("font_color", Color(1.0, 0.89, 0.62))
+	story.add_child(title)
+
+	var body := Label.new()
+	body.text = "炉火仍有余温，铁砧也足够坚固。你只能在启程前完成一项整备。"
+	body.custom_minimum_size = Vector2(0, 42)
+	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	body.max_lines_visible = 2
+	body.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	body.add_theme_font_size_override("font_size", 14)
+	body.add_theme_color_override("font_color", Color(0.90, 0.92, 0.87))
+	story.add_child(body)
+
+func _add_pc_campfire_actions(parent: Container, action_size: Vector2) -> VBoxContainer:
+	var column := VBoxContainer.new()
+	column.name = "CampfireActionColumn"
+	column.custom_minimum_size = action_size
+	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	column.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	column.add_theme_constant_override("separation", 12)
+	parent.add_child(column)
+
+	var heading := Label.new()
+	heading.text = "选择整备方式"
+	heading.custom_minimum_size = Vector2(0, 34)
+	heading.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	heading.add_theme_font_size_override("font_size", 20)
+	heading.add_theme_color_override("font_color", Color(0.84, 0.92, 0.88))
+	column.add_child(heading)
+
+	var hp_note := Label.new()
+	hp_note.text = "当前生命  %d / %d" % [run_hp, run_max_hp]
+	hp_note.custom_minimum_size = Vector2(0, 24)
+	hp_note.add_theme_font_size_override("font_size", 13)
+	hp_note.add_theme_color_override("font_color", Color(0.68, 0.78, 0.74))
+	column.add_child(hp_note)
+
+	var buttons := VBoxContainer.new()
+	buttons.name = "CampfireActionButtons"
+	buttons.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	buttons.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	buttons.add_theme_constant_override("separation", 12)
+	column.add_child(buttons)
+
+	var action_height: float = max(150.0, floor((action_size.y - 94.0) * 0.5))
+	var rest_button := Button.new()
+	rest_button.name = "CampfireRestButton"
+	rest_button.custom_minimum_size = Vector2(action_size.x, action_height)
+	rest_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rest_button.text = ""
+	rest_button.tooltip_text = "恢复 %d%% 最大生命，随后继续前进。" % _campfire_heal_percent()
+	_apply_button_skin(rest_button, "success", "campfire")
+	_add_pc_campfire_action_layout(
+		rest_button,
+		_hud_icon_path("生命"),
+		"休息",
+		"恢复 %d%% 最大生命" % _campfire_heal_percent(),
+		"%d / %d  →  %d / %d" % [run_hp, run_max_hp, min(run_max_hp, run_hp + max(1, int(ceil(float(run_max_hp) * float(_campfire_heal_percent()) / 100.0)))), run_max_hp]
+	)
+	rest_button.pressed.connect(_on_campfire_heal_pressed)
+	buttons.add_child(rest_button)
+
+	var forge_button := Button.new()
+	var upgrade_candidate_count: int = _campfire_upgrade_candidates().size()
+	forge_button.name = "CampfireForgeButton"
+	forge_button.custom_minimum_size = Vector2(action_size.x, action_height)
+	forge_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	forge_button.text = ""
+	forge_button.tooltip_text = "查看完整牌组并升级一张未升级卡牌。" if upgrade_candidate_count > 0 else "当前牌组没有可升级卡牌。"
+	forge_button.disabled = upgrade_candidate_count == 0
+	_apply_button_skin(forge_button, "relic", "campfire")
+	_add_pc_campfire_action_layout(
+		forge_button,
+		UI_DECK_ICON_PATH,
+		"锻造",
+		"升级 1 张卡牌" if upgrade_candidate_count > 0 else "无需锻造",
+		"%d 张卡牌可升级" % upgrade_candidate_count
+	)
+	forge_button.pressed.connect(_on_campfire_forge_pressed)
+	buttons.add_child(forge_button)
+	last_campfire_action_count = 2
+	return buttons
+
+func _add_pc_campfire_action_layout(button: Button, icon_path: String, title_text: String, subtitle_text: String, detail_text: String) -> void:
+	var margin := MarginContainer.new()
+	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
+	margin.offset_left = 18
+	margin.offset_top = 14
+	margin.offset_right = -18
+	margin.offset_bottom = -14
+	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	button.add_child(margin)
+
+	var row := HBoxContainer.new()
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 16)
+	margin.add_child(row)
+
+	var icon_frame := PanelContainer.new()
+	icon_frame.custom_minimum_size = Vector2(78, 78)
+	icon_frame.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	icon_frame.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	icon_frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	icon_frame.add_theme_stylebox_override("panel", _pc_campfire_action_icon_style())
+	row.add_child(icon_frame)
+
+	var icon := TextureRect.new()
+	icon.custom_minimum_size = Vector2(54, 54)
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.texture = _load_texture(icon_path)
+	icon.modulate = Color(1.0, 0.92, 0.70)
+	icon_frame.add_child(icon)
+
+	var text_box := VBoxContainer.new()
+	text_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	text_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	text_box.alignment = BoxContainer.ALIGNMENT_CENTER
+	text_box.add_theme_constant_override("separation", 6)
+	row.add_child(text_box)
+
+	var title := Label.new()
+	title.text = title_text
+	title.add_theme_font_size_override("font_size", 22)
+	title.add_theme_color_override("font_color", Color(1.0, 0.96, 0.84))
+	text_box.add_child(title)
+
+	var subtitle := Label.new()
+	subtitle.text = subtitle_text
+	subtitle.add_theme_font_size_override("font_size", 15)
+	subtitle.add_theme_color_override("font_color", Color(0.82, 0.90, 0.82))
+	text_box.add_child(subtitle)
+
+	var detail := Label.new()
+	detail.text = detail_text
+	detail.add_theme_font_size_override("font_size", 12)
+	detail.add_theme_color_override("font_color", Color(0.62, 0.72, 0.68))
+	text_box.add_child(detail)
+
+	var route_icon := TextureRect.new()
+	route_icon.custom_minimum_size = Vector2(28, 28)
+	route_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	route_icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	route_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	route_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	route_icon.texture = _load_texture(UI_CONTINUE_ROUTE_ICON_PATH)
+	route_icon.modulate = Color(0.78, 0.88, 0.76)
+	row.add_child(route_icon)
+
+func _add_pc_campfire_forge_selection() -> void:
+	var candidates: Array[Dictionary] = _campfire_upgrade_candidates()
+	last_campfire_upgrade_candidate_count = candidates.size()
+	if reward_scroll != null:
+		reward_scroll.set("vertical_scroll_mode", 3)
+		reward_scroll.scroll_vertical = 0
+
+	var columns: int = 5
+	var card_size := Vector2(184, 226)
+	var row_count: int = max(1, int(ceil(float(max(1, candidates.size())) / float(columns))))
+	var grid_height: float = float(row_count) * card_size.y + float(max(0, row_count - 1)) * 10.0
+	var minimum_height: float = max(520.0, 76.0 + grid_height + 32.0)
+	var stage := PanelContainer.new()
+	stage.name = "PcCampfireForgeSelection"
+	stage.custom_minimum_size = Vector2(_scroll_content_width(), max(last_reward_scroll_height - 2.0, minimum_height))
+	stage.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	stage.clip_contents = true
+	stage.add_theme_stylebox_override("panel", _pc_campfire_stage_style())
+	reward_row.add_child(stage)
+
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 18)
+	margin.add_theme_constant_override("margin_right", 18)
+	margin.add_theme_constant_override("margin_top", 14)
+	margin.add_theme_constant_override("margin_bottom", 14)
+	stage.add_child(margin)
+
+	var content := VBoxContainer.new()
+	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	content.add_theme_constant_override("separation", 10)
+	margin.add_child(content)
+
+	var header := HBoxContainer.new()
+	header.custom_minimum_size = Vector2(0, 44)
+	header.add_theme_constant_override("separation", 10)
+	content.add_child(header)
+
+	var heading_box := VBoxContainer.new()
+	heading_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	heading_box.add_theme_constant_override("separation", 2)
+	header.add_child(heading_box)
+
+	var heading := Label.new()
+	heading.text = "锻造牌组"
+	heading.add_theme_font_size_override("font_size", 22)
+	heading.add_theme_color_override("font_color", Color(1.0, 0.89, 0.62))
+	heading_box.add_child(heading)
+
+	var note := Label.new()
+	note.text = "选择一张卡牌完成升级  ·  %d 张可升级" % candidates.size()
+	note.add_theme_font_size_override("font_size", 12)
+	note.add_theme_color_override("font_color", Color(0.66, 0.76, 0.72))
+	heading_box.add_child(note)
+
+	var back_button := Button.new()
+	back_button.name = "CampfireForgeBackButton"
+	back_button.custom_minimum_size = Vector2(118, 40)
+	back_button.text = "返回篝火"
+	back_button.icon = _load_texture(UI_CONTINUE_ROUTE_ICON_PATH)
+	back_button.expand_icon = true
+	_apply_button_skin(back_button, "neutral", "campfire")
+	back_button.pressed.connect(_on_campfire_forge_back_pressed)
+	header.add_child(back_button)
+
+	var grid_center := CenterContainer.new()
+	grid_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	grid_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	content.add_child(grid_center)
+
+	var grid := GridContainer.new()
+	grid.name = "CampfireUpgradeCards"
+	grid.columns = columns
+	grid.custom_minimum_size = Vector2(float(columns) * card_size.x + float(columns - 1) * 10.0, grid_height)
+	grid.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	grid.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	grid.add_theme_constant_override("h_separation", 10)
+	grid.add_theme_constant_override("v_separation", 10)
+	grid_center.add_child(grid)
+
+	for candidate in candidates:
+		var card: Dictionary = candidate.get("card", {})
+		var deck_index: int = int(candidate.get("deck_index", -1))
+		var button := Button.new()
+		button.name = "CampfireUpgradeCard_%d" % deck_index
+		button.custom_minimum_size = card_size
+		button.text = ""
+		button.tooltip_text = _upgrade_preview_text(card)
+		var art_path: String = _card_art_path(card)
+		var card_texture: Texture2D = _load_texture(art_path)
+		_apply_card_button_skin(button, str(card.get("type", "")), "campfire")
+		_add_structured_card_layout(button, card, card_texture, "campfire")
+		button.pressed.connect(_on_upgrade_card_pressed.bind(deck_index))
+		grid.add_child(button)
+
+	if candidates.is_empty():
+		var empty_label := Label.new()
+		empty_label.text = "当前牌组没有可升级卡牌。"
+		empty_label.custom_minimum_size = Vector2(grid.custom_minimum_size.x, card_size.y)
+		empty_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		empty_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		empty_label.add_theme_font_size_override("font_size", 18)
+		empty_label.add_theme_color_override("font_color", Color(0.74, 0.78, 0.74))
+		grid.add_child(empty_label)
+
+	last_campfire_reveal_animation_count = 1 + candidates.size()
+	if DisplayServer.get_name() != "headless":
+		call_deferred("_play_pc_room_reveal", stage, grid)
+
+func _pc_campfire_stage_style() -> StyleBoxFlat:
+	var style := _button_style(Color(0.040, 0.050, 0.050, 0.97), Color(0.58, 0.64, 0.52, 0.90), 1, 7)
+	style.shadow_color = Color(0, 0, 0, 0.64)
+	style.shadow_size = 8
+	return style
+
+func _pc_campfire_art_frame_style() -> StyleBoxFlat:
+	return _button_style(Color(0.025, 0.030, 0.032, 0.98), Color(0.80, 0.57, 0.25, 0.94), 2, 6)
+
+func _pc_campfire_action_icon_style() -> StyleBoxFlat:
+	var style := _button_style(Color(0.07, 0.085, 0.078, 0.90), Color(0.68, 0.56, 0.30, 0.86), 1, 6)
+	style.content_margin_left = 10
+	style.content_margin_right = 10
+	style.content_margin_top = 10
+	style.content_margin_bottom = 10
+	return style
 
 func _refresh_shop(node: Dictionary) -> void:
 	last_shop_button_style_count = 0
@@ -7302,7 +7686,7 @@ func _refresh_event(node: Dictionary) -> void:
 	last_event_reveal_animation_count = 0
 	_set_page_regions(true, false, false, false, false, true, false, true)
 	_apply_reward_page_layout_constraints(132.0, 204.0)
-	_apply_pc_event_chrome()
+	_apply_pc_story_room_chrome()
 	var event: Dictionary = _event_by_id(str(node.get("event_id", "")))
 	status_label.text = "问号事件：阅读现场信息并选择回应。"
 	feedback_label.visible = false
@@ -7385,9 +7769,9 @@ func _add_pc_event_experience(event: Dictionary, node: Dictionary, event_choices
 	var choice_buttons := stage.find_child("EventChoiceButtons", true, false) as VBoxContainer
 	last_event_reveal_animation_count = 1 + (choice_buttons.get_child_count() if choice_buttons != null else 0)
 	if DisplayServer.get_name() != "headless":
-		call_deferred("_play_pc_event_reveal", stage, choice_buttons)
+		call_deferred("_play_pc_room_reveal", stage, choice_buttons)
 
-func _play_pc_event_reveal(stage: PanelContainer, choice_buttons: VBoxContainer) -> void:
+func _play_pc_room_reveal(stage: PanelContainer, item_container: Container) -> void:
 	if not is_instance_valid(stage) or not stage.is_inside_tree():
 		return
 	stage.modulate = Color(1, 1, 1, 0)
@@ -7397,10 +7781,10 @@ func _play_pc_event_reveal(stage: PanelContainer, choice_buttons: VBoxContainer)
 	stage_tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	stage_tween.tween_property(stage, "modulate:a", 1.0, 0.18)
 	stage_tween.tween_property(stage, "scale", Vector2.ONE, 0.22)
-	if choice_buttons == null:
+	if item_container == null:
 		return
-	for index in range(choice_buttons.get_child_count()):
-		var control := choice_buttons.get_child(index) as Control
+	for index in range(item_container.get_child_count()):
+		var control := item_container.get_child(index) as Control
 		if control == null:
 			continue
 		control.modulate = Color(1, 1, 1, 0)
@@ -11696,6 +12080,16 @@ func _on_campfire_heal_pressed() -> void:
 	_audio_event("campfire")
 	_advance_to_next_node()
 
+func _on_campfire_forge_pressed() -> void:
+	campfire_upgrade_selection_open = true
+	_audio_event("ui_click")
+	_refresh()
+
+func _on_campfire_forge_back_pressed() -> void:
+	campfire_upgrade_selection_open = false
+	_audio_event("ui_click")
+	_refresh()
+
 func _on_upgrade_card_pressed(deck_index: int) -> void:
 	if deck_index < 0 or deck_index >= run_deck_ids.size():
 		return
@@ -12270,6 +12664,9 @@ func _event_art_path(event: Dictionary) -> String:
 	var fallbacks: Dictionary = art_data.get("fallbacks", {})
 	var fallback: String = str(fallbacks.get("event_art", EVENT_ART_PATH))
 	return _asset_path_from_slot("event_art_slots", str(event.get("id", "")), fallback)
+
+func _room_scene_art_path(room_id: String, fallback_path: String = "") -> String:
+	return _asset_path_from_slot("room_scene_slots", room_id, fallback_path)
 
 func _battle_background_path(chapter_id: String) -> String:
 	var fallbacks: Dictionary = art_data.get("fallbacks", {})

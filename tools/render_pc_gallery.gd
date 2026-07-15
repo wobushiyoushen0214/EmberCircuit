@@ -72,6 +72,15 @@ func _run() -> void:
 		main._on_character_selected("ember_exile")
 		_jump_to_node_type(main, "campfire")
 	)
+	await _capture(scene, "07_campfire_720p", func(main):
+		main._on_character_selected("ember_exile")
+		_jump_to_node_type(main, "campfire")
+	, DEFAULT_PC_SNAPSHOT_SIZE)
+	await _capture(scene, "07_campfire_forge_720p", func(main):
+		main._on_character_selected("ember_exile")
+		_jump_to_node_type(main, "campfire")
+		main._on_campfire_forge_pressed()
+	, DEFAULT_PC_SNAPSHOT_SIZE)
 	await _capture(scene, "08_deck", func(main):
 		main._on_character_selected("ember_exile")
 		main._on_deck_view_pressed()

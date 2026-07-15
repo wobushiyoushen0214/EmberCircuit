@@ -1004,19 +1004,90 @@ func _run() -> void:
 		return
 	if not _check(main.last_music_context == "campfire", "campfire uses campfire music context"):
 		return
-	if not _check(main.last_campfire_button_style_count > 0, "campfire actions use styled buttons"):
-		return
-	if not _check(main.last_campfire_card_layout_count > 0 and main.last_campfire_card_art_node_count == main.last_campfire_card_layout_count, "campfire upgrade candidates use structured card layout"):
-		return
-	var first_campfire_card_button := main.reward_row.get_child(2) as Button
+	var first_campfire_card_button: Button
+	var first_card_before: String
+	var first_campfire_deck_index: int = 0
+	var untouched_duplicate_deck_index: int = -1
+	var untouched_duplicate_before: String = ""
+	if main._is_pc_layout():
+		var campfire_stage := main.reward_row.get_node_or_null("PcCampfireExperience") as PanelContainer
+		if not _check(campfire_stage != null and main.reward_row.get_child_count() == 1, "PC campfire opens as one illustrated decision stage"):
+			return
+		if not _check(main.last_campfire_art_loaded and main._asset_loaded(main.last_campfire_art_path), "PC campfire loads its room illustration from the manifest"):
+			return
+		var rest_button := campfire_stage.find_child("CampfireRestButton", true, false) as Button
+		var forge_button := campfire_stage.find_child("CampfireForgeButton", true, false) as Button
+		if not _check(rest_button != null and forge_button != null and main.last_campfire_action_count == 2, "PC campfire presents rest and forge as the two primary decisions"):
+			return
+		if not _check(not forge_button.disabled, "PC campfire enables forge when the deck has upgrade candidates"):
+			return
+		if not _check(main.last_campfire_card_layout_count == 0, "PC campfire does not crowd upgrade cards into the arrival decision stage"):
+			return
+		var original_campfire_deck: Array = main.run_deck_ids.duplicate()
+		for deck_index in range(main.run_deck_ids.size()):
+			var deck_entry: String = str(main.run_deck_ids[deck_index])
+			var deck_card: Dictionary = main._card_by_id(deck_entry)
+			if not deck_entry.ends_with("+") and not deck_card.is_empty() and deck_card.has("upgrade"):
+				main.run_deck_ids[deck_index] = "%s+" % deck_entry
+		main._refresh()
+		campfire_stage = main.reward_row.get_node_or_null("PcCampfireExperience") as PanelContainer
+		forge_button = campfire_stage.find_child("CampfireForgeButton", true, false) as Button if campfire_stage != null else null
+		if not _check(main._campfire_upgrade_candidates().is_empty() and forge_button != null and forge_button.disabled, "PC campfire disables forge when every card is already upgraded"):
+			return
+		main.run_deck_ids = original_campfire_deck
+		main._refresh()
+		campfire_stage = main.reward_row.get_node_or_null("PcCampfireExperience") as PanelContainer
+		forge_button = campfire_stage.find_child("CampfireForgeButton", true, false) as Button if campfire_stage != null else null
+		forge_button.pressed.emit()
+		var forge_stage := main.reward_row.get_node_or_null("PcCampfireForgeSelection") as PanelContainer
+		var forge_grid := forge_stage.find_child("CampfireUpgradeCards", true, false) as GridContainer if forge_stage != null else null
+		var candidates: Array = main._campfire_upgrade_candidates()
+		if not _check(main.campfire_upgrade_selection_open and forge_stage != null, "forge action opens a dedicated upgrade selection stage"):
+			return
+		if not _check(forge_grid != null and forge_grid.get_child_count() == candidates.size() and candidates.size() > 4, "forge selection exposes every upgradeable deck entry instead of only the first four"):
+			return
+		if not _check(main.last_campfire_card_layout_count == candidates.size() and main.last_campfire_card_art_node_count == candidates.size(), "all forge candidates use structured art-backed card layouts"):
+			return
+		var forge_back_button := forge_stage.find_child("CampfireForgeBackButton", true, false) as Button
+		if not _check(forge_back_button != null, "forge selection exposes a return action"):
+			return
+		forge_back_button.pressed.emit()
+		if not _check(not main.campfire_upgrade_selection_open and main.reward_row.get_node_or_null("PcCampfireExperience") != null, "forge return action restores the campfire arrival stage"):
+			return
+		campfire_stage = main.reward_row.get_node_or_null("PcCampfireExperience") as PanelContainer
+		forge_button = campfire_stage.find_child("CampfireForgeButton", true, false) as Button if campfire_stage != null else null
+		forge_button.pressed.emit()
+		forge_stage = main.reward_row.get_node_or_null("PcCampfireForgeSelection") as PanelContainer
+		forge_grid = forge_stage.find_child("CampfireUpgradeCards", true, false) as GridContainer if forge_stage != null else null
+		candidates = main._campfire_upgrade_candidates()
+		var selected_candidate_position: int = 0
+		for candidate_position in range(1, candidates.size()):
+			if str(candidates[candidate_position].get("entry_id", "")) == str(candidates[0].get("entry_id", "")):
+				selected_candidate_position = candidate_position
+				break
+		if not _check(selected_candidate_position > 0, "campfire test deck contains a non-first duplicate upgrade candidate"):
+			return
+		untouched_duplicate_deck_index = int(candidates[0].get("deck_index", -1))
+		untouched_duplicate_before = str(main.run_deck_ids[untouched_duplicate_deck_index])
+		first_campfire_deck_index = int(candidates[selected_candidate_position].get("deck_index", -1))
+		first_campfire_card_button = forge_grid.get_child(selected_candidate_position) as Button
+		first_card_before = str(main.run_deck_ids[first_campfire_deck_index])
+	else:
+		if not _check(main.last_campfire_button_style_count > 0, "campfire actions use styled buttons"):
+			return
+		if not _check(main.last_campfire_card_layout_count > 0 and main.last_campfire_card_art_node_count == main.last_campfire_card_layout_count, "campfire upgrade candidates use structured card layout"):
+			return
+		first_campfire_card_button = main.reward_row.get_child(2) as Button
+		first_card_before = str(main.run_deck_ids[0])
 	if not _check(first_campfire_card_button != null and first_campfire_card_button.get_child_count() >= 1 and first_campfire_card_button.get_child(0) is MarginContainer, "campfire upgrade card button contains a visual layout root"):
 		return
-	var first_card_before: String = str(main.run_deck_ids[0])
 	var first_card: Dictionary = main._card_by_id(first_card_before)
 	if not _check(main._upgrade_preview_text(first_card).contains("=>"), "upgrade preview shows before and after"):
 		return
-	main._on_upgrade_card_pressed(0)
-	if not _check(str(main.run_deck_ids[0]) == "%s+" % first_card_before, "campfire upgrades selected card"):
+	first_campfire_card_button.pressed.emit()
+	if not _check(str(main.run_deck_ids[first_campfire_deck_index]) == "%s+" % first_card_before, "campfire upgrades selected card"):
+		return
+	if untouched_duplicate_deck_index >= 0 and not _check(str(main.run_deck_ids[untouched_duplicate_deck_index]) == untouched_duplicate_before, "campfire upgrades only the selected duplicate card instance"):
 		return
 	main._on_deck_view_pressed()
 	if not _check(main.deck_view_open, "deck view opens"):
@@ -1056,7 +1127,14 @@ func _run() -> void:
 
 	_jump_to_node_type(main, "campfire")
 	main.run_hp = 10
-	main._on_campfire_heal_pressed()
+	if main._is_pc_layout():
+		var heal_stage := main.reward_row.get_node_or_null("PcCampfireExperience") as PanelContainer
+		var heal_button := heal_stage.find_child("CampfireRestButton", true, false) as Button if heal_stage != null else null
+		if not _check(heal_button != null, "PC campfire rest action remains available on a later visit"):
+			return
+		heal_button.pressed.emit()
+	else:
+		main._on_campfire_heal_pressed()
 	if not _check(main.run_hp > 10, "campfire healing restores HP"):
 		return
 

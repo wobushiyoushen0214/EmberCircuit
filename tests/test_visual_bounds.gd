@@ -275,6 +275,46 @@ func _run() -> void:
 	_check(not default_pc_main.log_label.visible, "default PC map removes the legacy RichTextLabel detail strip")
 	_check(int(default_pc_main.map_scroll.get("horizontal_scroll_mode")) == 0 and not default_pc_main.map_scroll.get_h_scroll_bar().visible, "default PC map fits without a horizontal scrollbar")
 	_check(default_pc_main.map_view.find_children("*", "ScrollContainer", true, false).is_empty(), "default PC map detail panel contains no nested scroll containers")
+	_jump_to_node_type(default_pc_main, "campfire")
+	await process_frame
+	await process_frame
+	var campfire_stage := default_pc_main.reward_row.get_node_or_null("PcCampfireExperience") as PanelContainer
+	var campfire_forge_button := campfire_stage.find_child("CampfireForgeButton", true, false) as Button if campfire_stage != null else null
+	_check(campfire_stage != null and default_pc_main.reward_row.get_child_count() == 1, "default PC campfire uses one illustrated decision stage")
+	_check(int(default_pc_main.reward_scroll.get("vertical_scroll_mode")) == 0 and not default_pc_main.reward_scroll.get_v_scroll_bar().visible, "default PC campfire arrival does not expose a page scrollbar")
+	_check(_control_inside_vertical(campfire_stage, default_pc_main.reward_scroll), "default PC campfire decision stage stays inside the reward viewport")
+	_check(campfire_forge_button != null, "default PC campfire exposes the forge action")
+	if campfire_forge_button != null:
+		campfire_forge_button.pressed.emit()
+	await process_frame
+	await process_frame
+	var campfire_forge_stage := default_pc_main.reward_row.get_node_or_null("PcCampfireForgeSelection") as PanelContainer
+	var campfire_forge_grid := campfire_forge_stage.find_child("CampfireUpgradeCards", true, false) as GridContainer if campfire_forge_stage != null else null
+	_check(campfire_forge_stage != null and campfire_forge_grid != null, "default PC forge action opens a complete card-selection stage")
+	_check(int(default_pc_main.reward_scroll.get("vertical_scroll_mode")) == 3 and not default_pc_main.reward_scroll.get_v_scroll_bar().visible, "default PC forge selection keeps wheel navigation without a visible scrollbar")
+	_check(campfire_forge_grid != null and campfire_forge_grid.get_child_count() == default_pc_main._campfire_upgrade_candidates().size(), "default PC forge grid includes every upgradeable card")
+	var original_campfire_deck: Array = default_pc_main.run_deck_ids.duplicate()
+	var initial_campfire_candidates: Array = default_pc_main._campfire_upgrade_candidates()
+	if not initial_campfire_candidates.is_empty():
+		var repeated_card_id: String = str(initial_campfire_candidates[0].get("entry_id", ""))
+		for extra_copy in range(6):
+			default_pc_main.run_deck_ids.append(repeated_card_id)
+		default_pc_main._refresh()
+		await process_frame
+		await process_frame
+		campfire_forge_stage = default_pc_main.reward_row.get_node_or_null("PcCampfireForgeSelection") as PanelContainer
+		campfire_forge_grid = campfire_forge_stage.find_child("CampfireUpgradeCards", true, false) as GridContainer if campfire_forge_stage != null else null
+		var long_deck_candidates: Array = default_pc_main._campfire_upgrade_candidates()
+		var campfire_scroll_bar: VScrollBar = default_pc_main.reward_scroll.get_v_scroll_bar()
+		_check(long_deck_candidates.size() > 10 and campfire_forge_grid != null and campfire_forge_grid.get_child_count() == long_deck_candidates.size(), "long PC deck renders every forge candidate across more than two rows")
+		_check(campfire_scroll_bar.max_value > campfire_scroll_bar.page and not campfire_scroll_bar.visible, "long PC forge grid is scrollable while the system scrollbar stays hidden")
+		default_pc_main.reward_scroll.scroll_vertical = int(campfire_scroll_bar.max_value)
+		await process_frame
+		await process_frame
+		var last_forge_card := campfire_forge_grid.get_child(campfire_forge_grid.get_child_count() - 1) as Control if campfire_forge_grid != null and campfire_forge_grid.get_child_count() > 0 else null
+		_check(_control_inside_vertical(last_forge_card, default_pc_main.reward_scroll), "long PC forge grid can scroll its final card fully into view")
+	default_pc_main.run_deck_ids = original_campfire_deck
+	default_pc_main.campfire_upgrade_selection_open = false
 	_jump_to_event_id(default_pc_main, "broken_reactor")
 	await process_frame
 	await process_frame

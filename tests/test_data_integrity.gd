@@ -69,6 +69,7 @@ func _init() -> void:
 	var potion_icon_slots_by_id: Dictionary = DataLoaderScript.index_by_id(art_data.get("potion_icon_slots", []))
 	var event_art_slots_by_id: Dictionary = DataLoaderScript.index_by_id(art_data.get("event_art_slots", []))
 	var battle_background_slots_by_id: Dictionary = DataLoaderScript.index_by_id(art_data.get("battle_background_slots", []))
+	var room_scene_slots_by_id: Dictionary = DataLoaderScript.index_by_id(art_data.get("room_scene_slots", []))
 	var vfx_profiles_by_id: Dictionary = DataLoaderScript.index_by_id(vfx_data.get("profiles", []))
 	var achievements_by_id: Dictionary = DataLoaderScript.index_by_id(achievement_data.get("achievements", []))
 	var statuses_by_id: Dictionary = DataLoaderScript.index_by_id(status_data.get("statuses", []))
@@ -186,6 +187,9 @@ func _init() -> void:
 	_check(potion_icon_slots_by_id.size() >= potion_data.get("potions", []).size(), "art manifest covers potion icon slots")
 	_check(event_art_slots_by_id.size() >= event_data.get("events", []).size(), "art manifest covers event art slots")
 	_check(battle_background_slots_by_id.size() >= map_generation_data.get("chapter_sequence", []).size(), "art manifest covers chapter battle backgrounds")
+	var campfire_room_slot: Dictionary = room_scene_slots_by_id.get("campfire", {})
+	_validate_art_slot(campfire_room_slot, "campfire room scene slot", "res://assets/art/rooms/")
+	_validate_svg_art_quality(str(campfire_room_slot.get("asset_path", "")), "campfire room scene art quality", 16, true)
 	for chapter_id in map_generation_data.get("chapter_sequence", []):
 		var chapter_id_string: String = str(chapter_id)
 		var background_slot: Dictionary = battle_background_slots_by_id.get(chapter_id_string, {})
