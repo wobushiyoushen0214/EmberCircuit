@@ -316,6 +316,21 @@ func _run() -> void:
 		return
 	if not _check(main.player_portrait != null and main.player_portrait.texture != null, "default character portrait loads"):
 		return
+	var phased_normal_enemy: Dictionary = main.combat.enemies[0]
+	var phased_normal_original_data: Dictionary = phased_normal_enemy.get("data", {})
+	var phased_normal_probe_data: Dictionary = phased_normal_original_data.duplicate(true)
+	phased_normal_probe_data["phases"] = [{
+		"id": "normal_probe_phase",
+		"name": "普通敌人阶段探针",
+		"hp_percent_below": 50,
+		"phase_note": "仅用于验证普通敌人不获得 Boss 阶段 HUD。"
+	}]
+	phased_normal_enemy["data"] = phased_normal_probe_data
+	main._refresh_enemies()
+	if not _check(main.enemy_stage_stack.find_child("BossPhaseBadge", true, false) == null and main.enemy_stage_stack.find_child("BossPhaseThreshold_0", true, false) == null, "normal enemies never render boss phase badges or thresholds even when phase-shaped data exists"):
+		return
+	phased_normal_enemy["data"] = phased_normal_original_data
+	main._refresh_enemies()
 	main._on_character_selected("arc_tinker")
 	if not _check(main.selected_character_id == "arc_tinker", "character run can switch to arc tinker"):
 		return
@@ -872,13 +887,18 @@ func _run() -> void:
 		"turn": main.combat.turn
 	})
 	main._refresh_feedback()
-	if not _check(main.last_cinematic_event_type == "phase", "phase feedback opens cinematic prompt"):
+	if not _check(main.last_cinematic_event_type == "phase", "phase feedback routes through the phase presentation contract"):
 		return
-	if not _check(main.last_cinematic_title.contains("BOSS"), "phase cinematic prompt has boss title"):
+	if not _check(main.last_cinematic_title.contains("BOSS"), "phase presentation keeps a boss title"):
 		return
-	if not _check(main.last_cinematic_subtitle.contains("过载祷文"), "phase cinematic prompt shows phase message"):
+	if not _check(main.last_cinematic_subtitle.contains("过载祷文"), "phase presentation keeps the phase message"):
 		return
-	if not _check(main.cinematic_overlay.visible, "phase cinematic prompt is visible"):
+	var generic_phase_banner := main.enemy_stage_stack.get_node_or_null("BossPhaseBanner") as Control
+	if not _check(generic_phase_banner != null and bool(main.get("last_boss_phase_banner_visible")), "phase feedback uses a stable battle-stage banner"):
+		return
+	if not _check(not main.cinematic_overlay.visible, "phase feedback no longer dims the entire page with the global cinematic overlay"):
+		return
+	if not _check(not main.feedback_label.visible and main.last_feedback_label_suppressed_for_stage, "battle-stage phase banner replaces the duplicate legacy feedback strip"):
 		return
 	if not _check(main.last_feedback_audio_event == "phase", "generic phase feedback keeps fallback phase audio"):
 		return
@@ -906,6 +926,10 @@ func _run() -> void:
 		return
 	if not _check(main._boss_phase_profile("nexus_heart", 1).get("audio_event", "") == "phase_nexus", "nexus heart exposes dedicated phase audio"):
 		return
+	var time_scale_before_local_stop: float = Engine.time_scale
+	main._request_hit_stop(0.040)
+	if not _check(is_equal_approx(Engine.time_scale, time_scale_before_local_stop) and str(main.get("last_hit_stop_scope")) == "battle_stage", "hit stop remains local to the battle stage instead of slowing all UI"):
+		return
 
 	main.combat.feedback_events.append({
 		"type": "won",
@@ -920,8 +944,23 @@ func _run() -> void:
 		return
 	if not _check(main.last_cinematic_title.contains("胜利"), "victory cinematic prompt has victory title"):
 		return
+	if not _check(main.cinematic_overlay.visible, "victory feedback keeps the full-screen terminal overlay"):
+		return
 	if not _check(main.last_feedback_audio_event == "victory", "victory feedback maps to victory audio"):
 		return
+	main._hide_cinematic_prompt()
+	main.combat.feedback_events.append({
+		"type": "lost",
+		"message": "战败",
+		"target_id": "player",
+		"amount": 0,
+		"severity": "danger",
+		"turn": main.combat.turn
+	})
+	main._refresh_feedback()
+	if not _check(main.last_cinematic_event_type == "lost" and main.cinematic_overlay.visible, "defeat feedback keeps the full-screen terminal overlay"):
+		return
+	main._hide_cinematic_prompt()
 
 	var gold_before_combat_reward: int = main.run_gold
 	main.economy_data["potion_reward"]["drop_chance_percent"] = 100
@@ -1391,6 +1430,50 @@ func _run() -> void:
 		return
 
 	_jump_to_node_type(main, "boss")
+	var boss_phase_badge := main.enemy_stage_stack.find_child("BossPhaseBadge", true, false) as Control
+	var initial_badge_value: Variant = main.get("last_boss_phase_badge_texts")
+	var initial_badge_texts: Array = initial_badge_value if initial_badge_value is Array else []
+	if not _check(boss_phase_badge != null and not initial_badge_texts.is_empty() and str(initial_badge_texts[0]) == "阶段 1/3", "PC boss stage shows the initial phase badge"):
+		return
+	if not _check(int(main.get("last_boss_phase_threshold_marker_count")) == 2 and main.enemy_stage_stack.find_child("BossPhaseThreshold_0", true, false) != null and main.enemy_stage_stack.find_child("BossPhaseThreshold_1", true, false) != null, "PC boss health bar shows both configured phase thresholds"):
+		return
+	var initial_boss_tooltip: String = main._enemy_tooltip_text(main.combat.enemies[0])
+	if not _check(str((main.combat.enemies[0] as Dictionary).get("data", {}).get("tier", "")) == "boss" and initial_boss_tooltip.contains("下一阶段：第二布道") and initial_boss_tooltip.contains("66%") and initial_boss_tooltip.contains("获得 8 点护甲"), "boss tooltip forecasts the next threshold and phase note from enemy data"):
+		return
+	var phase_boss: Dictionary = main.combat.enemies[0]
+	var phase_boss_original_data: Dictionary = phase_boss.get("data", {})
+	var absolute_threshold_probe_data: Dictionary = phase_boss_original_data.duplicate(true)
+	absolute_threshold_probe_data["phases"] = [{
+		"id": "absolute_threshold_probe",
+		"name": "绝对阈值探针",
+		"hp_below": int(phase_boss.get("max_hp", 1)) / 2,
+		"phase_note": "验证绝对生命阈值与百分比阈值使用同一血条轨道。"
+	}]
+	phase_boss["data"] = absolute_threshold_probe_data
+	main._refresh_enemies()
+	var absolute_threshold_marker := main.enemy_stage_stack.find_child("BossPhaseThreshold_0", true, false) as Control
+	if not _check(absolute_threshold_marker != null and is_equal_approx(absolute_threshold_marker.anchor_left, 0.5), "boss health bar renders absolute hp_below thresholds on the same data-driven track"):
+		return
+	phase_boss["data"] = phase_boss_original_data
+	main._refresh_enemies()
+	var phase_target_hp: int = int(floor(float(int(phase_boss.get("max_hp", 1))) * 0.50))
+	main.combat._damage_enemy(phase_boss, max(1, int(phase_boss.get("hp", 1)) - phase_target_hp), {"name": "阶段 UI 测试", "ignore_player_modifiers": true})
+	main._refresh_combat()
+	var real_phase_banner := main.enemy_stage_stack.get_node_or_null("BossPhaseBanner") as Control
+	var active_badge_value: Variant = main.get("last_boss_phase_badge_texts")
+	var active_badge_texts: Array = active_badge_value if active_badge_value is Array else []
+	if not _check(real_phase_banner != null and real_phase_banner.mouse_filter == Control.MOUSE_FILTER_IGNORE and str(main.get("last_boss_phase_banner_title")).contains("熔炉主教 · 阶段 2/3 · 第二布道") and str(main.get("last_boss_phase_banner_effect")).contains("护甲"), "real boss transition banner shows boss, ordinal, phase, entry effect and ignores mouse input"):
+		return
+	if not _check(str(main.get("last_boss_phase_banner_intent")).contains("攻击") and not active_badge_texts.is_empty() and str(active_badge_texts[0]) == "阶段 2/3", "real boss transition exposes its new intent and updates the persistent badge"):
+		return
+	var final_phase_target_hp: int = int(floor(float(int(phase_boss.get("max_hp", 1))) * 0.20))
+	var final_phase_damage: int = max(1, int(phase_boss.get("hp", 1)) + int(phase_boss.get("block", 0)) - final_phase_target_hp)
+	main.combat._damage_enemy(phase_boss, final_phase_damage, {"name": "最终阶段 UI 测试", "ignore_player_modifiers": true})
+	main._refresh_combat()
+	var final_badge_value: Variant = main.get("last_boss_phase_badge_texts")
+	var final_badge_texts: Array = final_badge_value if final_badge_value is Array else []
+	if not _check(not final_badge_texts.is_empty() and str(final_badge_texts[0]) == "阶段 3/3" and str(main.get("last_boss_phase_banner_title")).contains("终末礼拜"), "real boss final transition exposes stage 3/3 and its configured phase name"):
+		return
 	if not _check(main.last_music_context == "boss", "active boss combat uses boss music context"):
 		return
 	main.combat.phase = "won"

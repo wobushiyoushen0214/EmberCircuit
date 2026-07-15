@@ -7,6 +7,8 @@ const WIDE_SNAPSHOT_SIZE := Vector2i(2048, 1066)
 const DEFAULT_PC_SNAPSHOT_SIZE := Vector2i(1280, 720)
 const OUT_DIR := "/tmp/embercircuit_pc_gallery"
 
+var capture_failures: Array[String] = []
+
 func _init() -> void:
 	_run.call_deferred()
 
@@ -129,9 +131,16 @@ func _run() -> void:
 	await _capture(scene, "26_forge_bishop_art_720p", _encounter_snapshot_setup("chapter_one_boss", "pyre_ascetic"), DEFAULT_PC_SNAPSHOT_SIZE)
 	await _capture(scene, "27_power_card_frame_720p", Callable(self, "_setup_power_card_snapshot"), DEFAULT_PC_SNAPSHOT_SIZE)
 	await _capture(scene, "28_deck_grid_720p", Callable(self, "_setup_deck_grid_snapshot"), DEFAULT_PC_SNAPSHOT_SIZE)
+	await _capture(scene, "30_forge_bishop_phase_720p", Callable(self, "_setup_boss_phase_snapshot").bind("chapter_one", "chapter_one_boss"), DEFAULT_PC_SNAPSHOT_SIZE, 0.55)
+	await _capture(scene, "31_storm_archon_phase_720p", Callable(self, "_setup_boss_phase_snapshot").bind("chapter_two", "chapter_two_boss"), DEFAULT_PC_SNAPSHOT_SIZE, 0.55)
+	await _capture(scene, "32_nexus_heart_phase_720p", Callable(self, "_setup_boss_phase_snapshot").bind("chapter_three", "chapter_three_boss"), DEFAULT_PC_SNAPSHOT_SIZE, 0.55)
 	_release_audio_streams()
 	SaveManagerScript.cleanup_storage_namespace()
 	SaveManagerScript.clear_storage_namespace()
+	if not capture_failures.is_empty():
+		push_error("PC gallery failed captures: %s" % ", ".join(capture_failures))
+		quit(1)
+		return
 	print("Saved PC gallery snapshots to %s" % OUT_DIR)
 	quit(0)
 
@@ -147,18 +156,31 @@ func _capture(scene: PackedScene, name: String, setup: Callable, snapshot_size: 
 	viewport.add_child(main)
 	await process_frame
 	await process_frame
+	var setup_succeeded := true
 	if setup.is_valid():
-		setup.call(main)
+		var setup_result: Variant = setup.call(main)
+		if setup_result is bool:
+			setup_succeeded = setup_result
 		await process_frame
 		await process_frame
+	if not setup_succeeded:
+		capture_failures.append(name)
+		await _dispose_capture(viewport, main)
+		return
 	await create_timer(settle_seconds).timeout
+	viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
 	await process_frame
+	await RenderingServer.frame_post_draw
 
 	var image: Image = viewport.get_texture().get_image()
 	var path := "%s/%s.png" % [OUT_DIR, name]
 	var error: Error = image.save_png(path)
 	if error != OK:
 		push_error("Failed to save PC gallery snapshot: %s" % path)
+		capture_failures.append(name)
+	await _dispose_capture(viewport, main)
+
+func _dispose_capture(viewport: SubViewport, main: Node) -> void:
 	viewport.remove_child(main)
 	main.queue_free()
 	root.remove_child(viewport)
@@ -254,6 +276,42 @@ func _setup_deck_mastery_snapshot(main) -> void:
 	main.relic_reward_done = true
 	main.potion_reward_done = true
 	main._refresh_combat()
+
+func _setup_boss_phase_snapshot(main, chapter_id: String, encounter_id: String) -> bool:
+	main._on_character_selected("arc_tinker")
+	main.current_chapter_id = chapter_id
+	main.route_nodes = [{
+		"id": "gallery_%s_phase" % encounter_id,
+		"type": "boss",
+		"encounter_id": encounter_id
+	}]
+	main.current_node_id = "gallery_%s_phase" % encounter_id
+	main.current_node_index = 0
+	main.available_node_ids.clear()
+	main.available_node_ids.append(main.current_node_id)
+	main._start_current_node()
+	if main.combat == null or main.combat.enemies.is_empty():
+		push_error("Boss phase gallery setup has no combat enemy: %s" % encounter_id)
+		return false
+	var boss: Dictionary = main.combat.enemies[0]
+	var boss_data: Dictionary = boss.get("data", {})
+	var phases: Array = boss_data.get("phases", [])
+	if str(boss_data.get("tier", "")) != "boss" or phases.is_empty() or not phases[0] is Dictionary:
+		push_error("Boss phase gallery encounter lacks configured Boss phases: %s" % encounter_id)
+		return false
+	var first_phase: Dictionary = phases[0]
+	var threshold_ratio: float = main._boss_phase_threshold_ratio(boss, first_phase)
+	if threshold_ratio < 0.0:
+		push_error("Boss phase gallery phase has no supported threshold: %s" % encounter_id)
+		return false
+	var target_hp: int = max(1, int(floor(float(int(boss.get("max_hp", 1))) * threshold_ratio)))
+	var transition_damage: int = max(1, int(boss.get("hp", 1)) + int(boss.get("block", 0)) - target_hp)
+	main.combat._damage_enemy(boss, transition_damage, {"name": "阶段图库", "ignore_player_modifiers": true})
+	main._refresh_combat()
+	if int(boss.get("phase_index", -1)) < 0 or main.enemy_stage_stack.get_node_or_null("BossPhaseBanner") == null:
+		push_error("Boss phase gallery failed to enter and present the first phase: %s" % encounter_id)
+		return false
+	return true
 
 func _encounter_snapshot_setup(encounter_id: String, character_id: String) -> Callable:
 	return func(main):

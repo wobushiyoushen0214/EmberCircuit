@@ -240,6 +240,57 @@ func _run() -> void:
 	await process_frame
 	await process_frame
 	_check(default_pc_main.controls_scroll.visible and default_pc_main.hand_frame.visible, "closing the deck view restores combat controls and hand")
+	var phase_pc_host := Control.new()
+	phase_pc_host.custom_minimum_size = default_pc_size
+	phase_pc_host.size = default_pc_size
+	phase_pc_host.clip_contents = true
+	root.add_child(phase_pc_host)
+	var phase_pc_main = scene.instantiate()
+	phase_pc_main.debug_viewport_size_override = default_pc_size
+	phase_pc_host.add_child(phase_pc_main)
+	await process_frame
+	await process_frame
+	phase_pc_main._on_character_selected("arc_tinker")
+	phase_pc_main.route_nodes = [{"id": "phase_bounds_boss", "type": "boss", "encounter_id": "chapter_one_boss"}]
+	phase_pc_main.current_node_id = "phase_bounds_boss"
+	phase_pc_main.current_node_index = 0
+	phase_pc_main.available_node_ids.clear()
+	phase_pc_main.available_node_ids.append("phase_bounds_boss")
+	phase_pc_main._start_current_node()
+	var bounds_boss: Dictionary = phase_pc_main.combat.enemies[0]
+	var bounds_phase_hp: int = int(floor(float(int(bounds_boss.get("max_hp", 1))) * 0.50))
+	phase_pc_main.combat._damage_enemy(bounds_boss, max(1, int(bounds_boss.get("hp", 1)) - bounds_phase_hp), {"name": "阶段边界测试", "ignore_player_modifiers": true})
+	phase_pc_main._refresh_combat()
+	await process_frame
+	await process_frame
+	var phase_banner := phase_pc_main.enemy_stage_stack.get_node_or_null("BossPhaseBanner") as Control
+	var phase_badge := phase_pc_main.enemy_stage_stack.find_child("BossPhaseBadge", true, false) as Control
+	var phase_threshold_0 := phase_pc_main.enemy_stage_stack.find_child("BossPhaseThreshold_0", true, false) as Control
+	var phase_threshold_1 := phase_pc_main.enemy_stage_stack.find_child("BossPhaseThreshold_1", true, false) as Control
+	_check(phase_banner != null and phase_badge != null and phase_threshold_0 != null and phase_threshold_1 != null, "default PC boss phase renders banner, badge and two threshold markers")
+	_check(_control_inside_horizontal(phase_banner, phase_pc_main.enemy_stage_panel) and _control_inside_vertical(phase_banner, phase_pc_main.enemy_stage_panel), "default PC boss phase banner stays inside the battle stage")
+	_check(_control_inside_horizontal(phase_badge, phase_pc_main.enemy_stage_panel) and _control_inside_vertical(phase_badge, phase_pc_main.enemy_stage_panel), "default PC boss phase badge stays inside the battle stage")
+	_check(phase_pc_main.last_combat_layout_overflow <= 0.0 and not phase_pc_main.page_scroll.get_v_scroll_bar().visible, "default PC boss phase presentation keeps the 720p page fixed")
+	phase_pc_main._restore_battle_stage_processing()
+	var hit_stop_stage: Control = phase_pc_main.enemy_stage_stack
+	var hit_stop_original_mode: int = Node.PROCESS_MODE_ALWAYS
+	hit_stop_stage.process_mode = hit_stop_original_mode
+	var hit_stop_time_scale: float = Engine.time_scale
+	phase_pc_main._request_hit_stop(0.050)
+	_check(hit_stop_stage.process_mode == Node.PROCESS_MODE_DISABLED and phase_pc_main.hit_stop_active, "local hit stop disables only the battle stage while active")
+	await create_timer(0.030, true, false, true).timeout
+	phase_pc_main._request_hit_stop(0.120)
+	await create_timer(0.040, true, false, true).timeout
+	_check(hit_stop_stage.process_mode == Node.PROCESS_MODE_DISABLED and phase_pc_main.hit_stop_active, "overlapping local hit stop remains active past the first request deadline")
+	await create_timer(0.110, true, false, true).timeout
+	_check(hit_stop_stage.process_mode == hit_stop_original_mode and not phase_pc_main.hit_stop_active and is_equal_approx(Engine.time_scale, hit_stop_time_scale), "local hit stop restores the original stage process mode without changing global time")
+	phase_pc_main._request_hit_stop(0.200)
+	_check(hit_stop_stage.process_mode == Node.PROCESS_MODE_DISABLED, "exit recovery probe starts with the battle stage disabled")
+	phase_pc_host.remove_child(phase_pc_main)
+	_check(hit_stop_stage.process_mode == hit_stop_original_mode and not phase_pc_main.hit_stop_active and is_equal_approx(Engine.time_scale, hit_stop_time_scale), "leaving the tree restores battle-stage processing immediately")
+	phase_pc_main.queue_free()
+	phase_pc_host.queue_free()
+	await process_frame
 
 	var defeat_pc_host := Control.new()
 	defeat_pc_host.custom_minimum_size = default_pc_size

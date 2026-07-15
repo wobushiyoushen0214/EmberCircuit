@@ -829,3 +829,15 @@ jq empty data/cards/cards.json data/enemies/enemies.json data/relics/relics.json
 - 最终发布门禁为 18/18 Godot 测试严格日志扫描通过、153 槽位资源审计 0 缺失/0 hard error、Godot headless 启动通过。
 - 构建标记升级为 `0.1.0-alpha.5`，macOS bundle build number 升级为 5。
 - `0.1.0-alpha.5` 从源码提交 `a66ee28` 导出：Windows PE x86_64 embedded-PCK 与 macOS universal 包均通过解压后启动、资源入包、版本和签名验证；SHA-256 分别为 `491e6f5e6da8f9b1337401e33bb77c5129014597898c62c81ca7bd6a5b380da1` 与 `7377d2fbf5945d470c8366a6e49c8c6f9313bae83f0e01ed85d093d1e6921054`。
+
+## PC Boss 阶段反馈与第六轮试玩准备
+
+- 三章 Boss 战场新增常驻阶段徽章：初始、第二阶段和最终阶段分别显示 `阶段 1/3`、`阶段 2/3`、`阶段 3/3`；普通敌人不显示该控件。
+- Boss 血条按 `enemies.json` 的 `hp_percent_below` 数据绘制 66%/33% 两条阈值线；tooltip 同步显示当前阶段、下一阈值、下一阶段名称和阶段说明，不在 UI 中复制战斗规则。
+- Boss 转阶段不再使用全屏黑色 cinematic 遮罩，改为战场内横幅；横幅读取真实运行态 Boss、阶段名、`on_enter_effects` 和切换后的 `current_action.intent`，展示护甲/力量/状态牌等入场后果及下一意图。
+- 阶段横幅继续复用三名 Boss 的现有 VFX 颜色、射线、音频、震屏和角色动画画像；PC 下隐藏重复的旧反馈条，胜利和失败仍保留原终局全屏提示。
+- 受击顿帧不再写入全局 `Engine.time_scale`，只临时禁用敌方战场处理；重叠请求按最晚截止时间恢复，横幅 Tween 使用 `PROCESS_MODE_ALWAYS` 和 ignore time scale，退出节点时强制恢复战场状态。
+- PC 图库新增 `30_forge_bishop_phase_720p.png`、`31_storm_archon_phase_720p.png` 和 `32_nexus_heart_phase_720p.png`；真实 `_damage_enemy()` 触发阶段，SubViewport 在 `frame_post_draw` 后读取，三张 `1280x720` 图均无缺帧黑区、裁切或滚动条。
+- 18/18 Godot 测试严格日志扫描通过；测试和完整图库前后真实 Profile、设置、真人遥测与报告 SHA-256 完全一致。
+- 本轮未修改卡牌、角色、怪物、成长、挑战或经济数值；真人每角色/挑战格达到 12/30 个完成局前继续冻结硬调参。
+- 构建标记升级为 `0.1.0-alpha.6`，macOS bundle build number 升级为 6。

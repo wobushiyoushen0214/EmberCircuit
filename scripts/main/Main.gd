@@ -136,6 +136,7 @@ var menu_backdrop_tween: Tween
 var screen_shake_tween: Tween
 var feedback_label_tween: Tween
 var cinematic_tween: Tween
+var boss_phase_banner_tween: Tween
 var stage_forecast_refresh_pending: bool = false
 
 var run_deck_ids: Array = []
@@ -275,6 +276,7 @@ var last_flash_target_id: String = ""
 var last_feedback_visual_type: String = ""
 var last_hit_stop_duration: float = 0.0
 var last_hit_stop_request_count: int = 0
+var last_hit_stop_scope: String = ""
 var last_screen_shake_intensity: float = 0.0
 var last_floating_text_count: int = 0
 var last_cinematic_event_type: String = ""
@@ -287,6 +289,14 @@ var last_impact_vfx_asset_path: String = ""
 var last_impact_vfx_asset_loaded: bool = false
 var last_impact_ray_count: int = 0
 var last_phase_animation_target_id: String = ""
+var last_boss_phase_badge_count: int = 0
+var last_boss_phase_badge_texts: Array[String] = []
+var last_boss_phase_threshold_marker_count: int = 0
+var last_boss_phase_banner_visible: bool = false
+var last_boss_phase_banner_title: String = ""
+var last_boss_phase_banner_note: String = ""
+var last_boss_phase_banner_effect: String = ""
+var last_boss_phase_banner_intent: String = ""
 var last_card_preview_index: int = -1
 var last_card_preview_card_id: String = ""
 var last_card_preview_target_id: String = ""
@@ -551,7 +561,8 @@ var last_card_drag_ghost_uses_art: bool = false
 var last_card_drag_curve_point_count: int = 0
 var hit_stop_ticket: int = 0
 var hit_stop_active: bool = false
-var hit_stop_restore_scale: float = 1.0
+var hit_stop_restore_process_mode: int = Node.PROCESS_MODE_INHERIT
+var hit_stop_deadline_msec: int = 0
 var refresh_call_count: int = 0
 var layout_refresh_pending: bool = false
 var last_music_context: String = ""
@@ -586,6 +597,9 @@ func _notification(what: int) -> void:
 		if is_node_ready() and not layout_refresh_pending:
 			layout_refresh_pending = true
 			call_deferred("_refresh_after_resize")
+
+func _exit_tree() -> void:
+	_restore_battle_stage_processing()
 
 func _refresh_after_resize() -> void:
 	layout_refresh_pending = false
@@ -9032,6 +9046,9 @@ func _add_pc_potion_slot_layout(button: Button, icon_texture: Texture2D, occupie
 func _refresh_enemies() -> void:
 	_clear_container(enemy_row)
 	enemy_visuals_by_id.clear()
+	last_boss_phase_badge_count = 0
+	last_boss_phase_badge_texts.clear()
+	last_boss_phase_threshold_marker_count = 0
 	last_enemy_intent_badge_count = 0
 	last_enemy_intent_badge_texts.clear()
 	last_enemy_intent_badge_types.clear()
@@ -9174,6 +9191,7 @@ func _add_pc_enemy_stage_layout(panel: Control, enemy: Dictionary, enemy_index: 
 	intent_badge.size = intent_badge.custom_minimum_size
 	intent_badge.position = Vector2((panel_width - intent_badge.size.x) * 0.5, 2.0)
 	panel.add_child(intent_badge)
+	_add_pc_boss_phase_badge(panel, enemy, panel_width)
 
 	var hp_plate := PanelContainer.new()
 	hp_plate.name = "EnemyHpPlate"
@@ -9202,6 +9220,46 @@ func _add_pc_enemy_stage_layout(panel: Control, enemy: Dictionary, enemy_index: 
 		"intent_badge": intent_badge,
 		"button": hit_area
 	}
+
+func _add_pc_boss_phase_badge(panel: Control, enemy: Dictionary, panel_width: float) -> void:
+	var data: Dictionary = enemy.get("data", {})
+	var phases: Array = data.get("phases", [])
+	if str(data.get("tier", "")) != "boss" or phases.is_empty():
+		return
+	var phase_index: int = int(enemy.get("phase_index", -1))
+	var phase_ordinal: int = clampi(phase_index + 2, 1, phases.size() + 1)
+	var badge_text := "阶段 %d/%d" % [phase_ordinal, phases.size() + 1]
+	var profile_index: int = clampi(phase_index, 0, phases.size() - 1)
+	var profile: Dictionary = _boss_phase_profile(str(enemy.get("id", "")), profile_index)
+	var accent: Color = _vfx_profile_color(profile) if not profile.is_empty() else Color(1.0, 0.72, 0.30, 1.0)
+
+	var badge := PanelContainer.new()
+	badge.name = "BossPhaseBadge"
+	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	badge.custom_minimum_size = Vector2(88, 24)
+	badge.size = badge.custom_minimum_size
+	badge.position = Vector2(max(4.0, panel_width - badge.size.x - 4.0), 4.0)
+	badge.z_index = 8
+	var style := _button_style(Color(accent.r * 0.12, accent.g * 0.12, accent.b * 0.12, 0.94), Color(accent.r, accent.g, accent.b, 0.90), 1, 5)
+	style.content_margin_left = 6
+	style.content_margin_right = 6
+	style.content_margin_top = 2
+	style.content_margin_bottom = 2
+	style.shadow_size = 4
+	badge.add_theme_stylebox_override("panel", style)
+	panel.add_child(badge)
+
+	var label := Label.new()
+	label.name = "BossPhaseBadgeLabel"
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.text = badge_text
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", 11)
+	label.add_theme_color_override("font_color", accent.lightened(0.26))
+	badge.add_child(label)
+	last_boss_phase_badge_count += 1
+	last_boss_phase_badge_texts.append(badge_text)
 
 func _add_pc_enemy_info_strip_layout(info_strip: PanelContainer, enemy: Dictionary, selected: bool) -> void:
 	var margin := MarginContainer.new()
@@ -9643,6 +9701,27 @@ func _add_pc_enemy_health_plate_layout(hp_plate: PanelContainer, enemy: Dictiona
 	bar_glint.color = Color(1.0, 0.42, 0.30, 0.42)
 	hp_bar.add_child(bar_glint)
 
+	var enemy_data: Dictionary = enemy.get("data", {})
+	var phases: Array = enemy_data.get("phases", []) if str(enemy_data.get("tier", "")) == "boss" else []
+	for phase_marker_index in range(phases.size()):
+		var phase_data: Dictionary = phases[phase_marker_index]
+		var threshold_ratio: float = _boss_phase_threshold_ratio(enemy, phase_data)
+		if threshold_ratio < 0.0:
+			continue
+		var marker := ColorRect.new()
+		marker.name = "BossPhaseThreshold_%d" % phase_marker_index
+		marker.anchor_left = threshold_ratio
+		marker.anchor_top = 0.0
+		marker.anchor_right = threshold_ratio
+		marker.anchor_bottom = 1.0
+		marker.offset_left = -1.0
+		marker.offset_right = 1.0
+		marker.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		marker.color = Color(1.0, 0.82, 0.42, 0.94)
+		marker.z_index = 2
+		hp_bar.add_child(marker)
+		last_boss_phase_threshold_marker_count += 1
+
 	var hp_label := Label.new()
 	hp_label.name = "EnemyHpValue"
 	hp_label.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -9657,7 +9736,16 @@ func _add_pc_enemy_health_plate_layout(hp_plate: PanelContainer, enemy: Dictiona
 	hp_label.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.92))
 	hp_label.add_theme_constant_override("shadow_offset_x", 1)
 	hp_label.add_theme_constant_override("shadow_offset_y", 1)
+	hp_label.z_index = 3
 	hp_bar.add_child(hp_label)
+
+func _boss_phase_threshold_ratio(enemy: Dictionary, phase_data: Dictionary) -> float:
+	if phase_data.has("hp_percent_below"):
+		return clamp(float(phase_data.get("hp_percent_below", 0)) / 100.0, 0.0, 1.0)
+	if phase_data.has("hp_below"):
+		var max_hp: int = max(1, int(enemy.get("max_hp", 1)))
+		return clamp(float(int(phase_data.get("hp_below", 0))) / float(max_hp), 0.0, 1.0)
+	return -1.0
 
 func _pc_enemy_status_suffix(enemy: Dictionary) -> String:
 	var status_text: String = _status_text(enemy.get("statuses", {}))
@@ -9667,14 +9755,32 @@ func _pc_enemy_status_suffix(enemy: Dictionary) -> String:
 
 func _enemy_tooltip_text(enemy: Dictionary) -> String:
 	var data: Dictionary = enemy.get("data", {})
-	var phase_name: String = str(enemy.get("phase_name", ""))
-	var phase_line: String = "阶段：%s\n" % phase_name if not phase_name.is_empty() else ""
-	return "%s\n%s类型：%s\n%s" % [
-		enemy.get("name", "敌人"),
-		phase_line,
-		data.get("tier", "normal"),
-		data.get("intent_note", "")
-	]
+	var lines: Array[String] = [str(enemy.get("name", "敌人"))]
+	var phases: Array = data.get("phases", [])
+	if str(data.get("tier", "")) == "boss" and not phases.is_empty():
+		var phase_index: int = int(enemy.get("phase_index", -1))
+		var phase_ordinal: int = clampi(phase_index + 2, 1, phases.size() + 1)
+		var phase_name: String = str(enemy.get("phase_name", "初始阶段"))
+		if phase_name.is_empty():
+			phase_name = "初始阶段"
+		lines.append("当前阶段：%s（%d/%d）" % [phase_name, phase_ordinal, phases.size() + 1])
+		var next_phase_index: int = phase_index + 1
+		if next_phase_index >= 0 and next_phase_index < phases.size():
+			var next_phase: Dictionary = phases[next_phase_index]
+			var threshold_text := "%d%%" % int(next_phase.get("hp_percent_below", 0))
+			if next_phase.has("hp_below"):
+				threshold_text = "%d HP" % int(next_phase.get("hp_below", 0))
+			lines.append("下一阶段：%s（生命 <= %s）" % [str(next_phase.get("name", "阶段变更")), threshold_text])
+			var phase_note: String = str(next_phase.get("phase_note", ""))
+			if not phase_note.is_empty():
+				lines.append(phase_note)
+		else:
+			lines.append("下一阶段：无（最终阶段）")
+	lines.append("类型：%s" % str(data.get("tier", "normal")))
+	var intent_note: String = str(data.get("intent_note", ""))
+	if not intent_note.is_empty():
+		lines.append(intent_note)
+	return "\n".join(lines)
 
 func _intent_text(intent: Dictionary) -> String:
 	var intent_type: String = str(intent.get("type", "none"))
@@ -10613,6 +10719,7 @@ func _apply_feedback_effects(events: Array, primary_event: Dictionary) -> void:
 	last_feedback_audio_event = _feedback_audio_event_for_event(primary_event)
 	last_hit_stop_duration = 0.0
 	last_hit_stop_request_count = 0
+	last_hit_stop_scope = ""
 	last_screen_shake_intensity = 0.0
 	last_floating_text_count = 0
 	last_impact_effect_type = ""
@@ -10630,11 +10737,13 @@ func _apply_feedback_effects(events: Array, primary_event: Dictionary) -> void:
 		var event_dict: Dictionary = event
 		var event_type: String = str(event_dict.get("type", ""))
 		match str(event_dict.get("type", "")):
-			"enemy_hit", "enemy_block_absorb", "enemy_defeated", "phase":
+			"enemy_hit", "enemy_block_absorb", "enemy_defeated":
 				var target_id: String = str(event_dict.get("target_id", ""))
 				if not target_id.is_empty():
 					last_flash_target_id = target_id
 					_flash_enemy_target(target_id, str(event_dict.get("severity", "hit")))
+			"phase":
+				last_flash_target_id = str(event_dict.get("target_id", ""))
 			"player_hit":
 				last_flash_target_id = "player"
 				_flash_player_target(true)
@@ -10696,6 +10805,12 @@ func _show_cinematic_prompt(event: Dictionary) -> void:
 	last_cinematic_event_type = event_type
 	last_cinematic_title = _cinematic_title(event)
 	last_cinematic_subtitle = _cinematic_subtitle(event)
+	if event_type == "phase":
+		if cinematic_tween != null and cinematic_tween.is_valid():
+			cinematic_tween.kill()
+		_hide_cinematic_prompt()
+		_show_boss_phase_banner(event)
+		return
 	if cinematic_overlay == null or cinematic_panel == null or cinematic_title_label == null or cinematic_subtitle_label == null:
 		return
 	cinematic_overlay.visible = true
@@ -10715,6 +10830,180 @@ func _show_cinematic_prompt(event: Dictionary) -> void:
 	cinematic_tween.tween_interval(_cinematic_hold_duration(event_type))
 	cinematic_tween.tween_property(cinematic_overlay, "modulate", Color(1, 1, 1, 0), 0.18)
 	cinematic_tween.tween_callback(Callable(self, "_hide_cinematic_prompt"))
+
+func _show_boss_phase_banner(event: Dictionary) -> void:
+	last_boss_phase_banner_visible = false
+	last_boss_phase_banner_title = ""
+	last_boss_phase_banner_note = ""
+	last_boss_phase_banner_effect = ""
+	last_boss_phase_banner_intent = ""
+	if enemy_stage_stack == null:
+		return
+	if boss_phase_banner_tween != null and boss_phase_banner_tween.is_valid():
+		boss_phase_banner_tween.kill()
+	var existing := enemy_stage_stack.get_node_or_null("BossPhaseBanner")
+	if existing != null:
+		enemy_stage_stack.remove_child(existing)
+		existing.queue_free()
+
+	var target_id: String = str(event.get("target_id", ""))
+	var enemy: Dictionary = {}
+	if combat != null:
+		for candidate in combat.enemies:
+			var candidate_dict: Dictionary = candidate
+			if str(candidate_dict.get("id", "")) == target_id:
+				enemy = candidate_dict
+				break
+	var enemy_data: Dictionary = enemy.get("data", {})
+	var phases: Array = enemy_data.get("phases", [])
+	var transition_index: int = int(event.get("amount", enemy.get("phase_index", 0)))
+	var phase_data: Dictionary = {}
+	var runtime_phase_data: Variant = enemy.get("phase_data", {})
+	if runtime_phase_data is Dictionary:
+		phase_data = runtime_phase_data
+	if phase_data.is_empty() and transition_index >= 0 and transition_index < phases.size():
+		var configured_phase: Variant = phases[transition_index]
+		if configured_phase is Dictionary:
+			phase_data = configured_phase
+	var phase_count: int = max(2, phases.size() + 1)
+	var phase_ordinal: int = clampi(transition_index + 2, 1, phase_count)
+	var boss_name: String = str(enemy.get("name", target_id))
+	if boss_name.is_empty():
+		boss_name = "Boss"
+	var phase_name: String = str(phase_data.get("name", enemy.get("phase_name", "")))
+	if phase_name.is_empty():
+		phase_name = str(event.get("message", "阶段变更"))
+	var phase_note: String = str(phase_data.get("phase_note", event.get("message", "战斗形态发生改变。")))
+	var effect_summary: String = _boss_phase_effect_summary(phase_data.get("on_enter_effects", []))
+	var action: Dictionary = enemy.get("current_action", {})
+	if action.is_empty():
+		var phase_actions: Array = phase_data.get("actions", [])
+		if not phase_actions.is_empty() and phase_actions[0] is Dictionary:
+			action = phase_actions[0]
+	var intent_summary: String = _intent_text(action.get("intent", {}))
+	if intent_summary.is_empty() or intent_summary == "none":
+		intent_summary = "意图正在重组"
+	var profile: Dictionary = _boss_phase_profile(target_id, transition_index)
+	var accent: Color = _vfx_profile_color(profile) if not profile.is_empty() else Color(1.0, 0.72, 0.30, 1.0)
+
+	last_boss_phase_banner_visible = true
+	last_boss_phase_banner_title = "%s · 阶段 %d/%d · %s" % [boss_name, phase_ordinal, phase_count, phase_name]
+	last_boss_phase_banner_note = phase_note
+	last_boss_phase_banner_effect = effect_summary
+	last_boss_phase_banner_intent = intent_summary
+
+	var stage_width: float = max(enemy_stage_stack.size.x, enemy_stage_panel.size.x if enemy_stage_panel != null else 0.0)
+	if stage_width <= 64.0:
+		stage_width = max(320.0, _scroll_content_width() - _potion_row_width() - 24.0)
+	var banner_width: float = clamp(min(620.0, stage_width - 32.0), 288.0, 620.0)
+	var banner_height := 116.0
+	var banner := PanelContainer.new()
+	banner.name = "BossPhaseBanner"
+	banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	banner.process_mode = Node.PROCESS_MODE_ALWAYS
+	banner.anchor_left = 0.5
+	banner.anchor_top = 0.0
+	banner.anchor_right = 0.5
+	banner.anchor_bottom = 0.0
+	banner.offset_left = -banner_width * 0.5
+	banner.offset_top = 38.0
+	banner.offset_right = banner_width * 0.5
+	banner.offset_bottom = 38.0 + banner_height
+	banner.custom_minimum_size = Vector2(banner_width, banner_height)
+	banner.clip_contents = true
+	banner.z_index = 24
+	var banner_style := _button_style(Color(0.025, 0.028, 0.034, 0.96), Color(accent.r, accent.g, accent.b, 0.96), 2, 6)
+	banner_style.content_margin_left = 10
+	banner_style.content_margin_right = 12
+	banner_style.content_margin_top = 8
+	banner_style.content_margin_bottom = 8
+	banner_style.shadow_color = Color(accent.r * 0.28, accent.g * 0.28, accent.b * 0.28, 0.72)
+	banner_style.shadow_size = 8
+	banner.add_theme_stylebox_override("panel", banner_style)
+	enemy_stage_stack.add_child(banner)
+
+	var row := HBoxContainer.new()
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_theme_constant_override("separation", 10)
+	banner.add_child(row)
+
+	var portrait := TextureRect.new()
+	portrait.name = "BossPhaseBannerPortrait"
+	portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	portrait.custom_minimum_size = Vector2(82, 94)
+	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	portrait.texture = _enemy_texture(enemy) if not enemy.is_empty() else null
+	portrait.modulate = Color(1.0, 1.0, 1.0, 0.96)
+	row.add_child(portrait)
+
+	var copy := VBoxContainer.new()
+	copy.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	copy.add_theme_constant_override("separation", 1)
+	row.add_child(copy)
+	_add_boss_phase_banner_label(copy, "BossPhaseBannerTitle", last_boss_phase_banner_title, 17, accent.lightened(0.24))
+	_add_boss_phase_banner_label(copy, "BossPhaseBannerNote", phase_note, 11, Color(0.84, 0.84, 0.80))
+	_add_boss_phase_banner_label(copy, "BossPhaseBannerEffect", "阶段效果 · %s" % effect_summary, 12, Color(1.0, 0.84, 0.50))
+	_add_boss_phase_banner_label(copy, "BossPhaseBannerIntent", "下一意图 · %s" % intent_summary, 13, Color(0.74, 0.94, 1.0))
+
+	if DisplayServer.get_name() == "headless" or not is_inside_tree():
+		return
+	banner.pivot_offset = Vector2(banner_width * 0.5, banner_height * 0.5)
+	banner.scale = Vector2(0.96, 0.96)
+	banner.modulate = Color(1, 1, 1, 0)
+	boss_phase_banner_tween = create_tween().bind_node(banner).set_ignore_time_scale(true)
+	boss_phase_banner_tween.tween_property(banner, "modulate", Color.WHITE, 0.18)
+	boss_phase_banner_tween.parallel().tween_property(banner, "scale", Vector2.ONE, 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	boss_phase_banner_tween.tween_interval(0.95)
+	boss_phase_banner_tween.tween_property(banner, "modulate", Color(1, 1, 1, 0), 0.20)
+	boss_phase_banner_tween.tween_callback(Callable(self, "_hide_boss_phase_banner").bind(banner))
+
+func _add_boss_phase_banner_label(parent: VBoxContainer, node_name: String, text_value: String, font_size: int, color: Color) -> void:
+	var label := Label.new()
+	label.name = node_name
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.text = text_value
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label.clip_text = true
+	label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	label.add_theme_font_size_override("font_size", font_size)
+	label.add_theme_color_override("font_color", color)
+	label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.88))
+	label.add_theme_constant_override("shadow_offset_x", 1)
+	label.add_theme_constant_override("shadow_offset_y", 1)
+	parent.add_child(label)
+
+func _boss_phase_effect_summary(effects: Array) -> String:
+	var parts: Array[String] = []
+	for effect in effects:
+		var effect_dict: Dictionary = effect
+		var amount: int = int(effect_dict.get("amount", 0))
+		match str(effect_dict.get("type", "")):
+			"block":
+				parts.append("获得 %d 点护甲" % amount)
+			"apply_status":
+				parts.append("获得 %d 层%s" % [amount, _status_display_name(str(effect_dict.get("status", "状态")))])
+			"create_card":
+				var card_id: String = str(effect_dict.get("card_id", ""))
+				var card_name: String = str(_card_by_id(card_id).get("name", card_id))
+				var destination: String = "弃牌堆" if str(effect_dict.get("destination", "discard")) == "discard" else "牌堆"
+				parts.append("向%s加入 %d 张%s" % [destination, amount, card_name])
+			"heal":
+				parts.append("恢复 %d 点生命" % amount)
+			_:
+				parts.append(str(effect_dict.get("type", "阶段强化")))
+	if parts.is_empty():
+		return "战斗形态重构"
+	return "，".join(parts)
+
+func _hide_boss_phase_banner(banner: Control) -> void:
+	if not is_instance_valid(banner):
+		return
+	if banner.get_parent() == enemy_stage_stack:
+		enemy_stage_stack.remove_child(banner)
+	last_boss_phase_banner_visible = false
+	banner.queue_free()
 
 func _hide_cinematic_prompt() -> void:
 	if cinematic_overlay != null:
@@ -10912,7 +11201,7 @@ func _feedback_spawns_impact(event_type: String) -> bool:
 	return ["enemy_hit", "player_hit", "block", "block_absorb", "enemy_block_absorb", "heal", "enemy_defeated", "phase"].has(event_type)
 
 func _stage_feedback_replaces_label(event_type: String) -> bool:
-	return _is_pc_layout() and not _is_strong_feedback(event_type)
+	return _is_pc_layout() and (event_type == "phase" or not _is_strong_feedback(event_type))
 
 func _apply_hand_card_transforms() -> void:
 	if hand_row == null:
@@ -11879,16 +12168,18 @@ func _play_phase_character_animation(target_id: String, phase_index: int = 0) ->
 	var phase_duration: float = float(boss_profile.get("duration", 0.32)) if not boss_profile.is_empty() else 0.32
 	if art != null:
 		art.pivot_offset = art.size * 0.5
-		var art_tween := create_tween()
-		art.scale = Vector2(phase_scale, phase_scale)
+		var base_art_scale: Vector2 = art.scale
+		var art_tween := create_tween().bind_node(art).set_ignore_time_scale(true)
+		art.scale = base_art_scale * phase_scale
 		art.modulate = phase_color
-		art_tween.tween_property(art, "scale", Vector2.ONE, phase_duration).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+		art_tween.tween_property(art, "scale", base_art_scale, phase_duration).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
 		art_tween.parallel().tween_property(art, "modulate", Color.WHITE, phase_duration)
 	if button != null:
 		button.pivot_offset = button.size * 0.5
-		var button_tween := create_tween()
-		button.scale = Vector2(1.08, 1.08)
-		button_tween.tween_property(button, "scale", Vector2.ONE, 0.26).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		var base_button_scale: Vector2 = button.scale
+		var button_tween := create_tween().bind_node(button).set_ignore_time_scale(true)
+		button.scale = base_button_scale * 1.08
+		button_tween.tween_property(button, "scale", base_button_scale, 0.26).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 func _boss_phase_profile(target_id: String, phase_index: int) -> Dictionary:
 	var profiles: Dictionary = vfx_data.get("boss_phase_profiles", {})
@@ -12109,20 +12400,35 @@ func _request_hit_stop(duration: float) -> void:
 		return
 	last_hit_stop_request_count += 1
 	last_hit_stop_duration = max(last_hit_stop_duration, duration)
-	if DisplayServer.get_name() == "headless" or not is_inside_tree():
+	last_hit_stop_scope = "battle_stage"
+	if not is_inside_tree():
 		return
+	if enemy_stage_stack == null or not is_instance_valid(enemy_stage_stack):
+		return
+	var requested_deadline: int = Time.get_ticks_msec() + int(ceil(max(0.0, duration) * 1000.0))
+	hit_stop_deadline_msec = max(hit_stop_deadline_msec, requested_deadline)
 	if not hit_stop_active:
-		hit_stop_restore_scale = Engine.time_scale
+		hit_stop_restore_process_mode = enemy_stage_stack.process_mode
 		hit_stop_active = true
-	hit_stop_ticket += 1
-	_play_hit_stop(duration, hit_stop_ticket)
+		hit_stop_ticket += 1
+		enemy_stage_stack.process_mode = Node.PROCESS_MODE_DISABLED
+		_play_hit_stop(hit_stop_ticket)
 
-func _play_hit_stop(duration: float, ticket: int) -> void:
-	Engine.time_scale = min(hit_stop_restore_scale, 0.28)
-	await get_tree().create_timer(duration, true, false, true).timeout
+func _play_hit_stop(ticket: int) -> void:
+	while hit_stop_active and ticket == hit_stop_ticket:
+		var remaining_msec: int = hit_stop_deadline_msec - Time.get_ticks_msec()
+		if remaining_msec <= 0:
+			break
+		await get_tree().create_timer(float(remaining_msec) / 1000.0, true, false, true).timeout
 	if ticket == hit_stop_ticket:
-		Engine.time_scale = hit_stop_restore_scale
-		hit_stop_active = false
+		_restore_battle_stage_processing()
+
+func _restore_battle_stage_processing() -> void:
+	if hit_stop_active and enemy_stage_stack != null and is_instance_valid(enemy_stage_stack):
+		enemy_stage_stack.process_mode = hit_stop_restore_process_mode as Node.ProcessMode
+	hit_stop_active = false
+	hit_stop_deadline_msec = 0
+	hit_stop_ticket += 1
 
 func _request_screen_shake(intensity: float, duration: float) -> void:
 	if not _setting_enabled("screen_shake_enabled", true):
