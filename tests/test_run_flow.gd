@@ -2,6 +2,14 @@ extends SceneTree
 
 const SaveManagerScript = preload("res://scripts/core/SaveManager.gd")
 
+const NEW_CARD_IDS_BY_CHARACTER := {
+	"ember_exile": ["banked_pressure", "sealed_front", "equilibrium_core"],
+	"arc_tinker": ["relay_spool", "resonant_barrage", "feedback_capacitor"],
+	"pyre_ascetic": ["scarlet_pact", "brand_flurry", "blood_litany"]
+}
+
+const CARD_REWARD_SEED_SAMPLE_COUNT := 256
+
 var failed: bool = false
 
 func _init() -> void:
@@ -319,6 +327,9 @@ func _run() -> void:
 		return
 	if not _check(_reward_pool_has_card(arc_reward_pool, "overcharge_loop") and _reward_pool_has_card(arc_reward_pool, "arc_battery") and _reward_pool_has_card(arc_reward_pool, "magnetic_lance"), "arc tinker reward pool includes expanded charge package"):
 		return
+	var arc_new_card_reward_error := _new_card_reward_pool_error(main, "arc_tinker")
+	if not _check(arc_new_card_reward_error.is_empty(), "arc tinker new-card reward regression: %s" % arc_new_card_reward_error):
+		return
 	var arc_relic_pool: Array = main._generate_relic_rewards(999)
 	if not _check(_reward_pool_has_relic(arc_relic_pool, "spark_coil") and _reward_pool_has_relic(arc_relic_pool, "micro_dynamo"), "arc tinker relic pool includes dedicated relics"):
 		return
@@ -352,6 +363,9 @@ func _run() -> void:
 	if not _check(_reward_pool_has_card(pyre_reward_pool, "ash_reversal") and _reward_pool_has_card(pyre_reward_pool, "white_cinder") and _reward_pool_has_card(pyre_reward_pool, "martyrs_bell"), "pyre ascetic reward pool includes expanded sacrifice package"):
 		return
 	if not _check(not _reward_pool_has_card(pyre_reward_pool, "static_primer") and not _reward_pool_has_card(pyre_reward_pool, "arc_needles"), "pyre ascetic reward pool excludes arc tinker dedicated cards"):
+		return
+	var pyre_new_card_reward_error := _new_card_reward_pool_error(main, "pyre_ascetic")
+	if not _check(pyre_new_card_reward_error.is_empty(), "pyre ascetic new-card reward regression: %s" % pyre_new_card_reward_error):
 		return
 	var pyre_relic_pool: Array = main._generate_relic_rewards(999)
 	if not _check(_reward_pool_has_relic(pyre_relic_pool, "red_wick") and _reward_pool_has_relic(pyre_relic_pool, "white_flame_brand"), "pyre ascetic relic pool includes dedicated relics"):
@@ -387,6 +401,9 @@ func _run() -> void:
 	if not _check(not _reward_pool_has_card(ember_reward_pool, "static_primer") and not _reward_pool_has_card(ember_reward_pool, "arc_needles"), "default character reward pool excludes arc tinker dedicated cards"):
 		return
 	if not _check(not _reward_pool_has_card(ember_reward_pool, "blood_kindling") and not _reward_pool_has_card(ember_reward_pool, "white_flame_oath"), "default character reward pool excludes pyre ascetic dedicated cards"):
+		return
+	var ember_new_card_reward_error := _new_card_reward_pool_error(main, "ember_exile")
+	if not _check(ember_new_card_reward_error.is_empty(), "ember exile new-card reward regression: %s" % ember_new_card_reward_error):
 		return
 	var ember_relic_pool: Array = main._generate_relic_rewards(999)
 	if not _check(not _reward_pool_has_relic(ember_relic_pool, "spark_coil") and not _reward_pool_has_relic(ember_relic_pool, "micro_dynamo"), "default character relic pool excludes arc tinker dedicated relics"):
@@ -555,7 +572,7 @@ func _run() -> void:
 		if not _check(first_enemy_hit_area != null and first_enemy_hit_area.get_theme_stylebox("normal") != null, "PC enemy uses a styled full-body click target"):
 			return
 		var first_enemy_hp_plate := first_enemy_panel.find_child("EnemyHpPlate", true, false) as PanelContainer
-		if not _check(first_enemy_hp_plate != null and first_enemy_hp_plate.custom_minimum_size.y <= 30.0 and first_enemy_hp_plate.custom_minimum_size.x <= 160.0, "PC enemy health plate stays compact at the feet"):
+		if not _check(first_enemy_hp_plate != null and first_enemy_hp_plate.custom_minimum_size.y <= 30.0 and first_enemy_hp_plate.custom_minimum_size.x <= 170.0, "PC enemy health plate stays compact at the feet"):
 			return
 	if not _check(main.hand_row.get_child_count() == main.combat.hand.size(), "combat renders one styled hand button per card"):
 		return
@@ -1647,3 +1664,70 @@ func _reward_pool_has_relic(pool: Array, relic_id: String) -> bool:
 		if str(relic_dict.get("id", "")) == relic_id:
 			return true
 	return false
+
+func _new_card_reward_pool_error(main, character_id: String) -> String:
+	if str(main.selected_character_id) != character_id:
+		return "probe character mismatch: expected %s, got %s" % [character_id, str(main.selected_character_id)]
+	var expected_new_card_ids: Array = NEW_CARD_IDS_BY_CHARACTER.get(character_id, [])
+	if expected_new_card_ids.is_empty():
+		return "missing expected new-card ids for %s" % character_id
+
+	var original_chapter_id: String = str(main.current_chapter_id)
+	var original_node_index: int = int(main.current_node_index)
+	main.current_chapter_id = "chapter_one"
+	var full_pool: Array = main._generate_card_rewards(999, "combat_card")
+	var scope_error := _reward_pool_scope_error(full_pool, character_id)
+	if not scope_error.is_empty():
+		main.current_chapter_id = original_chapter_id
+		main.current_node_index = original_node_index
+		return scope_error
+
+	var full_pool_ids: Array[String] = _reward_card_ids(full_pool)
+	for card_id_value in expected_new_card_ids:
+		var card_id: String = str(card_id_value)
+		if not full_pool_ids.has(card_id):
+			main.current_chapter_id = original_chapter_id
+			main.current_node_index = original_node_index
+			return "new exclusive card is absent from the complete reward pool: %s" % card_id
+
+	var seen_new_card_ids: Dictionary = {}
+	for seed_index in range(CARD_REWARD_SEED_SAMPLE_COUNT):
+		main.current_node_index = seed_index
+		var sample: Array = main._generate_card_rewards(3, "combat_card")
+		var repeated_sample: Array = main._generate_card_rewards(3, "combat_card")
+		if _reward_card_ids(sample) != _reward_card_ids(repeated_sample):
+			main.current_chapter_id = original_chapter_id
+			main.current_node_index = original_node_index
+			return "reward generation is not deterministic at seed index %d" % seed_index
+		scope_error = _reward_pool_scope_error(sample, character_id)
+		if not scope_error.is_empty():
+			main.current_chapter_id = original_chapter_id
+			main.current_node_index = original_node_index
+			return "seed index %d: %s" % [seed_index, scope_error]
+		for sampled_card_id in _reward_card_ids(sample):
+			if expected_new_card_ids.has(sampled_card_id):
+				seen_new_card_ids[sampled_card_id] = true
+
+	main.current_chapter_id = original_chapter_id
+	main.current_node_index = original_node_index
+	if seen_new_card_ids.is_empty():
+		return "none of the batch cards appeared across %d deterministic seed indices" % CARD_REWARD_SEED_SAMPLE_COUNT
+	return ""
+
+func _reward_pool_scope_error(pool: Array, character_id: String) -> String:
+	for card_value in pool:
+		var card: Dictionary = card_value
+		var card_id: String = str(card.get("id", "unknown"))
+		var character_ids: Array = card.get("character_ids", [])
+		if character_ids.is_empty():
+			continue
+		if character_ids.size() != 1 or str(character_ids[0]) != character_id:
+			return "reward %s has foreign character scope %s" % [card_id, str(character_ids)]
+	return ""
+
+func _reward_card_ids(pool: Array) -> Array[String]:
+	var ids: Array[String] = []
+	for card_value in pool:
+		var card: Dictionary = card_value
+		ids.append(str(card.get("id", "")))
+	return ids

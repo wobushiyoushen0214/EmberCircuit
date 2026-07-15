@@ -9,6 +9,12 @@ func _init() -> void:
 
 func _run() -> void:
 	var simulator = BalanceSimulatorScript.new()
+	var pressure_card := {"target": "enemy", "type": "attack"}
+	var pressure_effect := {"type": "damage", "amount": 9, "bonus_if_momentum_at_least": 3, "bonus": 5}
+	var low_pressure_combat := {"player": {"momentum": 2, "statuses": {}}}
+	var high_pressure_combat := {"player": {"momentum": 3, "statuses": {}}}
+	_check(simulator._estimate_damage_amount(low_pressure_combat, pressure_card, pressure_effect) == 9, "balance AI keeps base damage below the momentum threshold")
+	_check(simulator._estimate_damage_amount(high_pressure_combat, pressure_card, pressure_effect) == 14, "balance AI values conditional damage at the momentum threshold")
 	var options := {
 		"iterations": 3,
 		"max_turns": 30,

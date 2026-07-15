@@ -686,6 +686,78 @@
       "implementation_note": "当前 asset_path 已指向第一版独立 SVG 插图；未来正式插画仍保持同一 slot_path，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
     },
     {
+      "id": "banked_pressure",
+      "asset_path": "res://assets/art/generated/card_banked_pressure_v2_pc.png",
+      "slot_path": "res://assets/art/cards/card_banked_pressure.svg",
+      "design_note": "蓄压调度表现流亡者把蒸汽储入黄铜压力阀，为后续势能门槛牌准备资源。",
+      "replacement_note": "正式版本保持阀门、储压罐和余火三层视觉焦点，不加入文字或卡框。",
+      "implementation_note": "当前使用 gpt-image-2 生成的 PC 竖版位图；slot_path 保留为稳定替换位，抽牌与势能仍由 CombatState 结算。"
+    },
+    {
+      "id": "sealed_front",
+      "asset_path": "res://assets/art/generated/card_sealed_front_v2_pc.png",
+      "slot_path": "res://assets/art/cards/card_sealed_front.svg",
+      "design_note": "密封阵线表现蒸汽驱动的黑铁壁垒封死通道，强调高势能下的群体压制。",
+      "replacement_note": "防线主体必须在小卡面中清晰可读，避免误解成单体攻击。",
+      "implementation_note": "当前使用 gpt-image-2 生成的 PC 竖版位图；slot_path 保留为稳定替换位，护甲与虚弱仍由 CombatState 结算。"
+    },
+    {
+      "id": "equilibrium_core",
+      "asset_path": "res://assets/art/generated/card_equilibrium_core_v2_pc.png",
+      "slot_path": "res://assets/art/cards/card_equilibrium_core.svg",
+      "design_note": "均压炉心表现火焰与冷却回路在同一核心中稳定平衡，对应攻防同步成长。",
+      "replacement_note": "构图应突出长期运转的炉心装置，不做成一次性爆炸。",
+      "implementation_note": "当前使用 gpt-image-2 生成的 PC 竖版位图；slot_path 保留为稳定替换位，力量、镀层和势能仍由 CombatState 结算。"
+    },
+    {
+      "id": "relay_spool",
+      "asset_path": "res://assets/art/generated/card_relay_spool_v2_pc.png",
+      "slot_path": "res://assets/art/cards/card_relay_spool.svg",
+      "design_note": "继电线轴表现工匠展开铜制线圈并用青蓝电弧完成预充。",
+      "replacement_note": "线圈、绝缘陶瓷和闭合电弧应形成明确的工匠角色语言。",
+      "implementation_note": "当前使用 gpt-image-2 生成的 PC 竖版位图；slot_path 保留为稳定替换位，护甲、势能和静电预充仍由 CombatState 结算。"
+    },
+    {
+      "id": "resonant_barrage",
+      "asset_path": "res://assets/art/generated/card_resonant_barrage_v2_pc.png",
+      "slot_path": "res://assets/art/cards/card_resonant_barrage.svg",
+      "design_note": "谐振齐射以四组同步线圈和四道电弧明确表现四段攻击。",
+      "replacement_note": "四次命中的节奏必须清楚，避免合并成一束无法辨识的闪电。",
+      "implementation_note": "当前使用 gpt-image-2 生成的 PC 竖版位图；slot_path 保留为稳定替换位，多段伤害和条件抽牌仍由 CombatState 结算。"
+    },
+    {
+      "id": "feedback_capacitor",
+      "asset_path": "res://assets/art/generated/card_feedback_capacitor_v2_pc.png",
+      "slot_path": "res://assets/art/cards/card_feedback_capacitor.svg",
+      "design_note": "反馈电容表现电容盾吸收冲击、强化护甲并把回流电流送向敌人。",
+      "replacement_note": "画面需同时读出防御和反击，不得只表现普通闪电攻击。",
+      "implementation_note": "当前使用 gpt-image-2 生成的 PC 竖版位图；slot_path 保留为稳定替换位，镀层和随机反压仍由 CombatState 结算。"
+    },
+    {
+      "id": "scarlet_pact",
+      "asset_path": "res://assets/art/generated/card_scarlet_pact_v2_pc.png",
+      "slot_path": "res://assets/art/cards/card_scarlet_pact.svg",
+      "design_note": "赤痕契约表现苦修者以掌心印记换取黑铁防线并标记敌人。",
+      "replacement_note": "生命代价应克制表达，突出契约、护甲和目标标记而非血腥。",
+      "implementation_note": "当前使用 gpt-image-2 生成的 PC 竖版位图；slot_path 保留为稳定替换位，自伤、护甲和易伤仍由 CombatState 结算。"
+    },
+    {
+      "id": "brand_flurry",
+      "asset_path": "res://assets/art/generated/card_brand_flurry_v2_pc.png",
+      "slot_path": "res://assets/art/cards/card_brand_flurry.svg",
+      "design_note": "烙痕连鞭用三道连续赤焰轨迹表现多段攻击与后续灼烧。",
+      "replacement_note": "三次挥击必须可区分，同时保留苦修者承受代价的姿态。",
+      "implementation_note": "当前使用 gpt-image-2 生成的 PC 竖版位图；slot_path 保留为稳定替换位，自伤、多段伤害和灼烧仍由 CombatState 结算。"
+    },
+    {
+      "id": "blood_litany",
+      "asset_path": "res://assets/art/generated/card_blood_litany_v2_pc.png",
+      "slot_path": "res://assets/art/cards/card_blood_litany.svg",
+      "design_note": "血焰祷文表现苦修者在黑铁火盆前以牺牲换取两股持久力量。",
+      "replacement_note": "能力牌应庄重稳定，避免画成瞬发爆炸或写实血腥场景。",
+      "implementation_note": "当前使用 gpt-image-2 生成的 PC 竖版位图；slot_path 保留为稳定替换位，自伤、力量和势能仍由 CombatState 结算。"
+    },
+    {
       "id": "searing_wound",
       "asset_path": "res://assets/art/cards/card_searing_wound.svg",
       "slot_path": "res://assets/art/cards/card_searing_wound.svg",

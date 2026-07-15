@@ -1158,6 +1158,243 @@
       "upgrade_note": "降为 1 费，不提高力量或势能，避免长期成长超出预算。"
     },
     {
+      "id": "banked_pressure",
+      "name": "蓄压调度",
+      "cost": 1,
+      "type": "skill",
+      "rarity": "common",
+      "target": "self",
+      "character_ids": ["ember_exile"],
+      "description": "抽 1 张牌。获得 1 点势能。",
+      "effects": [
+        { "type": "draw", "amount": 1 },
+        { "type": "gain_momentum", "amount": 1 }
+      ],
+      "upgrade": {
+        "cost": 1,
+        "description": "抽 1 张牌。获得 2 点势能。",
+        "effects": [
+          { "type": "draw", "amount": 1 },
+          { "type": "gain_momentum", "amount": 2 }
+        ]
+      },
+      "design_note": "余烬流亡者的高势能平台启动器，用替换手牌稳定接续门槛牌，而不是立即消耗势能。",
+      "balance_note": "1 费只替换自身并获得 1 点势能，没有直接伤害或护甲；收益需要后续门槛牌兑现。",
+      "upgrade_note": "势能提高到 2 点，使单次调度更容易跨过 3 点门槛，但不增加抽牌数量。"
+    },
+    {
+      "id": "sealed_front",
+      "name": "密封阵线",
+      "cost": 2,
+      "type": "skill",
+      "rarity": "uncommon",
+      "target": "self",
+      "character_ids": ["ember_exile"],
+      "description": "获得 9 点护甲。若你至少有 3 点势能，对所有敌人施加 1 层虚弱。",
+      "effects": [
+        { "type": "block", "amount": 9 },
+        { "type": "apply_status", "target": "all_enemies", "status": "weak", "amount": 1, "requires_momentum_at_least": 3 }
+      ],
+      "upgrade": {
+        "cost": 2,
+        "description": "获得 13 点护甲。若你至少有 3 点势能，对所有敌人施加 1 层虚弱。",
+        "effects": [
+          { "type": "block", "amount": 13 },
+          { "type": "apply_status", "target": "all_enemies", "status": "weak", "amount": 1, "requires_momentum_at_least": 3 }
+        ]
+      },
+      "design_note": "高势能平台的防御回报，让流亡者保留势能也能压低多敌人回合的风险。",
+      "balance_note": "未达到 3 势能时，2 费仅有 9 护甲而明显偏弱；群体虚弱要求先完成蓄压且不会消耗势能。",
+      "upgrade_note": "只把护甲提高到 13 点，不降低势能门槛，也不增加虚弱层数。"
+    },
+    {
+      "id": "equilibrium_core",
+      "name": "均压炉心",
+      "cost": 2,
+      "type": "power",
+      "rarity": "rare",
+      "target": "self",
+      "character_ids": ["ember_exile"],
+      "description": "本场战斗中，你的攻击造成的伤害 +1，每次获得护甲时额外获得 1 点护甲。获得 1 点势能。",
+      "effects": [
+        { "type": "apply_status", "target": "self", "status": "strength", "amount": 1 },
+        { "type": "apply_status", "target": "self", "status": "plating", "amount": 1 },
+        { "type": "gain_momentum", "amount": 1 }
+      ],
+      "upgrade": {
+        "cost": 2,
+        "description": "本场战斗中，你的攻击造成的伤害 +1，每次获得护甲时额外获得 1 点护甲。获得 2 点势能。",
+        "effects": [
+          { "type": "apply_status", "target": "self", "status": "strength", "amount": 1 },
+          { "type": "apply_status", "target": "self", "status": "plating", "amount": 1 },
+          { "type": "gain_momentum", "amount": 2 }
+        ]
+      },
+      "design_note": "流亡者高势能构筑的长期核心，同时放大攻击与护甲，维持角色的均衡定位。",
+      "balance_note": "2 费部署回合只补 1 势能，力量和镀层都需要后续多次出牌才能回本。",
+      "upgrade_note": "只增加 1 点即时势能以改善部署节奏，不提高两项永久状态。"
+    },
+    {
+      "id": "relay_spool",
+      "name": "继电线轴",
+      "cost": 1,
+      "type": "skill",
+      "rarity": "common",
+      "target": "self",
+      "character_ids": ["arc_tinker"],
+      "description": "获得 5 点护甲和 1 点势能。将 1 张静电预充加入手牌。",
+      "effects": [
+        { "type": "block", "amount": 5 },
+        { "type": "gain_momentum", "amount": 1 },
+        { "type": "create_card", "card_id": "static_primer", "destination": "hand", "amount": 1 }
+      ],
+      "upgrade": {
+        "cost": 1,
+        "description": "获得 8 点护甲和 1 点势能。将 1 张静电预充加入手牌。",
+        "effects": [
+          { "type": "block", "amount": 8 },
+          { "type": "gain_momentum", "amount": 1 },
+          { "type": "create_card", "card_id": "static_primer", "destination": "hand", "amount": 1 }
+        ]
+      },
+      "design_note": "电弧工匠的零费链启动器，用防御动作生成会自行消耗的静电预充，连接护甲、抽牌和势能。",
+      "balance_note": "本体护甲偏低；额外静电预充需要再打出才能抽牌和蓄能，且消耗后不会永久膨胀战斗牌堆。",
+      "upgrade_note": "只把护甲提高到 8 点，不增加生成数量或静电预充的资源收益。"
+    },
+    {
+      "id": "resonant_barrage",
+      "name": "谐振齐射",
+      "cost": 1,
+      "type": "attack",
+      "rarity": "uncommon",
+      "target": "enemy",
+      "character_ids": ["arc_tinker"],
+      "description": "造成 2 点伤害 4 次。若你至少有 3 点势能，抽 1 张牌。",
+      "effects": [
+        { "type": "damage", "amount": 2, "hits": 4 },
+        { "type": "draw", "amount": 1, "requires_momentum_at_least": 3 }
+      ],
+      "upgrade": {
+        "cost": 1,
+        "description": "造成 3 点伤害 4 次。若你至少有 3 点势能，抽 1 张牌。",
+        "effects": [
+          { "type": "damage", "amount": 3, "hits": 4 },
+          { "type": "draw", "amount": 1, "requires_momentum_at_least": 3 }
+        ]
+      },
+      "design_note": "零费预充链的进攻回报，用势能门槛保持手牌流动，并让力量充分放大四段攻击。",
+      "balance_note": "未达到 3 势能时只是 1 费 8 点分段伤害；过牌必须由预充链或其他蓄能手段先行启动。",
+      "upgrade_note": "每段伤害提高 1 点，保留势能门槛与单张过牌上限。"
+    },
+    {
+      "id": "feedback_capacitor",
+      "name": "反馈电容",
+      "cost": 2,
+      "type": "power",
+      "rarity": "rare",
+      "target": "self",
+      "character_ids": ["arc_tinker"],
+      "description": "本场战斗中，每次获得护甲时额外获得 1 点护甲，并对随机敌人造成 2 点伤害。获得 1 点势能。",
+      "effects": [
+        { "type": "apply_status", "target": "self", "status": "plating", "amount": 1 },
+        { "type": "apply_status", "target": "self", "status": "counter_pressure", "amount": 1 },
+        { "type": "gain_momentum", "amount": 1 }
+      ],
+      "upgrade": {
+        "cost": 2,
+        "description": "本场战斗中，每次获得护甲时额外获得 2 点护甲，并对随机敌人造成 2 点伤害。获得 1 点势能。",
+        "effects": [
+          { "type": "apply_status", "target": "self", "status": "plating", "amount": 2 },
+          { "type": "apply_status", "target": "self", "status": "counter_pressure", "amount": 1 },
+          { "type": "gain_momentum", "amount": 1 }
+        ]
+      },
+      "design_note": "电弧工匠护甲反馈构筑的长期核心，让继电线轴等高频小护甲同时承担防御与输出。",
+      "balance_note": "2 费能力没有即时护甲，只有后续反复获得护甲才能回本；1 势能仅缓解部署回合。",
+      "upgrade_note": "把额外护甲提高到 2 点，但不提高反击伤害或即时势能。"
+    },
+    {
+      "id": "scarlet_pact",
+      "name": "赤痕契约",
+      "cost": 1,
+      "type": "skill",
+      "rarity": "common",
+      "target": "enemy",
+      "character_ids": ["pyre_ascetic"],
+      "description": "失去 1 点生命。获得 6 点护甲。施加 1 层易伤。",
+      "effects": [
+        { "type": "damage_self", "amount": 1 },
+        { "type": "block", "amount": 6 },
+        { "type": "apply_status", "target": "enemy", "status": "vulnerable", "amount": 1 }
+      ],
+      "upgrade": {
+        "cost": 1,
+        "description": "失去 1 点生命。获得 9 点护甲。施加 1 层易伤。",
+        "effects": [
+          { "type": "damage_self", "amount": 1 },
+          { "type": "block", "amount": 9 },
+          { "type": "apply_status", "target": "enemy", "status": "vulnerable", "amount": 1 }
+        ]
+      },
+      "design_note": "苦修者血焰连击的准备牌，以真实生命代价同时建立防线并标记爆发目标。",
+      "balance_note": "1 费只有 6 护甲，易伤服务后续攻击且不放大自身；1 点生命会跨战斗累积，不能视为免费。",
+      "upgrade_note": "只提高护甲以覆盖连击回合风险，不增加易伤层数或降低生命代价。"
+    },
+    {
+      "id": "brand_flurry",
+      "name": "烙痕连鞭",
+      "cost": 1,
+      "type": "attack",
+      "rarity": "uncommon",
+      "target": "enemy",
+      "character_ids": ["pyre_ascetic"],
+      "description": "失去 2 点生命。造成 3 点伤害 3 次。施加 1 层灼烧。",
+      "effects": [
+        { "type": "damage_self", "amount": 2 },
+        { "type": "damage", "amount": 3, "hits": 3 },
+        { "type": "apply_status", "target": "enemy", "status": "burn", "amount": 1 }
+      ],
+      "upgrade": {
+        "cost": 1,
+        "description": "失去 2 点生命。造成 4 点伤害 3 次。施加 1 层灼烧。",
+        "effects": [
+          { "type": "damage_self", "amount": 2 },
+          { "type": "damage", "amount": 4, "hits": 3 },
+          { "type": "apply_status", "target": "enemy", "status": "burn", "amount": 1 }
+        ]
+      },
+      "design_note": "血焰构筑的多段终端，集中兑现易伤和力量，并用灼烧保留后续回合压力。",
+      "balance_note": "基础直接伤害停在 1 费上限，三段攻击受护甲克制，且每次打出都真实失去 2 点生命。",
+      "upgrade_note": "每段伤害提高 1 点，不提高灼烧，也不减免生命代价。"
+    },
+    {
+      "id": "blood_litany",
+      "name": "血焰祷文",
+      "cost": 2,
+      "type": "power",
+      "rarity": "rare",
+      "target": "self",
+      "character_ids": ["pyre_ascetic"],
+      "description": "失去 3 点生命。本场战斗中，你的攻击造成的伤害 +2。获得 2 点势能。",
+      "effects": [
+        { "type": "damage_self", "amount": 3 },
+        { "type": "apply_status", "target": "self", "status": "strength", "amount": 2 },
+        { "type": "gain_momentum", "amount": 2 }
+      ],
+      "upgrade": {
+        "cost": 2,
+        "description": "失去 1 点生命。本场战斗中，你的攻击造成的伤害 +2。获得 2 点势能。",
+        "effects": [
+          { "type": "damage_self", "amount": 1 },
+          { "type": "apply_status", "target": "self", "status": "strength", "amount": 2 },
+          { "type": "gain_momentum", "amount": 2 }
+        ]
+      },
+      "design_note": "苦修者血焰多段流的长期核心，用高额自伤换取足以改变三段攻击收益的力量。",
+      "balance_note": "2 费部署并立即失去 3 点生命，力量需要多段攻击回本；2 势能只补偿部署节奏，不提供额外能量。",
+      "upgrade_note": "把生命代价从 3 点降到 1 点，不继续提高力量或势能，控制多段攻击上限。"
+    },
+    {
       "id": "calibration_protocol",
       "name": "校准协议",
       "cost": 1,

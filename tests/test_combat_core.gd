@@ -78,11 +78,73 @@ func _init() -> void:
 	_check(int(battery_combat.player.get("energy", 0)) == battery_energy_before + 1 and int(battery_combat.player.get("momentum", 0)) == battery_momentum_before + 1, "spare battery grants its one-shot resource package")
 	_check(battery_combat.exhaust_pile.size() == 1, "spare battery exhausts after use")
 
+	var pressure_surge_combat = CombatStateScript.new()
+	pressure_surge_combat.setup(card_data, enemy_data, relic_data, encounter_data, player_data, "intro_patrol", ["pressure_surge"], ["__test_no_relic__"], 70)
+	pressure_surge_combat.player["momentum"] = 3
+	pressure_surge_combat.player["energy"] = 3
+	var pressure_target_hp_before: int = int(pressure_surge_combat.enemies[0].get("hp", 0))
+	_check(pressure_surge_combat.play_card(0, 0), "pressure surge can be played at its momentum threshold")
+	_check(int(pressure_surge_combat.enemies[0].get("hp", 0)) == pressure_target_hp_before - 14, "damage bonus_if_momentum_at_least applies its configured bonus")
+
+	var banked_pressure_combat = CombatStateScript.new()
+	banked_pressure_combat.setup(card_data, enemy_data, relic_data, encounter_data, player_data, "intro_patrol", ["banked_pressure"], ["__test_no_relic__"], 70)
+	banked_pressure_combat.draw_pile = [banked_pressure_combat.cards_by_id.get("ember_strike", {}).duplicate(true)]
+	var banked_momentum_before: int = int(banked_pressure_combat.player.get("momentum", 0))
+	_check(banked_pressure_combat.play_card(0, 0), "banked pressure can be played")
+	_check(int(banked_pressure_combat.player.get("momentum", 0)) == banked_momentum_before + 1, "banked pressure grants one momentum")
+	_check(_combat_has_card(banked_pressure_combat, "ember_strike"), "banked pressure draws its replacement card")
+
+	var sealed_front_combat = CombatStateScript.new()
+	sealed_front_combat.setup(card_data, enemy_data, relic_data, encounter_data, player_data, "intro_patrol", ["sealed_front"], ["__test_no_relic__"], 70)
+	sealed_front_combat.player["momentum"] = 3
+	_check(sealed_front_combat.play_card(0, 0), "sealed front can be played at its momentum threshold")
+	_check(int(sealed_front_combat.player.get("block", 0)) == 9, "sealed front grants configured block")
+	for enemy in sealed_front_combat.enemies:
+		var sealed_enemy: Dictionary = enemy
+		_check(sealed_front_combat._status_amount(sealed_enemy.get("statuses", {}), "weak") == 1, "sealed front weakens every enemy at three momentum")
+
+	var equilibrium_combat = CombatStateScript.new()
+	equilibrium_combat.setup(card_data, enemy_data, relic_data, encounter_data, player_data, "intro_patrol", ["equilibrium_core"], ["__test_no_relic__"], 70)
+	var equilibrium_momentum_before: int = int(equilibrium_combat.player.get("momentum", 0))
+	_check(equilibrium_combat.play_card(0, 0), "equilibrium core can be played")
+	_check(equilibrium_combat._status_amount(equilibrium_combat.player.get("statuses", {}), "strength") == 1, "equilibrium core grants strength")
+	_check(equilibrium_combat._status_amount(equilibrium_combat.player.get("statuses", {}), "plating") == 1, "equilibrium core grants plating")
+	_check(int(equilibrium_combat.player.get("momentum", 0)) == equilibrium_momentum_before + 1, "equilibrium core grants momentum")
+
 	var feedback_shell_combat = CombatStateScript.new()
 	feedback_shell_combat.setup(card_data, enemy_data, relic_data, encounter_data, arc_player_data, "intro_patrol", ["feedback_shell"], ["__test_no_relic__"], 68)
 	var shell_momentum_before: int = int(feedback_shell_combat.player.get("momentum", 0))
 	_check(feedback_shell_combat.play_card(0, 0), "feedback shell can be played")
 	_check(int(feedback_shell_combat.player.get("statuses", {}).get("plating", 0)) == 1 and int(feedback_shell_combat.player.get("momentum", 0)) == shell_momentum_before + 2, "feedback shell grants plating and momentum")
+
+	var relay_spool_combat = CombatStateScript.new()
+	relay_spool_combat.setup(card_data, enemy_data, relic_data, encounter_data, arc_player_data, "intro_patrol", ["relay_spool"], ["__test_no_relic__"], 68)
+	var relay_momentum_before: int = int(relay_spool_combat.player.get("momentum", 0))
+	_check(relay_spool_combat.play_card(0, 0), "relay spool can be played")
+	_check(int(relay_spool_combat.player.get("block", 0)) == 5, "relay spool grants configured block")
+	_check(int(relay_spool_combat.player.get("momentum", 0)) == relay_momentum_before + 1, "relay spool grants momentum")
+	_check(_combat_has_card(relay_spool_combat, "static_primer"), "relay spool creates static primer in hand")
+
+	var resonant_barrage_combat = CombatStateScript.new()
+	resonant_barrage_combat.setup(card_data, enemy_data, relic_data, encounter_data, arc_player_data, "intro_patrol", ["resonant_barrage"], ["__test_no_relic__"], 68)
+	resonant_barrage_combat.draw_pile = [resonant_barrage_combat.cards_by_id.get("spark_throw", {}).duplicate(true)]
+	resonant_barrage_combat.player["momentum"] = 3
+	var barrage_hp_before: int = int(resonant_barrage_combat.enemies[0].get("hp", 0))
+	_check(resonant_barrage_combat.play_card(0, 0), "resonant barrage can be played")
+	_check(barrage_hp_before - int(resonant_barrage_combat.enemies[0].get("hp", 0)) == 8, "resonant barrage deals four configured hits")
+	_check(_combat_has_card(resonant_barrage_combat, "spark_throw"), "resonant barrage draws at three momentum")
+
+	var feedback_capacitor_combat = CombatStateScript.new()
+	feedback_capacitor_combat.setup(card_data, enemy_data, relic_data, encounter_data, arc_player_data, "intro_patrol", ["feedback_capacitor"], ["__test_no_relic__"], 68)
+	var capacitor_momentum_before: int = int(feedback_capacitor_combat.player.get("momentum", 0))
+	_check(feedback_capacitor_combat.play_card(0, 0), "feedback capacitor can be played")
+	_check(feedback_capacitor_combat._status_amount(feedback_capacitor_combat.player.get("statuses", {}), "plating") == 1, "feedback capacitor grants plating")
+	_check(feedback_capacitor_combat._status_amount(feedback_capacitor_combat.player.get("statuses", {}), "counter_pressure") == 1, "feedback capacitor grants counter pressure")
+	_check(int(feedback_capacitor_combat.player.get("momentum", 0)) == capacitor_momentum_before + 1, "feedback capacitor grants momentum")
+	var capacitor_enemy_hp_before: int = _total_enemy_hp(feedback_capacitor_combat)
+	feedback_capacitor_combat._gain_player_block(5)
+	_check(int(feedback_capacitor_combat.player.get("block", 0)) == 6, "feedback capacitor plating augments gained block")
+	_check(capacitor_enemy_hp_before - _total_enemy_hp(feedback_capacitor_combat) == 2, "counter pressure damages exactly one random living enemy")
 
 	var pyre_player_data: Dictionary = player_data.duplicate(true)
 	pyre_player_data["selected_character_id"] = "pyre_ascetic"
@@ -108,6 +170,32 @@ func _init() -> void:
 	_check(pyre_relic_combat.play_card(0, 0), "pyre starter relic test can play wound offering")
 	_check(int(pyre_relic_combat.enemies[0].get("hp", 0)) == pyre_enemy_hp_before - 2, "penitent censer damages enemies when searing wound is created")
 	_check(_combat_has_card(pyre_relic_combat, "searing_wound"), "wound offering creates a searing wound card")
+
+	var scarlet_pact_combat = CombatStateScript.new()
+	scarlet_pact_combat.setup(card_data, enemy_data, relic_data, encounter_data, pyre_player_data, "intro_patrol", ["scarlet_pact"], ["__test_no_relic__"], 70)
+	var scarlet_hp_before: int = int(scarlet_pact_combat.player.get("hp", 0))
+	_check(scarlet_pact_combat.play_card(0, 0), "scarlet pact can be played")
+	_check(scarlet_hp_before - int(scarlet_pact_combat.player.get("hp", 0)) == 1, "scarlet pact pays its health cost")
+	_check(int(scarlet_pact_combat.player.get("block", 0)) == 6, "scarlet pact grants configured block")
+	_check(scarlet_pact_combat._status_amount(scarlet_pact_combat.enemies[0].get("statuses", {}), "vulnerable") == 1, "scarlet pact applies vulnerable to its target")
+
+	var brand_flurry_combat = CombatStateScript.new()
+	brand_flurry_combat.setup(card_data, enemy_data, relic_data, encounter_data, pyre_player_data, "intro_patrol", ["brand_flurry"], ["__test_no_relic__"], 70)
+	var flurry_player_hp_before: int = int(brand_flurry_combat.player.get("hp", 0))
+	var flurry_enemy_hp_before: int = int(brand_flurry_combat.enemies[0].get("hp", 0))
+	_check(brand_flurry_combat.play_card(0, 0), "brand flurry can be played")
+	_check(flurry_player_hp_before - int(brand_flurry_combat.player.get("hp", 0)) == 2, "brand flurry pays its health cost")
+	_check(flurry_enemy_hp_before - int(brand_flurry_combat.enemies[0].get("hp", 0)) == 9, "brand flurry deals three configured hits")
+	_check(brand_flurry_combat._status_amount(brand_flurry_combat.enemies[0].get("statuses", {}), "burn") == 1, "brand flurry applies burn")
+
+	var blood_litany_combat = CombatStateScript.new()
+	blood_litany_combat.setup(card_data, enemy_data, relic_data, encounter_data, pyre_player_data, "intro_patrol", ["blood_litany"], ["__test_no_relic__"], 70)
+	var litany_hp_before: int = int(blood_litany_combat.player.get("hp", 0))
+	var litany_momentum_before: int = int(blood_litany_combat.player.get("momentum", 0))
+	_check(blood_litany_combat.play_card(0, 0), "blood litany can be played")
+	_check(litany_hp_before - int(blood_litany_combat.player.get("hp", 0)) == 3, "blood litany pays its health cost")
+	_check(blood_litany_combat._status_amount(blood_litany_combat.player.get("statuses", {}), "strength") == 2, "blood litany grants two strength")
+	_check(int(blood_litany_combat.player.get("momentum", 0)) == litany_momentum_before + 2, "blood litany grants two momentum")
 
 	var playable_index := _first_feedback_card(combat)
 	_check(playable_index >= 0, "opening hand has a card that emits combat feedback")
@@ -399,6 +487,12 @@ func _combat_has_card(combat, card_id: String) -> bool:
 			if str(card_dict.get("id", "")) == card_id:
 				return true
 	return false
+
+func _total_enemy_hp(combat) -> int:
+	var total := 0
+	for enemy in combat.enemies:
+		total += int(enemy.get("hp", 0))
+	return total
 
 func _phase_entry_block_amount(enemy_data: Dictionary, enemy_id: String, phase_id: String) -> int:
 	for enemy in enemy_data.get("enemies", []):

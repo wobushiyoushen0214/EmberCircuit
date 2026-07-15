@@ -423,6 +423,9 @@ func _resolve_potion_effect(potion: Dictionary, effect: Dictionary, target_index
 
 func _resolve_player_damage_effect(card: Dictionary, effect: Dictionary, target_index: int) -> void:
 	var base_amount := int(effect.get("amount", 0))
+	var bonus_threshold := int(effect.get("bonus_if_momentum_at_least", -1))
+	if bonus_threshold >= 0 and int(player.get("momentum", 0)) >= bonus_threshold:
+		base_amount += int(effect.get("bonus", 0))
 	var hits := int(effect.get("hits", 1))
 	var extra_per_momentum := int(effect.get("extra_hit_per_momentum", 0))
 	if extra_per_momentum > 0:
@@ -518,7 +521,7 @@ func _gain_player_block(amount: int) -> void:
 
 	var counter_damage := _status_amount(player["statuses"], "counter_pressure") * 2 + _status_amount(player["statuses"], "counter_pressure_plus") * 3
 	if counter_damage > 0:
-		var enemy := _first_alive_enemy()
+		var enemy := _random_alive_enemy()
 		if not enemy.is_empty():
 			_log("反压姿态触发。")
 			_damage_enemy(enemy, counter_damage, {"name": "反压姿态", "type": "power"})
@@ -861,6 +864,15 @@ func _first_alive_enemy() -> Dictionary:
 		if int(enemy.get("hp", 0)) > 0:
 			return enemy
 	return {}
+
+func _random_alive_enemy() -> Dictionary:
+	var alive_enemies: Array = []
+	for enemy in enemies:
+		if int(enemy.get("hp", 0)) > 0:
+			alive_enemies.append(enemy)
+	if alive_enemies.is_empty():
+		return {}
+	return alive_enemies.pick_random()
 
 func _check_enemy_phase_transitions(enemy: Dictionary) -> void:
 	var phases: Array = enemy.get("data", {}).get("phases", [])

@@ -236,11 +236,14 @@ func _score_effect(card: Dictionary, effect: Dictionary) -> float:
 		"damage":
 			var amount: int = _estimated_damage_amount(effect)
 			var hits: int = _estimated_hits(effect)
-			return float(amount * hits) * float(points.get("damage", 1.0)) * target_multiplier * condition_multiplier
+			var score := float(amount * hits) * float(points.get("damage", 1.0)) * target_multiplier * condition_multiplier
+			if effect.has("bonus_if_momentum_at_least"):
+				score += float(int(effect.get("bonus", 0)) * hits) * float(points.get("damage", 1.0)) * target_multiplier * float(points.get("conditional_multiplier", 1.0))
+			return score
 		"block":
 			var block_amount: int = int(effect.get("amount", 0))
 			if effect.has("bonus"):
-				block_amount += int(round(float(effect.get("bonus", 0)) * condition_multiplier))
+				block_amount += int(round(float(effect.get("bonus", 0)) * float(points.get("conditional_multiplier", 1.0))))
 			return float(block_amount) * float(points.get("block", 1.0))
 		"draw":
 			return float(int(effect.get("amount", 0))) * float(points.get("draw", 0.0))
@@ -274,7 +277,7 @@ func _estimated_hits(effect: Dictionary) -> int:
 	return max(1, hits)
 
 func _effect_is_conditional(effect: Dictionary) -> bool:
-	return effect.has("requires_momentum_at_least") or effect.has("bonus_if_momentum_at_least")
+	return effect.has("requires_momentum_at_least")
 
 func _score_created_card(effect: Dictionary) -> float:
 	var points: Dictionary = numerical_tree_data.get("effect_points", {})

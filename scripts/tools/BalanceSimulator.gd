@@ -974,6 +974,9 @@ func _single_enemy_damage_score(enemy: Dictionary, amount: int, hits: int) -> fl
 func _estimate_damage_amount(combat, card: Dictionary, effect: Dictionary) -> int:
 	var amount: int = int(effect.get("amount", 0))
 	amount += int(combat.player.get("momentum", 0)) * int(effect.get("bonus_per_momentum", 0))
+	var bonus_threshold: int = int(effect.get("bonus_if_momentum_at_least", -1))
+	if bonus_threshold >= 0 and int(combat.player.get("momentum", 0)) >= bonus_threshold:
+		amount += int(effect.get("bonus", 0))
 	if not bool(card.get("ignore_player_modifiers", false)):
 		amount += _status_amount(combat.player.get("statuses", {}), "strength")
 		if _status_amount(combat.player.get("statuses", {}), "weak") > 0:
@@ -1502,8 +1505,12 @@ func _card_reward_score(card: Dictionary, _character_id: String) -> float:
 		var effect_dict: Dictionary = effect
 		match str(effect_dict.get("type", "")):
 			"damage":
-				score += float(int(effect_dict.get("amount", 0)) * int(effect_dict.get("hits", 1))) * (1.15 if str(effect_dict.get("target", card.get("target", ""))) == "all_enemies" else 0.88)
+				var damage_target_multiplier := 1.15 if str(effect_dict.get("target", card.get("target", ""))) == "all_enemies" else 0.88
+				score += float(int(effect_dict.get("amount", 0)) * int(effect_dict.get("hits", 1))) * damage_target_multiplier
 				score += float(int(effect_dict.get("bonus_per_momentum", 0))) * 2.0
+				if effect_dict.has("bonus_if_momentum_at_least"):
+					var conditional_multiplier: float = float(numerical_tree_data.get("effect_points", {}).get("conditional_multiplier", 0.72))
+					score += float(int(effect_dict.get("bonus", 0)) * int(effect_dict.get("hits", 1))) * damage_target_multiplier * conditional_multiplier
 			"block":
 				score += float(int(effect_dict.get("amount", 0))) * 0.75
 			"draw":

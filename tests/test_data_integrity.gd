@@ -9,6 +9,33 @@ const CHARACTER_ART_PATHS := {
 	"pyre_ascetic": "res://assets/art/generated/player_pyre_ascetic_pc.png"
 }
 
+const NEW_CARD_CHARACTER_IDS := {
+	"banked_pressure": "ember_exile",
+	"sealed_front": "ember_exile",
+	"equilibrium_core": "ember_exile",
+	"relay_spool": "arc_tinker",
+	"resonant_barrage": "arc_tinker",
+	"feedback_capacitor": "arc_tinker",
+	"scarlet_pact": "pyre_ascetic",
+	"brand_flurry": "pyre_ascetic",
+	"blood_litany": "pyre_ascetic"
+}
+
+const SUPPORTED_CARD_EFFECT_TYPES := [
+	"damage",
+	"block",
+	"draw",
+	"gain_momentum",
+	"lose_momentum",
+	"gain_energy",
+	"apply_status",
+	"create_card",
+	"damage_self"
+]
+
+const CARD_EFFECT_TARGETS := ["self", "enemy", "all_enemies"]
+const CREATED_CARD_DESTINATIONS := ["hand", "draw", "discard"]
+
 var failed: bool = false
 
 func _init() -> void:
@@ -29,6 +56,7 @@ func _init() -> void:
 	var monster_scaling_data: Dictionary = DataLoaderScript.load_json("res://data/config/monster_scaling.json")
 	var level_tree_data: Dictionary = DataLoaderScript.load_json("res://data/config/level_tree.json")
 	var card_balance_data: Dictionary = DataLoaderScript.load_json("res://data/config/card_balance_budgets.json")
+	var status_data: Dictionary = DataLoaderScript.load_json("res://data/statuses/statuses.json")
 
 	var cards_by_id: Dictionary = DataLoaderScript.index_by_id(card_data.get("cards", []))
 	var enemies_by_id: Dictionary = DataLoaderScript.index_by_id(enemy_data.get("enemies", []))
@@ -43,6 +71,7 @@ func _init() -> void:
 	var battle_background_slots_by_id: Dictionary = DataLoaderScript.index_by_id(art_data.get("battle_background_slots", []))
 	var vfx_profiles_by_id: Dictionary = DataLoaderScript.index_by_id(vfx_data.get("profiles", []))
 	var achievements_by_id: Dictionary = DataLoaderScript.index_by_id(achievement_data.get("achievements", []))
+	var statuses_by_id: Dictionary = DataLoaderScript.index_by_id(status_data.get("statuses", []))
 	var audio_manager = AudioManagerScript.new()
 	var audio_profiles: Dictionary = audio_manager.event_profiles.duplicate(true)
 	var audio_stream_paths: Dictionary = audio_manager.event_stream_paths.duplicate(true)
@@ -163,12 +192,21 @@ func _init() -> void:
 		_validate_art_slot(background_slot, "battle background slot %s" % chapter_id_string, "res://assets/art/backgrounds/")
 		_validate_svg_art_quality(str(background_slot.get("asset_path", "")), "battle background art quality: %s" % chapter_id_string, 16, true)
 
+	var seen_new_card_ids: Dictionary = {}
 	for card in card_data.get("cards", []):
 		var card_dict: Dictionary = card
 		var card_id: String = str(card_dict.get("id", ""))
 		_check(card_dict.has("design_note"), "card has design_note: %s" % card_dict.get("id", "unknown"))
 		_check(card_dict.has("balance_note"), "card has balance_note: %s" % card_dict.get("id", "unknown"))
 		_check(card_dict.has("upgrade_note"), "card has upgrade_note: %s" % card_dict.get("id", "unknown"))
+		if NEW_CARD_CHARACTER_IDS.has(card_id):
+			seen_new_card_ids[card_id] = true
+			_validate_new_card_definition(
+				card_dict,
+				str(NEW_CARD_CHARACTER_IDS.get(card_id, "")),
+				cards_by_id,
+				statuses_by_id
+			)
 		var card_art_slot: Dictionary = card_art_slots_by_id.get(card_id, {})
 		_validate_art_slot(card_art_slot, "card art slot %s" % card_id, "res://assets/art/cards/")
 		_validate_svg_art_quality(str(card_art_slot.get("asset_path", "")), "card art quality: %s" % card_id, 10, true)
@@ -176,6 +214,8 @@ func _init() -> void:
 			var card_character_id: String = str(character_id_value)
 			_check(character_ids.has(card_character_id), "card character_ids references playable character: %s" % card_dict.get("id", "unknown"))
 			exclusive_card_count_by_character[card_character_id] = int(exclusive_card_count_by_character.get(card_character_id, 0)) + 1
+	for new_card_id in NEW_CARD_CHARACTER_IDS.keys():
+		_check(seen_new_card_ids.has(str(new_card_id)), "new character card exists: %s" % str(new_card_id))
 	for character_id in exclusive_card_count_by_character.keys():
 		if str(character_id) == "arc_tinker":
 			_check(int(exclusive_card_count_by_character.get(character_id, 0)) >= 10, "arc tinker has a ten-card dedicated pool")
@@ -780,6 +820,56 @@ func _validate_effects(effects: Array, cards_by_id: Dictionary, context: String)
 		var effect_dict: Dictionary = effect
 		if str(effect_dict.get("type", "")) == "create_card":
 			_check(cards_by_id.has(str(effect_dict.get("card_id", ""))), "%s references existing created card" % context)
+
+func _validate_new_card_definition(card: Dictionary, expected_character_id: String, cards_by_id: Dictionary, statuses_by_id: Dictionary) -> void:
+	var card_id: String = str(card.get("id", "unknown"))
+	var character_ids: Array = card.get("character_ids", [])
+	_check(character_ids.size() == 1 and str(character_ids[0]) == expected_character_id, "%s is exclusive to %s" % [card_id, expected_character_id])
+	_check(str(card.get("target", "")) in CARD_EFFECT_TARGETS, "%s has a legal card target" % card_id)
+
+	var base_effects: Array = card.get("effects", [])
+	var upgrade: Dictionary = card.get("upgrade", {})
+	_check(not base_effects.is_empty(), "%s has base effects" % card_id)
+	_check(not upgrade.is_empty(), "%s has an upgrade definition" % card_id)
+	for replacement_field in ["cost", "description", "effects"]:
+		_check(upgrade.has(replacement_field), "%s upgrade fully replaces %s" % [card_id, replacement_field])
+	var upgraded_effects: Array = upgrade.get("effects", [])
+	_check(not upgraded_effects.is_empty(), "%s upgrade has a complete effects list" % card_id)
+	_check(upgraded_effects.size() == base_effects.size(), "%s upgrade preserves the complete effect sequence" % card_id)
+	for effect_index in range(min(base_effects.size(), upgraded_effects.size())):
+		var base_effect: Dictionary = base_effects[effect_index]
+		var upgraded_effect: Dictionary = upgraded_effects[effect_index]
+		_check(str(upgraded_effect.get("type", "")) == str(base_effect.get("type", "")), "%s upgrade effect %d replaces the matching base effect" % [card_id, effect_index])
+
+	_validate_new_card_effects(card, base_effects, cards_by_id, statuses_by_id, "%s base" % card_id)
+	_validate_new_card_effects(card, upgraded_effects, cards_by_id, statuses_by_id, "%s upgrade" % card_id)
+
+func _validate_new_card_effects(card: Dictionary, effects: Array, cards_by_id: Dictionary, statuses_by_id: Dictionary, context: String) -> void:
+	for effect_index in range(effects.size()):
+		var effect: Dictionary = effects[effect_index]
+		var effect_type: String = str(effect.get("type", ""))
+		var effect_context := "%s effect %d (%s)" % [context, effect_index, effect_type]
+		_check(effect_type in SUPPORTED_CARD_EFFECT_TYPES, "%s uses a supported runtime effect" % effect_context)
+		_check(int(effect.get("amount", 0)) > 0, "%s has a positive amount" % effect_context)
+		if effect.has("hits"):
+			_check(int(effect.get("hits", 0)) > 0, "%s has a positive hit count" % effect_context)
+		if effect.has("requires_momentum_at_least"):
+			_check(int(effect.get("requires_momentum_at_least", 0)) > 0, "%s has a positive momentum threshold" % effect_context)
+
+		match effect_type:
+			"damage":
+				var damage_target: String = str(effect.get("target", card.get("target", "")))
+				_check(damage_target in ["enemy", "all_enemies"], "%s resolves to a legal damage target" % effect_context)
+			"apply_status":
+				var status_id: String = str(effect.get("status", ""))
+				var status_target: String = str(effect.get("target", ""))
+				_check(effect.has("target") and status_target in CARD_EFFECT_TARGETS, "%s declares a legal explicit target" % effect_context)
+				_check(statuses_by_id.has(status_id), "%s references an existing status: %s" % [effect_context, status_id])
+			"create_card":
+				var created_card_id: String = str(effect.get("card_id", ""))
+				var destination: String = str(effect.get("destination", ""))
+				_check(cards_by_id.has(created_card_id), "%s references an existing card: %s" % [effect_context, created_card_id])
+				_check(destination in CREATED_CARD_DESTINATIONS, "%s declares a legal destination" % effect_context)
 
 func _validate_event_effects(effects: Array, cards_by_id: Dictionary, relics_by_id: Dictionary, potions_by_id: Dictionary, events_by_id: Dictionary, context: String) -> void:
 	for effect in effects:
