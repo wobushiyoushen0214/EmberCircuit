@@ -1,30 +1,30 @@
 # EmberCircuit Delivery State
 
 stage_state:
-  state: S7_RELEASE
+  state: S8_RUN_LOG
   loop_mode: L3
   audit_scope: delta
   current_round: 2
   max_rounds: 4
   open_gaps: 7
   tasks_created: 0
-  tasks_completed: 0
+  tasks_completed: 1
   carry_over: 4
   critical_review_issues: 0
-  next_legal_action: commit reviewed source, then build and validate 0.1.0-alpha.5 playtest artifacts
+  next_legal_action: distribute 0.1.0-alpha.5 and collect fingerprinted human playtest reports
   stop_conditions: hard numerical tuning still requires human samples
 ---
 
 loop_mode: L3
 current_round: 2
-next_loop_recommendation: continue-current-batch
+next_loop_recommendation: pause-human-needed
 carry_over: 4
 
 ## 基线
 
 - source_requirements: `docs/00_MASTER_PLAN.md`（由 `docs/01-08` 细化）
 - mvp_baseline_commit: `7b3f050`
-- last_audited_commit: `pending-l3-round-2-delivery-commit`
+- last_audited_commit: `a66ee2833fe71308cb0d231b3a7336aa61feca54`
 - loop_mode: `L3`
 - current_round: `2`
 - max_rounds: `4`
@@ -44,8 +44,8 @@ carry_over: 4
 | REQ-008 | PARTIAL | `assets/art/generated/`, `assets/fonts/NotoSansSC-Variable.ttf`, `data/config/art_assets.json`, `scripts/main/Main.gd`, `scripts/map/MapView.gd`, `assets/audio/` | `tests/test_visual_bounds.gd`, `tests/test_art_asset_auditor.gd`, `tests/test_pc_combat_hotkeys.gd`, `tests/test_audio_manager.gd` | next: unify remaining legacy overlays, effects and content art | L3-2 | 0 |
 | REQ-009 | PARTIAL | `scripts/core/PlaytestTelemetry.gd`, `scripts/core/SaveManager.gd`, `scripts/main/Main.gd`, `scripts/tools/BalanceSimulator.gd`, `data/config/numerical_tree.json` | `tests/test_playtest_telemetry.gd`, `tests/test_playtest_run_integration.gd`, `tests/test_balance_card_telemetry.gd`, `tests/test_numerical_balance_matrix.gd` | next: collect 12/30 finished human runs per character/challenge cell and analyze by configuration fingerprint | 5 | 0 |
 | REQ-010 | MISSING | none | none | proposed: build-grid-tactics-mode | 1 | 2 |
-| REQ-011 | PARTIAL | `export_presets.cfg`, `project.godot`, `packaging/PLAYTEST_README_ZH.txt` | alpha.5 export presets prepared; artifact smoke pending | next: native Windows matrix, commercial signing, installer and Steam integration | L3-2 | 0 |
-| REQ-012 | DONE | `tests/`, `tools/render_pc_gallery.gd`, `scripts/tools/ArtAssetAuditor.gd` | 18-suite strict-log regression, 153-slot art audit, headless startup and 720p defeat crop passed; artifact smoke pending | none | L3-2 | 0 |
+| REQ-011 | PARTIAL | `export_presets.cfg`, `project.godot`, `packaging/PLAYTEST_README_ZH.txt` | alpha.5 Windows embedded-PCK smoke；macOS universal 原生启动、build 5 与 adhoc 签名验证 | next: native Windows matrix, commercial signing, installer and Steam integration | L3-2 | 0 |
+| REQ-012 | DONE | `tests/`, `tools/render_pc_gallery.gd`, `scripts/tools/ArtAssetAuditor.gd` | 18-suite strict-log regression、153-slot art audit、720p 战败图、压缩完整性与导出包启动验证通过 | none | L3-2 | 0 |
 
 ## 当前批次
 
@@ -89,6 +89,6 @@ carry_over: 4
 
 ## 下一轮建议
 
-- action: `continue-current-batch`
-- reason: `L3 Round 2 战败页、终局存档保护、18 套回归、严格资源审计、720p 图库和双阶段评审完成后，提交源码并构建 alpha.5；数值硬调参仍等待每格 12/30 局真人样本。`
+- action: `pause-human-needed`
+- reason: `L3 Round 2 与 alpha.5 已交付；先让试玩者验证三章流程、战败复盘和终局存档保护，并按配置指纹收集每格 12 局方向样本，达到 30 局前不做数值硬调参。`
 - next_audit_scope: `delta`

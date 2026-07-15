@@ -828,3 +828,4 @@ jq empty data/cards/cards.json data/enemies/enemies.json data/relics/relics.json
 - 本轮未修改卡牌、角色、怪物、成长、挑战或经济数值；真人每角色/挑战格达到 12/30 个完成局前继续冻结硬调参。
 - 最终发布门禁为 18/18 Godot 测试严格日志扫描通过、153 槽位资源审计 0 缺失/0 hard error、Godot headless 启动通过。
 - 构建标记升级为 `0.1.0-alpha.5`，macOS bundle build number 升级为 5。
+- `0.1.0-alpha.5` 从源码提交 `a66ee28` 导出：Windows PE x86_64 embedded-PCK 与 macOS universal 包均通过解压后启动、资源入包、版本和签名验证；SHA-256 分别为 `491e6f5e6da8f9b1337401e33bb77c5129014597898c62c81ca7bd6a5b380da1` 与 `7377d2fbf5945d470c8366a6e49c8c6f9313bae83f0e01ed85d093d1e6921054`。
