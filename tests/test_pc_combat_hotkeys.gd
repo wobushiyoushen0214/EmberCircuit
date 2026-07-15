@@ -8,6 +8,8 @@ func _init() -> void:
 	_run.call_deferred()
 
 func _run() -> void:
+	SaveManagerScript.set_storage_namespace("test_pc_hotkeys")
+	SaveManagerScript.cleanup_storage_namespace()
 	SaveManagerScript.save_profile(SaveManagerScript.default_profile())
 	var scene: PackedScene = load("res://scenes/main/Main.tscn")
 	var host := Control.new()
@@ -73,6 +75,8 @@ func _run() -> void:
 
 	host.queue_free()
 	await process_frame
+	SaveManagerScript.cleanup_storage_namespace()
+	SaveManagerScript.clear_storage_namespace()
 	if failed:
 		quit(1)
 	else:

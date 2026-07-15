@@ -8,6 +8,8 @@ func _init() -> void:
 	_run.call_deferred()
 
 func _run() -> void:
+	SaveManagerScript.set_storage_namespace("test_card_drag")
+	SaveManagerScript.cleanup_storage_namespace()
 	SaveManagerScript.save_profile(SaveManagerScript.default_profile())
 	var scene: PackedScene = load("res://scenes/main/Main.tscn")
 	var viewport_size := Vector2(1280, 720)
@@ -136,6 +138,8 @@ func _check(condition: bool, message: String) -> void:
 	push_error(message)
 
 func _finish() -> void:
+	SaveManagerScript.cleanup_storage_namespace()
+	SaveManagerScript.clear_storage_namespace()
 	if failed:
 		quit(1)
 	else:

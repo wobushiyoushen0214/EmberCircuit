@@ -16,6 +16,8 @@ func _init() -> void:
 	_run()
 
 func _run() -> void:
+	SaveManagerScript.set_storage_namespace("test_run_flow")
+	SaveManagerScript.cleanup_storage_namespace()
 	SaveManagerScript.save_profile(SaveManagerScript.default_profile())
 	var scene: PackedScene = load("res://scenes/main/Main.tscn")
 	var main = scene.instantiate()
@@ -1414,6 +1416,13 @@ func _run() -> void:
 		return
 	if not _check(main._profile_stat("bosses_defeated") >= 1 and main._profile_unlocked_achievements().has("boss_breaker"), "boss completion updates profile and unlocks boss breaker"):
 		return
+	var boss_count_after_first_receipt: int = main._profile_stat("bosses_defeated")
+	var forge_marks_after_first_receipt: int = main._progression_currency_amount()
+	var boss_receipt_count_after_first: int = main.player_profile.get("reward_receipt_ids", []).size()
+	if not _check(main._record_boss_defeated("chapter_one"), "replaying an already rewarded boss receipt is accepted idempotently"):
+		return
+	if not _check(main._profile_stat("bosses_defeated") == boss_count_after_first_receipt and main._progression_currency_amount() == forge_marks_after_first_receipt and main.player_profile.get("reward_receipt_ids", []).size() == boss_receipt_count_after_first, "same run and chapter cannot grant permanent boss rewards twice"):
+		return
 	if not _check(main.player_profile.get("completed_chapters", []).has("chapter_one") and main._profile_unlocked_achievements().has("lower_city_charted"), "chapter one completion is recorded in profile achievements"):
 		return
 	if not _check(str(main._current_node().get("type", "")) == "combat", "chapter two starts at first combat node"):
@@ -1540,8 +1549,90 @@ func _run() -> void:
 	if not _check(main.player_profile.get("character_completions", []).has("pyre_ascetic") and main._profile_unlocked_achievements().has("pyre_ascetic_mark"), "pyre ascetic completion is recorded in profile achievements"):
 		return
 
+	var defeat_main = scene.instantiate()
+	defeat_main.debug_viewport_size_override = Vector2(1280, 720)
+	defeat_main._ready()
+	defeat_main._on_character_selected("ember_exile")
+	defeat_main.completed_chapter_ids = ["chapter_one"]
+	defeat_main.player_profile["forge_marks"] = int(defeat_main.progression_data.get("currency", {}).get("boss_reward", 2))
+	defeat_main._save_player_profile()
+	var defeat_profile_before: Dictionary = defeat_main.player_profile.duplicate(true)
+	defeat_main.combat.phase = "lost"
+	defeat_main.combat.player["hp"] = 0
+	var expected_defeat_background: String = defeat_main._battle_background_path(defeat_main.current_chapter_id)
+	var expected_defeat_player_art: String = defeat_main._character_stage_art_path()
+	var expected_defeat_survivors: Array[Dictionary] = defeat_main._defeat_surviving_enemies()
+	var expected_defeat_outcome: Dictionary = defeat_main._defeat_outcome_data()
+	var expected_defeat_route_step: int = int(defeat_main._current_node().get("layer", 0)) + 1
+	var expected_defeat_route_total: int = defeat_main.map_graph.get("layers", []).size()
+	defeat_main._refresh_combat()
+	var defeat_stage := defeat_main.reward_row.get_node_or_null("PcDefeatExperience") as PanelContainer
+	if not _check(defeat_stage != null and defeat_main.reward_row.get_child_count() == 1 and defeat_main.last_defeat_panel_visible, "PC defeat renders one dedicated run-outcome stage"):
+		return
+	var defeat_background := defeat_stage.find_child("DefeatBackground", true, false) as TextureRect
+	var defeated_player := defeat_stage.find_child("DefeatedPlayer", true, false) as TextureRect
+	if not _check(defeat_background != null and defeat_main.last_defeat_art_loaded and defeat_main.last_defeat_art_path == expected_defeat_background and str(defeat_background.get_meta("chapter_id", "")) == defeat_main.current_chapter_id, "PC defeat uses the current chapter battle background"):
+		return
+	if not _check(defeated_player != null and str(defeated_player.get_meta("character_id", "")) == defeat_main.selected_character_id and str(defeated_player.get_meta("art_path", "")) == expected_defeat_player_art, "PC defeat uses the selected character stage art"):
+		return
+	var expected_visible_enemy_count: int = min(3, expected_defeat_survivors.size())
+	if not _check(defeat_main.last_defeat_scene_enemy_count == expected_visible_enemy_count, "PC defeat renders every visible surviving enemy"):
+		return
+	for enemy_index in range(expected_visible_enemy_count):
+		var defeat_enemy_slot := defeat_stage.find_child("DefeatEnemy_%d" % enemy_index, true, false) as Control
+		if not _check(defeat_enemy_slot != null and str(defeat_enemy_slot.get_meta("enemy_id", "")) == str(expected_defeat_survivors[enemy_index].get("id", "")), "PC defeat preserves surviving enemy identity at slot %d" % enemy_index):
+			return
+	var expected_summary_fragments: Array[String] = [
+		str(expected_defeat_outcome.get("chapter_name", "")),
+		str(expected_defeat_outcome.get("encounter_name", "")),
+		"回合 %d" % int(expected_defeat_outcome.get("turn", 0)),
+		"路线 %d/%d" % [expected_defeat_route_step, expected_defeat_route_total],
+		"金币 %d" % int(expected_defeat_outcome.get("gold", 0)),
+		"牌组 %d" % int(expected_defeat_outcome.get("deck_size", 0)),
+		"遗物 %d" % int(expected_defeat_outcome.get("relic_count", 0)),
+		"挑战 %d" % int(expected_defeat_outcome.get("challenge_level", 0))
+	]
+	var defeat_summary_complete: bool = defeat_main.last_defeat_stat_chip_count == 6
+	for fragment in expected_summary_fragments:
+		defeat_summary_complete = defeat_summary_complete and defeat_main.last_defeat_summary.contains(fragment)
+	if not _check(defeat_summary_complete, "PC defeat shows every required real-run summary field"):
+		return
+	if not _check(defeat_main.last_defeat_forge_marks_earned == 2 and defeat_main.last_defeat_summary.contains("炉印 +2"), "PC defeat reports already retained boss forge marks without granting failure rewards"):
+		return
+	if not _check(defeat_main.player_profile == defeat_profile_before and SaveManagerScript.load_profile() == SaveManagerScript.normalized_profile(defeat_profile_before), "combat defeat does not mutate or persist any permanent reward"):
+		return
+	var defeat_deck_button := defeat_stage.find_child("DefeatDeckButton", true, false) as Button
+	var defeat_export_button := defeat_stage.find_child("DefeatExportButton", true, false) as Button
+	var defeat_profile_button := defeat_stage.find_child("DefeatProfileButton", true, false) as Button
+	var defeat_retry_button := defeat_stage.find_child("DefeatRetryButton", true, false) as Button
+	if not _check(defeat_deck_button != null and defeat_export_button != null and defeat_profile_button != null and defeat_retry_button != null and defeat_main.last_defeat_action_count == 4, "PC defeat exposes deck, report, profile and retry as real page actions"):
+		return
+	defeat_export_button.pressed.emit()
+	if not _check(defeat_main.last_playtest_export_ok and FileAccess.file_exists(SaveManagerScript.playtest_export_path()) and defeat_export_button.text == "报告已导出", "defeat report action exports through its real button signal and shows visible success feedback"):
+		return
+	defeat_deck_button.pressed.emit()
+	if not _check(defeat_main.deck_view_open, "defeat deck action opens the final deck"):
+		return
+	defeat_main._on_close_deck_view_pressed()
+	if not _check(not defeat_main.deck_view_open and defeat_main.reward_row.get_node_or_null("PcDefeatExperience") != null, "closing final deck returns to the defeat stage"):
+		return
+	defeat_stage = defeat_main.reward_row.get_node_or_null("PcDefeatExperience") as PanelContainer
+	defeat_profile_button = defeat_stage.find_child("DefeatProfileButton", true, false) as Button if defeat_stage != null else null
+	defeat_profile_button.pressed.emit()
+	if not _check(defeat_main.profile_open, "defeat profile action opens retained progression"):
+		return
+	defeat_main._on_close_profile_pressed()
+	defeat_stage = defeat_main.reward_row.get_node_or_null("PcDefeatExperience") as PanelContainer
+	defeat_retry_button = defeat_stage.find_child("DefeatRetryButton", true, false) as Button if defeat_stage != null else null
+	defeat_retry_button.pressed.emit()
+	if not _check(defeat_main.character_select_open and defeat_main.combat == null, "defeat retry action returns to character selection"):
+		return
+	defeat_main.free()
+
 	SaveManagerScript.save_profile(SaveManagerScript.default_profile())
 	main.free()
+	SaveManagerScript.cleanup_storage_namespace()
+	SaveManagerScript.clear_storage_namespace()
 	print("Run flow smoke test passed.")
 	quit(0)
 

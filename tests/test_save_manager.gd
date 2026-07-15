@@ -3,14 +3,9 @@ extends SceneTree
 const SaveManagerScript = preload("res://scripts/core/SaveManager.gd")
 const PlaytestTelemetryScript = preload("res://scripts/core/PlaytestTelemetry.gd")
 
-var original_user_files: Dictionary = {}
-
 func _init() -> void:
-	_capture_user_file(SaveManagerScript.SAVE_PATH)
-	_capture_user_file(SaveManagerScript.SETTINGS_PATH)
-	_capture_user_file(SaveManagerScript.PROFILE_PATH)
-	_capture_user_file(SaveManagerScript.PLAYTEST_STORE_PATH)
-	_capture_user_file(SaveManagerScript.PLAYTEST_EXPORT_PATH)
+	SaveManagerScript.set_storage_namespace("test_save_manager")
+	SaveManagerScript.cleanup_storage_namespace()
 
 	var state := {
 		"version": 1,
@@ -37,6 +32,43 @@ func _init() -> void:
 	_check(str(loaded.get("run_deck_ids", [])[1]) == "ash_guard+", "load_run keeps upgraded card marker")
 	_check(str(loaded.get("run_potion_ids", [])[0]) == "volatile_vial", "load_run restores potions")
 	_check(str(loaded.get("selected_character_id", "")) == "arc_tinker", "load_run restores selected character")
+	var recovery_path := SaveManagerScript.run_save_path()
+	var recovery_temp_path := recovery_path + SaveManagerScript.ATOMIC_TEMP_SUFFIX
+	var recovery_backup_path := recovery_path + SaveManagerScript.ATOMIC_BACKUP_SUFFIX
+	_check(DirAccess.rename_absolute(ProjectSettings.globalize_path(recovery_path), ProjectSettings.globalize_path(recovery_backup_path)) == OK, "atomic recovery fixture stages the previous run save")
+	var pending_state: Dictionary = state.duplicate(true)
+	pending_state["run_hp"] = 37
+	var pending_file := FileAccess.open(recovery_temp_path, FileAccess.WRITE)
+	_check(pending_file != null, "atomic recovery fixture opens a complete temp file")
+	if pending_file != null:
+		pending_file.store_string(JSON.stringify(pending_state, "\t"))
+		pending_file = null
+	_check(int(SaveManagerScript.load_run().get("run_hp", 0)) == 37 and not FileAccess.file_exists(recovery_backup_path), "load_run promotes a verified temp file after an interrupted replacement")
+	_check(SaveManagerScript.save_run(state), "corrupt-primary recovery fixture restores a verified run save")
+	_check(DirAccess.rename_absolute(ProjectSettings.globalize_path(recovery_path), ProjectSettings.globalize_path(recovery_backup_path)) == OK, "corrupt-primary recovery fixture stages a valid backup")
+	var corrupt_file := FileAccess.open(recovery_path, FileAccess.WRITE)
+	_check(corrupt_file != null, "corrupt-primary recovery fixture opens the primary path")
+	if corrupt_file != null:
+		corrupt_file.store_string("[]")
+		corrupt_file = null
+	_check(int(SaveManagerScript.load_run().get("run_hp", 0)) == 42 and not FileAccess.file_exists(recovery_backup_path), "load_run restores a verified backup instead of keeping a corrupt primary")
+	var owned_state: Dictionary = state.duplicate(true)
+	owned_state["playtest_active_run"] = {"run_id": "owned-run-a"}
+	_check(SaveManagerScript.save_run(owned_state), "ownership fixture writes run A")
+	_check(SaveManagerScript.delete_run_for_run_id("current-run-b"), "deleting current run B treats an unrelated save as preserved")
+	_check(str(SaveManagerScript.load_run().get("playtest_active_run", {}).get("run_id", "")) == "owned-run-a", "run B terminal cleanup does not delete saved run A")
+	_check(not SaveManagerScript.delete_run_for_run_id(""), "empty run ownership cannot authorize deletion")
+	_check(str(SaveManagerScript.load_run().get("playtest_active_run", {}).get("run_id", "")) == "owned-run-a", "empty ownership leaves the save untouched")
+	_check(SaveManagerScript.delete_run_for_run_id("owned-run-a"), "matching run ownership deletes its save")
+	_check(SaveManagerScript.load_run().is_empty(), "owned run save is removed after matching cleanup")
+	_check(SaveManagerScript.save_run(owned_state), "sidecar cleanup fixture restores an owned run save")
+	_check(DirAccess.rename_absolute(ProjectSettings.globalize_path(recovery_path), ProjectSettings.globalize_path(recovery_backup_path)) == OK, "sidecar cleanup fixture leaves the owned save only in a verified backup")
+	_check(SaveManagerScript.delete_run_for_run_id("owned-run-a"), "owned cleanup recovers and deletes a verified atomic sidecar")
+	_check(not FileAccess.file_exists(recovery_path) and not FileAccess.file_exists(recovery_temp_path) and not FileAccess.file_exists(recovery_backup_path), "owned cleanup cannot report success while a recoverable sidecar remains")
+	_check(SaveManagerScript.save_run(state), "delete_run fixture restores a generic run save")
+	_check(SaveManagerScript.delete_run(), "delete_run removes an existing run save")
+	_check(SaveManagerScript.load_run().is_empty(), "deleted run save cannot be resumed")
+	_check(SaveManagerScript.delete_run(), "delete_run is idempotent when no run save exists")
 
 	var settings := {
 		"audio_enabled": false,
@@ -78,6 +110,7 @@ func _init() -> void:
 		"character_completions": ["ember_exile", "ember_exile"],
 		"unlocked_achievement_ids": ["first_ignition", "boss_breaker", "first_ignition"],
 		"last_unlock_ids": ["boss_breaker", "boss_breaker"],
+		"reward_receipt_ids": ["boss:fixture:chapter_one", "boss:fixture:chapter_one", "completion:fixture"],
 		"discovered": {
 			"cards": ["ember_strike", "ash_guard", "ember_strike"],
 			"relics": ["ember_bottle", "ember_bottle"],
@@ -99,6 +132,7 @@ func _init() -> void:
 	_check(loaded_profile.get("character_completions", []).size() == 1, "load_profile de-duplicates character completions")
 	_check(loaded_profile.get("unlocked_achievement_ids", []).size() == 2, "load_profile de-duplicates achievements")
 	_check(loaded_profile.get("last_unlock_ids", []).size() == 1, "load_profile de-duplicates latest unlocks")
+	_check(int(loaded_profile.get("version", 0)) == 3 and loaded_profile.get("reward_receipt_ids", []).size() == 2, "profile v3 migrates and de-duplicates terminal reward receipts")
 	var loaded_discovered: Dictionary = loaded_profile.get("discovered", {})
 	_check(loaded_discovered.get("cards", []).size() == 2, "load_profile de-duplicates discovered cards")
 	_check(loaded_discovered.get("challenges", []).size() == 2, "load_profile de-duplicates discovered challenge levels")
@@ -126,38 +160,17 @@ func _init() -> void:
 
 	var report: Dictionary = PlaytestTelemetryScript.build_report(loaded_playtest_store, {"generated_at_utc": "2026-07-15T12:30:00Z"})
 	_check(SaveManagerScript.export_playtest_report(report), "export_playtest_report returns true")
-	_check(FileAccess.file_exists(SaveManagerScript.PLAYTEST_EXPORT_PATH), "playtest export is written to user data")
-	var exported = JSON.parse_string(FileAccess.get_file_as_string(SaveManagerScript.PLAYTEST_EXPORT_PATH))
+	_check(FileAccess.file_exists(SaveManagerScript.playtest_export_path()), "playtest export is written to isolated user data")
+	var exported = JSON.parse_string(FileAccess.get_file_as_string(SaveManagerScript.playtest_export_path()))
 	_check(exported is Dictionary and int(exported.get("schema_version", 0)) == PlaytestTelemetryScript.SCHEMA_VERSION, "exported playtest report is valid versioned JSON")
-	_check(SaveManagerScript.playtest_export_absolute_path() == ProjectSettings.globalize_path(SaveManagerScript.PLAYTEST_EXPORT_PATH), "playtest export exposes a shareable absolute path")
+	_check(SaveManagerScript.playtest_export_absolute_path() == ProjectSettings.globalize_path(SaveManagerScript.playtest_export_path()), "playtest export exposes a shareable absolute path")
 
-	_restore_user_files()
+	SaveManagerScript.cleanup_storage_namespace()
+	SaveManagerScript.clear_storage_namespace()
 	print("Save manager smoke test passed.")
 	quit(0)
-
-func _capture_user_file(path: String) -> void:
-	var entry := {
-		"exists": FileAccess.file_exists(path),
-		"text": ""
-	}
-	if bool(entry.get("exists", false)):
-		var file := FileAccess.open(path, FileAccess.READ)
-		if file != null:
-			entry["text"] = file.get_as_text()
-	original_user_files[path] = entry
-
-func _restore_user_files() -> void:
-	for path in original_user_files.keys():
-		var entry: Dictionary = original_user_files.get(path, {})
-		if bool(entry.get("exists", false)):
-			var file := FileAccess.open(str(path), FileAccess.WRITE)
-			if file != null:
-				file.store_string(str(entry.get("text", "")))
-		elif FileAccess.file_exists(str(path)):
-			DirAccess.remove_absolute(ProjectSettings.globalize_path(str(path)))
 
 func _check(condition: bool, message: String) -> void:
 	if not condition:
 		push_error("Test failed: %s" % message)
-		_restore_user_files()
 		quit(1)

@@ -8,6 +8,8 @@ func _init() -> void:
 	_run.call_deferred()
 
 func _run() -> void:
+	SaveManagerScript.set_storage_namespace("test_visual_bounds")
+	SaveManagerScript.cleanup_storage_namespace()
 	SaveManagerScript.save_profile(SaveManagerScript.default_profile())
 	var scene: PackedScene = load("res://scenes/main/Main.tscn")
 	var viewport_size := Vector2(390, 640)
@@ -239,6 +241,39 @@ func _run() -> void:
 	await process_frame
 	_check(default_pc_main.controls_scroll.visible and default_pc_main.hand_frame.visible, "closing the deck view restores combat controls and hand")
 
+	var defeat_pc_host := Control.new()
+	defeat_pc_host.custom_minimum_size = default_pc_size
+	defeat_pc_host.size = default_pc_size
+	defeat_pc_host.clip_contents = true
+	root.add_child(defeat_pc_host)
+	var defeat_pc_main = scene.instantiate()
+	defeat_pc_main.debug_viewport_size_override = default_pc_size
+	defeat_pc_host.add_child(defeat_pc_main)
+	await process_frame
+	await process_frame
+	defeat_pc_main._on_character_selected("ember_exile")
+	defeat_pc_main.combat.phase = "lost"
+	defeat_pc_main.combat.player["hp"] = 0
+	defeat_pc_main._refresh_combat()
+	await process_frame
+	await process_frame
+	var defeat_stage := defeat_pc_main.reward_row.get_node_or_null("PcDefeatExperience") as PanelContainer
+	var defeat_scene := defeat_stage.find_child("DefeatScene", true, false) as Control if defeat_stage != null else null
+	var defeat_summary := defeat_stage.find_child("DefeatSummary", true, false) as Control if defeat_stage != null else null
+	var defeat_actions := defeat_stage.find_child("DefeatActions", true, false) as Control if defeat_stage != null else null
+	_check(defeat_stage != null and defeat_pc_main.reward_row.get_child_count() == 1, "default PC defeat uses one complete outcome stage")
+	_check(int(defeat_pc_main.page_scroll.get("vertical_scroll_mode")) == 0 and int(defeat_pc_main.reward_scroll.get("vertical_scroll_mode")) == 0, "default PC defeat does not expose page or reward scrolling")
+	_check(not defeat_pc_main.page_scroll.get_v_scroll_bar().visible and not defeat_pc_main.reward_scroll.get_v_scroll_bar().visible, "default PC defeat hides system scrollbars")
+	_check(not defeat_pc_main.controls_scroll.visible and not defeat_pc_main.title_label.visible and not defeat_pc_main.log_label.visible and not defeat_pc_main.character_frame.visible, "default PC defeat removes legacy chrome and duplicate bottom actions")
+	_check(_control_inside_viewport(defeat_pc_main.reward_scroll, default_pc_size) and _control_inside_vertical(defeat_stage, defeat_pc_main.reward_scroll), "default PC defeat stage stays inside the 720p reward viewport")
+	_check(_control_inside_vertical(defeat_scene, defeat_stage) and _control_inside_horizontal(defeat_scene, defeat_stage), "default PC defeat battle scene stays inside its stage")
+	_check(_control_inside_vertical(defeat_summary, defeat_stage) and _control_inside_horizontal(defeat_summary, defeat_stage), "default PC defeat summary stays inside its stage")
+	_check(_control_inside_vertical(defeat_actions, defeat_stage) and _control_inside_horizontal(defeat_actions, defeat_stage), "default PC defeat actions stay inside its stage")
+	_check(_visible_children_fit_horizontally(defeat_actions, default_pc_size.x), "default PC defeat actions fit one row")
+	_check(defeat_pc_main.last_combat_layout_overflow <= 0.0, "default PC defeat fits the 720p height budget")
+	defeat_pc_host.queue_free()
+	await process_frame
+
 	var short_pc_size := Vector2(1280, 700)
 	var short_pc_host := Control.new()
 	short_pc_host.custom_minimum_size = short_pc_size
@@ -346,6 +381,8 @@ func _run() -> void:
 	default_pc_main.free()
 	default_pc_host.free()
 	SaveManagerScript.save_profile(SaveManagerScript.default_profile())
+	SaveManagerScript.cleanup_storage_namespace()
+	SaveManagerScript.clear_storage_namespace()
 	if failed:
 		quit(1)
 		return

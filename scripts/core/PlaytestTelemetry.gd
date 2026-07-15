@@ -106,13 +106,18 @@ static func set_active_run(raw_store: Dictionary, raw_run: Dictionary) -> Dictio
 		return store
 	var run_id := str(run.get("run_id", ""))
 	var retained_runs: Array = []
+	var terminal_already_archived := false
 	for archived_value in store.get("runs", []):
 		var archived: Dictionary = archived_value
-		if str(archived.get("run_id", "")) == run_id and str(archived.get("outcome", "")) == "abandoned":
-			continue
+		if str(archived.get("run_id", "")) == run_id:
+			var archived_outcome := str(archived.get("outcome", ""))
+			if ["victory", "defeat"].has(archived_outcome):
+				terminal_already_archived = true
+			elif archived_outcome == "abandoned":
+				continue
 		retained_runs.append(archived)
 	store["runs"] = retained_runs
-	store["active_run"] = run
+	store["active_run"] = {} if terminal_already_archived else run
 	return store
 
 static func finish_active_run(raw_store: Dictionary, outcome: String, final_context: Dictionary) -> Dictionary:
@@ -610,8 +615,18 @@ static func _finish_run(run: Dictionary, outcome: String, final_context: Diction
 		}
 
 static func _append_finished_run(store: Dictionary, run: Dictionary) -> void:
-	var runs: Array = store.get("runs", [])
-	runs.append(_normalized_run(run))
+	var finished_run := _normalized_run(run)
+	var finished_run_id := str(finished_run.get("run_id", ""))
+	var runs: Array = []
+	var retained_terminal: Dictionary = {}
+	for existing_value in store.get("runs", []):
+		var existing: Dictionary = existing_value
+		if not finished_run_id.is_empty() and str(existing.get("run_id", "")) == finished_run_id:
+			if retained_terminal.is_empty() and ["victory", "defeat"].has(str(existing.get("outcome", ""))):
+				retained_terminal = existing
+			continue
+		runs.append(existing)
+	runs.append(retained_terminal if not retained_terminal.is_empty() else finished_run)
 	if runs.size() > MAX_RUN_HISTORY:
 		runs = runs.slice(runs.size() - MAX_RUN_HISTORY, runs.size())
 	store["runs"] = runs

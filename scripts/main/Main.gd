@@ -64,14 +64,15 @@ const UI_DECK_ICON_PATH := "res://assets/art/generated/ui/icons/hud_draw.svg"
 const UI_SETTINGS_ICON_PATH := "res://assets/art/generated/ui/icons/control_settings.svg"
 const UI_NEW_RUN_ICON_PATH := "res://assets/art/generated/ui/icons/control_new_run.svg"
 const UI_LOAD_RUN_ICON_PATH := "res://assets/art/generated/ui/icons/control_load_run.svg"
-const UI_EXPORT_REPORT_ICON_PATH := "res://assets/art/generated/ui/icons/control_load_run.svg"
+const UI_EXPORT_REPORT_ICON_PATH := "res://assets/art/generated/ui/icons/control_export_report.svg"
+const UI_RETRY_RUN_ICON_PATH := "res://assets/art/generated/ui/icons/control_retry.svg"
 const UI_PROFILE_ICON_PATH := "res://assets/art/generated/ui/icons/control_profile.svg"
 const UI_COMPENDIUM_ICON_PATH := "res://assets/art/generated/ui/icons/control_compendium.svg"
 const UI_TUTORIAL_ICON_PATH := "res://assets/art/generated/ui/icons/control_tutorial.svg"
 const UI_SKIP_REWARD_ICON_PATH := "res://assets/art/generated/ui/icons/control_skip_reward.svg"
 const UI_CONTINUE_ROUTE_ICON_PATH := "res://assets/art/generated/ui/icons/control_continue_route.svg"
 const UI_FONT_PATH := "res://assets/fonts/NotoSansSC-Variable.ttf"
-const PLAYTEST_BUILD_LABEL := "0.1.0-alpha.4"
+const PLAYTEST_BUILD_LABEL := "0.1.0-alpha.5"
 const PLAYER_ART_PATHS := {
 	"ember_exile": "res://assets/art/generated/player_ember_exile_pc.png",
 	"arc_tinker": "res://assets/art/generated/player_arc_tinker_pc.png",
@@ -394,6 +395,15 @@ var last_run_completion_stat_chip_count: int = 0
 var last_run_completion_unlock_chip_count: int = 0
 var last_run_completion_action_count: int = 0
 var last_run_completion_export_button_visible: bool = false
+var last_defeat_panel_visible: bool = false
+var last_defeat_art_path: String = ""
+var last_defeat_art_loaded: bool = false
+var last_defeat_scene_enemy_count: int = 0
+var last_defeat_stat_chip_count: int = 0
+var last_defeat_action_count: int = 0
+var last_defeat_forge_marks_earned: int = 0
+var last_defeat_summary: String = ""
+var last_defeat_reveal_animation_count: int = 0
 var last_character_selection_title: String = ""
 var last_character_selection_ids: Array[String] = []
 var last_character_selection_confirm_visible: bool = false
@@ -476,6 +486,9 @@ var last_profile_forge_marks: int = 0
 var last_profile_upgrade_node_count: int = 0
 var last_profile_skill_book_count: int = 0
 var last_profile_save_ok: bool = false
+var last_run_save_cleanup_ok: bool = true
+var last_terminal_run_id: String = ""
+var last_terminal_persistence_error: String = ""
 var last_profile_character_selector_count: int = 0
 var last_profile_export_button_visible: bool = false
 var last_playtest_export_ok: bool = false
@@ -1425,6 +1438,9 @@ func _start_new_run(character_id: String = "") -> void:
 	run_gold = int(player_config.get("starting_gold", 0))
 	run_shop_remove_count = 0
 	run_completed = false
+	last_run_save_cleanup_ok = true
+	last_terminal_run_id = ""
+	last_terminal_persistence_error = ""
 	current_chapter_id = _first_chapter_id()
 	completed_chapter_ids.clear()
 	current_node_index = 0
@@ -1546,17 +1562,22 @@ func _load_player_profile() -> void:
 func _load_playtest_store() -> void:
 	playtest_store = SaveManagerScript.load_playtest_store()
 
-func _save_player_profile() -> void:
+func _save_player_profile() -> bool:
 	player_profile = SaveManagerScript.normalized_profile(player_profile)
 	last_profile_save_ok = SaveManagerScript.save_profile(player_profile)
+	return last_profile_save_ok
 
 func _playtest_active_run() -> Dictionary:
 	return PlaytestTelemetryScript.active_run(playtest_store)
 
-func _start_playtest_run() -> void:
+func _active_playtest_run_id() -> String:
+	return str(_playtest_active_run().get("run_id", ""))
+
+func _start_playtest_run(forced_run_id: String = "") -> void:
 	if not _playtest_active_run().is_empty():
 		playtest_store = PlaytestTelemetryScript.finish_active_run(playtest_store, "abandoned", _playtest_final_snapshot("new_run_started"))
 	playtest_store = PlaytestTelemetryScript.start_run(playtest_store, {
+		"run_id": forced_run_id,
 		"game_version": PLAYTEST_BUILD_LABEL,
 		"engine_version": str(Engine.get_version_info().get("string", "unknown")),
 		"config_fingerprint": playtest_config_fingerprint,
@@ -1584,22 +1605,26 @@ func _archive_playtest_run_replaced_by(raw_run: Variant) -> void:
 		playtest_store = PlaytestTelemetryScript.finish_active_run(playtest_store, "abandoned", _playtest_final_snapshot("different_save_loaded"))
 		_checkpoint_playtest_store()
 
-func _restore_playtest_run(raw_run: Variant) -> void:
-	var incoming: Dictionary = raw_run if raw_run is Dictionary else {}
+func _restore_playtest_run(raw_run: Variant, fallback_run_id: String = "") -> void:
+	var incoming: Dictionary = (raw_run as Dictionary).duplicate(true) if raw_run is Dictionary else {}
+	if not fallback_run_id.is_empty():
+		last_terminal_run_id = fallback_run_id
+	if not incoming.is_empty() and str(incoming.get("run_id", "")).is_empty() and not fallback_run_id.is_empty():
+		incoming["run_id"] = fallback_run_id
 	if not incoming.is_empty():
 		playtest_store = PlaytestTelemetryScript.set_active_run(playtest_store, incoming)
 	else:
 		playtest_store["active_run"] = {}
-	if _playtest_active_run().is_empty() and not run_completed:
-		_start_playtest_run()
+	if _playtest_active_run().is_empty() and not run_completed and _archived_playtest_run_outcome(fallback_run_id).is_empty():
+		_start_playtest_run(fallback_run_id)
 	var restored := _playtest_active_run()
 	if not restored.is_empty():
 		PlaytestTelemetryScript.record_run_loaded(restored)
 		playtest_store["active_run"] = restored
 	_checkpoint_playtest_store()
 
-func _checkpoint_playtest_store() -> void:
-	SaveManagerScript.save_playtest_store(playtest_store)
+func _checkpoint_playtest_store() -> bool:
+	return SaveManagerScript.save_playtest_store(playtest_store)
 
 func _record_playtest_node_started() -> void:
 	var run := _playtest_active_run()
@@ -1627,7 +1652,7 @@ func _record_playtest_node_started() -> void:
 func _record_playtest_combat_terminal() -> void:
 	if combat == null or not ["won", "lost"].has(str(combat.phase)):
 		return
-	var run := _playtest_active_run()
+	var run := _playtest_active_run().duplicate(true)
 	if run.is_empty():
 		return
 	var node: Dictionary = _current_node()
@@ -1642,12 +1667,22 @@ func _record_playtest_combat_terminal() -> void:
 		"deck_size": run_deck_ids.size(),
 		"is_battle": true
 	})
-	if changed:
-		playtest_store["active_run"] = run
 	if combat.phase == "lost":
-		playtest_store = PlaytestTelemetryScript.finish_active_run(playtest_store, "defeat", _playtest_final_snapshot("combat_defeat"))
-		_checkpoint_playtest_store()
+		var run_id := str(run.get("run_id", ""))
+		last_terminal_run_id = run_id
+		var candidate_store: Dictionary = playtest_store.duplicate(true)
+		candidate_store["active_run"] = run
+		candidate_store = PlaytestTelemetryScript.finish_active_run(candidate_store, "defeat", _playtest_final_snapshot("combat_defeat"))
+		if not SaveManagerScript.save_playtest_store(candidate_store):
+			last_run_save_cleanup_ok = false
+			last_terminal_persistence_error = "试玩记录保存失败；可恢复存档仍保留。"
+			return
+		playtest_store = candidate_store
+		last_terminal_run_id = run_id
+		last_run_save_cleanup_ok = SaveManagerScript.delete_run_for_run_id(run_id)
+		last_terminal_persistence_error = "" if last_run_save_cleanup_ok else "试玩记录已保存，但本局存档清理失败。"
 	elif changed:
+		playtest_store["active_run"] = run
 		_checkpoint_playtest_store()
 
 func _record_playtest_noncombat_terminal() -> void:
@@ -1668,11 +1703,51 @@ func _record_playtest_noncombat_terminal() -> void:
 		playtest_store["active_run"] = run
 		_checkpoint_playtest_store()
 
-func _finish_active_playtest_run(outcome: String, reason: String = "") -> void:
-	if _playtest_active_run().is_empty():
-		return
-	playtest_store = PlaytestTelemetryScript.finish_active_run(playtest_store, outcome, _playtest_final_snapshot(reason))
-	_checkpoint_playtest_store()
+func _finish_active_playtest_run(outcome: String, reason: String = "", expected_run_id: String = "") -> bool:
+	var active := _playtest_active_run()
+	if active.is_empty():
+		if expected_run_id.is_empty():
+			return true
+		var archived_matches := _archived_playtest_run_matches(expected_run_id, outcome)
+		if not archived_matches:
+			last_terminal_persistence_error = "未找到本局的终局试玩记录；可恢复存档仍保留。"
+		return archived_matches
+	var run_id := str(active.get("run_id", ""))
+	if not expected_run_id.is_empty() and run_id != expected_run_id:
+		last_terminal_persistence_error = "终局试玩记录与跑团存档身份不一致；可恢复存档仍保留。"
+		return false
+	var candidate_store := PlaytestTelemetryScript.finish_active_run(playtest_store, outcome, _playtest_final_snapshot(reason))
+	if not SaveManagerScript.save_playtest_store(candidate_store):
+		last_terminal_persistence_error = "试玩记录保存失败；可恢复存档仍保留。"
+		return false
+	playtest_store = candidate_store
+	last_terminal_run_id = run_id
+	last_terminal_persistence_error = ""
+	return true
+
+func _archived_playtest_run_matches(run_id: String, outcome: String) -> bool:
+	return _archived_playtest_run_outcome(run_id) == outcome
+
+func _archived_playtest_run_outcome(run_id: String) -> String:
+	if run_id.is_empty():
+		return ""
+	for archived_value in playtest_store.get("runs", []):
+		var archived: Dictionary = archived_value
+		if str(archived.get("run_id", "")) == run_id:
+			var archived_outcome := str(archived.get("outcome", ""))
+			if ["victory", "defeat"].has(archived_outcome):
+				return archived_outcome
+	return ""
+
+func _finalize_terminal_run_storage(outcome: String, reason: String, run_id: String) -> bool:
+	if run_id.is_empty():
+		last_terminal_persistence_error = "终局存档缺少跑团身份；可恢复存档仍保留。"
+		return false
+	if not _finish_active_playtest_run(outcome, reason, run_id):
+		return false
+	last_run_save_cleanup_ok = SaveManagerScript.delete_run_for_run_id(run_id)
+	last_terminal_persistence_error = "" if last_run_save_cleanup_ok else "结算已保存，但本局存档清理失败；请重试。"
+	return last_run_save_cleanup_ok
 
 func _playtest_final_snapshot(reason: String = "") -> Dictionary:
 	var hp := run_hp
@@ -1746,6 +1821,23 @@ func _on_export_playtest_report_pressed() -> void:
 	if status_label != null:
 		status_label.text = "%s | 路径已复制" % last_playtest_export_summary if last_playtest_export_ok else "试玩报告导出失败。"
 		status_label.tooltip_text = last_playtest_export_path if last_playtest_export_ok else status_label.text
+	if reward_row != null:
+		var defeat_export_button := reward_row.find_child("DefeatExportButton", true, false) as Button
+		if defeat_export_button != null:
+			defeat_export_button.text = "报告已导出" if last_playtest_export_ok else "导出失败"
+			defeat_export_button.tooltip_text = last_playtest_export_path if last_playtest_export_ok else "试玩报告导出失败，请检查本机存储权限。"
+
+func _on_retry_terminal_persistence_pressed() -> void:
+	if combat != null and combat.phase == "lost" and not _playtest_active_run().is_empty():
+		_record_playtest_combat_terminal()
+	elif not last_terminal_run_id.is_empty() and _archived_playtest_run_matches(last_terminal_run_id, "defeat"):
+		last_run_save_cleanup_ok = SaveManagerScript.delete_run_for_run_id(last_terminal_run_id)
+		last_terminal_persistence_error = "" if last_run_save_cleanup_ok else "试玩记录已保存，但本局存档清理失败。"
+	else:
+		last_run_save_cleanup_ok = false
+		last_terminal_persistence_error = "未找到本局的战败试玩记录；可恢复存档仍保留。"
+	_audio_event("save" if last_terminal_persistence_error.is_empty() else "error")
+	_refresh()
 
 func _save_user_settings() -> void:
 	user_settings = SaveManagerScript.normalized_settings(user_settings)
@@ -2671,7 +2763,7 @@ func _set_run_controls_enabled(active_run: bool) -> void:
 	if restart_button != null:
 		restart_button.disabled = false
 	if save_button != null:
-		save_button.disabled = not active_run
+		save_button.disabled = not active_run or _run_save_blocked()
 	if deck_button != null:
 		deck_button.disabled = not active_run
 	if load_button != null:
@@ -2684,6 +2776,9 @@ func _set_run_controls_enabled(active_run: bool) -> void:
 		compendium_button.disabled = false
 	if settings_button != null:
 		settings_button.disabled = false
+
+func _run_save_blocked() -> bool:
+	return run_completed or (combat != null and ["won", "lost"].has(str(combat.phase)))
 
 func _set_page_regions(character_visible: bool, hud_visible: bool, map_visible: bool, potions_visible: bool, enemies_visible: bool, log_visible: bool, hand_visible: bool, rewards_visible: bool) -> void:
 	if title_label != null:
@@ -2822,6 +2917,9 @@ func _apply_reward_page_layout_constraints(log_height: float = 170.0, reward_hei
 	_record_scroll_region_metrics()
 
 func _apply_pc_combat_chrome(reward_visible: bool) -> void:
+	if _is_pc_layout() and combat != null and combat.phase == "lost":
+		_apply_pc_defeat_chrome()
+		return
 	var immersive_combat: bool = _is_pc_layout() and not reward_visible
 	if title_label != null:
 		title_label.visible = not immersive_combat
@@ -2837,6 +2935,28 @@ func _apply_pc_combat_chrome(reward_visible: bool) -> void:
 		relic_belt_row.visible = not immersive_combat
 	if log_label != null and immersive_combat:
 		log_label.visible = false
+
+func _apply_pc_defeat_chrome() -> void:
+	_apply_pc_defeat_layout_constraints()
+	for control_value in [title_label, run_label, status_label, character_frame, character_panel, log_label, feedback_label]:
+		var control := control_value as Control
+		if control != null:
+			control.visible = false
+	if controls_scroll != null:
+		controls_scroll.visible = false
+	if reward_scroll != null:
+		reward_scroll.visible = true
+		reward_scroll.set("vertical_scroll_mode", 0)
+		reward_scroll.scroll_vertical = 0
+	if page_scroll != null:
+		page_scroll.set("vertical_scroll_mode", 0)
+		page_scroll.scroll_vertical = 0
+
+func _apply_pc_defeat_layout_constraints() -> void:
+	if not _is_pc_layout():
+		return
+	var reward_height: float = max(620.0, _layout_viewport_size().y - _root_vertical_margin())
+	_set_content_heights(0.0, reward_height)
 
 func _place_potion_row_for_combat(use_hud_belt: bool, row_size: Vector2) -> void:
 	if potion_row == null or battle_mid_row == null or enemy_stage_stack == null:
@@ -4104,7 +4224,7 @@ func _add_run_completion_details(parent: PanelContainer, detail_size: Vector2) -
 		for unlock in last_run_unlocks:
 			_add_run_completion_unlock_chip(unlock_flow, str(unlock))
 
-func _add_run_completion_stat_chip(parent: Control, label_text: String, value_text: String, icon_path: String, skin: String) -> void:
+func _add_run_completion_stat_chip(parent: Control, label_text: String, value_text: String, icon_path: String, skin: String, telemetry_bucket: String = "completion") -> void:
 	var chip := PanelContainer.new()
 	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	chip.custom_minimum_size = Vector2(124, 36)
@@ -4158,7 +4278,10 @@ func _add_run_completion_stat_chip(parent: Control, label_text: String, value_te
 	value.add_theme_font_size_override("font_size", 12)
 	value.add_theme_color_override("font_color", Color(0.98, 0.96, 0.84))
 	texts.add_child(value)
-	last_run_completion_stat_chip_count += 1
+	if telemetry_bucket == "defeat":
+		last_defeat_stat_chip_count += 1
+	else:
+		last_run_completion_stat_chip_count += 1
 
 func _add_run_completion_unlock_chip(parent: Control, text: String) -> void:
 	var chip := PanelContainer.new()
@@ -4180,8 +4303,10 @@ func _add_run_completion_unlock_chip(parent: Control, text: String) -> void:
 	chip.add_child(label)
 	last_run_completion_unlock_chip_count += 1
 
-func _add_run_completion_action_button(parent: Control, text: String, icon_path: String, skin: String, callback: Callable) -> void:
+func _add_run_completion_action_button(parent: Control, text: String, icon_path: String, skin: String, callback: Callable, node_name: String = "", telemetry_bucket: String = "completion") -> Button:
 	var button := Button.new()
+	if not node_name.is_empty():
+		button.name = node_name
 	button.custom_minimum_size = _run_completion_action_button_size()
 	button.text = text
 	button.icon = _load_texture(icon_path)
@@ -4190,7 +4315,11 @@ func _add_run_completion_action_button(parent: Control, text: String, icon_path:
 	_apply_button_skin(button, skin, "reward")
 	button.pressed.connect(callback)
 	parent.add_child(button)
-	last_run_completion_action_count += 1
+	if telemetry_bucket == "defeat":
+		last_defeat_action_count += 1
+	else:
+		last_run_completion_action_count += 1
+	return button
 
 func _run_completion_logline() -> String:
 	return "%s\n完成章节：%s | 最终资源：生命 %d/%d，金币 %d，遗物 %d，药水 %d" % [
@@ -4301,6 +4430,423 @@ func _run_completion_unlocks() -> Array[String]:
 			if not unlock_text.is_empty() and not unlocks.has(unlock_text):
 				unlocks.append(unlock_text)
 	return unlocks
+
+func _add_pc_defeat_experience() -> void:
+	var outcome: Dictionary = _defeat_outcome_data()
+	last_defeat_forge_marks_earned = int(outcome.get("forge_marks_earned", 0))
+	last_defeat_summary = "%s / %s / 回合 %d | 路线 %d/%d | 金币 %d | 牌组 %d | 遗物 %d | 挑战 %d | 炉印 +%d（总计 %d）" % [
+		str(outcome.get("chapter_name", "未知章节")),
+		str(outcome.get("encounter_name", "未知遭遇")),
+		int(outcome.get("turn", 0)),
+		int(outcome.get("route_step", 0)),
+		int(outcome.get("route_total", 0)),
+		int(outcome.get("gold", 0)),
+		int(outcome.get("deck_size", 0)),
+		int(outcome.get("relic_count", 0)),
+		int(outcome.get("challenge_level", 0)),
+		last_defeat_forge_marks_earned,
+		int(outcome.get("forge_marks_total", 0))
+	]
+
+	var stage := PanelContainer.new()
+	stage.name = "PcDefeatExperience"
+	var stage_size := Vector2(_scroll_content_width(), max(620.0, last_reward_scroll_height - 2.0))
+	stage.custom_minimum_size = stage_size
+	stage.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	stage.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	stage.clip_contents = true
+	var stage_style := _pc_defeat_stage_style()
+	stage.add_theme_stylebox_override("panel", stage_style)
+	reward_row.add_child(stage)
+	last_defeat_panel_visible = true
+
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 16)
+	margin.add_theme_constant_override("margin_right", 16)
+	margin.add_theme_constant_override("margin_top", 14)
+	margin.add_theme_constant_override("margin_bottom", 14)
+	stage.add_child(margin)
+
+	var shell := VBoxContainer.new()
+	shell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	shell.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	shell.add_theme_constant_override("separation", 10)
+	margin.add_child(shell)
+
+	var stage_style_width: float = stage_style.get_content_margin(SIDE_LEFT) + stage_style.get_content_margin(SIDE_RIGHT)
+	var stage_style_height: float = stage_style.get_content_margin(SIDE_TOP) + stage_style.get_content_margin(SIDE_BOTTOM)
+	var content_width: float = max(960.0, stage_size.x - 32.0 - stage_style_width)
+	var content_height: float = max(570.0, stage_size.y - 28.0 - stage_style_height)
+	var action_height: float = 46.0
+	var body_height: float = max(520.0, content_height - action_height - 10.0)
+	var body := HBoxContainer.new()
+	body.custom_minimum_size = Vector2(content_width, body_height)
+	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	body.add_theme_constant_override("separation", 12)
+	shell.add_child(body)
+
+	var scene_width: float = floor((content_width - 12.0) * 0.59)
+	var summary_width: float = max(400.0, content_width - scene_width - 12.0)
+	var scene_panel := PanelContainer.new()
+	scene_panel.name = "DefeatScene"
+	scene_panel.custom_minimum_size = Vector2(scene_width, body_height)
+	scene_panel.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	scene_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scene_panel.clip_contents = true
+	var scene_style := _pc_defeat_scene_style()
+	scene_panel.add_theme_stylebox_override("panel", scene_style)
+	body.add_child(scene_panel)
+	var scene_content_size := Vector2(
+		scene_width - scene_style.get_content_margin(SIDE_LEFT) - scene_style.get_content_margin(SIDE_RIGHT),
+		body_height - scene_style.get_content_margin(SIDE_TOP) - scene_style.get_content_margin(SIDE_BOTTOM)
+	)
+	_add_pc_defeat_scene(scene_panel, scene_content_size, outcome)
+
+	var summary_panel := PanelContainer.new()
+	summary_panel.name = "DefeatSummary"
+	summary_panel.custom_minimum_size = Vector2(summary_width, body_height)
+	summary_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	summary_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	summary_panel.clip_contents = true
+	var summary_style := _pc_defeat_summary_style()
+	summary_panel.add_theme_stylebox_override("panel", summary_style)
+	body.add_child(summary_panel)
+	var summary_content_size := Vector2(
+		summary_width - summary_style.get_content_margin(SIDE_LEFT) - summary_style.get_content_margin(SIDE_RIGHT),
+		body_height - summary_style.get_content_margin(SIDE_TOP) - summary_style.get_content_margin(SIDE_BOTTOM)
+	)
+	_add_pc_defeat_summary(summary_panel, summary_content_size, outcome)
+
+	var actions := HBoxContainer.new()
+	actions.name = "DefeatActions"
+	actions.custom_minimum_size = Vector2(content_width, action_height)
+	actions.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	actions.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	actions.alignment = BoxContainer.ALIGNMENT_END
+	actions.add_theme_constant_override("separation", 8)
+	shell.add_child(actions)
+	_add_run_completion_action_button(actions, "最终牌组", UI_DECK_ICON_PATH, "primary", Callable(self, "_on_deck_view_pressed"), "DefeatDeckButton", "defeat")
+	_add_run_completion_action_button(actions, "导出报告", UI_EXPORT_REPORT_ICON_PATH, "event", Callable(self, "_on_export_playtest_report_pressed"), "DefeatExportButton", "defeat")
+	_add_run_completion_action_button(actions, "局外档案", UI_PROFILE_ICON_PATH, "relic", Callable(self, "_on_profile_pressed"), "DefeatProfileButton", "defeat")
+	var persistence_retry_button: Button = null
+	if not last_terminal_persistence_error.is_empty():
+		persistence_retry_button = _add_run_completion_action_button(actions, "重试保存", UI_RETRY_RUN_ICON_PATH, "danger", Callable(self, "_on_retry_terminal_persistence_pressed"), "DefeatCleanupRetryButton", "defeat")
+		persistence_retry_button.tooltip_text = last_terminal_persistence_error
+	var retry_button := _add_run_completion_action_button(actions, "重新出发", UI_RETRY_RUN_ICON_PATH, "success", Callable(self, "_on_new_run_pressed"), "DefeatRetryButton", "defeat")
+	retry_button.disabled = not last_terminal_persistence_error.is_empty()
+	retry_button.tooltip_text = "请先完成终局存储重试。" if retry_button.disabled else "返回角色与挑战选择，开始新的跑团。"
+	last_defeat_reveal_animation_count = 1 + last_defeat_action_count
+	if DisplayServer.get_name() != "headless" and is_inside_tree():
+		call_deferred("_play_pc_room_reveal", stage, actions)
+		(persistence_retry_button if persistence_retry_button != null else retry_button).call_deferred("grab_focus")
+
+func _defeat_outcome_data() -> Dictionary:
+	var node: Dictionary = _current_node()
+	var encounter_id: String = str(node.get("encounter_id", ""))
+	var encounter: Dictionary = _encounter_by_id(encounter_id)
+	var route_total: int = map_graph.get("layers", []).size()
+	if route_total <= 0:
+		route_total = route_nodes.size()
+	route_total = max(1, route_total)
+	var route_step: int = int(node.get("layer", current_node_index)) + 1
+	var boss_count: int = _defeat_completed_boss_count()
+	var boss_reward: int = int(progression_data.get("currency", {}).get("boss_reward", 2))
+	return {
+		"chapter_id": current_chapter_id,
+		"chapter_name": _chapter_display_name(current_chapter_id),
+		"node_name": str(node.get("name", "战斗节点")),
+		"encounter_id": encounter_id,
+		"encounter_name": str(encounter.get("name", node.get("name", "未知遭遇"))),
+		"turn": int(combat.turn) if combat != null else 0,
+		"route_step": clamp(route_step, 1, route_total),
+		"route_total": route_total,
+		"challenge_level": current_challenge_level,
+		"gold": run_gold,
+		"deck_size": run_deck_ids.size(),
+		"relic_count": run_relic_ids.size(),
+		"potion_count": run_potion_ids.size(),
+		"bosses_defeated": boss_count,
+		"forge_marks_earned": boss_count * boss_reward,
+		"forge_marks_total": _progression_currency_amount(),
+		"surviving_enemies": _defeat_surviving_enemies().size()
+	}
+
+func _defeat_completed_boss_count() -> int:
+	var chapter_sequence: Array = map_generation_data.get("chapter_sequence", [])
+	var seen: Dictionary = {}
+	for chapter_id_value in completed_chapter_ids:
+		var chapter_id: String = str(chapter_id_value)
+		if chapter_sequence.has(chapter_id):
+			seen[chapter_id] = true
+	return seen.size()
+
+func _defeat_surviving_enemies() -> Array[Dictionary]:
+	var survivors: Array[Dictionary] = []
+	if combat == null:
+		return survivors
+	for enemy_value in combat.enemies:
+		var enemy: Dictionary = enemy_value
+		if int(enemy.get("hp", 0)) > 0:
+			survivors.append(enemy)
+	return survivors
+
+func _add_pc_defeat_scene(parent: PanelContainer, scene_size: Vector2, outcome: Dictionary) -> void:
+	var stack := Control.new()
+	stack.custom_minimum_size = scene_size
+	stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	stack.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	stack.clip_contents = true
+	parent.add_child(stack)
+
+	last_defeat_art_path = _battle_background_path(current_chapter_id)
+	last_defeat_art_loaded = _asset_loaded(last_defeat_art_path)
+	var background := TextureRect.new()
+	background.name = "DefeatBackground"
+	background.set_meta("chapter_id", current_chapter_id)
+	background.set_meta("art_path", last_defeat_art_path)
+	background.set_anchors_preset(Control.PRESET_FULL_RECT)
+	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	background.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	background.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	background.texture = _load_texture(last_defeat_art_path)
+	background.modulate = Color(0.62, 0.64, 0.66, 0.92)
+	stack.add_child(background)
+
+	var scrim := ColorRect.new()
+	scrim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	scrim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	scrim.color = Color(0.08, 0.015, 0.018, 0.48)
+	stack.add_child(scrim)
+
+	var player := TextureRect.new()
+	player.name = "DefeatedPlayer"
+	player.set_meta("character_id", selected_character_id)
+	player.set_meta("art_path", _character_stage_art_path())
+	player.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	player.texture = _load_texture(_character_stage_art_path())
+	player.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	player.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	player.size = Vector2(clamp(scene_size.x * 0.34, 190.0, 270.0), max(280.0, scene_size.y - 118.0))
+	player.position = Vector2(18.0, scene_size.y - player.size.y - 18.0)
+	player.modulate = Color(0.48, 0.50, 0.54, 0.78)
+	stack.add_child(player)
+
+	var survivors: Array[Dictionary] = _defeat_surviving_enemies()
+	var visible_enemy_count: int = min(3, survivors.size())
+	last_defeat_scene_enemy_count = visible_enemy_count
+	if visible_enemy_count > 0:
+		var enemy_zone_x: float = max(250.0, scene_size.x * 0.38)
+		var enemy_zone_width: float = max(240.0, scene_size.x - enemy_zone_x - 18.0)
+		var slot_width: float = enemy_zone_width / float(visible_enemy_count)
+		for enemy_index in range(visible_enemy_count):
+			var enemy: Dictionary = survivors[enemy_index]
+			var enemy_slot := Control.new()
+			enemy_slot.name = "DefeatEnemy_%d" % enemy_index
+			enemy_slot.set_meta("enemy_id", str(enemy.get("id", "")))
+			enemy_slot.size = Vector2(slot_width, scene_size.y - 104.0)
+			enemy_slot.position = Vector2(enemy_zone_x + float(enemy_index) * slot_width, 58.0)
+			enemy_slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			stack.add_child(enemy_slot)
+
+			var enemy_art := TextureRect.new()
+			enemy_art.set_anchors_preset(Control.PRESET_FULL_RECT)
+			enemy_art.offset_left = 4.0
+			enemy_art.offset_top = 0.0
+			enemy_art.offset_right = -4.0
+			enemy_art.offset_bottom = -42.0
+			enemy_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			enemy_art.texture = _enemy_texture(enemy)
+			enemy_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			enemy_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			enemy_slot.add_child(enemy_art)
+
+			var plate := PanelContainer.new()
+			plate.anchor_left = 0.08
+			plate.anchor_top = 1.0
+			plate.anchor_right = 0.92
+			plate.anchor_bottom = 1.0
+			plate.offset_top = -38.0
+			plate.offset_bottom = -4.0
+			plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			plate.add_theme_stylebox_override("panel", _pc_defeat_enemy_plate_style())
+			enemy_slot.add_child(plate)
+
+			var enemy_label := Label.new()
+			enemy_label.text = "%s  %d/%d" % [
+				str(enemy.get("name", enemy.get("id", "敌人"))),
+				int(enemy.get("hp", 0)),
+				int(enemy.get("max_hp", enemy.get("hp", 0)))
+			]
+			enemy_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			enemy_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			enemy_label.clip_text = true
+			enemy_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+			enemy_label.add_theme_font_size_override("font_size", 12)
+			enemy_label.add_theme_color_override("font_color", Color(1.0, 0.86, 0.76))
+			plate.add_child(enemy_label)
+	else:
+		var empty_scene := Label.new()
+		empty_scene.text = "回路在最后一次冲击中熄灭"
+		empty_scene.position = Vector2(scene_size.x * 0.46, scene_size.y * 0.44)
+		empty_scene.custom_minimum_size = Vector2(scene_size.x * 0.48, 42.0)
+		empty_scene.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		empty_scene.add_theme_font_size_override("font_size", 16)
+		empty_scene.add_theme_color_override("font_color", Color(0.82, 0.66, 0.62))
+		stack.add_child(empty_scene)
+
+	var defeat_title := Label.new()
+	defeat_title.text = "远征终止"
+	defeat_title.position = Vector2(20.0, 16.0)
+	defeat_title.custom_minimum_size = Vector2(scene_size.x - 40.0, 42.0)
+	defeat_title.add_theme_font_size_override("font_size", 28)
+	defeat_title.add_theme_color_override("font_color", Color(1.0, 0.72, 0.62))
+	defeat_title.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.82))
+	defeat_title.add_theme_constant_override("shadow_offset_y", 2)
+	stack.add_child(defeat_title)
+
+	var encounter_label := Label.new()
+	encounter_label.text = "%s · %s" % [str(outcome.get("chapter_name", "未知章节")), str(outcome.get("encounter_name", "未知遭遇"))]
+	encounter_label.position = Vector2(22.0, 54.0)
+	encounter_label.custom_minimum_size = Vector2(scene_size.x - 44.0, 28.0)
+	encounter_label.clip_text = true
+	encounter_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	encounter_label.add_theme_font_size_override("font_size", 13)
+	encounter_label.add_theme_color_override("font_color", Color(0.90, 0.82, 0.78))
+	stack.add_child(encounter_label)
+
+func _add_pc_defeat_summary(parent: PanelContainer, summary_size: Vector2, outcome: Dictionary) -> void:
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 14)
+	margin.add_theme_constant_override("margin_right", 14)
+	margin.add_theme_constant_override("margin_top", 12)
+	margin.add_theme_constant_override("margin_bottom", 12)
+	parent.add_child(margin)
+
+	var box := VBoxContainer.new()
+	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	box.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	box.add_theme_constant_override("separation", 7)
+	margin.add_child(box)
+
+	var eyebrow := Label.new()
+	eyebrow.text = "战败记录 / %s" % str(outcome.get("node_name", "战斗节点"))
+	eyebrow.clip_text = true
+	eyebrow.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	eyebrow.add_theme_font_size_override("font_size", 12)
+	eyebrow.add_theme_color_override("font_color", Color(0.76, 0.62, 0.60))
+	box.add_child(eyebrow)
+
+	var title := Label.new()
+	title.text = "%s止步于%s" % [_character_display_name(), str(outcome.get("chapter_name", "未知章节"))]
+	title.clip_text = true
+	title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	title.add_theme_font_size_override("font_size", 22)
+	title.add_theme_color_override("font_color", Color(1.0, 0.86, 0.74))
+	box.add_child(title)
+
+	var body := Label.new()
+	body.text = last_terminal_persistence_error if not last_terminal_persistence_error.is_empty() else "本次跑团已归档。战败不会发放额外成长资源，已击败 Boss 的奖励会保留在局外档案中。"
+	body.custom_minimum_size = Vector2(0, 48)
+	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	body.max_lines_visible = 2
+	body.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	body.add_theme_font_size_override("font_size", 13)
+	body.add_theme_color_override("font_color", Color(0.86, 0.87, 0.84))
+	box.add_child(body)
+
+	var stat_flow := HFlowContainer.new()
+	stat_flow.custom_minimum_size = Vector2(max(330.0, summary_size.x - 28.0), 84.0)
+	stat_flow.add_theme_constant_override("h_separation", 6)
+	stat_flow.add_theme_constant_override("v_separation", 6)
+	box.add_child(stat_flow)
+	_add_run_completion_stat_chip(stat_flow, "路线", "%d/%d" % [int(outcome.get("route_step", 0)), int(outcome.get("route_total", 0))], UI_CONTINUE_ROUTE_ICON_PATH, "event", "defeat")
+	_add_run_completion_stat_chip(stat_flow, "回合", "%d" % int(outcome.get("turn", 0)), _hud_icon_path("回合"), "primary", "defeat")
+	_add_run_completion_stat_chip(stat_flow, "金币", "%d" % int(outcome.get("gold", 0)), _hud_icon_path("金币"), "relic", "defeat")
+	_add_run_completion_stat_chip(stat_flow, "牌组", "%d 张" % int(outcome.get("deck_size", 0)), _hud_icon_path("抽牌"), "primary", "defeat")
+	_add_run_completion_stat_chip(stat_flow, "遗物", "%d" % int(outcome.get("relic_count", 0)), RELIC_ART_PATH, "relic", "defeat")
+	_add_run_completion_stat_chip(stat_flow, "挑战", "%d" % int(outcome.get("challenge_level", 0)), UI_COMPENDIUM_ICON_PATH, "danger", "defeat")
+
+	var deck_summary: Dictionary = _deck_summary()
+	var deck_line := PanelContainer.new()
+	deck_line.custom_minimum_size = Vector2(0, 54.0)
+	deck_line.add_theme_stylebox_override("panel", _button_style(Color(0.07, 0.075, 0.078, 0.84), Color(0.32, 0.38, 0.38, 0.76), 1, 6))
+	box.add_child(deck_line)
+	var deck_label := Label.new()
+	deck_label.text = "构筑归档\n攻击 %d · 技能 %d · 能力 %d · 升级 %d" % [
+		int(deck_summary.get("attack", 0)),
+		int(deck_summary.get("skill", 0)),
+		int(deck_summary.get("power", 0)),
+		int(deck_summary.get("upgraded", 0))
+	]
+	deck_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	deck_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	deck_label.add_theme_font_size_override("font_size", 12)
+	deck_label.add_theme_color_override("font_color", Color(0.84, 0.87, 0.84))
+	deck_line.add_child(deck_label)
+
+	var receipt := PanelContainer.new()
+	receipt.name = "DefeatProgressReceipt"
+	receipt.custom_minimum_size = Vector2(0, 88.0)
+	receipt.add_theme_stylebox_override("panel", _pc_defeat_receipt_style())
+	box.add_child(receipt)
+	var receipt_margin := MarginContainer.new()
+	receipt_margin.add_theme_constant_override("margin_left", 12)
+	receipt_margin.add_theme_constant_override("margin_right", 12)
+	receipt_margin.add_theme_constant_override("margin_top", 10)
+	receipt_margin.add_theme_constant_override("margin_bottom", 10)
+	receipt.add_child(receipt_margin)
+	var receipt_row := HBoxContainer.new()
+	receipt_row.add_theme_constant_override("separation", 12)
+	receipt_margin.add_child(receipt_row)
+	var receipt_icon := TextureRect.new()
+	receipt_icon.custom_minimum_size = Vector2(48, 48)
+	receipt_icon.texture = _load_texture(UI_PROFILE_ICON_PATH)
+	receipt_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	receipt_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	receipt_icon.modulate = Color(1.0, 0.88, 0.62)
+	receipt_row.add_child(receipt_icon)
+	var receipt_texts := VBoxContainer.new()
+	receipt_texts.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	receipt_texts.add_theme_constant_override("separation", 3)
+	receipt_row.add_child(receipt_texts)
+	var receipt_title := Label.new()
+	receipt_title.text = "终局存储需要重试" if not last_terminal_persistence_error.is_empty() else "局外进度已保存"
+	receipt_title.add_theme_font_size_override("font_size", 15)
+	receipt_title.add_theme_color_override("font_color", Color(1.0, 0.91, 0.70))
+	receipt_texts.add_child(receipt_title)
+	var receipt_value := Label.new()
+	receipt_value.text = "炉印 +%d  ·  当前总计 %d  ·  已击败 Boss %d" % [
+		int(outcome.get("forge_marks_earned", 0)),
+		int(outcome.get("forge_marks_total", 0)),
+		int(outcome.get("bosses_defeated", 0))
+	]
+	receipt_value.clip_text = true
+	receipt_value.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	receipt_value.add_theme_font_size_override("font_size", 13)
+	receipt_value.add_theme_color_override("font_color", Color(0.86, 0.84, 0.74))
+	receipt_texts.add_child(receipt_value)
+
+func _pc_defeat_stage_style() -> StyleBoxFlat:
+	var style := _button_style(Color(0.035, 0.038, 0.042, 0.98), Color(0.58, 0.26, 0.24, 0.90), 2, 7)
+	style.shadow_color = Color(0, 0, 0, 0.68)
+	style.shadow_size = 10
+	return style
+
+func _pc_defeat_scene_style() -> StyleBoxFlat:
+	return _button_style(Color(0.020, 0.022, 0.026, 0.98), Color(0.66, 0.30, 0.24, 0.92), 2, 6)
+
+func _pc_defeat_summary_style() -> StyleBoxFlat:
+	return _button_style(Color(0.065, 0.065, 0.068, 0.96), Color(0.42, 0.31, 0.29, 0.86), 1, 6)
+
+func _pc_defeat_receipt_style() -> StyleBoxFlat:
+	var style := _button_style(Color(0.12, 0.095, 0.060, 0.94), Color(0.76, 0.56, 0.26, 0.88), 1, 6)
+	style.shadow_color = Color(0, 0, 0, 0.34)
+	style.shadow_size = 4
+	return style
+
+func _pc_defeat_enemy_plate_style() -> StyleBoxFlat:
+	return _button_style(Color(0.10, 0.025, 0.025, 0.90), Color(0.82, 0.30, 0.24, 0.88), 1, 5)
 
 func _refresh_map_choices() -> void:
 	_set_page_regions(true, false, true, false, false, true, false, false)
@@ -6408,20 +6954,50 @@ func _record_card_removed() -> void:
 	_refresh_achievement_unlocks("card_removed")
 	_save_player_profile()
 
-func _record_boss_defeated(chapter_id: String) -> void:
+func _record_boss_defeated(chapter_id: String) -> bool:
+	var active_run_id: String = _active_playtest_run_id()
+	var run_id: String = active_run_id if not active_run_id.is_empty() else last_terminal_run_id
+	if run_id.is_empty() or chapter_id.is_empty():
+		return false
+	var receipt_id := "boss:%s:%s" % [run_id, chapter_id]
+	if player_profile.get("reward_receipt_ids", []).has(receipt_id):
+		return true
+	if active_run_id.is_empty():
+		return false
+	var previous_profile: Dictionary = player_profile.duplicate(true)
 	_increment_profile_stat("bosses_defeated", 1)
 	_add_forge_marks(int(progression_data.get("currency", {}).get("boss_reward", 2)))
 	_set_profile_stat_max("best_gold", run_gold)
 	_set_profile_stat_max("highest_deck_size", run_deck_ids.size())
+	_profile_append_unique("reward_receipt_ids", receipt_id)
 	_refresh_achievement_unlocks("boss_defeated")
-	_save_player_profile()
+	if not _save_player_profile():
+		player_profile = previous_profile
+		return false
+	return true
 
-func _record_chapter_completed(chapter_id: String) -> void:
+func _record_chapter_completed(chapter_id: String) -> bool:
+	if player_profile.get("completed_chapters", []).has(chapter_id):
+		return true
+	var previous_profile: Dictionary = player_profile.duplicate(true)
 	_profile_append_unique("completed_chapters", chapter_id)
 	_refresh_achievement_unlocks("chapter_completed")
-	_save_player_profile()
+	if not _save_player_profile():
+		player_profile = previous_profile
+		return false
+	return true
 
-func _record_run_completed() -> void:
+func _record_run_completed() -> bool:
+	var active_run_id := _active_playtest_run_id()
+	var run_id: String = active_run_id if not active_run_id.is_empty() else last_terminal_run_id
+	if run_id.is_empty():
+		return false
+	var receipt_id := "completion:%s" % run_id
+	if player_profile.get("reward_receipt_ids", []).has(receipt_id):
+		return true
+	if active_run_id.is_empty():
+		return false
+	var previous_profile: Dictionary = player_profile.duplicate(true)
 	_increment_profile_stat("runs_completed", 1)
 	_add_forge_marks(int(progression_data.get("currency", {}).get("full_run_bonus", 3)))
 	_set_profile_stat_max("best_gold", run_gold)
@@ -6431,8 +7007,18 @@ func _record_run_completed() -> void:
 	for chapter_id in completed_chapter_ids:
 		_profile_append_unique("completed_chapters", str(chapter_id))
 	_set_profile_stat_max("max_challenge_level_unlocked", _max_unlocked_challenge_level())
+	_profile_append_unique("reward_receipt_ids", receipt_id)
 	_refresh_achievement_unlocks("run_completed")
-	_save_player_profile()
+	if not _save_player_profile():
+		player_profile = previous_profile
+		return false
+	return true
+
+func _terminal_settlement_run_id() -> String:
+	var active_run_id := _active_playtest_run_id()
+	if not active_run_id.is_empty():
+		return active_run_id
+	return last_terminal_run_id
 
 func _add_forge_marks(amount: int) -> void:
 	if amount <= 0:
@@ -6488,6 +7074,8 @@ func _refresh_combat() -> void:
 	if combat == null:
 		return
 	_record_playtest_combat_terminal()
+	if save_button != null:
+		save_button.disabled = _run_save_blocked()
 	var reward_visible: bool = combat.phase == "won" or combat.phase == "lost"
 	if reward_visible:
 		_close_pile_view(false)
@@ -11594,8 +12182,21 @@ func _refresh_rewards() -> void:
 	last_reward_action_icon_node_count = 0
 	last_mastery_reward_option_count = 0
 	last_mastery_reward_pending = false
+	last_defeat_panel_visible = false
+	last_defeat_art_path = ""
+	last_defeat_art_loaded = false
+	last_defeat_scene_enemy_count = 0
+	last_defeat_stat_chip_count = 0
+	last_defeat_action_count = 0
+	last_defeat_forge_marks_earned = 0
+	last_defeat_summary = ""
+	last_defeat_reveal_animation_count = 0
 	_clear_container(reward_row)
 	if combat.phase == "lost":
+		if _is_pc_layout():
+			_apply_pc_defeat_layout_constraints()
+			_add_pc_defeat_experience()
+			return
 		var lost_label := Label.new()
 		lost_label.text = "战败。点击“重开跑团”重新开始。"
 		lost_label.add_theme_font_size_override("font_size", 18)
@@ -12442,7 +13043,7 @@ func _change_music_volume(delta: float) -> void:
 	_refresh()
 
 func _on_save_pressed() -> void:
-	if welcome_open or character_select_open or run_deck_ids.is_empty():
+	if welcome_open or character_select_open or run_deck_ids.is_empty() or _run_save_blocked():
 		_audio_event("error")
 		return
 	_checkpoint_playtest_store()
@@ -12460,6 +13061,18 @@ func _on_load_pressed() -> void:
 		if combat != null:
 				combat.log_entries.append("没有可读取的存档。")
 				_refresh()
+		return
+	var state_run_id := str(state.get("run_id", ""))
+	var archived_outcome := _archived_playtest_run_outcome(state_run_id)
+	if not archived_outcome.is_empty():
+		last_terminal_run_id = state_run_id
+		last_run_save_cleanup_ok = SaveManagerScript.delete_run_for_run_id(state_run_id)
+		last_terminal_persistence_error = "" if last_run_save_cleanup_ok else "终局记录已归档，但陈旧跑团存档清理失败；请再次读取重试。"
+		_audio_event("save" if last_run_save_cleanup_ok else "error")
+		_refresh()
+		if status_label != null:
+			status_label.text = "该跑团已结束，已清理陈旧存档。" if last_run_save_cleanup_ok else last_terminal_persistence_error
+			status_label.visible = true
 		return
 	_archive_playtest_run_replaced_by(state.get("playtest_active_run", {}))
 	_load_all_data()
@@ -12524,7 +13137,9 @@ func _on_load_pressed() -> void:
 		current_node_index = _node_index_by_id(current_node_id)
 	if _record_current_run_discoveries(false):
 		_save_player_profile()
-	_restore_playtest_run(state.get("playtest_active_run", {}))
+	_restore_playtest_run(state.get("playtest_active_run", {}), str(state.get("run_id", "")))
+	if not SaveManagerScript.save_run(_create_save_state()):
+		last_terminal_persistence_error = "迁移后的跑团存档写回失败；本次读取仍可继续。"
 	_start_current_node()
 
 func _on_event_choice_pressed(choice: Dictionary) -> void:
@@ -12560,26 +13175,58 @@ func _advance_to_next_node() -> void:
 	if combat != null:
 		if combat.phase == "won":
 			run_hp = int(combat.player.get("hp", run_hp))
-			if completed_node_type == "boss":
-				_record_boss_defeated(completed_chapter_id)
+			if completed_node_type == "boss" and not _record_boss_defeated(completed_chapter_id):
+				_show_terminal_persistence_error()
+				return
 		elif combat.phase == "lost":
 			return
+	var successor_ids: Array[String] = _map_relic_augmented_node_ids(current_node_id, _next_node_ids(current_node_id))
+	if successor_ids.is_empty():
+		if not _next_chapter_id().is_empty():
+			if not _start_next_chapter():
+				_show_terminal_persistence_error()
+			return
+		var appended_final_chapter := false
+		if not completed_chapter_ids.has(current_chapter_id):
+			completed_chapter_ids.append(current_chapter_id)
+			appended_final_chapter = true
+		run_completed = true
+		var terminal_run_id := _terminal_settlement_run_id()
+		if not _record_run_completed():
+			run_completed = false
+			if appended_final_chapter:
+				completed_chapter_ids.erase(current_chapter_id)
+			_show_terminal_persistence_error()
+			return
+		if not _finalize_terminal_run_storage("victory", "campaign_completed", terminal_run_id):
+			_show_terminal_persistence_error()
+			return
+		if not current_node_id.is_empty():
+			completed_node_ids[current_node_id] = true
+		available_node_ids.clear()
+		current_node_id = ""
+		combat = null
+		_audio_event("ui_click")
+		_refresh()
+		return
 	if not current_node_id.is_empty():
 		completed_node_ids[current_node_id] = true
-	available_node_ids = _map_relic_augmented_node_ids(current_node_id, _next_node_ids(current_node_id))
+	available_node_ids = successor_ids
 	current_node_id = ""
 	combat = null
 	_audio_event("ui_click")
-	if available_node_ids.is_empty():
-		if _start_next_chapter():
-			return
-		if not completed_chapter_ids.has(current_chapter_id):
-			completed_chapter_ids.append(current_chapter_id)
-		_record_chapter_completed(current_chapter_id)
-		run_completed = true
-		_record_run_completed()
-		_finish_active_playtest_run("victory", "campaign_completed")
 	_refresh()
+
+func _show_terminal_persistence_error() -> void:
+	_audio_event("error")
+	var message := last_terminal_persistence_error
+	if message.is_empty():
+		message = "局外进度保存失败；未删除可恢复存档。"
+	if combat != null:
+		combat.log_entries.append("%s 当前结算尚未关闭，请重试。" % message)
+	if status_label != null:
+		status_label.text = "%s 请检查本机存储权限后重试。" % message
+		status_label.visible = true
 
 func _normalize_selected_enemy() -> int:
 	if combat == null:
@@ -14061,7 +14708,8 @@ func _create_save_state() -> Dictionary:
 	if combat != null:
 		hp_to_save = int(combat.player.get("hp", run_hp))
 	return {
-		"version": 3,
+		"version": 4,
+		"run_id": _terminal_settlement_run_id(),
 		"selected_character_id": selected_character_id,
 		"run_deck_ids": run_deck_ids.duplicate(true),
 		"run_relic_ids": run_relic_ids.duplicate(true),
@@ -14171,9 +14819,14 @@ func _start_next_chapter() -> bool:
 	var next_chapter_id: String = _next_chapter_id()
 	if next_chapter_id.is_empty():
 		return false
+	var appended_chapter := false
 	if not completed_chapter_ids.has(current_chapter_id):
 		completed_chapter_ids.append(current_chapter_id)
-	_record_chapter_completed(current_chapter_id)
+		appended_chapter = true
+	if not _record_chapter_completed(current_chapter_id):
+		if appended_chapter:
+			completed_chapter_ids.erase(current_chapter_id)
+		return false
 	_apply_chapter_transition_recovery()
 	current_chapter_id = next_chapter_id
 	current_node_index = 0
@@ -14193,6 +14846,7 @@ func _start_next_chapter() -> bool:
 	relic_reward_done = true
 	potion_reward_done = true
 	_build_route()
+	_audio_event("ui_click")
 	_start_current_node()
 	return true
 

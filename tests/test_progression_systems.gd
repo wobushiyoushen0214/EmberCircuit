@@ -10,8 +10,10 @@ func _init() -> void:
 	_run.call_deferred()
 
 func _run() -> void:
+	SaveManagerScript.set_storage_namespace("test_progression")
+	SaveManagerScript.cleanup_storage_namespace()
 	var default_profile: Dictionary = SaveManagerScript.default_profile()
-	_check(default_profile.has("forge_marks") and default_profile.has("purchased_upgrade_node_ids") and default_profile.has("equipped_skill_book_by_character"), "profile schema includes progression fields")
+	_check(int(default_profile.get("version", 0)) == 3 and default_profile.has("forge_marks") and default_profile.has("reward_receipt_ids") and default_profile.has("purchased_upgrade_node_ids") and default_profile.has("equipped_skill_book_by_character"), "profile v3 schema includes progression and reward receipt fields")
 	var migrated_profile := SaveManagerScript.normalized_profile({"stats": {"runs_started": 2}})
 	_check(int(migrated_profile.get("forge_marks", -1)) == 0 and migrated_profile.get("purchased_upgrade_node_ids", []).is_empty(), "old profile migrates with empty progression state")
 
@@ -138,6 +140,8 @@ func _run() -> void:
 
 	main.free()
 	SaveManagerScript.save_profile(SaveManagerScript.default_profile())
+	SaveManagerScript.cleanup_storage_namespace()
+	SaveManagerScript.clear_storage_namespace()
 	if failed:
 		quit(1)
 		return

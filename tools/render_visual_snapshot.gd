@@ -17,6 +17,8 @@ func _run() -> void:
 		push_warning("Visual snapshots need a real display backend. Run this script without --headless.")
 		quit(2)
 		return
+	SaveManagerScript.set_storage_namespace("visual_snapshot")
+	SaveManagerScript.cleanup_storage_namespace()
 	SaveManagerScript.save_profile(SaveManagerScript.default_profile())
 	_set_audio_stream_loading_suppressed(true)
 	var scene: PackedScene = load("res://scenes/main/Main.tscn")
@@ -25,6 +27,8 @@ func _run() -> void:
 	await _capture_scene(scene, DESKTOP_SNAPSHOT_SIZE, "", CHARACTER_SELECT_DESKTOP_PATH)
 	await _capture_scene(scene, DESKTOP_SNAPSHOT_SIZE, "ember_exile", COMBAT_DESKTOP_PATH)
 	_release_audio_streams()
+	SaveManagerScript.cleanup_storage_namespace()
+	SaveManagerScript.clear_storage_namespace()
 	await process_frame
 	print("Saved visual snapshots:")
 	print(CHARACTER_SELECT_PATH)

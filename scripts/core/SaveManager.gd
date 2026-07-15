@@ -9,29 +9,100 @@ const PROFILE_PATH := "user://ember_circuit_profile.json"
 const PLAYTEST_STORE_PATH := "user://ember_circuit_playtest_telemetry.json"
 const PLAYTEST_EXPORT_PATH := "user://ember_circuit_playtest_report.json"
 const DISCOVERY_CATEGORIES := ["cards", "relics", "potions", "enemies", "events", "challenges"]
+const RUN_SAVE_VERSION := 4
+const ATOMIC_TEMP_SUFFIX := ".tmp"
+const ATOMIC_BACKUP_SUFFIX := ".bak"
+
+static var _storage_namespace: String = ""
+
+static func set_storage_namespace(namespace_id: String) -> void:
+	_storage_namespace = namespace_id.strip_edges().replace("/", "_").replace("\\", "_").replace("..", "_")
+
+static func clear_storage_namespace() -> void:
+	_storage_namespace = ""
+
+static func cleanup_storage_namespace() -> void:
+	if _storage_namespace.is_empty():
+		return
+	for path in [run_save_path(), settings_path(), profile_path(), playtest_store_path(), playtest_export_path()]:
+		_remove_atomic_files(path)
+
+static func run_save_path() -> String:
+	return _storage_path(SAVE_PATH)
+
+static func settings_path() -> String:
+	return _storage_path(SETTINGS_PATH)
+
+static func profile_path() -> String:
+	return _storage_path(PROFILE_PATH)
+
+static func playtest_store_path() -> String:
+	return _storage_path(PLAYTEST_STORE_PATH)
+
+static func playtest_export_path() -> String:
+	return _storage_path(PLAYTEST_EXPORT_PATH)
 
 static func save_run(state: Dictionary) -> bool:
-	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
-	if file == null:
-		push_error("Cannot open save file for writing: %s" % SAVE_PATH)
-		return false
-	file.store_string(JSON.stringify(state, "\t"))
-	return true
+	var path := run_save_path()
+	return _atomic_write_json(path, state, "run save")
 
 static func load_run() -> Dictionary:
-	if not FileAccess.file_exists(SAVE_PATH):
+	var path := run_save_path()
+	_recover_atomic_file(path)
+	if not FileAccess.file_exists(path):
 		return {}
 
-	var file := FileAccess.open(SAVE_PATH, FileAccess.READ)
+	var file := FileAccess.open(path, FileAccess.READ)
 	if file == null:
-		push_error("Cannot open save file for reading: %s" % SAVE_PATH)
+		push_error("Cannot open save file for reading: %s" % path)
 		return {}
 
-	var parsed = JSON.parse_string(file.get_as_text())
+	var raw_text: String = file.get_as_text()
+	file = null
+	var parsed = JSON.parse_string(raw_text)
 	if typeof(parsed) != TYPE_DICTIONARY:
 		push_error("Save file is not a dictionary.")
 		return {}
-	return parsed
+	var state: Dictionary = parsed
+	var run_id: String = _run_id_from_state(state)
+	if run_id.is_empty():
+		run_id = "legacy_%s" % raw_text.sha256_text().substr(0, 20)
+	var migration_needed: bool = int(state.get("version", 0)) < RUN_SAVE_VERSION or str(state.get("run_id", "")) != run_id
+	state["version"] = max(RUN_SAVE_VERSION, int(state.get("version", 0)))
+	state["run_id"] = run_id
+	if migration_needed:
+		_atomic_write_json(path, state, "migrated run save")
+	return state
+
+static func delete_run() -> bool:
+	var path := run_save_path()
+	_recover_atomic_file(path)
+	if not FileAccess.file_exists(path):
+		_remove_atomic_sidecars(path)
+		return true
+	var error: Error = DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+	if error != OK:
+		push_error("Cannot delete run save: %s" % path)
+		return false
+	_remove_atomic_sidecars(path)
+	return true
+
+static func delete_run_for_run_id(expected_run_id: String) -> bool:
+	if expected_run_id.is_empty():
+		return false
+	var path := run_save_path()
+	_recover_atomic_file(path)
+	if not FileAccess.file_exists(path):
+		return not FileAccess.file_exists(path + ATOMIC_TEMP_SUFFIX) and not FileAccess.file_exists(path + ATOMIC_BACKUP_SUFFIX)
+	var saved_state: Dictionary = load_run()
+	if saved_state.is_empty():
+		return false
+	var saved_run_id: String = _run_id_from_state(saved_state)
+	if saved_run_id.is_empty():
+		return false
+	if saved_run_id != expected_run_id:
+		return true
+	return delete_run()
 
 static func default_settings() -> Dictionary:
 	return {
@@ -66,20 +137,18 @@ static func normalized_settings(raw_settings: Dictionary) -> Dictionary:
 	return settings
 
 static func save_settings(settings: Dictionary) -> bool:
-	var file := FileAccess.open(SETTINGS_PATH, FileAccess.WRITE)
-	if file == null:
-		push_error("Cannot open settings file for writing: %s" % SETTINGS_PATH)
-		return false
-	file.store_string(JSON.stringify(normalized_settings(settings), "\t"))
-	return true
+	var path := settings_path()
+	return _atomic_write_json(path, normalized_settings(settings), "settings")
 
 static func load_settings() -> Dictionary:
-	if not FileAccess.file_exists(SETTINGS_PATH):
+	var path := settings_path()
+	_recover_atomic_file(path)
+	if not FileAccess.file_exists(path):
 		return default_settings()
 
-	var file := FileAccess.open(SETTINGS_PATH, FileAccess.READ)
+	var file := FileAccess.open(path, FileAccess.READ)
 	if file == null:
-		push_error("Cannot open settings file for reading: %s" % SETTINGS_PATH)
+		push_error("Cannot open settings file for reading: %s" % path)
 		return default_settings()
 
 	var parsed = JSON.parse_string(file.get_as_text())
@@ -90,7 +159,7 @@ static func load_settings() -> Dictionary:
 
 static func default_profile() -> Dictionary:
 	return {
-		"version": 2,
+		"version": 3,
 		"stats": {
 			"runs_started": 0,
 			"runs_completed": 0,
@@ -105,6 +174,7 @@ static func default_profile() -> Dictionary:
 		"character_completions": [],
 		"unlocked_achievement_ids": [],
 		"last_unlock_ids": [],
+		"reward_receipt_ids": [],
 		"forge_marks": 0,
 		"purchased_upgrade_node_ids": [],
 		"equipped_skill_book_by_character": {},
@@ -122,6 +192,7 @@ static func normalized_profile(raw_profile: Dictionary) -> Dictionary:
 	profile["character_completions"] = _unique_string_array(raw_profile.get("character_completions", []))
 	profile["unlocked_achievement_ids"] = _unique_string_array(raw_profile.get("unlocked_achievement_ids", []))
 	profile["last_unlock_ids"] = _unique_string_array(raw_profile.get("last_unlock_ids", []))
+	profile["reward_receipt_ids"] = _unique_string_array(raw_profile.get("reward_receipt_ids", []))
 	profile["forge_marks"] = max(0, int(raw_profile.get("forge_marks", 0)))
 	profile["purchased_upgrade_node_ids"] = _unique_string_array(raw_profile.get("purchased_upgrade_node_ids", []))
 	profile["equipped_skill_book_by_character"] = _normalized_string_dictionary(raw_profile.get("equipped_skill_book_by_character", {}))
@@ -129,20 +200,18 @@ static func normalized_profile(raw_profile: Dictionary) -> Dictionary:
 	return profile
 
 static func save_profile(profile: Dictionary) -> bool:
-	var file := FileAccess.open(PROFILE_PATH, FileAccess.WRITE)
-	if file == null:
-		push_error("Cannot open profile file for writing: %s" % PROFILE_PATH)
-		return false
-	file.store_string(JSON.stringify(normalized_profile(profile), "\t"))
-	return true
+	var path := profile_path()
+	return _atomic_write_json(path, normalized_profile(profile), "profile")
 
 static func load_profile() -> Dictionary:
-	if not FileAccess.file_exists(PROFILE_PATH):
+	var path := profile_path()
+	_recover_atomic_file(path)
+	if not FileAccess.file_exists(path):
 		return default_profile()
 
-	var file := FileAccess.open(PROFILE_PATH, FileAccess.READ)
+	var file := FileAccess.open(path, FileAccess.READ)
 	if file == null:
-		push_error("Cannot open profile file for reading: %s" % PROFILE_PATH)
+		push_error("Cannot open profile file for reading: %s" % path)
 		return default_profile()
 
 	var parsed = JSON.parse_string(file.get_as_text())
@@ -152,19 +221,17 @@ static func load_profile() -> Dictionary:
 	return normalized_profile(parsed)
 
 static func save_playtest_store(store: Dictionary) -> bool:
-	var file := FileAccess.open(PLAYTEST_STORE_PATH, FileAccess.WRITE)
-	if file == null:
-		push_error("Cannot open playtest telemetry file for writing: %s" % PLAYTEST_STORE_PATH)
-		return false
-	file.store_string(JSON.stringify(PlaytestTelemetryScript.normalize_store(store), "\t"))
-	return true
+	var path := playtest_store_path()
+	return _atomic_write_json(path, PlaytestTelemetryScript.normalize_store(store), "playtest telemetry")
 
 static func load_playtest_store() -> Dictionary:
-	if not FileAccess.file_exists(PLAYTEST_STORE_PATH):
+	var path := playtest_store_path()
+	_recover_atomic_file(path)
+	if not FileAccess.file_exists(path):
 		return PlaytestTelemetryScript.default_store()
-	var file := FileAccess.open(PLAYTEST_STORE_PATH, FileAccess.READ)
+	var file := FileAccess.open(path, FileAccess.READ)
 	if file == null:
-		push_error("Cannot open playtest telemetry file for reading: %s" % PLAYTEST_STORE_PATH)
+		push_error("Cannot open playtest telemetry file for reading: %s" % path)
 		return PlaytestTelemetryScript.default_store()
 	var parsed = JSON.parse_string(file.get_as_text())
 	if not parsed is Dictionary:
@@ -176,15 +243,115 @@ static func export_playtest_report(report: Dictionary) -> bool:
 	if int(report.get("schema_version", 0)) != PlaytestTelemetryScript.SCHEMA_VERSION:
 		push_error("Playtest report has an unsupported schema version.")
 		return false
-	var file := FileAccess.open(PLAYTEST_EXPORT_PATH, FileAccess.WRITE)
-	if file == null:
-		push_error("Cannot open playtest report for writing: %s" % PLAYTEST_EXPORT_PATH)
-		return false
-	file.store_string(JSON.stringify(report, "\t"))
-	return true
+	var path := playtest_export_path()
+	return _atomic_write_json(path, report, "playtest report")
 
 static func playtest_export_absolute_path() -> String:
-	return ProjectSettings.globalize_path(PLAYTEST_EXPORT_PATH)
+	return ProjectSettings.globalize_path(playtest_export_path())
+
+static func _storage_path(default_path: String) -> String:
+	if _storage_namespace.is_empty():
+		return default_path
+	return "user://%s_%s" % [_storage_namespace, default_path.get_file()]
+
+static func _run_id_from_state(state: Dictionary) -> String:
+	var active_run_value = state.get("playtest_active_run", {})
+	if active_run_value is Dictionary:
+		var active_run_id: String = str((active_run_value as Dictionary).get("run_id", ""))
+		if not active_run_id.is_empty():
+			return active_run_id
+	return str(state.get("run_id", ""))
+
+static func _atomic_write_json(path: String, value: Dictionary, label: String) -> bool:
+	var serialized: String = JSON.stringify(value, "\t")
+	var temp_path := path + ATOMIC_TEMP_SUFFIX
+	var backup_path := path + ATOMIC_BACKUP_SUFFIX
+	if FileAccess.file_exists(temp_path):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(temp_path))
+	var file := FileAccess.open(temp_path, FileAccess.WRITE)
+	if file == null:
+		push_warning("Cannot open %s temp file for writing: %s" % [label, temp_path])
+		return false
+	file.store_string(serialized)
+	file.flush()
+	var write_error: Error = file.get_error()
+	file = null
+	if write_error != OK or not FileAccess.file_exists(temp_path) or FileAccess.get_file_as_string(temp_path) != serialized:
+		if FileAccess.file_exists(temp_path):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(temp_path))
+		push_warning("Cannot verify %s temp file: %s" % [label, temp_path])
+		return false
+	if FileAccess.file_exists(backup_path):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(backup_path))
+	var had_previous: bool = FileAccess.file_exists(path)
+	if had_previous:
+		var backup_error: Error = DirAccess.rename_absolute(ProjectSettings.globalize_path(path), ProjectSettings.globalize_path(backup_path))
+		if backup_error != OK:
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(temp_path))
+			push_warning("Cannot stage previous %s for replacement: %s" % [label, path])
+			return false
+	var replace_error: Error = DirAccess.rename_absolute(ProjectSettings.globalize_path(temp_path), ProjectSettings.globalize_path(path))
+	if replace_error != OK:
+		if had_previous and FileAccess.file_exists(backup_path):
+			DirAccess.rename_absolute(ProjectSettings.globalize_path(backup_path), ProjectSettings.globalize_path(path))
+		if FileAccess.file_exists(temp_path):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(temp_path))
+		push_warning("Cannot replace %s atomically: %s" % [label, path])
+		return false
+	if not FileAccess.file_exists(path) or FileAccess.get_file_as_string(path) != serialized:
+		if FileAccess.file_exists(path):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+		if had_previous and FileAccess.file_exists(backup_path):
+			DirAccess.rename_absolute(ProjectSettings.globalize_path(backup_path), ProjectSettings.globalize_path(path))
+		push_warning("Cannot verify replaced %s: %s" % [label, path])
+		return false
+	if FileAccess.file_exists(backup_path):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(backup_path))
+	return true
+
+static func _recover_atomic_file(path: String) -> void:
+	var temp_path := path + ATOMIC_TEMP_SUFFIX
+	var backup_path := path + ATOMIC_BACKUP_SUFFIX
+	if FileAccess.file_exists(path):
+		if _valid_json_file(path):
+			_remove_atomic_sidecars(path)
+			return
+		if _valid_json_file(temp_path):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+			if DirAccess.rename_absolute(ProjectSettings.globalize_path(temp_path), ProjectSettings.globalize_path(path)) == OK:
+				_remove_atomic_sidecars(path)
+				return
+		if _valid_json_file(backup_path):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+			if DirAccess.rename_absolute(ProjectSettings.globalize_path(backup_path), ProjectSettings.globalize_path(path)) == OK:
+				_remove_atomic_sidecars(path)
+				return
+		return
+	if _valid_json_file(temp_path):
+		if DirAccess.rename_absolute(ProjectSettings.globalize_path(temp_path), ProjectSettings.globalize_path(path)) == OK:
+			if FileAccess.file_exists(backup_path):
+				DirAccess.remove_absolute(ProjectSettings.globalize_path(backup_path))
+			return
+	if _valid_json_file(backup_path):
+		DirAccess.rename_absolute(ProjectSettings.globalize_path(backup_path), ProjectSettings.globalize_path(path))
+	if FileAccess.file_exists(path):
+		_remove_atomic_sidecars(path)
+
+static func _valid_json_file(path: String) -> bool:
+	if not FileAccess.file_exists(path):
+		return false
+	var parser := JSON.new()
+	return parser.parse(FileAccess.get_file_as_string(path)) == OK and parser.data is Dictionary
+
+static func _remove_atomic_sidecars(path: String) -> void:
+	for sidecar_path in [path + ATOMIC_TEMP_SUFFIX, path + ATOMIC_BACKUP_SUFFIX]:
+		if FileAccess.file_exists(sidecar_path):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(sidecar_path))
+
+static func _remove_atomic_files(path: String) -> void:
+	if FileAccess.file_exists(path):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+	_remove_atomic_sidecars(path)
 
 static func _unique_string_array(raw_array: Array) -> Array:
 	var normalized: Array = []

@@ -16,6 +16,8 @@ func _run() -> void:
 		quit(2)
 		return
 	DirAccess.make_dir_recursive_absolute(OUT_DIR)
+	SaveManagerScript.set_storage_namespace("pc_gallery")
+	SaveManagerScript.cleanup_storage_namespace()
 	SaveManagerScript.save_profile(SaveManagerScript.default_profile())
 	_set_audio_stream_loading_suppressed(true)
 	var scene: PackedScene = load("res://scenes/main/Main.tscn")
@@ -107,6 +109,7 @@ func _run() -> void:
 	)
 	await _capture(scene, "17_run_complete", Callable(self, "_setup_run_complete_snapshot"))
 	await _capture(scene, "18_run_complete_720p", Callable(self, "_setup_run_complete_snapshot"), DEFAULT_PC_SNAPSHOT_SIZE)
+	await _capture(scene, "29_defeat_720p", Callable(self, "_setup_defeat_snapshot"), DEFAULT_PC_SNAPSHOT_SIZE)
 	await _capture(scene, "19_chain_event_start", func(main):
 		main._on_character_selected("ember_exile")
 		_jump_to_event_id(main, "mute_calibrator")
@@ -127,6 +130,8 @@ func _run() -> void:
 	await _capture(scene, "27_power_card_frame_720p", Callable(self, "_setup_power_card_snapshot"), DEFAULT_PC_SNAPSHOT_SIZE)
 	await _capture(scene, "28_deck_grid_720p", Callable(self, "_setup_deck_grid_snapshot"), DEFAULT_PC_SNAPSHOT_SIZE)
 	_release_audio_streams()
+	SaveManagerScript.cleanup_storage_namespace()
+	SaveManagerScript.clear_storage_namespace()
 	print("Saved PC gallery snapshots to %s" % OUT_DIR)
 	quit(0)
 
@@ -199,6 +204,14 @@ func _setup_combat_action_snapshot(main) -> void:
 func _setup_run_complete_snapshot(main) -> void:
 	main._on_character_selected("ember_exile")
 	_complete_run_by_boss_jumps(main)
+
+func _setup_defeat_snapshot(main) -> void:
+	main._on_character_selected("ember_exile")
+	main.completed_chapter_ids = ["chapter_one"]
+	main.player_profile["forge_marks"] = int(main.progression_data.get("currency", {}).get("boss_reward", 2))
+	main.combat.phase = "lost"
+	main.combat.player["hp"] = 0
+	main._refresh_combat()
 
 func _setup_draw_pile_snapshot(main) -> void:
 	main._on_character_selected("arc_tinker")

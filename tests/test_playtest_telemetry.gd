@@ -127,6 +127,25 @@ func _run() -> void:
 	})
 	_check(PlaytestTelemetryScript.active_run(store).is_empty(), "finished run leaves no active run")
 	_check(store.get("runs", []).size() == 1, "finished run is archived")
+	var retried_terminal_store: Dictionary = store.duplicate(true)
+	retried_terminal_store["active_run"] = run.duplicate(true)
+	retried_terminal_store = PlaytestTelemetryScript.finish_active_run(retried_terminal_store, "victory", {
+		"timestamp_utc": "2026-07-15T11:00:01Z",
+		"chapter_id": "chapter_three",
+		"node_id": "chapter_three_boss"
+	})
+	_check(retried_terminal_store.get("runs", []).size() == 1 and str((retried_terminal_store.get("runs", [])[0] as Dictionary).get("run_id", "")) == "fixture-run-001", "retrying terminal persistence replaces the same anonymous run instead of duplicating it")
+	var stale_restore_store := PlaytestTelemetryScript.set_active_run(store, run.duplicate(true))
+	_check(PlaytestTelemetryScript.active_run(stale_restore_store).is_empty() and str((stale_restore_store.get("runs", [])[0] as Dictionary).get("outcome", "")) == "victory", "a stale save cannot reactivate a run whose victory is already archived")
+	var conflicting_terminal_store: Dictionary = store.duplicate(true)
+	conflicting_terminal_store["active_run"] = run.duplicate(true)
+	conflicting_terminal_store = PlaytestTelemetryScript.finish_active_run(conflicting_terminal_store, "defeat", {
+		"timestamp_utc": "2026-07-15T11:00:02Z",
+		"chapter_id": "chapter_three",
+		"node_id": "chapter_three_boss"
+	})
+	var immutable_terminal: Dictionary = conflicting_terminal_store.get("runs", [])[0]
+	_check(conflicting_terminal_store.get("runs", []).size() == 1 and str(immutable_terminal.get("outcome", "")) == "victory" and int(immutable_terminal.get("final", {}).get("hp", 0)) == 23, "an archived victory is immutable when a stale active snapshot later reports another outcome")
 
 	var archived: Dictionary = store.get("runs", [])[0]
 	var summary: Dictionary = archived.get("summary", {})
