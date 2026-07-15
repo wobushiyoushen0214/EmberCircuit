@@ -841,3 +841,4 @@ jq empty data/cards/cards.json data/enemies/enemies.json data/relics/relics.json
 - 18/18 Godot 测试严格日志扫描通过；测试和完整图库前后真实 Profile、设置、真人遥测与报告 SHA-256 完全一致。
 - 本轮未修改卡牌、角色、怪物、成长、挑战或经济数值；真人每角色/挑战格达到 12/30 个完成局前继续冻结硬调参。
 - 构建标记升级为 `0.1.0-alpha.6`，macOS bundle build number 升级为 6。
+- `0.1.0-alpha.6` 从源码提交 `85e8d8c` 导出：Windows PE x86_64 embedded-PCK 与 macOS universal 包均通过解压、引导/原生启动、资源入包、版本、架构和签名验证；SHA-256 分别为 `6b3160223b023e622a7cc1ff76bef58bcc4f80cb279b0396f7f37836a12e4dd3` 与 `30c39c2101e9ef0d6238b8b0b8381783b80712c976977d8e3a907c19bf356c09`。
