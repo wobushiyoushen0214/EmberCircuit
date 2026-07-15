@@ -20,7 +20,9 @@ func _run() -> void:
 	_set_audio_stream_loading_suppressed(true)
 	var scene: PackedScene = load("res://scenes/main/Main.tscn")
 	await _capture(scene, "00_welcome", Callable())
+	await _capture(scene, "00_welcome_720p", Callable(), DEFAULT_PC_SNAPSHOT_SIZE)
 	await _capture(scene, "01_character_select", func(main): main._on_new_run_pressed())
+	await _capture(scene, "01_character_select_720p", func(main): main._on_new_run_pressed(), DEFAULT_PC_SNAPSHOT_SIZE)
 	await _capture(scene, "01_character_select_wide", func(main): main._on_new_run_pressed(), WIDE_SNAPSHOT_SIZE)
 	await _capture(scene, "02_combat", func(main): main._on_character_selected("ember_exile"))
 	await _capture(scene, "03_reward", func(main):
@@ -33,6 +35,11 @@ func _run() -> void:
 		main.combat.phase = "won"
 		main._advance_to_next_node()
 	)
+	await _capture(scene, "04_map_720p", func(main):
+		main._on_character_selected("ember_exile")
+		main.combat.phase = "won"
+		main._advance_to_next_node()
+	, DEFAULT_PC_SNAPSHOT_SIZE)
 	await _capture(scene, "05_event", func(main):
 		main._on_character_selected("ember_exile")
 		_jump_to_event_id(main, "broken_reactor")

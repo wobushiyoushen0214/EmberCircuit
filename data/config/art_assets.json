@@ -1,6 +1,230 @@
 {
   "_comment": "EmberCircuit 美术资源清单。asset_path 是当前可加载资源，slot_path 是未来正式资源的稳定替换槽位；这些字段只影响表现层，不参与战斗数值结算。",
-  "schema_note": "Main.gd 优先读取本文件；缺失时回退到旧硬编码路径。数据完整性测试会校验每张卡、每个遗物和每瓶药水都有可加载 asset_path 与替换说明。",
+  "schema_note": "Main.gd 优先读取本文件；缺失时回退到旧硬编码路径。asset_contract 是 PC 位图生产契约，ArtAssetAuditor 会读取源图尺寸、通道和实际 alpha，并区分硬错误、人工构图复核与 legacy fallback。",
+  "asset_contract": {
+    "schema_version": 1,
+    "pc_baseline": {
+      "width": 1280,
+      "height": 720
+    },
+    "tier_definitions": {
+      "production_required": "发布阻断级位图；缺失、不可读、尺寸/比例、RGB/RGBA 或 alpha 不合约均为 hard error。",
+      "production_preferred": "已进入 PC 生产管线的位图；一旦提供位图即执行与 required 相同的严格检查，允许 fallback 的 section 可暂时保留 SVG。",
+      "legacy_fallback": "可加载的首版 SVG 或旧资源；不按位图规格硬失败，但必须产生替换 advisory。"
+    },
+    "section_defaults": {
+      "battle_background_slots": {
+        "contract_id": "battle_background",
+        "production_tier": "production_required",
+        "legacy_fallback_allowed": false
+      },
+      "player_stage_slots": {
+        "contract_id": "player_stage_cutout",
+        "production_tier": "production_preferred",
+        "legacy_fallback_allowed": false
+      },
+      "enemy_stage_slots": {
+        "contract_id": "enemy_stage_cutout",
+        "production_tier": "production_preferred",
+        "legacy_fallback_allowed": true
+      },
+      "card_art_slots": {
+        "contract_id": "card_illustration",
+        "production_tier": "production_preferred",
+        "legacy_fallback_allowed": true
+      },
+      "potion_icon_slots": {
+        "contract_id": "potion_icon",
+        "production_tier": "production_required",
+        "legacy_fallback_allowed": false
+      },
+      "hud_texture_slots": {
+        "contract_id": "hud_battle_stage_frame",
+        "production_tier": "production_preferred",
+        "legacy_fallback_allowed": false
+      },
+      "event_art_slots": {
+        "contract_id": "legacy_vector_art",
+        "production_tier": "legacy_fallback",
+        "legacy_fallback_allowed": true
+      },
+      "relic_icon_slots": {
+        "contract_id": "legacy_vector_art",
+        "production_tier": "legacy_fallback",
+        "legacy_fallback_allowed": true
+      }
+    },
+    "contracts": {
+      "battle_background": {
+        "allowed_extensions": ["png", "webp"],
+        "expected_dimensions": {"mode": "exact", "width": 1920, "height": 640},
+        "expected_aspect_ratio": {"mode": "exact", "value": 3.0, "tolerance": 0.001},
+        "color_mode": "RGB",
+        "alpha_requirement": "forbidden",
+        "safe_area": {
+          "check": "manual",
+          "normalized_rect": [0.15, 0.10, 0.70, 0.72],
+          "enforcement": "advisory",
+          "note": "1280x720 战斗舞台按超宽比例裁切后，中部主体区不得出现抢过角色、意图和生命条的高对比焦点。"
+        },
+        "subject_occupancy": {
+          "check": "manual",
+          "metric": "visual_subject_area_ratio",
+          "min": 0.15,
+          "max": 0.65,
+          "enforcement": "advisory",
+          "note": "背景主建筑/光源只作环境锚点，不能占满战斗舞台。"
+        }
+      },
+      "player_stage_cutout": {
+        "allowed_extensions": ["png", "webp"],
+        "expected_dimensions": {"mode": "minimum", "width": 640, "height": 720},
+        "expected_aspect_ratio": {"mode": "range", "min": 0.55, "max": 1.15},
+        "color_mode": "RGBA",
+        "alpha_requirement": "required",
+        "safe_area": {
+          "check": "alpha_bounds",
+          "normalized_rect": [0.01, 0.01, 0.98, 0.98],
+          "enforcement": "advisory",
+          "note": "可见像素应保留透明呼吸边，不得在画布边缘截断头部、武器或脚部。"
+        },
+        "subject_occupancy": {
+          "check": "alpha_bounds",
+          "metric": "alpha_bbox_area_ratio",
+          "min": 0.20,
+          "max": 0.90,
+          "enforcement": "advisory",
+          "note": "按 alpha 可见包围盒计算，兼容高瘦与横向姿态，但主体不能过小或铺满画布。"
+        }
+      },
+      "enemy_stage_cutout": {
+        "allowed_extensions": ["png", "webp"],
+        "expected_dimensions": {"mode": "minimum", "width": 640, "height": 640},
+        "expected_aspect_ratio": {"mode": "range", "min": 0.65, "max": 1.50},
+        "color_mode": "RGBA",
+        "alpha_requirement": "required",
+        "safe_area": {
+          "check": "alpha_bounds",
+          "normalized_rect": [0.01, 0.01, 0.98, 0.98],
+          "enforcement": "advisory",
+          "note": "敌人轮廓不得贴边裁断，顶部需给意图徽章保留视觉间隔。"
+        },
+        "subject_occupancy": {
+          "check": "alpha_bounds",
+          "metric": "alpha_bbox_area_ratio",
+          "min": 0.18,
+          "max": 0.90,
+          "enforcement": "advisory",
+          "note": "按 alpha 可见包围盒计算；小型、横向和 Boss 轮廓共享宽容区间。"
+        }
+      },
+      "card_illustration": {
+        "allowed_extensions": ["png", "webp"],
+        "expected_dimensions": {"mode": "exact", "width": 784, "height": 1168},
+        "expected_aspect_ratio": {"mode": "exact", "value": 0.671233, "tolerance": 0.001},
+        "color_mode": "RGB",
+        "alpha_requirement": "forbidden",
+        "safe_area": {
+          "check": "manual",
+          "normalized_rect": [0.08, 0.08, 0.84, 0.84],
+          "enforcement": "advisory",
+          "note": "插画不得自带文字、费用、卡名、卡框、Logo 或水印；关键动作留在中部安全区。"
+        },
+        "subject_occupancy": {
+          "check": "manual",
+          "metric": "visual_subject_area_ratio",
+          "min": 0.30,
+          "max": 0.78,
+          "enforcement": "advisory",
+          "note": "主体需在手牌缩略尺寸可辨认，同时给材质卡框和裁切留余量。"
+        }
+      },
+      "potion_icon": {
+        "allowed_extensions": ["png", "webp"],
+        "expected_dimensions": {"mode": "minimum", "width": 1024, "height": 1024},
+        "expected_aspect_ratio": {"mode": "exact", "value": 1.0, "tolerance": 0.001},
+        "color_mode": "RGBA",
+        "alpha_requirement": "required",
+        "safe_area": {
+          "check": "alpha_bounds",
+          "normalized_rect": [0.02, 0.02, 0.96, 0.96],
+          "enforcement": "advisory",
+          "note": "透明边必须完整包住瓶塞、烟雾、针头和投掷部件。"
+        },
+        "subject_occupancy": {
+          "check": "alpha_bounds",
+          "metric": "alpha_bbox_area_ratio",
+          "min": 0.25,
+          "max": 0.82,
+          "enforcement": "advisory",
+          "note": "按 alpha 可见包围盒计算，保证 32px HUD 图标下轮廓仍清楚。"
+        }
+      },
+      "hud_battle_stage_frame": {
+        "allowed_extensions": ["png", "webp"],
+        "expected_dimensions": {"mode": "exact", "width": 1168, "height": 784},
+        "expected_aspect_ratio": {"mode": "exact", "value": 1.489796, "tolerance": 0.001},
+        "color_mode": "RGB",
+        "alpha_requirement": "forbidden",
+        "safe_area": {"check": "manual", "normalized_rect": [0.08, 0.08, 0.84, 0.78], "enforcement": "advisory", "note": "中心战场与底部生命/状态信息区保持低纹理密度。"},
+        "subject_occupancy": {"check": "manual", "metric": "visual_subject_area_ratio", "min": 0.10, "max": 0.55, "enforcement": "advisory", "note": "装饰框只建立层级，不成为首要视觉主体。"}
+      },
+      "hud_hand_tray": {
+        "allowed_extensions": ["png", "webp"],
+        "expected_dimensions": {"mode": "exact", "width": 1168, "height": 784},
+        "expected_aspect_ratio": {"mode": "exact", "value": 1.489796, "tolerance": 0.001},
+        "color_mode": "RGB",
+        "alpha_requirement": "forbidden",
+        "safe_area": {"check": "manual", "normalized_rect": [0.06, 0.18, 0.88, 0.66], "enforcement": "advisory", "note": "手牌扇形与费用角标覆盖区域不得有高亮边线。"},
+        "subject_occupancy": {"check": "manual", "metric": "visual_subject_area_ratio", "min": 0.08, "max": 0.45, "enforcement": "advisory", "note": "托盘纹理应服务卡牌可读性。"}
+      },
+      "hud_resource_chip": {
+        "allowed_extensions": ["png", "webp"],
+        "expected_dimensions": {"mode": "exact", "width": 820, "height": 360},
+        "expected_aspect_ratio": {"mode": "exact", "value": 2.277778, "tolerance": 0.001},
+        "color_mode": "RGB",
+        "alpha_requirement": "forbidden",
+        "safe_area": {"check": "manual", "normalized_rect": [0.18, 0.20, 0.64, 0.60], "enforcement": "advisory", "note": "图标、数值和短标签必须落在中心安全区。"},
+        "subject_occupancy": {"check": "manual", "metric": "visual_subject_area_ratio", "min": 0.10, "max": 0.50, "enforcement": "advisory", "note": "边框和铆钉不能挤压资源文本。"}
+      },
+      "hud_enemy_plate": {
+        "allowed_extensions": ["png", "webp"],
+        "expected_dimensions": {"mode": "exact", "width": 820, "height": 300},
+        "expected_aspect_ratio": {"mode": "exact", "value": 2.733333, "tolerance": 0.001},
+        "color_mode": "RGB",
+        "alpha_requirement": "forbidden",
+        "safe_area": {"check": "manual", "normalized_rect": [0.14, 0.18, 0.72, 0.64], "enforcement": "advisory", "note": "敌人名称、生命、护甲和状态文字区保持平整。"},
+        "subject_occupancy": {"check": "manual", "metric": "visual_subject_area_ratio", "min": 0.08, "max": 0.45, "enforcement": "advisory", "note": "材质细节不得抢过意图与生命信息。"}
+      },
+      "hud_end_turn_button": {
+        "allowed_extensions": ["png", "webp"],
+        "expected_dimensions": {"mode": "exact", "width": 860, "height": 320},
+        "expected_aspect_ratio": {"mode": "exact", "value": 2.6875, "tolerance": 0.001},
+        "color_mode": "RGB",
+        "alpha_requirement": "forbidden",
+        "safe_area": {"check": "manual", "normalized_rect": [0.20, 0.22, 0.60, 0.56], "enforcement": "advisory", "note": "结束回合文字与焦点描边落在中心安全区。"},
+        "subject_occupancy": {"check": "manual", "metric": "visual_subject_area_ratio", "min": 0.12, "max": 0.55, "enforcement": "advisory", "note": "按钮主体清楚，装饰不影响点击状态识别。"}
+      },
+      "hud_feedback_toast": {
+        "allowed_extensions": ["png", "webp"],
+        "expected_dimensions": {"mode": "exact", "width": 900, "height": 380},
+        "expected_aspect_ratio": {"mode": "exact", "value": 2.368421, "tolerance": 0.001},
+        "color_mode": "RGB",
+        "alpha_requirement": "forbidden",
+        "safe_area": {"check": "manual", "normalized_rect": [0.16, 0.18, 0.68, 0.64], "enforcement": "advisory", "note": "反馈短句和数值动画落在中心低噪声区。"},
+        "subject_occupancy": {"check": "manual", "metric": "visual_subject_area_ratio", "min": 0.08, "max": 0.45, "enforcement": "advisory", "note": "提示底纹不能遮挡战场关键反馈。"}
+      },
+      "legacy_vector_art": {
+        "allowed_extensions": ["svg", "png", "webp"],
+        "expected_dimensions": {"mode": "any", "width": 0, "height": 0},
+        "expected_aspect_ratio": {"mode": "any", "value": 0.0, "tolerance": 0.0},
+        "color_mode": "RGB_OR_RGBA",
+        "alpha_requirement": "optional",
+        "safe_area": {"check": "manual", "normalized_rect": [0.05, 0.05, 0.90, 0.90], "enforcement": "advisory", "note": "旧资源继续保证首版可读性。"},
+        "subject_occupancy": {"check": "manual", "metric": "visual_subject_area_ratio", "min": 0.20, "max": 0.85, "enforcement": "advisory", "note": "正式位图替换时再启用像素级检查。"}
+      }
+    }
+  },
   "card_type_frames": {
     "attack": "res://assets/art/card_attack_frame.svg",
     "skill": "res://assets/art/card_skill_frame.svg",
@@ -22,32 +246,305 @@
     "relic_icon": "res://assets/art/relic_placeholder.svg",
     "potion_icon": "res://assets/art/potion_placeholder.svg",
     "event_art": "res://assets/art/event_default.svg",
-    "battle_background": "res://assets/art/generated/battle_bg_chapter_one_pc.png"
+    "battle_background": "res://assets/art/generated/battle_bg_chapter_one_v4_pc.png"
   },
   "battle_background_slots": [
     {
       "id": "chapter_one",
-      "asset_path": "res://assets/art/generated/chapter_one_battle_v3_pc.png",
+      "asset_path": "res://assets/art/generated/battle_bg_chapter_one_v4_pc.png",
       "slot_path": "res://assets/art/backgrounds/battle_bg_chapter_one.svg",
       "design_note": "第一章战斗背景表现余烬工坊和炉渣地面，强调低温余火、烟尘和工业遗迹。",
       "replacement_note": "正式图应保持中低对比度，敌人轮廓和红色攻击意图必须优先可读。",
-      "implementation_note": "Main.gd 按 current_chapter_id 从本槽位加载背景；当前 asset_path 接入第二版 PC 炉堂舞台 PNG，只影响敌人舞台表现层。"
+      "implementation_note": "Main.gd 按 current_chapter_id 从本槽位加载背景；当前 asset_path 接入 1920x640 超宽炉堂舞台 PNG，只影响敌人舞台表现层。"
     },
     {
       "id": "chapter_two",
-      "asset_path": "res://assets/art/generated/battle_bg_chapter_two_pc.png",
+      "asset_path": "res://assets/art/generated/battle_bg_chapter_two_v4_pc.png",
       "slot_path": "res://assets/art/backgrounds/battle_bg_chapter_two.svg",
       "design_note": "第二章战斗背景表现带电塔楼和冷色导线，区分于第一章的余烬工坊。",
       "replacement_note": "正式图可使用更多青蓝电弧，但不要和玩家势能 HUD 或技能牌边框混成同一视觉层。",
-      "implementation_note": "章节切换后 UI 会重新解析当前章节背景；当前 asset_path 接入 PC 生成 PNG，不参与地图生成或战斗结算。"
+      "implementation_note": "章节切换后 UI 会重新解析当前章节背景；当前 asset_path 接入 1920x640 超宽风暴观测台 PNG，不参与地图生成或战斗结算。"
     },
     {
       "id": "chapter_three",
-      "asset_path": "res://assets/art/generated/battle_bg_chapter_three_pc.png",
+      "asset_path": "res://assets/art/generated/battle_bg_chapter_three_v4_pc.png",
       "slot_path": "res://assets/art/backgrounds/battle_bg_chapter_three.svg",
       "design_note": "第三章战斗背景表现回路核心和虚空化结构，作为最终章的压迫感来源。",
       "replacement_note": "正式图应保留敌人底部安全读区，避免高亮纹路穿过生命和意图文本。",
-      "implementation_note": "最终 Boss 与普通第三章战斗共用该章节背景；当前 asset_path 接入 PC 生成 PNG，后续可扩展到遭遇级背景。"
+      "implementation_note": "最终 Boss 与普通第三章战斗共用该章节背景；当前 asset_path 接入 1920x640 超宽核心圣殿 PNG，后续可扩展到遭遇级背景。"
+    }
+  ],
+  "player_stage_slots": [
+    {
+      "id": "ember_exile",
+      "asset_path": "res://assets/art/generated/player_ember_exile_stage_pc.png",
+      "slot_path": "res://assets/art/generated/player_ember_exile_stage_pc.png",
+      "design_note": "余烬流亡者战斗舞台切图，强调近战轮廓和面向敌人的动作方向。",
+      "replacement_note": "必须保留透明底、完整武器轮廓和脚部落点，不得混入场景背景。",
+      "implementation_note": "Main.gd 的 PLAYER_STAGE_ART_PATHS 直接加载该 PC 舞台位图。"
+    },
+    {
+      "id": "arc_tinker",
+      "asset_path": "res://assets/art/generated/player_arc_tinker_stage_pc.png",
+      "slot_path": "res://assets/art/generated/player_arc_tinker_stage_pc.png",
+      "design_note": "电弧工匠战斗舞台切图，保留工具臂、电弧装置和横向姿态。",
+      "replacement_note": "必须保留透明底，横向机械附件不能被画布边缘截断。",
+      "implementation_note": "Main.gd 的 PLAYER_STAGE_ART_PATHS 直接加载该 PC 舞台位图。"
+    },
+    {
+      "id": "pyre_ascetic",
+      "asset_path": "res://assets/art/generated/player_pyre_ascetic_stage_pc.png",
+      "slot_path": "res://assets/art/generated/player_pyre_ascetic_stage_pc.png",
+      "design_note": "熔痕苦修者战斗舞台切图，强调高瘦人形、白焰和烙印轮廓。",
+      "replacement_note": "必须保留透明底，头顶白焰、手部和衣摆都要留出安全边。",
+      "implementation_note": "Main.gd 的 PLAYER_STAGE_ART_PATHS 直接加载该 PC 舞台位图。"
+    }
+  ],
+  "enemy_stage_slots": [
+    {
+      "id": "placeholder_soot_raider",
+      "enemy_ids": ["soot_raider"],
+      "asset_path": "res://assets/art/generated/enemy_soot_raider_pc.png",
+      "slot_path": "res://assets/art/generated/enemy_soot_raider_pc.png",
+      "design_note": "煤烟盗兵舞台切图。",
+      "replacement_note": "保持透明底、完整武器和清楚脚部落点。",
+      "implementation_note": "与 Main.gd ENEMY_ART_PATHS 的 sprite_key 一致。"
+    },
+    {
+      "id": "placeholder_ash_hound",
+      "enemy_ids": ["ash_hound"],
+      "asset_path": "res://assets/art/generated/enemy_ash_hound_v3_pc.png",
+      "slot_path": "res://assets/art/generated/enemy_ash_hound_v3_pc.png",
+      "design_note": "灰烬猎犬横向舞台切图。",
+      "replacement_note": "保持透明底，头尾与四肢不得贴边裁断。",
+      "implementation_note": "与 Main.gd ENEMY_ART_PATHS 的 sprite_key 一致。"
+    },
+    {
+      "id": "placeholder_plague_alchemist",
+      "enemy_ids": ["plague_alchemist"],
+      "asset_path": "res://assets/art/generated/enemy_plague_alchemist_v2_pc.png",
+      "slot_path": "res://assets/art/generated/enemy_plague_alchemist_v2_pc.png",
+      "design_note": "疫病炼金师舞台切图。",
+      "replacement_note": "保持透明底，瓶罐烟雾不可遮没主体轮廓。",
+      "implementation_note": "与 Main.gd ENEMY_ART_PATHS 的 sprite_key 一致。"
+    },
+    {
+      "id": "placeholder_iron_shell_guard",
+      "enemy_ids": ["iron_shell_guard"],
+      "asset_path": "res://assets/art/generated/enemy_iron_shell_guard_pc.png",
+      "slot_path": "res://assets/art/generated/enemy_iron_shell_guard_pc.png",
+      "design_note": "铁壳守卫舞台切图。",
+      "replacement_note": "保持透明底与盾牌完整外轮廓。",
+      "implementation_note": "与 Main.gd ENEMY_ART_PATHS 的 sprite_key 一致。"
+    },
+    {
+      "id": "placeholder_bomb_mite",
+      "enemy_ids": ["bomb_mite"],
+      "asset_path": "res://assets/art/generated/enemy_bomb_mite_v2_pc.png",
+      "slot_path": "res://assets/art/generated/enemy_bomb_mite_v2_pc.png",
+      "design_note": "爆弹螨舞台切图。",
+      "replacement_note": "保持透明底，小型主体在缩放后仍要可辨认。",
+      "implementation_note": "与 Main.gd ENEMY_ART_PATHS 的 sprite_key 一致。"
+    },
+    {
+      "id": "placeholder_thorn_shield",
+      "enemy_ids": ["thorn_shield"],
+      "asset_path": "res://assets/art/generated/enemy_thorn_shield_pc.png",
+      "slot_path": "res://assets/art/generated/enemy_thorn_shield_pc.png",
+      "design_note": "棘盾机舞台切图。",
+      "replacement_note": "保持透明底，尖刺和盾缘不得贴边裁断。",
+      "implementation_note": "与 Main.gd ENEMY_ART_PATHS 的 sprite_key 一致。"
+    },
+    {
+      "id": "placeholder_corrupted_acolyte",
+      "enemy_ids": ["corrupted_acolyte"],
+      "asset_path": "res://assets/art/enemy_corrupted_acolyte.svg",
+      "slot_path": "res://assets/art/generated/enemy_corrupted_acolyte_pc.png",
+      "design_note": "腐化学徒舞台切图。",
+      "replacement_note": "当前 SVG 是 legacy fallback，正式资源需交付透明 RGBA 位图。",
+      "implementation_note": "Main.gd 按 sprite_key 自动回退到同名 enemy_*.svg。"
+    },
+    {
+      "id": "placeholder_ember_wraith",
+      "enemy_ids": ["ember_wraith"],
+      "asset_path": "res://assets/art/enemy_ember_wraith.svg",
+      "slot_path": "res://assets/art/generated/enemy_ember_wraith_pc.png",
+      "design_note": "余烬怨灵舞台切图。",
+      "replacement_note": "当前 SVG 是 legacy fallback，正式资源需交付带半透明火焰边缘的 RGBA 位图。",
+      "implementation_note": "Main.gd 按 sprite_key 自动回退到同名 enemy_*.svg。"
+    },
+    {
+      "id": "placeholder_twinblade_executor",
+      "enemy_ids": ["twinblade_executor"],
+      "asset_path": "res://assets/art/generated/enemy_twinblade_executor_v2_pc.png",
+      "slot_path": "res://assets/art/generated/enemy_twinblade_executor_v2_pc.png",
+      "design_note": "双刃处刑者横向舞台切图。",
+      "replacement_note": "保持透明底，两把武器和攻击方向必须完整。",
+      "implementation_note": "与 Main.gd ENEMY_ART_PATHS 的 sprite_key 一致。"
+    },
+    {
+      "id": "placeholder_furnace_colossus",
+      "enemy_ids": ["furnace_colossus"],
+      "asset_path": "res://assets/art/enemy_furnace_colossus.svg",
+      "slot_path": "res://assets/art/generated/enemy_furnace_colossus_pc.png",
+      "design_note": "熔炉巨像舞台切图。",
+      "replacement_note": "当前 SVG 是 legacy fallback，正式 RGBA 位图需保留 Boss 级体量。",
+      "implementation_note": "Main.gd 按 sprite_key 自动回退到同名 enemy_*.svg。"
+    },
+    {
+      "id": "placeholder_forge_bishop",
+      "enemy_ids": ["forge_bishop"],
+      "asset_path": "res://assets/art/generated/enemy_forge_bishop_v2_pc.png",
+      "slot_path": "res://assets/art/generated/enemy_forge_bishop_v2_pc.png",
+      "design_note": "锻炉主教舞台切图。",
+      "replacement_note": "保持透明底，冠部、权杖和衣摆不得裁断。",
+      "implementation_note": "与 Main.gd ENEMY_ART_PATHS 的 sprite_key 一致。"
+    },
+    {
+      "id": "placeholder_volt_cultist",
+      "enemy_ids": ["volt_cultist", "storm_cantor"],
+      "asset_path": "res://assets/art/enemy_volt_cultist.svg",
+      "slot_path": "res://assets/art/generated/enemy_volt_cultist_pc.png",
+      "design_note": "伏特教徒与风暴咏者共享舞台轮廓。",
+      "replacement_note": "当前 SVG 是 legacy fallback，正式 RGBA 位图需保持施法手势清楚。",
+      "implementation_note": "两个敌人共享同一 sprite_key。"
+    },
+    {
+      "id": "placeholder_glass_sentinel",
+      "enemy_ids": ["glass_sentinel", "prism_scrapper"],
+      "asset_path": "res://assets/art/enemy_glass_sentinel.svg",
+      "slot_path": "res://assets/art/generated/enemy_glass_sentinel_pc.png",
+      "design_note": "玻璃哨兵与棱镜拆解者共享舞台轮廓。",
+      "replacement_note": "当前 SVG 是 legacy fallback，正式 RGBA 位图需控制透明材质边缘。",
+      "implementation_note": "两个敌人共享同一 sprite_key。"
+    },
+    {
+      "id": "placeholder_null_mender",
+      "enemy_ids": ["null_mender"],
+      "asset_path": "res://assets/art/enemy_null_mender.svg",
+      "slot_path": "res://assets/art/generated/enemy_null_mender_pc.png",
+      "design_note": "空值修补者舞台切图。",
+      "replacement_note": "当前 SVG 是 legacy fallback，正式资源需交付透明 RGBA 位图。",
+      "implementation_note": "Main.gd 按 sprite_key 自动回退到同名 enemy_*.svg。"
+    },
+    {
+      "id": "placeholder_rust_colossus",
+      "enemy_ids": ["rust_colossus"],
+      "asset_path": "res://assets/art/enemy_rust_colossus.svg",
+      "slot_path": "res://assets/art/generated/enemy_rust_colossus_pc.png",
+      "design_note": "锈蚀巨像舞台切图。",
+      "replacement_note": "当前 SVG 是 legacy fallback，正式 RGBA 位图需保持精英体量。",
+      "implementation_note": "Main.gd 按 sprite_key 自动回退到同名 enemy_*.svg。"
+    },
+    {
+      "id": "placeholder_storm_archon",
+      "enemy_ids": ["storm_archon"],
+      "asset_path": "res://assets/art/generated/enemy_storm_archon_v2_pc.png",
+      "slot_path": "res://assets/art/generated/enemy_storm_archon_v2_pc.png",
+      "design_note": "风暴执政官舞台切图。",
+      "replacement_note": "保持透明底，电弧边缘与高耸 Boss 轮廓完整。",
+      "implementation_note": "与 Main.gd ENEMY_ART_PATHS 的 sprite_key 一致。"
+    },
+    {
+      "id": "placeholder_void_scribe",
+      "enemy_ids": ["void_scribe", "memory_parasite"],
+      "asset_path": "res://assets/art/enemy_void_scribe.svg",
+      "slot_path": "res://assets/art/generated/enemy_void_scribe_pc.png",
+      "design_note": "虚空书记与记忆寄生体共享舞台轮廓。",
+      "replacement_note": "当前 SVG 是 legacy fallback，正式 RGBA 位图需保持符文和主体分离。",
+      "implementation_note": "两个敌人共享同一 sprite_key。"
+    },
+    {
+      "id": "placeholder_gravity_lancer",
+      "enemy_ids": ["gravity_lancer", "orbit_reclaimer"],
+      "asset_path": "res://assets/art/enemy_gravity_lancer.svg",
+      "slot_path": "res://assets/art/generated/enemy_gravity_lancer_pc.png",
+      "design_note": "重力枪骑与轨道回收者共享舞台轮廓。",
+      "replacement_note": "当前 SVG 是 legacy fallback，正式 RGBA 位图需保留长枪安全边。",
+      "implementation_note": "两个敌人共享同一 sprite_key。"
+    },
+    {
+      "id": "placeholder_core_mimic",
+      "enemy_ids": ["core_mimic"],
+      "asset_path": "res://assets/art/enemy_core_mimic.svg",
+      "slot_path": "res://assets/art/generated/enemy_core_mimic_pc.png",
+      "design_note": "核心拟态体舞台切图。",
+      "replacement_note": "当前 SVG 是 legacy fallback，正式资源需交付透明 RGBA 位图。",
+      "implementation_note": "Main.gd 按 sprite_key 自动回退到同名 enemy_*.svg。"
+    },
+    {
+      "id": "placeholder_singularity_knight",
+      "enemy_ids": ["singularity_knight"],
+      "asset_path": "res://assets/art/enemy_singularity_knight.svg",
+      "slot_path": "res://assets/art/generated/enemy_singularity_knight_pc.png",
+      "design_note": "奇点骑士舞台切图。",
+      "replacement_note": "当前 SVG 是 legacy fallback，正式 RGBA 位图需保留武器和奇点边缘。",
+      "implementation_note": "Main.gd 按 sprite_key 自动回退到同名 enemy_*.svg。"
+    },
+    {
+      "id": "placeholder_nexus_heart",
+      "enemy_ids": ["nexus_heart"],
+      "asset_path": "res://assets/art/generated/enemy_nexus_heart_v2_pc.png",
+      "slot_path": "res://assets/art/generated/enemy_nexus_heart_v2_pc.png",
+      "design_note": "回路之心最终 Boss 舞台切图。",
+      "replacement_note": "保持透明底，核心、悬浮结构和能量边缘必须完整。",
+      "implementation_note": "与 Main.gd ENEMY_ART_PATHS 的 sprite_key 一致。"
+    }
+  ],
+  "hud_texture_slots": [
+    {
+      "id": "battle_stage_frame",
+      "asset_path": "res://assets/art/generated/ui/ui_battle_stage_frame_pc.png",
+      "slot_path": "res://assets/art/generated/ui/ui_battle_stage_frame_pc.png",
+      "contract_id": "hud_battle_stage_frame",
+      "design_note": "PC 战斗舞台材质框。",
+      "replacement_note": "中心战斗区和底部信息区必须保持低噪声。",
+      "implementation_note": "作为 PC HUD 纹理生产槽位接受审计。"
+    },
+    {
+      "id": "hand_tray",
+      "asset_path": "res://assets/art/generated/ui/ui_hand_tray_pc.png",
+      "slot_path": "res://assets/art/generated/ui/ui_hand_tray_pc.png",
+      "contract_id": "hud_hand_tray",
+      "design_note": "PC 手牌托盘底纹。",
+      "replacement_note": "不得干扰卡牌费用、名称和描述。",
+      "implementation_note": "Main.gd 的 UI_HAND_TRAY_PATH 直接加载该纹理。"
+    },
+    {
+      "id": "resource_chip",
+      "asset_path": "res://assets/art/generated/ui/ui_resource_chip_pc.png",
+      "slot_path": "res://assets/art/generated/ui/ui_resource_chip_pc.png",
+      "contract_id": "hud_resource_chip",
+      "design_note": "PC 资源与状态短条底纹。",
+      "replacement_note": "中心数值与标签区必须平整可读。",
+      "implementation_note": "Main.gd 的 UI_RESOURCE_CHIP_PATH 直接加载该纹理。"
+    },
+    {
+      "id": "enemy_plate",
+      "asset_path": "res://assets/art/generated/ui/ui_enemy_plate_pc.png",
+      "slot_path": "res://assets/art/generated/ui/ui_enemy_plate_pc.png",
+      "contract_id": "hud_enemy_plate",
+      "design_note": "PC 敌人信息条底纹。",
+      "replacement_note": "敌人名称、生命、护甲和状态文字优先。",
+      "implementation_note": "Main.gd 的 UI_ENEMY_PLATE_PATH 直接加载该纹理。"
+    },
+    {
+      "id": "end_turn_button",
+      "asset_path": "res://assets/art/generated/ui/ui_end_turn_button_pc.png",
+      "slot_path": "res://assets/art/generated/ui/ui_end_turn_button_pc.png",
+      "contract_id": "hud_end_turn_button",
+      "design_note": "PC 结束回合主按钮材质。",
+      "replacement_note": "文字、焦点和禁用状态必须保持清楚。",
+      "implementation_note": "Main.gd 的 UI_END_TURN_BUTTON_PATH 直接加载该纹理。"
+    },
+    {
+      "id": "feedback_toast",
+      "asset_path": "res://assets/art/generated/ui/ui_feedback_toast_pc.png",
+      "slot_path": "res://assets/art/generated/ui/ui_feedback_toast_pc.png",
+      "contract_id": "hud_feedback_toast",
+      "design_note": "PC 战斗反馈短提示底纹。",
+      "replacement_note": "短句和数值动画必须在战场上保持可读。",
+      "implementation_note": "Main.gd 的 UI_FEEDBACK_TOAST_PATH 对应此生产槽位。"
     }
   ],
   "event_art_slots": [
@@ -207,11 +704,11 @@
     },
     {
       "id": "ash_guard",
-      "asset_path": "res://assets/art/generated/card_ash_guard_pc.png",
+      "asset_path": "res://assets/art/generated/card_ash_guard_v3_pc.png",
       "slot_path": "res://assets/art/cards/card_ash_guard.svg",
       "design_note": "余灰格挡是基础防御牌，正式插画应表现灰烬护幕或炉渣盾。",
       "replacement_note": "防御牌插画亮度要低于敌人意图红光，避免干扰战斗判断。",
-      "implementation_note": "当前 asset_path 接入 PC 生成 PNG；未来正式插画仍保持同一 slot_path，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
+      "implementation_note": "当前 asset_path 接入 gpt-image-2 竖版防御插画；未来替换仍保持同一 slot_path，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
     },
     {
       "id": "cooling_breath",
@@ -223,7 +720,7 @@
     },
     {
       "id": "chain_cut",
-      "asset_path": "res://assets/art/generated/card_chain_cut_v2_pc.png",
+      "asset_path": "res://assets/art/generated/card_chain_cut_v3_pc.png",
       "slot_path": "res://assets/art/cards/card_chain_cut.svg",
       "design_note": "连锁斩强调连续命中，正式插画应表现链刃或多段切线。",
       "replacement_note": "攻击轨迹要有方向感，便于和多段伤害反馈对应。",
@@ -239,7 +736,7 @@
     },
     {
       "id": "pierce_rivet",
-      "asset_path": "res://assets/art/generated/card_pierce_rivet_v2_pc.png",
+      "asset_path": "res://assets/art/generated/card_pierce_rivet_v3_pc.png",
       "slot_path": "res://assets/art/cards/card_pierce_rivet.svg",
       "design_note": "穿甲铆钉应表现高速铆钉击穿护甲。",
       "replacement_note": "主体应可在小图标中读出穿刺方向。",
@@ -615,19 +1112,19 @@
     },
     {
       "id": "penitent_cut",
-      "asset_path": "res://assets/art/generated/card_penitent_cut_pc.png",
+      "asset_path": "res://assets/art/generated/card_penitent_cut_v3_pc.png",
       "slot_path": "res://assets/art/cards/card_penitent_cut.svg",
       "design_note": "苦修斩是熔痕苦修者基础攻击，正式插画应表现带白焰烙印的近身斩击。",
       "replacement_note": "攻击轨迹应偏白焰/赤红，和电弧蓝色角色区分。",
-      "implementation_note": "当前 asset_path 接入 PC 生成 PNG；未来正式插画仍保持同一 slot_path，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
+      "implementation_note": "当前 asset_path 接入 gpt-image-2 竖版苦修斩插画；未来替换仍保持同一 slot_path，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
     },
     {
       "id": "scar_guard",
-      "asset_path": "res://assets/art/generated/card_scar_guard_pc.png",
+      "asset_path": "res://assets/art/generated/card_scar_guard_v3_pc.png",
       "slot_path": "res://assets/art/cards/card_scar_guard.svg",
       "design_note": "炉痕守势是熔痕苦修者基础防御，正式插画应表现烙痕护盾和压抑火光。",
       "replacement_note": "护盾形状要清楚，避免看起来像攻击牌。",
-      "implementation_note": "当前 asset_path 接入 PC 生成 PNG；未来正式插画仍保持同一 slot_path，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
+      "implementation_note": "当前 asset_path 接入 gpt-image-2 竖版炉痕守势插画；未来替换仍保持同一 slot_path，战斗数值和效果继续由卡牌数据与 CombatState 结算。"
     },
     {
       "id": "kindle_pain",

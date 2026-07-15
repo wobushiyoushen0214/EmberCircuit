@@ -965,13 +965,20 @@ func _run() -> void:
 		return
 	if not _check(main.map_scroll != null and main.map_scroll.visible and main.map_view.get_parent() == main.map_scroll, "map choice constrains the visual map inside a scroll region"):
 		return
-	if not _check(main.last_combat_layout_overflow <= 0.0 and main.map_view.custom_minimum_size.y <= 680.0 and main.log_label.custom_minimum_size.y <= 120.0, "map choice keeps immersive map, log, and controls inside the viewport"):
-		return
+	if main._is_pc_layout():
+		if not _check(main.last_combat_layout_overflow <= 0.0 and main.map_view.custom_minimum_size.y <= 760.0 and not main.log_label.visible, "PC map choice replaces the legacy log strip with the fixed map detail panel"):
+			return
+		var map_preview_panel := main.map_view.get_node_or_null("NodePreviewPanel") as Control
+		if not _check(map_preview_panel != null and map_preview_panel.visible, "PC map choice keeps its fixed node detail panel visible"):
+			return
+	else:
+		if not _check(main.last_combat_layout_overflow <= 0.0 and main.map_view.custom_minimum_size.y <= 680.0 and main.log_label.custom_minimum_size.y <= 120.0, "compact map choice keeps map, log, and controls inside the viewport"):
+			return
 	if not _check(main.map_view.get_node_button_count() == main.route_nodes.size(), "map view renders every route node"):
 		return
 	if not _check(main.map_view.get_available_button_count() == main.available_node_ids.size(), "map view marks available nodes"):
 		return
-	if not _check(main.log_label.text.contains("地图图例"), "map choice shows map legend"):
+	if not _check(main.log_label.text.contains("地图图例"), "map choice retains map legend data for compact layouts"):
 		return
 	if not _check(main.last_map_preview_text.contains("节点详情") and main.last_map_preview_text.contains("后续可达"), "map choice shows node detail preview"):
 		return
@@ -983,9 +990,9 @@ func _run() -> void:
 		return
 	var preview_node_id: String = str(main.available_node_ids[0])
 	main._on_map_node_previewed(preview_node_id)
-	if not _check(main.last_map_preview_node_id == preview_node_id and main.log_label.text.contains("节点详情"), "map node preview updates detail panel"):
+	if not _check(main.last_map_preview_node_id == preview_node_id and main.map_view.preview_title_label != null and not main.map_view.preview_title_label.text.is_empty(), "map node preview updates the fixed detail panel"):
 		return
-	if not _check(main.log_label.text.contains("风险：") and main.log_label.text.contains("收益："), "map node preview keeps risk and reward visible in the log panel"):
+	if not _check(main.map_view.preview_risk_label.text.contains("风险") and main.map_view.preview_reward_label.text.contains("收益"), "map node preview keeps risk and reward visible in the fixed detail panel"):
 		return
 	if not _check(main.map_view.previewed_node_id == preview_node_id, "map node preview highlights the active route in map view"):
 		return

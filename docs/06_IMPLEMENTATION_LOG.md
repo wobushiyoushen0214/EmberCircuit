@@ -760,3 +760,17 @@ jq empty data/cards/cards.json data/enemies/enemies.json data/relics/relics.json
   - 12 格 `risk_flag` 均为 `ok`；`expected_target_issues`、`expected_out_of_tolerance_cells`、`expected_flagged_cells` 均为空。
   - 最终金币均值范围为 `106.531-114.840`，最终牌组均值范围为 `15.578-19.273`，后者按 `0.5` 容差通过。
 - 本阶段只重建并关闭当前路线/数值/遥测基线，不宣称游戏完整；剩余 REQ、内容扩充和正式 UI/演出仍未完成。
+
+## PC UI、美术契约与首轮试玩导出准备
+
+- PC 战斗布局按 `1280x720` 再次收敛：手牌固定为 136px 宽并显示三行以内规则文字，结束回合按钮移入手牌右侧装置栏，战斗底部不再依赖被裁切的控制条。
+- 选角页在 PC 模式隐藏欢迎页大标题，修复 720p 下只残留一个“余”字的页面 chrome；欢迎、选角、战斗和地图均新增或补齐 720p 图库快照。
+- 地图页移除 PC 横向滚动条和旧日志详情带，改用固定 `300x420` 节点详情面板；节点、风险、收益、说明和后继路线均在面板内换行/截断。
+- 补充第三章 10 层路线密度测试并将 PC 节点最小宽度调整为 78px，确保固定详情栏旁的相邻图层按钮不重叠。
+- 窗口尺寸变化会排队执行完整布局刷新；若正在拖牌，会先取消拖拽且不消耗卡牌，避免跨 PC 布局阈值后残留浮层。
+- 随包加入 `NotoSansSC-Variable.ttf` 与 OFL 授权文本，主 UI Theme 统一使用内置中文字体，不再依赖系统字体。
+- 三章战斗背景统一为 `1920x640 RGB PNG`；余灰格挡、连锁斩、穿甲铆钉、苦修斩和炉痕守势替换为新一批 `784x1168 RGB PNG` 卡图。
+- `art_assets.json` 新增版本化 PC 位图资产契约，覆盖背景、角色/敌人切图、卡图、药水和 HUD 纹理；`ArtAssetAuditor` 直接解码源位图，硬校验尺寸、比例、通道和 alpha，并输出构图 advisory。
+- 真实资源清单当前为 152 个槽位、0 缺失、0 hard error、78 个 legacy fallback；测试直接断言真实清单 `hard_failures=0`，未知 `production_tier` 会硬失败而不是静默降级。
+- 新增 Windows PC 与 macOS 导出预设，排除测试、工具、文档、Trellis 和生图临时目录；`--export-pack` 实测生成 88MB 运行资源包且不包含开发目录。
+- 16 项 Godot 回归测试、资源审计、headless 启动和欢迎/选角/战斗/地图 PC 图库验收均作为试玩提交门禁。

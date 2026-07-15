@@ -74,6 +74,23 @@ func _run() -> void:
 		_check(not main.card_drag_active and main.last_card_drag_cancelled_count == cancelled_before + 1, "invalid drop cancels and requests hand return")
 		_check(main.combat.hand.size() == cancel_hand_before, "cancelled drag does not consume a card")
 
+	var resize_index: int = _first_playable_card(main)
+	_check(resize_index >= 0, "hand keeps a playable card for resize cancellation test")
+	if resize_index >= 0:
+		var resize_button := main.hand_buttons_by_index.get(resize_index, null) as Button
+		var resize_source: Vector2 = resize_button.get_global_rect().get_center()
+		var resize_hand_before: int = main.combat.hand.size()
+		var resize_cancelled_before: int = main.last_card_drag_cancelled_count
+		_send_card_press(main, resize_index, resize_source)
+		_send_mouse_motion(main, resize_source + Vector2(0, -120), resize_source, MOUSE_BUTTON_MASK_LEFT)
+		_check(main.card_drag_active, "resize test starts an active card drag")
+		main._refresh_after_resize()
+		await process_frame
+		await process_frame
+		_check(not main.card_drag_active and main.card_drag_candidate_index == -1, "layout refresh cancels active card drag state")
+		_check(main.last_card_drag_cancelled_count == resize_cancelled_before + 1, "layout refresh records exactly one cancelled drag")
+		_check(main.combat.hand.size() == resize_hand_before, "layout refresh never consumes the dragged card")
+
 	_finish()
 
 func _send_card_press(main, card_index: int, position: Vector2) -> void:

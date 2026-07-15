@@ -3,4 +3,5 @@
 *.translation
 export/
 build/
+tmp/
 .DS_Store

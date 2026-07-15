@@ -23,22 +23,55 @@
 
 ## 2.1 当前资源清单管线
 
-- `data/config/art_assets.json` 是卡牌、遗物、药水、问号事件插图、章节战斗背景和卡牌类型框的表现资源清单。
-- `asset_path` 表示当前 Godot 可加载资源，第一版指向分层精修 SVG、每张卡/遗物/药水/事件的独立插图或类型框 fallback。
+- `data/config/art_assets.json` 是卡牌、药水、章节战斗背景、角色/敌人舞台切图、HUD 纹理、遗物、问号事件插图和卡牌类型框的表现资源清单，也是 PC 位图生产契约的唯一配置源。
+- `asset_path` 表示当前 Godot 可加载资源，可以是生产位图，也可以是仍待替换的首版 SVG fallback。
 - `slot_path` 表示未来正式资源的稳定替换槽位，例如 `assets/art/cards/card_*.svg`、`assets/art/relics/relic_*.svg`、`assets/art/potions/potion_*.svg`、`assets/art/events/event_*.svg` 和 `assets/art/backgrounds/battle_bg_*.svg`。
 - 每个槽位必须带 `design_note`、`replacement_note` 和 `implementation_note`，用于记录美术意图、替换限制和接入位置。
 - `Main.gd` 已从该清单读取手牌、战斗奖励、商店、遗物奖励、药水槽图标、问号事件插图和当前章节战斗背景；旧硬编码路径只作为 fallback。
+- `player_stage_slots`、`enemy_stage_slots` 和 `hud_texture_slots` 当前用于生产审计，并与 `Main.gd` 的现有同路径常量保持一致；运行时改为完全数据驱动属于后续接线任务。
 - 问号事件页必须使用结构化事件面板，包含事件插图、事件名称、事件正文和选择按钮；事件插图必须从 `event_art_slots` 加载。
 - 药水槽、商店药水、战斗药水奖励和遗物奖励必须使用结构化图标物品布局，保留图标、名称、类别/价格和描述分区，不能退回纯文字按钮。
 - 玩家摘要面板的常驻遗物栏必须从 `relic_icon_slots` 加载图标，并为每个图标提供遗物名称和描述 tooltip；遗物过多时应使用 `+N` 汇总，不得撑破 720p 基准布局。
 - 数据完整性测试会校验所有配置卡牌、遗物、药水、事件和章节背景都有资源槽位，且当前 `asset_path` 能被 Godot 识别。
 
-## 2.2 SVG 质量门槛
+## 2.2 PC 位图资产契约
+
+`asset_contract` 记录 1280x720 PC 布局基准、section 默认生产级别和逐类位图规则。布局基准用于裁切与安全区复核，不要求所有源图都输出为 1280x720。
+
+| 类别 | 源图尺寸与比例 | 通道/透明度 | 构图门槛 |
+| --- | --- | --- | --- |
+| 战斗背景 | `1920x640`，比例 `3:1`，exact | RGB，禁止 alpha | 中部 70% x 72% 是角色、意图与生命信息安全区；环境焦点占比 15%-65%，人工复核 |
+| 角色舞台切图 | 最小 `640x720`，比例 0.55-1.15 | RGBA，必须存在真实透明像素 | alpha 包围盒留 1% 边距，占画布包围盒面积 20%-90% |
+| 敌人舞台切图 | 最小 `640x640`，比例 0.65-1.50 | RGBA，必须存在真实透明像素 | alpha 包围盒留 1% 边距，占画布包围盒面积 18%-90% |
+| 卡牌插画 | `784x1168`，比例 `0.671233`，exact | RGB，禁止 alpha | 中部 84% x 84% 为动作安全区；禁止文字、费用、卡框、Logo 和水印，人工复核 |
+| 药水图标 | 最小 `1024x1024`，比例 1:1 | RGBA，必须存在真实透明像素 | alpha 包围盒留 2% 边距，占画布包围盒面积 25%-82% |
+| HUD 纹理 | 每个 `hud_texture_slots[].contract_id` 定义 exact 尺寸/比例 | 当前槽位为 RGB，禁止 alpha | 每个控件分别定义文字/数值安全区与主体占比，人工复核 |
+
+生产级别规则：
+
+- `production_required`：发布阻断级。资源缺失、无法解码、扩展名、尺寸、比例、RGB/RGBA 或 alpha 不合约均记为 hard error。
+- `production_preferred`：已经进入 PC 生产管线的位图同样严格检查。允许 fallback 的 section 遇到可加载 SVG 时改记为 `legacy_fallback`，不会制造整批硬失败。
+- `legacy_fallback`：首版 SVG 或旧资源可以继续展示，但审计器会给出替换 advisory。fallback 文件本身缺失仍是 hard error。
+
+`ArtAssetAuditor` 直接按 PNG/WebP/JPEG 源文件字节解码，不使用导入后可能改变格式的纹理。报告包含实际 `width`、`height`、`aspect_ratio`、`color_mode`、`has_alpha_channel`、`uses_transparency`、`alpha_mode` 和透明主体 `subject_bounds`。尺寸、比例、通道和 alpha 是机器硬校验；RGB 图的语义安全区/主体占比是 manual advisory，RGBA 切图则用 alpha 可见包围盒自动给出构图 advisory。
+
+运行测试与完整审计：
+
+```bash
+/Applications/Godot.app/Contents/MacOS/Godot --headless --path . --script res://tests/test_art_asset_auditor.gd
+/Applications/Godot.app/Contents/MacOS/Godot --headless --path . --script res://tools/run_art_asset_audit.gd
+```
+
+审计进程本身不会因清单内存在生产缺口退出非零；CI 是否阻断应读取 `summary.hard_failures`。测试负责保证 schema、像素读取、严格/降级语义和真实清单覆盖不回退。
+
+## 2.3 SVG 质量门槛
 
 - 战斗首屏资源不能是单色块或单路径符号。角色立绘、敌人、卡牌插图、卡框、章节背景、事件图、遗物图标和药水图标都必须包含渐变光照、多个图形层、清晰外轮廓和受控高光。
 - `tests/test_data_integrity.gd` 会检查关键 SVG 是否可读取、源码量是否足够、是否包含 `linearGradient` 或 `radialGradient`，以及图形元素数量是否达到最低要求。
 - fallback 图标允许继续存在，但必须保持“可展示”的完成度；正式版替换时应继续深化每个卡牌、遗物、药水和事件的独立插画。
 - 战斗背景必须保持中低对比度，不得把敌人生命、意图徽章、手牌费用和按钮文字淹没。
+- 三章当前正式背景均由 `gpt-image-2` 生成，再确定性裁切为 `1920x640 RGB`；源图不直接进入运行时，避免不同上游尺寸破坏舞台构图。
+- 中文 UI 使用随包分发的 `assets/fonts/NotoSansSC-Variable.ttf`，授权文本为 `assets/fonts/OFL.txt`；禁止依赖玩家系统字体，以免出现缺字方框或不同平台排版漂移。
 - 390x640 小屏仍是硬约束：新增美术不能通过固定大尺寸把角色选择、战斗页、地图页、图鉴页或底部操作条撑出视口。
 
 ## 3. 完整版资产规模

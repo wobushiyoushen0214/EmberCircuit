@@ -5,9 +5,12 @@ signal node_selected(node_id: String)
 signal node_previewed(node_id: String)
 
 const NODE_SIZE := Vector2(132, 58)
-const MIN_NODE_SIZE := Vector2(96, 44)
+const MIN_NODE_SIZE := Vector2(78, 44)
 const H_MARGIN := 44.0
 const V_MARGIN := 24.0
+const PREVIEW_PANEL_SIZE := Vector2(300, 420)
+const PREVIEW_PANEL_RIGHT_MARGIN := 20.0
+const PREVIEW_PANEL_GAP := 20.0
 const TYPE_ICON_PATHS := {
 	"combat": "res://assets/art/map_node_combat.svg",
 	"elite": "res://assets/art/map_node_elite.svg",
@@ -29,17 +32,33 @@ var previewed_node_id: String = ""
 var preview_successor_ids: Array[String] = []
 var icon_cache: Dictionary = {}
 var last_risk_badge_texts: Array[String] = []
+var preview_panel: PanelContainer
+var preview_title_label: Label
+var preview_risk_label: Label
+var preview_reward_label: Label
+var preview_description_label: Label
+var preview_successors_label: Label
+var preview_detail_title: String = "暂无可预览节点"
+var preview_detail_risk: String = "未知"
+var preview_detail_reward: String = "待确认"
+var preview_detail_description: String = "暂无节点说明。"
+var preview_detail_successors: Array[String] = []
+var preview_details_are_explicit: bool = false
 
 func _ready() -> void:
 	custom_minimum_size = Vector2(0, 330)
 	clip_contents = true
 	mouse_filter = Control.MOUSE_FILTER_STOP
+	_ensure_preview_panel()
+	_layout_preview_panel()
 
 func set_map_state(new_graph: Dictionary, new_available_ids: Array[String], new_completed_ids: Dictionary, new_current_node_id: String = "") -> void:
+	_ensure_preview_panel()
 	graph = new_graph.duplicate(true)
 	available_node_ids = new_available_ids.duplicate()
 	completed_node_ids = new_completed_ids.duplicate(true)
 	current_node_id = new_current_node_id
+	preview_details_are_explicit = false
 	if not previewed_node_id.is_empty() and _node_by_id(previewed_node_id).is_empty():
 		previewed_node_id = ""
 		preview_successor_ids.clear()
@@ -78,16 +97,54 @@ func get_risk_badge_texts() -> Array[String]:
 func get_previewed_successor_count() -> int:
 	return preview_successor_ids.size()
 
+func set_preview_details(title: String, risk: String, reward: String, description: String, successor_nodes: Array[String]) -> void:
+	preview_detail_title = title
+	preview_detail_risk = risk
+	preview_detail_reward = reward
+	preview_detail_description = description
+	preview_detail_successors = successor_nodes.duplicate()
+	preview_details_are_explicit = true
+	_refresh_preview_panel_text()
+
+func set_preview_title(title: String) -> void:
+	preview_detail_title = title
+	preview_details_are_explicit = true
+	_refresh_preview_panel_text()
+
+func set_preview_risk(risk: String) -> void:
+	preview_detail_risk = risk
+	preview_details_are_explicit = true
+	_refresh_preview_panel_text()
+
+func set_preview_reward(reward: String) -> void:
+	preview_detail_reward = reward
+	preview_details_are_explicit = true
+	_refresh_preview_panel_text()
+
+func set_preview_description(description: String) -> void:
+	preview_detail_description = description
+	preview_details_are_explicit = true
+	_refresh_preview_panel_text()
+
+func set_preview_successors(successor_nodes: Array[String]) -> void:
+	preview_detail_successors = successor_nodes.duplicate()
+	preview_details_are_explicit = true
+	_refresh_preview_panel_text()
+
 func set_preview_node(node_id: String, successor_ids: Array[String] = []) -> void:
 	previewed_node_id = node_id
 	preview_successor_ids = successor_ids.duplicate()
+	if not preview_details_are_explicit:
+		_set_preview_details_from_graph(node_id, successor_ids)
 	_refresh_button_styles()
 	queue_redraw()
 
 func _notification(what: int) -> void:
-	if what == NOTIFICATION_RESIZED and not graph.is_empty():
-		_layout_buttons()
-		queue_redraw()
+	if what == NOTIFICATION_RESIZED:
+		_layout_preview_panel()
+		if not graph.is_empty():
+			_layout_buttons()
+			queue_redraw()
 
 func _draw() -> void:
 	if graph.is_empty() or node_positions.is_empty():
@@ -118,8 +175,154 @@ func _draw() -> void:
 			width = 2.5
 		draw_line(from_pos, to_pos, color, width, true)
 
+func _ensure_preview_panel() -> void:
+	if is_instance_valid(preview_panel):
+		return
+
+	preview_panel = PanelContainer.new()
+	preview_panel.name = "NodePreviewPanel"
+	preview_panel.custom_minimum_size = PREVIEW_PANEL_SIZE
+	preview_panel.size = PREVIEW_PANEL_SIZE
+	preview_panel.clip_contents = true
+	preview_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	preview_panel.z_index = 20
+	preview_panel.add_theme_stylebox_override("panel", _preview_panel_style())
+	add_child(preview_panel)
+
+	var content := Control.new()
+	content.name = "PreviewContent"
+	content.size = PREVIEW_PANEL_SIZE
+	content.clip_contents = true
+	content.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	preview_panel.add_child(content)
+
+	var heading := _create_preview_label(content, "PreviewHeading", Rect2(16, 14, 268, 20), 12, 1)
+	heading.text = "节点详情"
+	heading.add_theme_color_override("font_color", Color(0.49, 0.75, 0.88))
+
+	preview_title_label = _create_preview_label(content, "PreviewTitle", Rect2(16, 39, 268, 48), 18, 2)
+	preview_title_label.add_theme_color_override("font_color", Color(0.96, 0.91, 0.77))
+	preview_risk_label = _create_preview_label(content, "PreviewRisk", Rect2(16, 96, 268, 42), 13, 2)
+	preview_risk_label.add_theme_color_override("font_color", Color(1.0, 0.76, 0.58))
+	preview_reward_label = _create_preview_label(content, "PreviewReward", Rect2(16, 146, 268, 54), 13, 3)
+	preview_reward_label.add_theme_color_override("font_color", Color(0.72, 0.91, 0.68))
+	preview_description_label = _create_preview_label(content, "PreviewDescription", Rect2(16, 208, 268, 112), 12, 6)
+	preview_successors_label = _create_preview_label(content, "PreviewSuccessors", Rect2(16, 330, 268, 76), 12, 4)
+	preview_successors_label.add_theme_color_override("font_color", Color(0.72, 0.85, 0.94))
+
+	_layout_preview_panel()
+	_refresh_preview_panel_text()
+
+func _create_preview_label(parent: Control, label_name: String, bounds: Rect2, font_size: int, max_lines: int) -> Label:
+	var label := Label.new()
+	label.name = label_name
+	label.position = bounds.position
+	label.size = bounds.size
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.clip_text = true
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	label.max_lines_visible = max_lines
+	label.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+	label.add_theme_font_size_override("font_size", font_size)
+	label.add_theme_color_override("font_color", Color(0.88, 0.91, 0.93))
+	label.add_theme_constant_override("line_spacing", 2)
+	parent.add_child(label)
+	return label
+
+func _preview_panel_style() -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.075, 0.095, 0.11, 0.98)
+	style.border_color = Color(0.35, 0.50, 0.58, 0.96)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(8)
+	style.content_margin_left = 0
+	style.content_margin_right = 0
+	style.content_margin_top = 0
+	style.content_margin_bottom = 0
+	return style
+
+func _layout_preview_panel() -> void:
+	if not is_instance_valid(preview_panel):
+		return
+	preview_panel.visible = size.x >= 960.0 and size.y >= PREVIEW_PANEL_SIZE.y
+	preview_panel.position = Vector2(
+		max(0.0, floor(size.x - PREVIEW_PANEL_SIZE.x - PREVIEW_PANEL_RIGHT_MARGIN)),
+		max(0.0, floor((size.y - PREVIEW_PANEL_SIZE.y) * 0.5))
+	)
+	preview_panel.size = PREVIEW_PANEL_SIZE
+
+func _refresh_preview_panel_text() -> void:
+	_ensure_preview_panel()
+	preview_title_label.text = preview_detail_title if not preview_detail_title.is_empty() else "暂无可预览节点"
+	preview_risk_label.text = "风险\n%s" % (preview_detail_risk if not preview_detail_risk.is_empty() else "未知")
+	preview_reward_label.text = "收益\n%s" % (preview_detail_reward if not preview_detail_reward.is_empty() else "待确认")
+	preview_description_label.text = "说明\n%s" % (preview_detail_description if not preview_detail_description.is_empty() else "暂无节点说明。")
+	var successor_lines: Array[String] = []
+	for successor in preview_detail_successors:
+		if not successor.is_empty():
+			successor_lines.append("- %s" % successor)
+	if successor_lines.is_empty():
+		successor_lines.append("终点或当前路线末端")
+	preview_successors_label.text = "后续节点\n%s" % "\n".join(successor_lines)
+
+func _set_preview_details_from_graph(node_id: String, successor_ids: Array[String]) -> void:
+	var node: Dictionary = _node_by_id(node_id)
+	if node.is_empty():
+		preview_detail_title = "暂无可预览节点"
+		preview_detail_risk = "未知"
+		preview_detail_reward = "待确认"
+		preview_detail_description = "暂无节点说明。"
+		preview_detail_successors.clear()
+		_refresh_preview_panel_text()
+		return
+
+	var node_type: String = str(node.get("type", ""))
+	preview_detail_title = "%s [%s]" % [node.get("name", node_id), _type_label(node_type)]
+	preview_detail_risk = _risk_tooltip(node).trim_prefix("风险：")
+	preview_detail_reward = _preview_reward_text(node_type)
+	var tooltip: String = _tooltip_text(node)
+	var detail_start: int = tooltip.find("\n")
+	preview_detail_description = tooltip.substr(detail_start + 1) if detail_start >= 0 else tooltip
+	preview_detail_successors.clear()
+	for successor_id in successor_ids:
+		var successor: Dictionary = _node_by_id(successor_id)
+		if successor.is_empty():
+			preview_detail_successors.append(successor_id)
+			continue
+		preview_detail_successors.append("%s [%s]" % [successor.get("name", successor_id), _type_label(str(successor.get("type", "")))])
+	_refresh_preview_panel_text()
+
+func _preview_reward_text(node_type: String) -> String:
+	match node_type:
+		"combat":
+			return "金币与卡牌奖励。"
+		"elite":
+			return "遗物、更多金币与卡牌奖励。"
+		"boss":
+			return "章节推进与 Boss 奖励。"
+		"event":
+			return "由事件选项和当前资源决定。"
+		"shop":
+			return "可购买卡牌、遗物、药水或删卡。"
+		"campfire":
+			return "恢复生命或升级卡牌。"
+		"treasure":
+			return "金币与遗物奖励。"
+		_:
+			return "待确认"
+
+func _node_layout_rect() -> Rect2:
+	var right_edge: float = size.x
+	if is_instance_valid(preview_panel) and preview_panel.visible:
+		right_edge = min(right_edge, preview_panel.position.x - PREVIEW_PANEL_GAP)
+	return Rect2(Vector2.ZERO, Vector2(max(MIN_NODE_SIZE.x + H_MARGIN * 0.5, right_edge), size.y))
+
 func _rebuild_buttons() -> void:
+	_ensure_preview_panel()
 	for child in get_children():
+		if child == preview_panel:
+			continue
 		remove_child(child)
 		child.free()
 	node_buttons.clear()
@@ -151,6 +354,8 @@ func _rebuild_buttons() -> void:
 			add_child(button)
 			node_buttons[node_id] = button
 
+	if preview_panel != null:
+		move_child(preview_panel, get_child_count() - 1)
 	_layout_buttons()
 
 func _layout_buttons() -> void:
@@ -158,26 +363,21 @@ func _layout_buttons() -> void:
 	if layers.is_empty():
 		return
 
+	_layout_preview_panel()
+	var layout_rect: Rect2 = _node_layout_rect()
 	var node_size: Vector2 = _node_size(layers)
 	var node_gap_y: float = _node_vertical_gap(layers, node_size.y)
-	var usable_width: float = max(size.x - H_MARGIN * 2.0, node_size.x)
-	var layer_gap: float = 0.0
-	if layers.size() > 1:
-		layer_gap = usable_width / float(layers.size() - 1)
 
 	for layer_index in range(layers.size()):
 		var layer_nodes: Array = layers[layer_index]
 		var total_height: float = float(layer_nodes.size()) * node_size.y + float(max(0, layer_nodes.size() - 1)) * node_gap_y
-		var start_y: float = max(V_MARGIN, (size.y - total_height) * 0.5)
+		var start_y: float = max(layout_rect.position.y + V_MARGIN, layout_rect.position.y + (layout_rect.size.y - total_height) * 0.5)
 		for node_index in range(layer_nodes.size()):
 			var node: Dictionary = layer_nodes[node_index]
 			var node_id: String = str(node.get("id", ""))
 			if not node_buttons.has(node_id):
 				continue
-			var x: float = H_MARGIN + float(layer_index) * layer_gap - node_size.x * 0.5
-			if layers.size() == 1:
-				x = (size.x - node_size.x) * 0.5
-			x = clamp(x, H_MARGIN * 0.25, max(H_MARGIN * 0.25, size.x - node_size.x - H_MARGIN * 0.25))
+			var x: float = _layer_center_x(layer_index, layers.size()) - node_size.x * 0.5
 			var y: float = start_y + float(node_index) * (node_size.y + node_gap_y)
 			var button: Button = node_buttons[node_id]
 			button.custom_minimum_size = node_size
@@ -529,17 +729,20 @@ func _draw_layer_guides() -> void:
 	var layers: Array = graph.get("layers", [])
 	if layers.is_empty():
 		return
+	var layout_rect: Rect2 = _node_layout_rect()
 	for layer_index in range(layers.size()):
 		var center_x := _layer_center_x(layer_index, layers.size())
-		draw_line(Vector2(center_x, 18.0), Vector2(center_x, max(18.0, size.y - 18.0)), Color(0.18, 0.22, 0.27, 0.35), 1.0, true)
+		draw_line(Vector2(center_x, layout_rect.position.y + 18.0), Vector2(center_x, max(layout_rect.position.y + 18.0, layout_rect.end.y - 18.0)), Color(0.18, 0.22, 0.27, 0.35), 1.0, true)
 
 func _layer_center_x(layer_index: int, layer_count: int) -> float:
+	var layout_rect: Rect2 = _node_layout_rect()
 	var node_size: Vector2 = _node_size()
 	if layer_count <= 1:
-		return size.x * 0.5
-	var usable_width: float = max(size.x - H_MARGIN * 2.0, node_size.x)
-	var layer_gap: float = usable_width / float(layer_count - 1)
-	return clamp(H_MARGIN + float(layer_index) * layer_gap, H_MARGIN * 0.25 + node_size.x * 0.5, max(H_MARGIN * 0.25 + node_size.x * 0.5, size.x - H_MARGIN * 0.25 - node_size.x * 0.5))
+		return layout_rect.get_center().x
+	var first_center: float = layout_rect.position.x + H_MARGIN * 0.25 + node_size.x * 0.5
+	var last_center: float = max(first_center, layout_rect.end.x - H_MARGIN * 0.25 - node_size.x * 0.5)
+	var layer_gap: float = (last_center - first_center) / float(layer_count - 1)
+	return first_center + float(layer_index) * layer_gap
 
 func _node_size(layers_override: Array = []) -> Vector2:
 	var layers: Array = layers_override
@@ -556,6 +759,10 @@ func _node_size(layers_override: Array = []) -> Vector2:
 	var height: float = floor((available_height - gap_total) / float(max_nodes_in_layer))
 	height = clamp(height, MIN_NODE_SIZE.y, NODE_SIZE.y)
 	var width: float = clamp(round(height * 2.28), MIN_NODE_SIZE.x, NODE_SIZE.x)
+	if layers.size() > 1:
+		var layout_width: float = _node_layout_rect().size.x
+		var horizontal_width: float = floor((layout_width - H_MARGIN * 0.5) / float(layers.size()) - 8.0)
+		width = clamp(min(width, horizontal_width), MIN_NODE_SIZE.x, NODE_SIZE.x)
 	return Vector2(width, height)
 
 func _node_vertical_gap(layers: Array, node_height: float) -> float:
@@ -565,7 +772,7 @@ func _node_vertical_gap(layers: Array, node_height: float) -> float:
 		max_nodes_in_layer = max(max_nodes_in_layer, layer_nodes.size())
 	if max_nodes_in_layer <= 1:
 		return 16.0
-	var remaining_height: float = size.y - V_MARGIN * 2.0 - float(max_nodes_in_layer) * node_height
+	var remaining_height: float = _node_layout_rect().size.y - V_MARGIN * 2.0 - float(max_nodes_in_layer) * node_height
 	return clamp(floor(remaining_height / float(max_nodes_in_layer - 1)), 8.0, 16.0)
 
 func _edge_is_previewed(from_id: String, to_id: String) -> bool:

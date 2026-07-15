@@ -68,6 +68,7 @@ const UI_COMPENDIUM_ICON_PATH := "res://assets/art/generated/ui/icons/control_co
 const UI_TUTORIAL_ICON_PATH := "res://assets/art/generated/ui/icons/control_tutorial.svg"
 const UI_SKIP_REWARD_ICON_PATH := "res://assets/art/generated/ui/icons/control_skip_reward.svg"
 const UI_CONTINUE_ROUTE_ICON_PATH := "res://assets/art/generated/ui/icons/control_continue_route.svg"
+const UI_FONT_PATH := "res://assets/fonts/NotoSansSC-Variable.ttf"
 const PLAYER_ART_PATHS := {
 	"ember_exile": "res://assets/art/generated/player_ember_exile_pc.png",
 	"arc_tinker": "res://assets/art/generated/player_arc_tinker_pc.png",
@@ -84,6 +85,9 @@ const ROOT_MARGIN_TOP := 10.0
 const ROOT_MARGIN_BOTTOM := 10.0
 const SCROLLBAR_WIDTH_RESERVE := 24.0
 const MIN_SAFE_CONTENT_WIDTH := 220.0
+const PC_HAND_CARD_WIDTH := 136.0
+const PC_HAND_LEFT_DOCK_WIDTH := 82.0
+const PC_HAND_RIGHT_DOCK_WIDTH := 112.0
 const TUTORIAL_STEP_ORDER := [
 	"character_select",
 	"combat_player",
@@ -518,6 +522,7 @@ var hit_stop_ticket: int = 0
 var hit_stop_active: bool = false
 var hit_stop_restore_scale: float = 1.0
 var refresh_call_count: int = 0
+var layout_refresh_pending: bool = false
 var last_music_context: String = ""
 var last_music_stream_path: String = ""
 var last_music_stream_loaded: bool = false
@@ -525,15 +530,38 @@ var last_music_stream_loaded: bool = false
 func _ready() -> void:
 	_load_user_settings()
 	_load_player_profile()
+	_apply_ui_font_theme()
 	_build_layout()
 	_apply_runtime_settings()
 	_load_all_data()
 	selected_character_id = _valid_character_id(selected_character_id)
 	_open_welcome(false)
 
+func _apply_ui_font_theme() -> void:
+	if not ResourceLoader.exists(UI_FONT_PATH):
+		return
+	var ui_font = load(UI_FONT_PATH)
+	if not ui_font is Font:
+		return
+	var ui_theme := Theme.new()
+	ui_theme.default_font = ui_font
+	ui_theme.default_font_size = 14
+	theme = ui_theme
+
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_RESIZED:
 		_sync_layout_widths()
+		if is_node_ready() and not layout_refresh_pending:
+			layout_refresh_pending = true
+			call_deferred("_refresh_after_resize")
+
+func _refresh_after_resize() -> void:
+	layout_refresh_pending = false
+	if not is_inside_tree() or page_scroll == null:
+		return
+	if card_drag_active or card_drag_candidate_index >= 0:
+		_cancel_card_drag()
+	_refresh()
 
 func _input(event: InputEvent) -> void:
 	if _handle_card_drag_input(event):
@@ -1790,7 +1818,8 @@ func _character_art_path(character_id: String = "") -> String:
 
 func _character_stage_art_path(character_id: String = "") -> String:
 	var lookup_id: String = selected_character_id if character_id.is_empty() else character_id
-	return str(PLAYER_STAGE_ART_PATHS.get(lookup_id, _character_art_path(lookup_id)))
+	var fallback: String = str(PLAYER_STAGE_ART_PATHS.get(lookup_id, _character_art_path(lookup_id)))
+	return _asset_path_from_slot("player_stage_slots", lookup_id, fallback)
 
 func _character_selection_tooltip_text(character: Dictionary) -> String:
 	return "%s\n\n%s\n\n起始牌组：%s" % [
@@ -2493,14 +2522,16 @@ func _apply_character_select_layout_constraints() -> void:
 
 func _apply_map_layout_constraints() -> void:
 	var scale_y: float = _page_layout_scale()
-	var map_height: float = clamp(_layout_viewport_size().y - 252.0, 430.0, 680.0) if _is_pc_layout() else clamp(round(316.0 * scale_y), 244.0, 330.0)
+	var map_height: float = clamp(_layout_viewport_size().y - 82.0, 560.0, 760.0) if _is_pc_layout() else clamp(round(316.0 * scale_y), 244.0, 330.0)
 	if map_scroll != null:
 		map_scroll.custom_minimum_size = Vector2(0, map_height)
+		map_scroll.set("horizontal_scroll_mode", 0 if _is_pc_layout() else 1)
+		map_scroll.scroll_horizontal = 0
 	if map_view != null:
 		var map_width: float = _map_view_required_width()
 		map_view.custom_minimum_size = Vector2(map_width, map_height)
 		map_view.size = Vector2(map_width, map_height)
-	var log_height: float = clamp(round(92.0 * scale_y), 76.0, 104.0)
+	var log_height: float = 0.0 if _is_pc_layout() else clamp(round(92.0 * scale_y), 76.0, 104.0)
 	_set_content_heights(log_height, 0.0)
 	_record_scroll_region_metrics()
 
@@ -2510,6 +2541,9 @@ func _apply_pc_map_chrome() -> void:
 	title_label.visible = false
 	run_label.visible = false
 	status_label.visible = false
+	character_frame.visible = false
+	character_panel.visible = false
+	log_label.visible = false
 	for button_value in [restart_button, load_button, compendium_button, tutorial_button]:
 		var button := button_value as Button
 		if button != null:
@@ -2636,14 +2670,15 @@ func _apply_controls_layout_constraints(combat_primary: bool = false) -> void:
 	var pc_combat: bool = _is_pc_layout() and combat_primary
 	var pc_character_menu: bool = _is_pc_character_menu_controls()
 	var pc_wide_controls: bool = pc_combat or pc_character_menu
+	_place_end_turn_button(pc_combat)
 	if controls_scroll != null:
-		controls_scroll.custom_minimum_size = Vector2(0, 46.0 if pc_wide_controls else 34.0)
+		controls_scroll.custom_minimum_size = Vector2(0, 36.0 if pc_wide_controls else 34.0)
 		controls_scroll.set("horizontal_scroll_mode", 0 if pc_wide_controls else 1)
 		controls_scroll.scroll_horizontal = 0
 	if controls_row != null:
 		controls_row.add_theme_constant_override("separation", 10 if pc_character_menu else (8 if pc_combat else 8))
 		controls_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL if pc_wide_controls else Control.SIZE_SHRINK_BEGIN
-		controls_row.custom_minimum_size = Vector2(_scroll_content_width() if pc_wide_controls else 0.0, 44.0 if pc_wide_controls else 34.0)
+		controls_row.custom_minimum_size = Vector2(_scroll_content_width() if pc_wide_controls else 0.0, 36.0 if pc_wide_controls else 34.0)
 	if controls_spacer != null:
 		controls_spacer.visible = pc_wide_controls
 		controls_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -2675,12 +2710,12 @@ func _apply_controls_layout_constraints(combat_primary: bool = false) -> void:
 			_apply_pc_menu_control_button_content(button)
 		else:
 			_remove_compact_button_content(button)
-			button.custom_minimum_size = Vector2(_default_control_button_width(button), 30)
+			button.custom_minimum_size = Vector2(_default_control_button_width(button), 30.0)
 			_apply_button_skin(button, _control_button_skin(button))
 	if end_turn_button != null:
 		if pc_combat:
 			end_turn_button.visible = true
-			end_turn_button.custom_minimum_size = Vector2(168, 42)
+			end_turn_button.custom_minimum_size = Vector2(104, 52)
 			_apply_primary_control_button_skin(end_turn_button)
 		else:
 			end_turn_button.visible = not pc_character_menu and not _is_pc_layout()
@@ -2688,6 +2723,20 @@ func _apply_controls_layout_constraints(combat_primary: bool = false) -> void:
 			end_turn_button.text = "结束回合"
 			end_turn_button.custom_minimum_size = Vector2(96, 30)
 			_apply_button_skin(end_turn_button, "primary")
+
+func _place_end_turn_button(pc_combat: bool) -> void:
+	if end_turn_button == null or controls_row == null:
+		return
+	var desired_parent: Node = hand_right_hud if pc_combat and hand_right_hud != null else controls_row
+	if end_turn_button.get_parent() != desired_parent:
+		var old_parent := end_turn_button.get_parent()
+		if old_parent != null:
+			old_parent.remove_child(end_turn_button)
+		desired_parent.add_child(end_turn_button)
+	if pc_combat and desired_parent == hand_right_hud:
+		hand_right_hud.move_child(end_turn_button, 0)
+	elif desired_parent == controls_row:
+		controls_row.move_child(end_turn_button, 0)
 
 func _is_pc_character_menu_controls() -> bool:
 	return _is_pc_layout() and (welcome_open or character_select_open) and not settings_open and not profile_open and not tutorial_open and not compendium_open
@@ -2925,7 +2974,7 @@ func _apply_primary_control_button_skin(button: Button) -> void:
 		button.add_theme_color_override("font_color", Color(0.98, 1.00, 0.80))
 		button.add_theme_color_override("font_disabled_color", Color(0.48, 0.52, 0.42))
 		button.add_theme_font_size_override("font_size", 17)
-		_apply_generated_button_texture_label(button, UI_END_TURN_BUTTON_PATH, "结束回合")
+		_apply_generated_button_texture_label(button, _hud_texture_path("end_turn_button", UI_END_TURN_BUTTON_PATH), "结束回合")
 		return
 	_remove_generated_button_skin_children(button)
 	button.text = "结束回合"
@@ -3041,15 +3090,16 @@ func _apply_combat_layout_constraints(reward_visible: bool) -> void:
 	var hand_scroll_height: float = clamp(hand_frame_height - 12.0, 114.0, 208.0 if _is_pc_layout() else 140.0)
 	if hand_frame != null:
 		hand_frame.add_theme_stylebox_override("panel", _hand_frame_style())
+		_add_generated_texture_background(hand_frame, _hud_texture_path("hand_tray", UI_HAND_TRAY_PATH), 0.42)
 		hand_frame.custom_minimum_size = Vector2(0, hand_frame_height)
 		hand_frame.clip_contents = not _is_pc_layout()
 	if hand_dock_row != null:
 		hand_dock_row.custom_minimum_size = Vector2(0, hand_scroll_height)
 		hand_dock_row.add_theme_constant_override("separation", 8 if _is_pc_layout() else 0)
 	if hand_left_hud != null:
-		hand_left_hud.custom_minimum_size = Vector2(72.0 if _is_pc_layout() else 0.0, hand_scroll_height)
+		hand_left_hud.custom_minimum_size = Vector2(PC_HAND_LEFT_DOCK_WIDTH if _is_pc_layout() else 0.0, hand_scroll_height)
 	if hand_right_hud != null:
-		hand_right_hud.custom_minimum_size = Vector2(72.0 if _is_pc_layout() else 0.0, hand_scroll_height)
+		hand_right_hud.custom_minimum_size = Vector2(PC_HAND_RIGHT_DOCK_WIDTH if _is_pc_layout() else 0.0, hand_scroll_height)
 	if hand_scroll != null:
 		hand_scroll.custom_minimum_size = Vector2(0, hand_scroll_height)
 		hand_scroll.clip_contents = not _is_pc_layout()
@@ -3104,6 +3154,8 @@ func _bounded_width(preferred_width: float, minimum_width: float, maximum_width:
 	return clamp(preferred_width, safe_minimum, max(safe_minimum, safe_maximum))
 
 func _map_view_required_width() -> float:
+	if _is_pc_layout():
+		return _scroll_content_width()
 	var layer_count: int = 1
 	if not map_graph.is_empty():
 		layer_count = max(1, map_graph.get("layers", []).size())
@@ -3205,17 +3257,19 @@ func _root_horizontal_margin() -> float:
 	return ROOT_MARGIN_LEFT + ROOT_MARGIN_RIGHT
 
 func _hand_card_gap() -> int:
-	return 12 if _is_pc_layout() else 6
+	return 10 if _is_pc_layout() else 6
 
 func _hand_card_size() -> Vector2:
+	var target_height := 224.0 if _is_pc_layout() else 136.0
+	var height: float = clamp(round(target_height * _combat_layout_scale()), 172.0 if _is_pc_layout() else 112.0, 192.0 if _is_pc_layout() else 140.0)
+	if _is_pc_layout():
+		return Vector2(PC_HAND_CARD_WIDTH, height)
 	var card_count := 5
 	if combat != null:
 		card_count = max(1, combat.hand.size())
 	var available_width: float = _hand_scroll_content_width()
 	var width: float = floor((available_width - float(card_count - 1) * float(_hand_card_gap())) / float(card_count))
-	width = clamp(width, 88.0, 154.0 if _is_pc_layout() else 136.0)
-	var target_height := 224.0 if _is_pc_layout() else 136.0
-	var height: float = clamp(round(target_height * _combat_layout_scale()), 172.0 if _is_pc_layout() else 112.0, 192.0 if _is_pc_layout() else 140.0)
+	width = clamp(width, 88.0, 136.0)
 	return Vector2(width, height)
 
 func _hand_required_width() -> float:
@@ -3339,7 +3393,7 @@ func _hud_block_width() -> float:
 func _hand_scroll_content_width() -> float:
 	var width: float = _scroll_content_width()
 	if _is_pc_layout():
-		width -= 72.0 * 2.0 + 16.0
+		width -= PC_HAND_LEFT_DOCK_WIDTH + PC_HAND_RIGHT_DOCK_WIDTH + 16.0
 	return max(MIN_SAFE_CONTENT_WIDTH, width)
 
 func _estimated_control_height(control: Control) -> float:
@@ -3438,6 +3492,7 @@ func _refresh_character_select() -> void:
 	if reward_scroll != null:
 		reward_scroll.set("vertical_scroll_mode", 0 if _is_pc_layout() else 1)
 	if _is_pc_layout():
+		title_label.visible = false
 		status_label.visible = false
 	feedback_label.visible = false
 	_hide_cinematic_prompt()
@@ -3823,7 +3878,7 @@ func _add_run_completion_stat_chip(parent: Control, label_text: String, value_te
 	chip.clip_contents = true
 	chip.add_theme_stylebox_override("panel", _pc_hud_panel_style(skin))
 	parent.add_child(chip)
-	_add_generated_texture_background(chip, UI_RESOURCE_CHIP_PATH, 0.18)
+	_add_generated_texture_background(chip, _hud_texture_path("resource_chip", UI_RESOURCE_CHIP_PATH), 0.18)
 
 	var margin := MarginContainer.new()
 	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -6510,7 +6565,7 @@ func _add_pc_hud_block(label_text: String, value_text: String, skin: String) -> 
 	panel.tooltip_text = _hud_block_tooltip(label_text, value_text)
 	panel.add_theme_stylebox_override("panel", _pc_hud_panel_style(skin))
 	combat_hud_row.add_child(panel)
-	_add_generated_texture_background(panel, UI_RESOURCE_CHIP_PATH, 0.20)
+	_add_generated_texture_background(panel, _hud_texture_path("resource_chip", UI_RESOURCE_CHIP_PATH), 0.20)
 
 	var margin := MarginContainer.new()
 	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -8454,13 +8509,13 @@ func _add_pc_hand_card_layout(button: Button, card: Dictionary, card_texture: Te
 	button.clip_contents = true
 	var detail_preview: bool = telemetry_bucket == "detail_preview"
 	var hand_card: bool = telemetry_bucket == "hand"
-	var show_description: bool = not hand_card
+	var show_description: bool = true
 	var material_frame_texture: Texture2D = _load_texture(_pc_card_material_frame_path(card_type))
 	var has_material_frame: bool = material_frame_texture != null
 	var card_height: float = button.custom_minimum_size.y
 	var top_height: float = clamp(round(card_height * 0.18), 30.0, 38.0)
-	var desc_height: float = 0.0 if hand_card else (110.0 if detail_preview else clamp(round(card_height * 0.40), 72.0, 86.0))
-	var type_height: float = 20.0
+	var desc_height: float = clamp(round(card_height * 0.27), 46.0, 54.0) if hand_card else (110.0 if detail_preview else clamp(round(card_height * 0.40), 72.0, 86.0))
+	var type_height: float = 18.0 if hand_card else 20.0
 
 	var root := MarginContainer.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -8703,9 +8758,11 @@ func _add_pc_hand_card_layout(button: Button, card: Dictionary, card_texture: Te
 		desc.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		desc.clip_text = not detail_preview
 		desc.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING if detail_preview else TextServer.OVERRUN_TRIM_ELLIPSIS
-		desc.add_theme_font_size_override("font_size", 11 if detail_preview else 10)
-		if card_height <= 200.0:
+		desc.add_theme_font_size_override("font_size", 11 if detail_preview else (9 if hand_card else 10))
+		if card_height <= 200.0 and not hand_card:
 			desc.add_theme_font_size_override("font_size", 9)
+		if hand_card:
+			desc.max_lines_visible = 3
 		desc.add_theme_color_override("font_color", Color(0.94, 0.90, 0.78))
 		desc_margin.add_child(desc)
 
@@ -8898,7 +8955,7 @@ func _apply_generated_button_texture_label(button: Button, texture_path: String,
 	label.text = label_text
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.add_theme_font_size_override("font_size", 19)
+	label.add_theme_font_size_override("font_size", 14 if button.custom_minimum_size.x < 120.0 else 19)
 	label.add_theme_color_override("font_color", Color(0.98, 1.0, 0.78))
 	center.add_child(label)
 
@@ -11173,7 +11230,30 @@ func _update_map_preview(node_id: String) -> void:
 	last_map_preview_text = _map_node_preview_text(node_id)
 	log_label.text = "%s\n\n%s" % [_map_legend_text(), last_map_preview_text]
 	if map_view != null and map_view.visible and map_view.has_method("set_preview_node"):
-		map_view.set_preview_node(node_id, _successor_node_ids(node_id))
+		var successor_ids: Array[String] = _successor_node_ids(node_id)
+		var node: Dictionary = _node_by_id(node_id)
+		if map_view.has_method("set_preview_details"):
+			var successor_names: Array[String] = []
+			for successor_id in successor_ids:
+				var successor: Dictionary = _node_by_id(successor_id)
+				if successor.is_empty():
+					successor_names.append(successor_id)
+				else:
+					successor_names.append("%s [%s]" % [
+						successor.get("name", successor_id),
+						_node_type_display_name(str(successor.get("type", "")))
+					])
+			if node.is_empty():
+				map_view.set_preview_details("暂无可预览节点", "未知", "待确认", "暂无节点说明。", successor_names)
+			else:
+				map_view.set_preview_details(
+					"%s [%s]" % [node.get("name", node_id), _node_type_display_name(str(node.get("type", "")))],
+					_node_risk_summary(node),
+					_node_reward_summary(node),
+					_node_detail_text(node),
+					successor_names
+				)
+		map_view.set_preview_node(node_id, successor_ids)
 
 func _on_deck_view_pressed() -> void:
 	if character_select_open or run_deck_ids.is_empty():
@@ -11522,13 +11602,14 @@ func _normalize_selected_enemy() -> int:
 func _enemy_texture(enemy: Dictionary) -> Texture2D:
 	var data: Dictionary = enemy.get("data", {})
 	var sprite_key: String = str(data.get("sprite_key", ""))
-	var path: String = str(ENEMY_ART_PATHS.get(sprite_key, ""))
-	if path.is_empty() and sprite_key.begins_with("placeholder_"):
-		path = "res://assets/art/enemy_%s.svg" % sprite_key.trim_prefix("placeholder_")
-		if not _asset_loaded(path):
-			path = ""
-	if path.is_empty():
-		path = "res://assets/art/enemy_forge_bishop.svg" if str(data.get("tier", "")) == "boss" else "res://assets/art/enemy_soot_raider.svg"
+	var fallback: String = str(ENEMY_ART_PATHS.get(sprite_key, ""))
+	if fallback.is_empty() and sprite_key.begins_with("placeholder_"):
+		fallback = "res://assets/art/enemy_%s.svg" % sprite_key.trim_prefix("placeholder_")
+		if not _asset_loaded(fallback):
+			fallback = ""
+	if fallback.is_empty():
+		fallback = "res://assets/art/enemy_forge_bishop.svg" if str(data.get("tier", "")) == "boss" else "res://assets/art/enemy_soot_raider.svg"
+	var path: String = _asset_path_from_slot("enemy_stage_slots", sprite_key, fallback)
 	return _load_texture(path)
 
 func _asset_slot_by_id(section: String, item_id: String) -> Dictionary:
@@ -11544,6 +11625,9 @@ func _asset_path_from_slot(section: String, item_id: String, fallback_path: Stri
 	if path.is_empty():
 		path = fallback_path
 	return path
+
+func _hud_texture_path(slot_id: String, fallback_path: String) -> String:
+	return _asset_path_from_slot("hud_texture_slots", slot_id, fallback_path)
 
 func _asset_loaded(path: String) -> bool:
 	if path.is_empty():
