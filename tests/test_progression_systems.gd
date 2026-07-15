@@ -25,6 +25,26 @@ func _run() -> void:
 	_check(main.monster_scaling_data.get("chapters", {}).size() == 3, "monster scaling config has three chapter budgets")
 	_check(main.level_tree_data.get("chapters", {}).size() == 3, "level tree config has three chapter trees")
 
+	var isolation_main = scene.instantiate()
+	isolation_main._ready()
+	isolation_main.player_profile["purchased_upgrade_node_ids"] = ["arc_charge_guard", "pyre_prayer_barrier"]
+	isolation_main._on_character_selected("arc_tinker")
+	_check(isolation_main.run_progression_node_ids.size() == 1 and isolation_main.run_progression_node_ids.has("arc_charge_guard"), "new run snapshots only the selected character's purchased progression nodes")
+	isolation_main.run_progression_node_ids.append("pyre_prayer_barrier")
+	var upgrade_source_ids: Array[String] = []
+	var upgrade_start_block: int = 0
+	for source_value in isolation_main._run_modifier_sources():
+		var source: Dictionary = source_value
+		if not str(source.get("id", "")).begins_with("upgrade_"):
+			continue
+		upgrade_source_ids.append(str(source.get("id", "")))
+		for effect_value in source.get("effects", []):
+			var effect: Dictionary = effect_value
+			if str(effect.get("trigger", "")) == "combat_start" and str(effect.get("type", "")) == "gain_block":
+				upgrade_start_block += int(effect.get("amount", 0))
+	_check(upgrade_source_ids.size() == 1 and upgrade_source_ids.has("upgrade_arc_charge_guard") and upgrade_start_block == 2, "combat start applies only the selected character's purchased armor node")
+	isolation_main.free()
+
 	main.player_profile["forge_marks"] = 12
 	main._on_upgrade_node_pressed("arc_insulated_lining")
 	main._on_upgrade_node_pressed("arc_auxiliary_coil")
@@ -42,7 +62,19 @@ func _run() -> void:
 	_check(main._max_potion_slots() == 4, "character tree potion slot upgrade is snapshotted into a new run")
 	_check(main.run_skill_book_id == "steel_manual", "equipped skill book is snapshotted into a new run")
 	_check(int(main.combat.player.get("momentum", 0)) >= 3, "character tree starting momentum and starter relic both apply")
-	_check(int(main.combat.player.get("block", 0)) >= 8, "skill book combat start block combines with starter relic block")
+	var expected_start_block := 0
+	for relic_id_value in main.run_relic_ids:
+		for effect_value in main._relic_by_id(str(relic_id_value)).get("effects", []):
+			var effect: Dictionary = effect_value
+			if str(effect.get("trigger", "")) == "combat_start" and str(effect.get("type", "")) == "gain_block":
+				expected_start_block += int(effect.get("amount", 0))
+	for source_value in main._run_modifier_sources():
+		var source: Dictionary = source_value
+		for effect_value in source.get("effects", []):
+			var effect: Dictionary = effect_value
+			if str(effect.get("trigger", "")) == "combat_start" and str(effect.get("type", "")) == "gain_block":
+				expected_start_block += int(effect.get("amount", 0))
+	_check(int(main.combat.player.get("block", -1)) == expected_start_block, "combat start block exactly combines configured starter relic, skill book, and upgrade effects")
 
 	var run_state: Dictionary = main._create_save_state()
 	_check(run_state.get("run_progression_node_ids", []).size() == 3 and not run_state.get("run_character_config", {}).is_empty(), "run save stores progression snapshot instead of reading live profile")

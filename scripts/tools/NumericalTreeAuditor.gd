@@ -12,6 +12,7 @@ var map_generation_data: Dictionary = {}
 var level_tree_data: Dictionary = {}
 var progression_data: Dictionary = {}
 var numerical_tree_data: Dictionary = {}
+var monster_scaling_data: Dictionary = {}
 
 func load_default_data() -> void:
 	card_data = DataLoaderScript.load_json("res://data/cards/cards.json")
@@ -23,6 +24,7 @@ func load_default_data() -> void:
 	level_tree_data = DataLoaderScript.load_json("res://data/config/level_tree.json")
 	progression_data = DataLoaderScript.load_json("res://data/config/progression_systems.json")
 	numerical_tree_data = DataLoaderScript.load_json("res://data/config/numerical_tree.json")
+	monster_scaling_data = DataLoaderScript.load_json("res://data/config/monster_scaling.json")
 
 func build_report() -> Dictionary:
 	if numerical_tree_data.is_empty():
@@ -353,13 +355,27 @@ func _audit_encounter(chapter_id: String, tier: String, encounter: Dictionary, e
 	var total_hp := 0
 	var peak_damage := 0
 	var peak_block := 0
+	var max_phase_entry_categories := 0
+	var phase_entry_category_rows: Array = []
 	var enemy_ids: Array = encounter.get("enemy_ids", [])
 	for enemy_id_value in enemy_ids:
 		var enemy: Dictionary = enemies_by_id.get(str(enemy_id_value), {})
 		total_hp += int(enemy.get("max_hp", 0))
 		peak_damage += _peak_enemy_action_damage(enemy)
 		peak_block = max(peak_block, _peak_enemy_block(enemy))
+		for phase_value in enemy.get("phases", []):
+			var phase: Dictionary = phase_value
+			var categories := _phase_entry_effect_categories(phase.get("on_enter_effects", []))
+			max_phase_entry_categories = max(max_phase_entry_categories, categories.size())
+			phase_entry_category_rows.append({
+				"enemy_id": str(enemy.get("id", "")),
+				"phase_id": str(phase.get("id", "")),
+				"categories": categories,
+			})
 	var budget: Dictionary = numerical_tree_data.get("monsters", {}).get("chapter_targets", {}).get(chapter_id, {}).get(tier, {})
+	var encounter_constraints: Dictionary = monster_scaling_data.get("encounter_constraints", {})
+	var phase_entry_category_limit := int(encounter_constraints.get("boss_phase_enter_max_effect_categories", 1))
+	var phase_transition_mode := str(encounter_constraints.get("boss_phase_transition_mode", ""))
 	var hp_range: Array = budget.get("encounter_hp", [0, 9999])
 	var damage_range: Array = budget.get("peak_damage", [0, 9999])
 	var issues: Array = []
@@ -371,6 +387,10 @@ func _audit_encounter(chapter_id: String, tier: String, encounter: Dictionary, e
 		issues.append("peak_damage_low")
 	elif peak_damage > int(damage_range[1]):
 		issues.append("peak_damage_high")
+	if tier == "boss" and max_phase_entry_categories > phase_entry_category_limit:
+		issues.append("boss_phase_entry_categories_high")
+	if tier == "boss" and phase_transition_mode != "highest_reached_only":
+		issues.append("boss_phase_transition_mode_unknown")
 	return {
 		"id": str(encounter.get("id", "")),
 		"name": str(encounter.get("name", "")),
@@ -384,9 +404,32 @@ func _audit_encounter(chapter_id: String, tier: String, encounter: Dictionary, e
 		"target_peak_damage_min": int(damage_range[0]),
 		"target_peak_damage_max": int(damage_range[1]),
 		"peak_block": peak_block,
+		"max_phase_entry_effect_categories": max_phase_entry_categories,
+		"phase_entry_effect_category_limit": phase_entry_category_limit,
+		"phase_transition_mode": phase_transition_mode,
+		"phase_entry_categories": phase_entry_category_rows,
 		"severity": "warning" if not issues.is_empty() else "ok",
 		"issues": issues
 	}
+
+func _phase_entry_effect_categories(effects: Array) -> Array:
+	var seen: Dictionary = {}
+	for effect_value in effects:
+		var effect: Dictionary = effect_value
+		var effect_type := str(effect.get("type", ""))
+		var category := effect_type
+		match effect_type:
+			"block":
+				category = "block"
+			"apply_status":
+				category = "strength" if str(effect.get("target", "")) == "self" and str(effect.get("status", "")) == "strength" else "status"
+			"create_card":
+				category = "status_card"
+		if not category.is_empty():
+			seen[category] = true
+	var categories: Array = seen.keys()
+	categories.sort()
+	return categories
 
 func _peak_enemy_action_damage(enemy: Dictionary) -> int:
 	var peak := 0

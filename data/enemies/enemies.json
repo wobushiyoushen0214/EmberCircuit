@@ -168,11 +168,9 @@
           "id": "second_sermon",
           "name": "第二布道",
           "hp_percent_below": 66,
-          "phase_note": "生命降至 66% 以下时触发。Boss 获得护甲和少量力量，然后切换为更密集的多段攻击循环。",
+          "phase_note": "生命降至 66% 以下时触发。Boss 获得 8 点护甲，然后切换为更密集的多段攻击循环。",
           "on_enter_effects": [
-	            { "type": "block", "amount": 8, "target": "self" },
-            { "type": "apply_status", "target": "self", "status": "strength", "amount": 1 },
-            { "type": "create_card", "target": "player", "card_id": "searing_wound", "destination": "discard", "amount": 1 }
+	            { "type": "block", "amount": 8, "target": "self" }
           ],
           "actions": [
 	            { "id": "cinder_cross", "intent": { "type": "attack", "amount": 4, "hits": 4 }, "effects": [ { "type": "damage", "amount": 4, "hits": 4, "target": "player" } ] },
@@ -185,10 +183,9 @@
           "id": "final_rite",
           "name": "终末礼拜",
           "hp_percent_below": 33,
-          "phase_note": "生命降至 33% 以下时触发。Boss 获得大量力量并进入终局高压循环，要求玩家尽快完成斩杀。",
+          "phase_note": "生命降至 33% 以下时触发。Boss 获得 1 点力量并进入终局高压循环，要求玩家尽快完成斩杀。",
           "on_enter_effects": [
-	            { "type": "apply_status", "target": "self", "status": "strength", "amount": 1 },
-	            { "type": "create_card", "target": "player", "card_id": "searing_wound", "destination": "discard", "amount": 1 }
+	            { "type": "apply_status", "target": "self", "status": "strength", "amount": 1 }
           ],
           "actions": [
 	            { "id": "final_rain", "intent": { "type": "attack", "amount": 5, "hits": 4 }, "effects": [ { "type": "damage", "amount": 5, "hits": 4, "target": "player" } ] },
@@ -199,7 +196,7 @@
         }
       ],
       "design_note": "第一章 Boss，综合考验持续防御、状态污染和爆发窗口。",
-	      "balance_note": "100 生命用于当前第一章普通模式基线；两段转阶段保留压力，但生命、转阶段护甲和终局重击已下调，确保早期成型卡组有稳定过关空间。",
+	      "balance_note": "100 生命用于当前第一章普通模式基线；每次转阶段只施加一种即时压力，避免护甲、力量和状态牌同时结算。",
       "intent_note": "基础阶段为强化、多段、污染、防御、重击循环；66% 后进入更紧凑循环；33% 后进入终局高压循环。"
     },
     {
@@ -310,7 +307,7 @@
           "id": "ionized_court",
           "name": "电离王庭",
           "hp_percent_below": 66,
-          "phase_note": "生命降至 66% 以下时触发。Boss 获得护甲和力量，之后更频繁地施加脆弱与多段攻击。",
+          "phase_note": "生命降至 66% 以下时触发。Boss 获得 8 点护甲，之后更频繁地施加脆弱与多段攻击。",
           "on_enter_effects": [
 	            { "type": "block", "amount": 8, "target": "self" }
           ],
@@ -450,10 +447,9 @@
           "id": "outer_shell_broken",
           "name": "外壳破裂",
           "hp_percent_below": 66,
-          "phase_note": "生命降至 66% 以下时触发。核心获得护甲并污染牌堆，之后多段攻击更密集。",
+          "phase_note": "生命降至 66% 以下时触发。核心获得 10 点护甲，之后多段攻击更密集。",
           "on_enter_effects": [
-            { "type": "block", "amount": 10, "target": "self" },
-            { "type": "create_card", "target": "player", "card_id": "searing_wound", "destination": "discard", "amount": 1 }
+            { "type": "block", "amount": 10, "target": "self" }
           ],
           "actions": [
             { "id": "wide_pulse", "intent": { "type": "attack", "amount": 4, "hits": 5 }, "effects": [ { "type": "damage", "amount": 4, "hits": 5, "target": "player" } ] },
@@ -466,7 +462,7 @@
           "id": "heart_exposed",
           "name": "核心裸露",
           "hp_percent_below": 33,
-          "phase_note": "生命降至 33% 以下时触发。最终 Boss 获得大量力量并进入终局循环。",
+          "phase_note": "生命降至 33% 以下时触发。最终 Boss 将 2 张灼伤加入牌堆并进入终局循环。",
           "on_enter_effects": [
             { "type": "create_card", "target": "player", "card_id": "searing_wound", "destination": "discard", "amount": 2 }
           ],
@@ -479,7 +475,7 @@
         }
       ],
       "design_note": "最终章 Boss，综合检验多段防御、状态污染、爆发斩杀和长线资源管理。",
-      "balance_note": "128 生命用于当前最终 Boss 基线；高于前两章 Boss，阶段、污染和爆发保留，但峰值仍受预算约束，后续随卡池成熟继续回调。",
+      "balance_note": "128 生命用于当前最终 Boss 基线；每次转阶段只施加护甲或状态牌中的一种压力，阶段行动继续承担污染和爆发。",
       "intent_note": "基础阶段为强化、多段、污染、防御、重击循环；66% 后加速压力；33% 后进入终局极限循环。"
     }
   ]

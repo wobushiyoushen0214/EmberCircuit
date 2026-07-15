@@ -130,6 +130,7 @@ func _check_matrix(tree: Dictionary, players: Dictionary, cards: Dictionary, pro
 		_check(int(row.get("player_starting_hp_loss", -1)) == int(modifiers.get("player_starting_hp_loss", -2)), "matrix hp loss matches challenge: %s" % key)
 		_check(int(row.get("effective_starting_hp", -1)) == int(player.get("starting_hp", 0)) - int(modifiers.get("player_starting_hp_loss", 0)), "matrix effective hp is executable: %s" % key)
 		_check(is_equal_approx(float(row.get("enemy_hp_multiplier", -1.0)), float(modifiers.get("enemy_hp_multiplier", -2.0))), "matrix enemy hp multiplier matches challenge: %s" % key)
+		_check(is_equal_approx(float(row.get("boss_hp_multiplier", -1.0)), float(modifiers.get("boss_hp_multiplier", -2.0))), "matrix boss hp multiplier matches challenge: %s" % key)
 		_check(is_equal_approx(float(row.get("enemy_damage_multiplier", -1.0)), float(modifiers.get("enemy_damage_multiplier", -2.0))), "matrix enemy damage multiplier matches challenge: %s" % key)
 		_check(is_equal_approx(float(row.get("starter_deck_score", -1.0)), float(report_player.get("starter_deck_score", -2.0))), "matrix starter score matches static audit: %s" % key)
 		_check(int(row.get("accessible_auditable_cards", -1)) == shared_auditable_count + _exclusive_auditable_card_count(cards.get("cards", []), character_id), "matrix card pool coverage matches data: %s" % key)

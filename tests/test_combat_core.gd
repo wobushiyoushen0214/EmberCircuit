@@ -32,6 +32,21 @@ func _init() -> void:
 	_check(int(challenge_combat.enemies[0].get("max_hp", 0)) > int(combat.enemies[0].get("max_hp", 0)), "challenge modifiers increase enemy max HP")
 	_check(challenge_combat._modified_enemy_damage(10) == 11, "challenge modifiers increase enemy damage")
 
+	var boss_relief_player_data: Dictionary = player_data.duplicate(true)
+	boss_relief_player_data["challenge_modifiers"] = {
+		"enemy_hp_multiplier": 1.0,
+		"boss_hp_multiplier": 0.9,
+		"enemy_damage_multiplier": 1.0
+	}
+	var boss_relief_normal = CombatStateScript.new()
+	boss_relief_normal.setup(card_data, enemy_data, relic_data, encounter_data, boss_relief_player_data, "intro_patrol")
+	_check(int(boss_relief_normal.enemies[0].get("max_hp", 0)) == int(combat.enemies[0].get("max_hp", 0)), "boss hp modifier does not alter normal encounters")
+	var baseline_boss = CombatStateScript.new()
+	baseline_boss.setup(card_data, enemy_data, relic_data, encounter_data, player_data, "chapter_one_boss")
+	var relieved_boss = CombatStateScript.new()
+	relieved_boss.setup(card_data, enemy_data, relic_data, encounter_data, boss_relief_player_data, "chapter_one_boss")
+	_check(int(relieved_boss.enemies[0].get("max_hp", 0)) == int(ceil(float(baseline_boss.enemies[0].get("max_hp", 0)) * 0.9)), "boss hp modifier only scales boss encounters")
+
 	var arc_player_data: Dictionary = player_data.duplicate(true)
 	arc_player_data["selected_character_id"] = "arc_tinker"
 	var arc_combat = CombatStateScript.new()
@@ -420,6 +435,21 @@ func _init() -> void:
 	boss_combat._damage_enemy(boss, final_phase_probe_damage, {"name": "测试伤害", "ignore_player_modifiers": true})
 	_check(str(boss.get("phase_id", "")) == "final_rite", "boss enters final phase below 33 percent HP")
 	_check(str(boss.get("current_action", {}).get("id", "")) == "final_rain", "boss final phase uses final action loop")
+
+	var skipped_phase_combat = CombatStateScript.new()
+	skipped_phase_combat.setup(card_data, enemy_data, relic_data, encounter_data, player_data, "chapter_one_boss", ["ash_guard"], [], 72)
+	skipped_phase_combat.consume_feedback_events()
+	var skipped_phase_boss: Dictionary = skipped_phase_combat.enemies[0]
+	var skipped_phase_target_hp: int = int(floor(float(int(skipped_phase_boss.get("max_hp", 1))) * 0.25))
+	skipped_phase_combat._damage_enemy(skipped_phase_boss, int(skipped_phase_boss.get("hp", 1)) - skipped_phase_target_hp, {"name": "跨阶段测试伤害", "ignore_player_modifiers": true})
+	_check(str(skipped_phase_boss.get("phase_id", "")) == "final_rite", "a large hit enters the highest reached boss phase")
+	_check(int(skipped_phase_boss.get("block", 0)) == 0 and skipped_phase_combat._status_amount(skipped_phase_boss.get("statuses", {}), "strength") == 1, "a large hit applies only the highest reached phase entry effects")
+	var skipped_phase_feedback_count := 0
+	for feedback_value in skipped_phase_combat.consume_feedback_events():
+		var feedback: Dictionary = feedback_value
+		if str(feedback.get("type", "")) == "phase":
+			skipped_phase_feedback_count += 1
+	_check(skipped_phase_feedback_count == 1, "a large hit emits one boss phase transition")
 
 	var win_combat = CombatStateScript.new()
 	win_combat.setup(card_data, enemy_data, relic_data, encounter_data, player_data, "intro_patrol", ["ash_guard"], [], 72)

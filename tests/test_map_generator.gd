@@ -2,6 +2,9 @@ extends SceneTree
 
 const DataLoaderScript = preload("res://scripts/core/DataLoader.gd")
 const MapGeneratorScript = preload("res://scripts/map/MapGenerator.gd")
+const MAP_SEED_SAMPLE_COUNT := 24
+
+var _failure_count: int = 0
 
 func _init() -> void:
 	var map_config: Dictionary = DataLoaderScript.load_json("res://data/config/map_generation.json")
@@ -10,7 +13,7 @@ func _init() -> void:
 		var chapter_config: Dictionary = map_config.get(str(chapter_id), {}).duplicate(true)
 		chapter_config["level_tree_constraints"] = level_tree.get("chapters", {}).get(str(chapter_id), {}).duplicate(true)
 		chapter_config["route_constraints"] = level_tree.get("route_constraints", {}).duplicate(true)
-		_validate_generated_chapter(chapter_config, str(chapter_id))
+		_validate_generated_chapter_seeds(chapter_config, str(chapter_id))
 	var guaranteed_graph: Dictionary = MapGeneratorScript.generate({
 		"seed": 11,
 		"layers": 3,
@@ -23,11 +26,25 @@ func _init() -> void:
 	})
 	_check(_has_event_id(guaranteed_graph.get("layers", []), "chain_follow_up"), "map generator places an available guaranteed chain event")
 
+	if _failure_count > 0:
+		print("Map generator test failed with %d assertion(s)." % _failure_count)
+		quit(1)
+		return
 	print("Map generator smoke test passed.")
 	quit(0)
 
-func _validate_generated_chapter(chapter_config: Dictionary, chapter_id: String) -> void:
-	var generated: Dictionary = MapGeneratorScript.generate(chapter_config)
+func _validate_generated_chapter_seeds(chapter_config: Dictionary, chapter_id: String) -> void:
+	var base_seed: int = int(chapter_config.get("seed", 1))
+	for sample_index in range(MAP_SEED_SAMPLE_COUNT):
+		var seeded_config: Dictionary = chapter_config.duplicate(true)
+		var seed_value: int = base_seed + sample_index * 7919
+		seeded_config["seed"] = seed_value
+		var generated: Dictionary = MapGeneratorScript.generate(seeded_config)
+		var repeated: Dictionary = MapGeneratorScript.generate(seeded_config)
+		_check(generated == repeated, "%s seed %d is deterministic" % [chapter_id, seed_value])
+		_validate_generated_chapter(generated, seeded_config, chapter_id, seed_value)
+
+func _validate_generated_chapter(generated: Dictionary, chapter_config: Dictionary, chapter_id: String, seed_value: int) -> void:
 	var layers: Array = generated.get("layers", [])
 	var edges: Array = generated.get("edges", [])
 
@@ -35,10 +52,111 @@ func _validate_generated_chapter(chapter_config: Dictionary, chapter_id: String)
 	_check(not edges.is_empty(), "%s map has edges" % chapter_id)
 	_check(str(layers[0][0].get("type", "")) == "combat", "%s first layer starts with combat" % chapter_id)
 	_check(str(layers[layers.size() - 1][0].get("type", "")) == "boss", "%s last layer has boss" % chapter_id)
-	_check(_has_node_type(layers, "treasure"), "%s generated map includes a treasure node" % chapter_id)
+	var node_budget: Dictionary = chapter_config.get("level_tree_constraints", {}).get("node_budget", {})
+	if int(node_budget.get("treasure", [0, 0])[0]) > 0:
+		_check(_has_node_type(layers, "treasure"), "%s generated map includes a required treasure node" % chapter_id)
 	_check(_has_path_to_boss(generated), "%s generated map has path from start to boss" % chapter_id)
 	_check(_event_ids_are_unique(layers), "%s generated map avoids duplicate event ids while pool is available" % chapter_id)
+	_check(_mixed_type_layer_count(layers) >= 2, "%s seed %d keeps at least two route-choice layers with different node types" % [chapter_id, seed_value])
+	_validate_complete_paths(generated, chapter_config, chapter_id, seed_value)
 	_validate_tree_constraints(generated, chapter_config, chapter_id)
+
+func _validate_complete_paths(generated: Dictionary, chapter_config: Dictionary, chapter_id: String, seed_value: int) -> void:
+	var layers: Array = generated.get("layers", [])
+	var node_by_id: Dictionary = {}
+	for layer in layers:
+		for node_value in layer:
+			var node: Dictionary = node_value
+			node_by_id[str(node.get("id", ""))] = node
+
+	var complete_paths: Array = _complete_paths(generated)
+	_check(not complete_paths.is_empty(), "%s seed %d has a complete start-to-boss path" % [chapter_id, seed_value])
+	var node_budget: Dictionary = chapter_config.get("level_tree_constraints", {}).get("node_budget", {})
+	var complete_route_nodes: Dictionary = {}
+	var minimum_elites_on_path := 999
+	var maximum_elites_on_path := -1
+	var boss_safe_window: int = int(chapter_config.get("level_tree_constraints", {}).get("boss_safe_window_layers", 2))
+	var first_safe_layer: int = max(1, layers.size() - 1 - boss_safe_window)
+	var require_pre_boss_recovery: bool = bool(chapter_config.get("route_constraints", {}).get("require_campfire_or_shop_before_boss", false))
+	var max_pressure_without_campfire: int = max(0, int(chapter_config.get("route_constraints", {}).get("max_pressure_nodes_between_campfires", 0)))
+	_check(max_pressure_without_campfire > 0, "%s config explicitly enables the pressure cadence constraint" % chapter_id)
+
+	for path_index in range(complete_paths.size()):
+		var path: Array = complete_paths[path_index]
+		_check(path.size() == layers.size(), "%s seed %d path %d visits every layer" % [chapter_id, seed_value, path_index])
+		var counts: Dictionary = {}
+		var has_pre_boss_recovery: bool = false
+		var pressure_since_campfire := 0
+		for node_id_value in path:
+			var node_id: String = str(node_id_value)
+			var node: Dictionary = node_by_id.get(node_id, {})
+			var node_type: String = str(node.get("type", ""))
+			counts[node_type] = int(counts.get(node_type, 0)) + 1
+			complete_route_nodes[node_id] = true
+			var layer_index: int = int(node.get("layer", -1))
+			if layer_index >= first_safe_layer and layer_index < layers.size() - 1 and node_type in ["campfire", "shop"]:
+				has_pre_boss_recovery = true
+			if node_type == "campfire":
+				pressure_since_campfire = 0
+			elif node_type in ["combat", "elite", "boss"]:
+				pressure_since_campfire += 1
+				if max_pressure_without_campfire > 0:
+					_check(pressure_since_campfire <= max_pressure_without_campfire, "%s seed %d path %d never exceeds %d pressure nodes between campfires" % [chapter_id, seed_value, path_index, max_pressure_without_campfire])
+
+		for node_type_value in node_budget.keys():
+			var node_type: String = str(node_type_value)
+			var bounds: Array = node_budget.get(node_type, [])
+			var count: int = int(counts.get(node_type, 0))
+			_check(count >= int(bounds[0]) and count <= int(bounds[1]), "%s seed %d path %d has %d %s nodes, expected [%d, %d]" % [chapter_id, seed_value, path_index, count, node_type, int(bounds[0]), int(bounds[1])])
+		minimum_elites_on_path = min(minimum_elites_on_path, int(counts.get("elite", 0)))
+		maximum_elites_on_path = max(maximum_elites_on_path, int(counts.get("elite", 0)))
+		if require_pre_boss_recovery:
+			_check(has_pre_boss_recovery, "%s seed %d path %d has recovery in the boss safe window" % [chapter_id, seed_value, path_index])
+	var elite_bounds: Array = node_budget.get("elite", [0, 0])
+	if int(elite_bounds[0]) == 0 and int(elite_bounds[1]) > 0:
+		if minimum_elites_on_path != 0 or maximum_elites_on_path < 1:
+			print("Elite route diagnostic %s seed %d: %s" % [chapter_id, seed_value, JSON.stringify(layers)])
+		_check(minimum_elites_on_path == 0 and maximum_elites_on_path >= 1, "%s seed %d offers both a safe route and an optional elite route (observed %d-%d)" % [chapter_id, seed_value, minimum_elites_on_path, maximum_elites_on_path])
+
+	for layer in layers:
+		for node_value in layer:
+			var node: Dictionary = node_value
+			var node_id: String = str(node.get("id", ""))
+			_check(complete_route_nodes.has(node_id), "%s seed %d node %s belongs to a complete route" % [chapter_id, seed_value, node_id])
+
+	var boss_count: int = 0
+	for layer in layers:
+		for node_value in layer:
+			if str((node_value as Dictionary).get("type", "")) == "boss":
+				boss_count += 1
+	_check(boss_count == 1, "%s seed %d has exactly one boss" % [chapter_id, seed_value])
+
+func _complete_paths(generated: Dictionary) -> Array:
+	var outgoing: Dictionary = {}
+	for edge_value in generated.get("edges", []):
+		var edge: Dictionary = edge_value
+		var from_id: String = str(edge.get("from", ""))
+		var targets: Array = outgoing.get(from_id, [])
+		targets.append(str(edge.get("to", "")))
+		outgoing[from_id] = targets
+
+	var paths: Array = []
+	_collect_complete_paths(str(generated.get("start_node_id", "")), str(generated.get("boss_node_id", "")), outgoing, [], {}, paths)
+	return paths
+
+func _collect_complete_paths(current_id: String, boss_id: String, outgoing: Dictionary, path: Array, active: Dictionary, paths: Array) -> void:
+	if current_id.is_empty() or active.has(current_id):
+		return
+	var next_path: Array = path.duplicate()
+	next_path.append(current_id)
+	if current_id == boss_id:
+		paths.append(next_path)
+		return
+
+	active[current_id] = true
+	for target_id_value in outgoing.get(current_id, []):
+		_collect_complete_paths(str(target_id_value), boss_id, outgoing, next_path, active, paths)
+	active.erase(current_id)
 
 func _validate_tree_constraints(generated: Dictionary, chapter_config: Dictionary, chapter_id: String) -> void:
 	var layers: Array = generated.get("layers", [])
@@ -136,6 +254,16 @@ func _has_node_type(layers: Array, node_type: String) -> bool:
 				return true
 	return false
 
+func _mixed_type_layer_count(layers: Array) -> int:
+	var count := 0
+	for layer_value in layers:
+		var seen_types: Dictionary = {}
+		for node_value in layer_value:
+			seen_types[str((node_value as Dictionary).get("type", ""))] = true
+		if seen_types.size() >= 2:
+			count += 1
+	return count
+
 func _has_event_id(layers: Array, event_id: String) -> bool:
 	for layer in layers:
 		var layer_nodes: Array = layer
@@ -147,5 +275,6 @@ func _has_event_id(layers: Array, event_id: String) -> bool:
 
 func _check(condition: bool, message: String) -> void:
 	if not condition:
-		push_error("Test failed: %s" % message)
-		quit(1)
+		_failure_count += 1
+		if _failure_count == 1:
+			push_error("Test failed: %s" % message)

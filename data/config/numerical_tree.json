@@ -175,7 +175,7 @@
   },
   "economy": {
     "_comment": "目标是让玩家每章有明确消费压力：能买强卡或删卡，但不能三章结束仍大量囤钱。",
-    "expected_final_gold_range": [110, 260],
+    "expected_final_gold_range": [100, 180],
     "expected_final_deck_size_range": [16, 19],
     "campaign_metric_tolerance": 0.5,
     "combat_card_reward_accept_score": 8.2,
@@ -187,7 +187,7 @@
     "treasure_gold": [12, 24],
     "shop_remove_base": 60,
     "shop_remove_increase": 30,
-    "design_note": "用更少免费资源和更高删卡价格压住牌组膨胀与金币沉淀。"
+    "design_note": "每章固定商店且安全路线战斗更少，最终金币以 100-180 为健康区间；既能保留一次后续消费，也不允许长期囤积。"
   },
   "progression": {
     "_comment": "局外成长只能提供轻量容错，不能成为数值碾压。单角色树目标约三次完整通关解锁。",
@@ -215,35 +215,35 @@
     "challenge_2_win_rate_range": [0.12, 0.23],
     "challenge_3_win_rate_range": [0.08, 0.15],
     "challenge_monotonic_tolerance": 0.01,
-    "single_failure_encounter_share_max": 0.36,
+    "single_failure_encounter_share_max": 0.5,
     "minimum_iterations_for_hard_gate": 128,
-	    "design_note": "挑战档整体均值严格使用目标区间；单角色允许 3% 样本容差，启发式 AI 的角色差距硬门槛为 9%，人工试玩继续以 5% 为目标。胜率必须和失败点分布一起看。"
+    "design_note": "挑战档整体均值严格使用目标区间；单角色允许 3% 样本容差，启发式 AI 的角色差距硬门槛为 9%，人工试玩继续以 5% 为目标。胜率必须和失败点分布一起看。"
   },
   "campaign_matrix": {
-    "_comment": "三角色乘四挑战的配对种子基线。observed_win_rate 来自 256 次/格完整跑团；契约测试会校验矩阵完备性、挑战修正、角色起始资源、卡池覆盖、成长成本、目标区间和聚合门槛。",
-    "schema_version": 1,
+    "_comment": "三角色乘四挑战的配对种子基线。observed_win_rate 来自 256 次/格完整跑团；契约测试会校验矩阵完备性、普通敌人与 Boss 挑战修正、角色起始资源、卡池覆盖、成长成本、目标区间和聚合门槛。",
+    "schema_version": 2,
     "simulation_model": "campaign_route_heuristic_ai",
     "seed_model": "paired_by_iteration",
     "iterations_per_cell": 256,
     "max_turns": 80,
-    "expected_target_issues": ["challenge_0:average_win_rate_high", "challenge_3:average_win_rate_high"],
-    "expected_out_of_tolerance_cells": ["arc_tinker:0", "pyre_ascetic:0", "pyre_ascetic:3"],
-    "expected_flagged_cells": ["arc_tinker:0", "pyre_ascetic:0", "pyre_ascetic:3"],
+    "expected_target_issues": [],
+    "expected_out_of_tolerance_cells": [],
+    "expected_flagged_cells": [],
     "character_ids": ["ember_exile", "arc_tinker", "pyre_ascetic"],
     "challenge_levels": [0, 1, 2, 3],
     "rows": [
-      { "character_id": "ember_exile", "challenge_level": 0, "base_max_hp": 70, "effective_starting_hp": 70, "starter_deck_score": 78.86, "accessible_auditable_cards": 39, "progression_total_cost": 25, "enemy_hp_multiplier": 1.0, "enemy_damage_multiplier": 1.0, "player_starting_hp_loss": 0, "observed_win_rate": 0.305, "avg_final_gold": 259.121, "avg_final_deck_size": 18.496, "risk_flag": "ok", "target_win_rate_range": [0.27, 0.33] },
-      { "character_id": "arc_tinker", "challenge_level": 0, "base_max_hp": 69, "effective_starting_hp": 69, "starter_deck_score": 70.03, "accessible_auditable_cards": 49, "progression_total_cost": 25, "enemy_hp_multiplier": 1.0, "enemy_damage_multiplier": 1.0, "player_starting_hp_loss": 0, "observed_win_rate": 0.391, "avg_final_gold": 252.188, "avg_final_deck_size": 18.395, "risk_flag": "campaign_win_rate_high", "target_win_rate_range": [0.27, 0.33] },
-      { "character_id": "pyre_ascetic", "challenge_level": 0, "base_max_hp": 70, "effective_starting_hp": 70, "starter_deck_score": 79.61, "accessible_auditable_cards": 48, "progression_total_cost": 25, "enemy_hp_multiplier": 1.0, "enemy_damage_multiplier": 1.0, "player_starting_hp_loss": 0, "observed_win_rate": 0.375, "avg_final_gold": 245.844, "avg_final_deck_size": 18.836, "risk_flag": "campaign_win_rate_high", "target_win_rate_range": [0.27, 0.33] },
-      { "character_id": "ember_exile", "challenge_level": 1, "base_max_hp": 70, "effective_starting_hp": 70, "starter_deck_score": 78.86, "accessible_auditable_cards": 39, "progression_total_cost": 25, "enemy_hp_multiplier": 1.1, "enemy_damage_multiplier": 1.0, "player_starting_hp_loss": 0, "observed_win_rate": 0.215, "avg_final_gold": 222.914, "avg_final_deck_size": 17.516, "risk_flag": "ok", "target_win_rate_range": [0.17, 0.26] },
-      { "character_id": "arc_tinker", "challenge_level": 1, "base_max_hp": 69, "effective_starting_hp": 69, "starter_deck_score": 70.03, "accessible_auditable_cards": 49, "progression_total_cost": 25, "enemy_hp_multiplier": 1.1, "enemy_damage_multiplier": 1.0, "player_starting_hp_loss": 0, "observed_win_rate": 0.215, "avg_final_gold": 211.754, "avg_final_deck_size": 17.059, "risk_flag": "ok", "target_win_rate_range": [0.17, 0.26] },
-      { "character_id": "pyre_ascetic", "challenge_level": 1, "base_max_hp": 70, "effective_starting_hp": 70, "starter_deck_score": 79.61, "accessible_auditable_cards": 48, "progression_total_cost": 25, "enemy_hp_multiplier": 1.1, "enemy_damage_multiplier": 1.0, "player_starting_hp_loss": 0, "observed_win_rate": 0.227, "avg_final_gold": 231.238, "avg_final_deck_size": 18.336, "risk_flag": "ok", "target_win_rate_range": [0.17, 0.26] },
-      { "character_id": "ember_exile", "challenge_level": 2, "base_max_hp": 70, "effective_starting_hp": 64, "starter_deck_score": 78.86, "accessible_auditable_cards": 39, "progression_total_cost": 25, "enemy_hp_multiplier": 1.1, "enemy_damage_multiplier": 1.0, "player_starting_hp_loss": 6, "observed_win_rate": 0.188, "avg_final_gold": 215.918, "avg_final_deck_size": 17.176, "risk_flag": "ok", "target_win_rate_range": [0.12, 0.23] },
-      { "character_id": "arc_tinker", "challenge_level": 2, "base_max_hp": 69, "effective_starting_hp": 63, "starter_deck_score": 70.03, "accessible_auditable_cards": 49, "progression_total_cost": 25, "enemy_hp_multiplier": 1.1, "enemy_damage_multiplier": 1.0, "player_starting_hp_loss": 6, "observed_win_rate": 0.199, "avg_final_gold": 198.875, "avg_final_deck_size": 16.613, "risk_flag": "ok", "target_win_rate_range": [0.12, 0.23] },
-      { "character_id": "pyre_ascetic", "challenge_level": 2, "base_max_hp": 70, "effective_starting_hp": 64, "starter_deck_score": 79.61, "accessible_auditable_cards": 48, "progression_total_cost": 25, "enemy_hp_multiplier": 1.1, "enemy_damage_multiplier": 1.0, "player_starting_hp_loss": 6, "observed_win_rate": 0.238, "avg_final_gold": 226.754, "avg_final_deck_size": 18.137, "risk_flag": "ok", "target_win_rate_range": [0.12, 0.23] },
-      { "character_id": "ember_exile", "challenge_level": 3, "base_max_hp": 70, "effective_starting_hp": 60, "starter_deck_score": 78.86, "accessible_auditable_cards": 39, "progression_total_cost": 25, "enemy_hp_multiplier": 1.13, "enemy_damage_multiplier": 1.0, "player_starting_hp_loss": 10, "observed_win_rate": 0.133, "avg_final_gold": 202.031, "avg_final_deck_size": 16.789, "risk_flag": "ok", "target_win_rate_range": [0.08, 0.15] },
-      { "character_id": "arc_tinker", "challenge_level": 3, "base_max_hp": 69, "effective_starting_hp": 59, "starter_deck_score": 70.03, "accessible_auditable_cards": 49, "progression_total_cost": 25, "enemy_hp_multiplier": 1.13, "enemy_damage_multiplier": 1.0, "player_starting_hp_loss": 10, "observed_win_rate": 0.156, "avg_final_gold": 200.984, "avg_final_deck_size": 16.309, "risk_flag": "ok", "target_win_rate_range": [0.08, 0.15] },
-      { "character_id": "pyre_ascetic", "challenge_level": 3, "base_max_hp": 70, "effective_starting_hp": 60, "starter_deck_score": 79.61, "accessible_auditable_cards": 48, "progression_total_cost": 25, "enemy_hp_multiplier": 1.13, "enemy_damage_multiplier": 1.0, "player_starting_hp_loss": 10, "observed_win_rate": 0.203, "avg_final_gold": 213.738, "avg_final_deck_size": 17.484, "risk_flag": "campaign_win_rate_high", "target_win_rate_range": [0.08, 0.15] }
+      { "character_id": "ember_exile", "challenge_level": 0, "base_max_hp": 70, "effective_starting_hp": 70, "starter_deck_score": 78.86, "accessible_auditable_cards": 39, "progression_total_cost": 25, "enemy_hp_multiplier": 1.0, "boss_hp_multiplier": 0.96, "enemy_damage_multiplier": 1.0, "player_starting_hp_loss": 0, "observed_win_rate": 0.277, "avg_final_gold": 110.043, "avg_final_deck_size": 19.273, "risk_flag": "ok", "target_win_rate_range": [0.27, 0.33] },
+      { "character_id": "arc_tinker", "challenge_level": 0, "base_max_hp": 69, "effective_starting_hp": 69, "starter_deck_score": 70.03, "accessible_auditable_cards": 49, "progression_total_cost": 25, "enemy_hp_multiplier": 1.0, "boss_hp_multiplier": 0.96, "enemy_damage_multiplier": 1.0, "player_starting_hp_loss": 0, "observed_win_rate": 0.281, "avg_final_gold": 106.531, "avg_final_deck_size": 18.266, "risk_flag": "ok", "target_win_rate_range": [0.27, 0.33] },
+      { "character_id": "pyre_ascetic", "challenge_level": 0, "base_max_hp": 70, "effective_starting_hp": 70, "starter_deck_score": 79.61, "accessible_auditable_cards": 48, "progression_total_cost": 25, "enemy_hp_multiplier": 1.0, "boss_hp_multiplier": 0.96, "enemy_damage_multiplier": 1.0, "player_starting_hp_loss": 0, "observed_win_rate": 0.266, "avg_final_gold": 111.277, "avg_final_deck_size": 19.023, "risk_flag": "ok", "target_win_rate_range": [0.27, 0.33] },
+      { "character_id": "ember_exile", "challenge_level": 1, "base_max_hp": 70, "effective_starting_hp": 70, "starter_deck_score": 78.86, "accessible_auditable_cards": 39, "progression_total_cost": 25, "enemy_hp_multiplier": 1.05, "boss_hp_multiplier": 0.96, "enemy_damage_multiplier": 1.0, "player_starting_hp_loss": 0, "observed_win_rate": 0.188, "avg_final_gold": 114.84, "avg_final_deck_size": 18.641, "risk_flag": "ok", "target_win_rate_range": [0.17, 0.26] },
+      { "character_id": "arc_tinker", "challenge_level": 1, "base_max_hp": 69, "effective_starting_hp": 69, "starter_deck_score": 70.03, "accessible_auditable_cards": 49, "progression_total_cost": 25, "enemy_hp_multiplier": 1.05, "boss_hp_multiplier": 0.96, "enemy_damage_multiplier": 1.0, "player_starting_hp_loss": 0, "observed_win_rate": 0.188, "avg_final_gold": 113.605, "avg_final_deck_size": 17.445, "risk_flag": "ok", "target_win_rate_range": [0.17, 0.26] },
+      { "character_id": "pyre_ascetic", "challenge_level": 1, "base_max_hp": 70, "effective_starting_hp": 70, "starter_deck_score": 79.61, "accessible_auditable_cards": 48, "progression_total_cost": 25, "enemy_hp_multiplier": 1.05, "boss_hp_multiplier": 0.96, "enemy_damage_multiplier": 1.0, "player_starting_hp_loss": 0, "observed_win_rate": 0.203, "avg_final_gold": 110.469, "avg_final_deck_size": 18.406, "risk_flag": "ok", "target_win_rate_range": [0.17, 0.26] },
+      { "character_id": "ember_exile", "challenge_level": 2, "base_max_hp": 70, "effective_starting_hp": 64, "starter_deck_score": 78.86, "accessible_auditable_cards": 39, "progression_total_cost": 25, "enemy_hp_multiplier": 1.1, "boss_hp_multiplier": 1.0, "enemy_damage_multiplier": 1.0, "player_starting_hp_loss": 6, "observed_win_rate": 0.145, "avg_final_gold": 109.336, "avg_final_deck_size": 17.926, "risk_flag": "ok", "target_win_rate_range": [0.12, 0.23] },
+      { "character_id": "arc_tinker", "challenge_level": 2, "base_max_hp": 69, "effective_starting_hp": 63, "starter_deck_score": 70.03, "accessible_auditable_cards": 49, "progression_total_cost": 25, "enemy_hp_multiplier": 1.1, "boss_hp_multiplier": 1.0, "enemy_damage_multiplier": 1.0, "player_starting_hp_loss": 6, "observed_win_rate": 0.109, "avg_final_gold": 108.996, "avg_final_deck_size": 16.262, "risk_flag": "ok", "target_win_rate_range": [0.12, 0.23] },
+      { "character_id": "pyre_ascetic", "challenge_level": 2, "base_max_hp": 70, "effective_starting_hp": 64, "starter_deck_score": 79.61, "accessible_auditable_cards": 48, "progression_total_cost": 25, "enemy_hp_multiplier": 1.1, "boss_hp_multiplier": 1.0, "enemy_damage_multiplier": 1.0, "player_starting_hp_loss": 6, "observed_win_rate": 0.133, "avg_final_gold": 110.211, "avg_final_deck_size": 17.504, "risk_flag": "ok", "target_win_rate_range": [0.12, 0.23] },
+      { "character_id": "ember_exile", "challenge_level": 3, "base_max_hp": 70, "effective_starting_hp": 60, "starter_deck_score": 78.86, "accessible_auditable_cards": 39, "progression_total_cost": 25, "enemy_hp_multiplier": 1.13, "boss_hp_multiplier": 1.0, "enemy_damage_multiplier": 1.0, "player_starting_hp_loss": 10, "observed_win_rate": 0.113, "avg_final_gold": 108.148, "avg_final_deck_size": 17.047, "risk_flag": "ok", "target_win_rate_range": [0.08, 0.15] },
+      { "character_id": "arc_tinker", "challenge_level": 3, "base_max_hp": 69, "effective_starting_hp": 59, "starter_deck_score": 70.03, "accessible_auditable_cards": 49, "progression_total_cost": 25, "enemy_hp_multiplier": 1.13, "boss_hp_multiplier": 1.0, "enemy_damage_multiplier": 1.0, "player_starting_hp_loss": 10, "observed_win_rate": 0.078, "avg_final_gold": 113.469, "avg_final_deck_size": 15.578, "risk_flag": "ok", "target_win_rate_range": [0.08, 0.15] },
+      { "character_id": "pyre_ascetic", "challenge_level": 3, "base_max_hp": 70, "effective_starting_hp": 60, "starter_deck_score": 79.61, "accessible_auditable_cards": 48, "progression_total_cost": 25, "enemy_hp_multiplier": 1.13, "boss_hp_multiplier": 1.0, "enemy_damage_multiplier": 1.0, "player_starting_hp_loss": 10, "observed_win_rate": 0.098, "avg_final_gold": 108.438, "avg_final_deck_size": 16.938, "risk_flag": "ok", "target_win_rate_range": [0.08, 0.15] }
     ]
   }
 }

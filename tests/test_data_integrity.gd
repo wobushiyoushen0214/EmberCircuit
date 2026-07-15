@@ -788,6 +788,7 @@ func _validate_achievement_condition(condition: Dictionary, character_ids: Dicti
 func _validate_challenge_levels(levels: Array) -> void:
 	_check(levels.size() >= 4, "challenge config has base and first three challenge levels")
 	var seen_levels: Dictionary = {}
+	var previous_effective_boss_hp_multiplier := 0.0
 	for challenge in levels:
 		var challenge_dict: Dictionary = challenge
 		var level: int = int(challenge_dict.get("level", -1))
@@ -803,8 +804,12 @@ func _validate_challenge_levels(levels: Array) -> void:
 		_check(challenge_dict.has("implementation_note"), "challenge has implementation_note: %d" % level)
 		var modifiers: Dictionary = challenge_dict.get("modifiers", {})
 		_check(float(modifiers.get("enemy_hp_multiplier", 0.0)) > 0.0, "challenge has positive enemy hp multiplier: %d" % level)
+		_check(float(modifiers.get("boss_hp_multiplier", 0.0)) > 0.0, "challenge has positive boss hp multiplier: %d" % level)
 		_check(float(modifiers.get("enemy_damage_multiplier", 0.0)) > 0.0, "challenge has positive enemy damage multiplier: %d" % level)
 		_check(int(modifiers.get("player_starting_hp_loss", -1)) >= 0, "challenge has non-negative starting hp loss: %d" % level)
+		var effective_boss_hp_multiplier: float = float(modifiers.get("enemy_hp_multiplier", 1.0)) * float(modifiers.get("boss_hp_multiplier", 1.0))
+		_check(effective_boss_hp_multiplier >= previous_effective_boss_hp_multiplier, "effective boss hp does not decrease across challenges: %d" % level)
+		previous_effective_boss_hp_multiplier = effective_boss_hp_multiplier
 	_check(seen_levels.has(0), "challenge config includes level 0")
 
 func _validate_actions(actions: Array, cards_by_id: Dictionary, context: String) -> void:

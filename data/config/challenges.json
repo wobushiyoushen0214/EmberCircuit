@@ -10,31 +10,33 @@
       "level": 0,
       "name": "普通模式",
       "short_name": "普通",
-      "description": "标准三章跑团，没有额外惩罚。",
+      "description": "标准三章跑团；Boss 保留 96% 最大生命，提供首轮学习容错。",
       "modifiers": {
         "enemy_hp_multiplier": 1.0,
+        "boss_hp_multiplier": 0.96,
         "enemy_damage_multiplier": 1.0,
         "player_starting_hp_loss": 0
       },
       "reward_note": "用于解锁挑战模式和基础通关档案。",
-      "design_note": "保持当前主线平衡基线，作为后续挑战等级的对照组。",
-      "balance_note": "不改变战斗数值，避免影响新玩家首局体验。",
-      "implementation_note": "Main.gd 会把 level 0 作为默认选择。"
+      "design_note": "普通敌人保持作者基准，Boss 只保留一档首轮学习缓冲；挑战 2 起完全移除该缓冲。",
+      "balance_note": "Boss 生命额外乘 0.96，定向缓解最终战失败，不改变普通战、精英战、敌方伤害与角色差异。",
+      "implementation_note": "Main.gd 会把 level 0 作为默认选择；CombatState.gd 仅在 boss 遭遇叠乘 boss_hp_multiplier。"
     },
     {
       "level": 1,
       "name": "挑战 1：加固敌群",
       "short_name": "挑战 1",
-      "description": "敌人最大生命提高 10%。",
+      "description": "敌人最大生命提高 5%；Boss 仍保留普通模式的学习缓冲。",
       "modifiers": {
-        "enemy_hp_multiplier": 1.1,
+        "enemy_hp_multiplier": 1.05,
+        "boss_hp_multiplier": 0.96,
         "enemy_damage_multiplier": 1.0,
         "player_starting_hp_loss": 0
       },
       "reward_note": "完成后解锁挑战 2。",
       "design_note": "第一档只延长战斗，迫使玩家提升输出效率，不直接惩罚防御判断。",
-      "balance_note": "10% 生命提升足以让低输出构筑多承受 1 到 2 次敌人意图，但不会改变单回合伤害阈值。",
-      "implementation_note": "CombatState.gd 在加载遭遇时按 enemy_hp_multiplier 提高敌人 hp 和 max_hp。"
+      "balance_note": "普通与精英敌人生命 +5%；Boss 有效生命约为作者基准的 101%，相对普通模式仍提高约 5%，挑战 2 起取消缓冲并提高到 110%。",
+      "implementation_note": "CombatState.gd 在加载遭遇时叠乘 enemy_hp_multiplier；boss 遭遇再叠乘 boss_hp_multiplier。"
     },
     {
       "level": 2,
@@ -43,6 +45,7 @@
       "description": "敌人最大生命提高 10%，玩家开局失去 6 点生命。",
       "modifiers": {
         "enemy_hp_multiplier": 1.1,
+        "boss_hp_multiplier": 1.0,
         "enemy_damage_multiplier": 1.0,
         "player_starting_hp_loss": 6
       },
@@ -58,6 +61,7 @@
       "description": "敌人最大生命提高 13%，玩家开局失去 10 点生命。",
       "modifiers": {
         "enemy_hp_multiplier": 1.13,
+        "boss_hp_multiplier": 1.0,
         "enemy_damage_multiplier": 1.0,
         "player_starting_hp_loss": 10
       },

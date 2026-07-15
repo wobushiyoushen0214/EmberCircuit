@@ -4,6 +4,8 @@ const BalanceSimulatorScript = preload("res://scripts/tools/BalanceSimulator.gd"
 
 const REPORT_PATH := "/tmp/embercircuit_balance_test_report.json"
 
+var failed := false
+
 func _init() -> void:
 	call_deferred("_run")
 
@@ -35,6 +37,8 @@ func _run() -> void:
 		_check(float(case_dict.get("win_rate", -1.0)) >= 0.0 and float(case_dict.get("win_rate", -1.0)) <= 1.0, "case win rate is normalized")
 		_check(float(case_dict.get("loss_rate", -1.0)) >= 0.0 and float(case_dict.get("loss_rate", -1.0)) <= 1.0, "case loss rate is normalized")
 		_check(float(case_dict.get("avg_turns", 0.0)) > 0.0, "case records average turns")
+		var case_modifiers: Dictionary = case_dict.get("challenge_modifiers", {})
+		_check(is_equal_approx(float(case_modifiers.get("enemy_hp_multiplier", 0.0)), 1.0) and is_equal_approx(float(case_modifiers.get("boss_hp_multiplier", 0.0)), 0.96), "single encounter report snapshots complete challenge modifiers")
 		_check(_valid_risk_flag(str(case_dict.get("risk_flag", ""))), "case risk flag is recognized")
 
 	var repeat_report: Dictionary = simulator.run_suite(options)
@@ -49,6 +53,20 @@ func _run() -> void:
 	_check(int(chain_state.get("gold", 0)) == 25 and bool(chain_state.get("completed_event_ids", {}).get("mute_calibrator", false)), "balance simulator applies chain cost and completion flag")
 	var chain_pool_after: Array = simulator._filtered_event_pool_for_character(chapter_two_events, "ember_exile", chain_state)
 	_check(chain_pool_after.has("calibrator_return"), "balance simulator exposes chain follow-up after prerequisite")
+	var removal_state := {
+		"character_id": "ember_exile",
+		"deck_ids": ["ember_strike+", "ash_guard", "ignition+", "smelt_plating"],
+		"cards_removed": 0,
+		"cards_removed_ids": [],
+		"card_removal_counts_by_id": {},
+	}
+	simulator._apply_campaign_event_effect(removal_state, {"type": "remove_first_non_starter_card"})
+	_check(removal_state.get("deck_ids", []) == ["ember_strike+", "ash_guard", "smelt_plating"], "campaign event removes the first non-starter card and preserves upgraded starters")
+	_check(int(removal_state.get("card_removal_counts_by_id", {}).get("ignition", 0)) == 1, "campaign event removal telemetry normalizes an upgraded card id")
+	var starter_only_state := {"character_id": "ember_exile", "deck_ids": ["ember_strike+", "ash_guard"]}
+	simulator._apply_campaign_event_effect(starter_only_state, {"type": "remove_first_non_starter_card"})
+	_check(starter_only_state.get("deck_ids", []) == ["ember_strike+", "ash_guard"], "campaign event does not remove a starter when no non-starter card exists")
+	_check(int(simulator.economy_data.get("potion_reward", {}).get("combat_drop_count", -1)) == 1, "campaign potion reward count matches the real reward configuration")
 	var chain_graph: Dictionary = simulator._generate_chapter_graph("chapter_two", 37, "ember_exile", chain_state)
 	_check(_graph_has_event(chain_graph, "calibrator_return"), "balance simulator chapter map places the unlocked guaranteed follow-up")
 	var treasure_state: Dictionary = chain_state.duplicate(true)
@@ -57,6 +75,26 @@ func _run() -> void:
 	_check(bool(treasure_result.get("completed", false)), "balance simulator resolves treasure nodes")
 	_check(int(treasure_state.get("gold", 0)) > treasure_gold_before and int(treasure_state.get("treasures_seen", 0)) == 1, "balance simulator treasure grants gold and records the visit")
 	_check(simulator._campaign_node_score(treasure_state, {"type": "treasure"}) > simulator._campaign_node_score(treasure_state, {"type": "combat"}), "campaign route AI values risk-free treasure above normal combat")
+	var early_route_state := {"hp": 70, "max_hp": 70, "relic_ids": ["ember_bottle", "cracked_charm"]}
+	var transitional_route_state := {"hp": 70, "max_hp": 70, "relic_ids": ["ember_bottle", "cracked_charm", "counter_spring"]}
+	var mature_route_state := {"hp": 70, "max_hp": 70, "relic_ids": ["ember_bottle", "cracked_charm", "counter_spring", "iron_heart"]}
+	_check(simulator._campaign_node_score(early_route_state, {"type": "elite"}) < simulator._campaign_node_score(early_route_state, {"type": "combat"}), "campaign route AI avoids optional elites before the build matures")
+	_check(simulator._campaign_node_score(mature_route_state, {"type": "elite"}) > simulator._campaign_node_score(mature_route_state, {"type": "combat"}), "campaign route AI pursues elite rewards after the build matures")
+	var lookahead_graph := {
+		"layers": [
+			[{"id": "treasure_path", "type": "treasure"}, {"id": "safe_path", "type": "combat"}],
+			[{"id": "forced_elite", "type": "elite"}, {"id": "safe_event", "type": "event"}],
+		],
+		"edges": [
+			{"from": "treasure_path", "to": "forced_elite"},
+			{"from": "safe_path", "to": "safe_event"},
+		],
+	}
+	_check(simulator._choose_next_campaign_node(early_route_state, lookahead_graph.get("layers", [])[0], lookahead_graph) == "safe_path", "campaign route lookahead rejects a tempting reward that forces an immature elite fight")
+	_check(simulator._choose_next_campaign_node(transitional_route_state, lookahead_graph.get("layers", [])[0], lookahead_graph) == "treasure_path", "campaign route lookahead evaluates an elite after applying the treasure relic")
+	_check(simulator._choose_next_campaign_node(mature_route_state, lookahead_graph.get("layers", [])[0], lookahead_graph) == "treasure_path", "campaign route lookahead takes the elite reward line after the build matures")
+	_check(simulator._campaign_encounter_allows_potion_reward(simulator._encounter_config("intro_patrol")), "normal combat permits potion rewards")
+	_check(not simulator._campaign_encounter_allows_potion_reward(simulator._encounter_config("chapter_three_boss")), "final boss without card rewards cannot grant a campaign potion")
 	var mastery_deck: Array = ["ember_strike", "ember_strike", "ember_strike", "ember_strike", "ember_strike", "pressure_probe", "ash_guard", "ash_guard", "ash_guard", "ash_guard"]
 	_check(simulator._campaign_mastery_requirements_met(mastery_deck, {"min_type_count": {"attack": 6}}), "campaign simulator evaluates deck mastery type thresholds")
 	_check(simulator._choose_campaign_deck_mastery(mastery_deck) == "offense_forging", "campaign simulator chooses an eligible deck mastery after elite victory")
@@ -87,6 +125,8 @@ func _run() -> void:
 	_check(float(campaign_case.get("avg_nodes_completed", -1.0)) >= 0.0, "campaign records node progress")
 	_check(campaign_case.has("failure_reasons") and campaign_case.has("failure_points"), "campaign records failure breakdowns")
 	_check(campaign_case.has("failure_node_types") and campaign_case.has("failure_encounters"), "campaign records failure node types and encounter ids")
+	var campaign_modifiers: Dictionary = campaign_case.get("challenge_modifiers", {})
+	_check(is_equal_approx(float(campaign_modifiers.get("enemy_hp_multiplier", 0.0)), 1.0) and is_equal_approx(float(campaign_modifiers.get("boss_hp_multiplier", 0.0)), 0.96), "campaign report snapshots complete challenge modifiers")
 	_check(_valid_campaign_risk_flag(str(campaign_case.get("risk_flag", ""))), "campaign risk flag is recognized")
 	_check(str(campaign_case.get("risk_flag", "")) == "campaign_insufficient_samples", "small campaign samples are not treated as balance proof")
 	_check((campaign_report.get("summary", {}).get("target_issues", []) as Array).has("challenge_0:insufficient_samples"), "campaign summary reports an insufficient hard-gate sample")
@@ -94,6 +134,9 @@ func _run() -> void:
 	var campaign_samples: Array = campaign_case.get("sample_runs", [])
 	_check(not campaign_samples.is_empty() and str(campaign_samples[0].get("skill_book_id", "")) == "steel_manual", "campaign reports the active default skill book")
 
+	if failed:
+		quit(1)
+		return
 	print("Balance simulator smoke test passed.")
 	quit(0)
 
@@ -135,5 +178,5 @@ func _valid_campaign_risk_flag(flag: String) -> bool:
 
 func _check(condition: bool, message: String) -> void:
 	if not condition:
+		failed = true
 		push_error("Test failed: %s" % message)
-		quit(1)

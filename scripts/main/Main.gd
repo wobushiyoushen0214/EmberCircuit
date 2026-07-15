@@ -1355,7 +1355,7 @@ func _start_new_run(character_id: String = "") -> void:
 	current_challenge_level = selected_challenge_level
 	run_skill_book_id = _equipped_skill_book_for_character(selected_character_id)
 	run_deck_mastery_id = ""
-	run_progression_node_ids = _purchased_upgrade_node_ids().duplicate(true)
+	run_progression_node_ids = _purchased_upgrade_node_ids_for_character(selected_character_id)
 	run_character_config = _effective_character_config(selected_character_id)
 	_close_pile_view(false)
 	welcome_open = false
@@ -1599,8 +1599,23 @@ func _upgrade_node_by_id(node_id: String) -> Dictionary:
 				return node
 	return {}
 
+func _upgrade_node_for_character(node_id: String, character_id: String) -> Dictionary:
+	for node_value in _character_tree_for_id(character_id).get("nodes", []):
+		var node: Dictionary = node_value
+		if str(node.get("id", "")) == node_id:
+			return node
+	return {}
+
 func _purchased_upgrade_node_ids() -> Array:
 	return player_profile.get("purchased_upgrade_node_ids", [])
+
+func _purchased_upgrade_node_ids_for_character(character_id: String) -> Array:
+	var result: Array = []
+	for node_id_value in _purchased_upgrade_node_ids():
+		var node_id: String = str(node_id_value)
+		if not _upgrade_node_for_character(node_id, character_id).is_empty():
+			result.append(node_id)
+	return result
 
 func _character_upgrade_effects(character_id: String) -> Array:
 	var effects: Array = []
@@ -1653,7 +1668,7 @@ func _run_modifier_sources() -> Array:
 	var sources: Array = []
 	for node_id_value in run_progression_node_ids:
 		var node_id: String = str(node_id_value)
-		var node: Dictionary = _upgrade_node_by_id(node_id)
+		var node: Dictionary = _upgrade_node_for_character(node_id, selected_character_id)
 		if node.is_empty():
 			continue
 		var combat_start_effects: Array = []
@@ -1955,21 +1970,24 @@ func _challenge_tooltip_text(level: int) -> String:
 func _challenge_modifier_summary(level: int) -> String:
 	var modifiers: Dictionary = _challenge_modifiers(level)
 	var enemy_hp_percent: int = int(round(float(modifiers.get("enemy_hp_multiplier", 1.0)) * 100.0))
+	var boss_hp_percent: int = int(round(float(modifiers.get("boss_hp_multiplier", 1.0)) * 100.0))
 	var enemy_damage_percent: int = int(round(float(modifiers.get("enemy_damage_multiplier", 1.0)) * 100.0))
 	var hp_loss: int = int(modifiers.get("player_starting_hp_loss", 0))
-	return "生命倍率 %d%% | 伤害倍率 %d%% | 开局 -%dHP" % [enemy_hp_percent, enemy_damage_percent, hp_loss]
+	return "敌血 %d%% | 首领额外 %d%% | 敌伤 %d%% | 开局 -%dHP" % [enemy_hp_percent, boss_hp_percent, enemy_damage_percent, hp_loss]
 
 func _challenge_log_text(level: int, unlocked_max: int, short_name: String) -> String:
 	var modifiers: Dictionary = _challenge_modifiers(level)
 	var enemy_hp_percent: int = int(round(float(modifiers.get("enemy_hp_multiplier", 1.0)) * 100.0))
+	var boss_hp_percent: int = int(round(float(modifiers.get("boss_hp_multiplier", 1.0)) * 100.0))
 	var enemy_damage_percent: int = int(round(float(modifiers.get("enemy_damage_multiplier", 1.0)) * 100.0))
 	var hp_loss: int = int(modifiers.get("player_starting_hp_loss", 0))
 	if _scroll_content_width() < 420.0:
-		return "挑战 %d/%d %s | HP%d%% 伤害%d%% -%dHP" % [
+		return "挑战 %d/%d %s | 敌血%d%% 首领%d%% 敌伤%d%% -%dHP" % [
 			level,
 			unlocked_max,
 			short_name,
 			enemy_hp_percent,
+			boss_hp_percent,
 			enemy_damage_percent,
 			hp_loss
 		]
@@ -12530,16 +12548,10 @@ func _apply_event_effect(effect: Dictionary) -> void:
 
 func _find_removable_card_index() -> int:
 	for i in range(run_deck_ids.size()):
-		var entry: String = str(run_deck_ids[i])
-		if entry.ends_with("+"):
+		var card: Dictionary = _card_by_id(_base_card_id(str(run_deck_ids[i])))
+		if not card.is_empty() and str(card.get("rarity", "")) != "starter":
 			return i
-	for i in range(run_deck_ids.size()):
-		var entry: String = str(run_deck_ids[i])
-		var card_id: String = entry.substr(0, entry.length() - 1) if entry.ends_with("+") else entry
-		var card: Dictionary = _card_by_id(card_id)
-		if str(card.get("rarity", "")) != "starter":
-			return i
-	return run_deck_ids.size() - 1
+	return -1
 
 func _shop_removable_card_indices() -> Array[int]:
 	var result: Array[int] = []

@@ -20,6 +20,17 @@ func _run() -> void:
 	var scene: PackedScene = load("res://scenes/main/Main.tscn")
 	var main = scene.instantiate()
 	main._ready()
+	var original_deck_ids: Array = main.run_deck_ids.duplicate(true)
+	main.run_deck_ids = ["spark_throw", "ember_strike+"]
+	var first_non_starter_index: int = main._find_removable_card_index()
+	main.run_deck_ids = ["ember_strike+", "ash_guard"]
+	var starter_only_deck: Array = main.run_deck_ids.duplicate(true)
+	var starter_only_index: int = main._find_removable_card_index()
+	main._apply_event_effect({"type": "remove_first_non_starter_card", "amount": 1})
+	var starter_only_deck_unchanged: bool = main.run_deck_ids == starter_only_deck
+	main.run_deck_ids = original_deck_ids
+	if not _check(first_non_starter_index == 0 and starter_only_index == -1 and starter_only_deck_unchanged, "event removal selects the first base non-starter card and never removes upgraded starters"):
+		return
 	var signal_clear_probe := HBoxContainer.new()
 	var signal_clear_button := Button.new()
 	root.add_child(signal_clear_probe)
@@ -1503,6 +1514,22 @@ func _jump_to_node_type(main, node_type: String) -> void:
 			main.available_node_ids.clear()
 			main._start_current_node()
 			return
+	if not node_type in ["treasure", "shop", "campfire"]:
+		return
+	for i in range(1, main.route_nodes.size() - 1):
+		var node_dict: Dictionary = main.route_nodes[i]
+		if str(node_dict.get("type", "")) == "boss":
+			continue
+		node_dict["type"] = node_type
+		node_dict["name"] = "测试%s节点" % node_type
+		node_dict.erase("encounter_id")
+		node_dict.erase("event_id")
+		main.route_nodes[i] = node_dict
+		main.current_node_id = str(node_dict.get("id", ""))
+		main.current_node_index = main._node_index_by_id(main.current_node_id)
+		main.available_node_ids.clear()
+		main._start_current_node()
+		return
 
 func _jump_to_event_id(main, event_id: String) -> void:
 	for i in range(main.route_nodes.size()):

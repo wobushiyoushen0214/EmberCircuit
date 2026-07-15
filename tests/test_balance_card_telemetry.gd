@@ -169,6 +169,18 @@ func _validate_campaign_case(simulator, campaign_case: Dictionary, runs: Array, 
 	var telemetry_value = campaign_case.get("card_telemetry", null)
 	_check(telemetry_value is Array, "%s exposes card_telemetry as an array" % context)
 	var telemetry: Array = telemetry_value if telemetry_value is Array else []
+	var win_indices_value = campaign_case.get("win_iteration_indices", null)
+	_check(win_indices_value is Array, "%s exposes win_iteration_indices as an array" % context)
+	var win_indices: Array = win_indices_value if win_indices_value is Array else []
+	_check(win_indices.size() == int(campaign_case.get("wins", -1)), "%s win indices conserve aggregate wins" % context)
+	var previous_win_index := -1
+	for index_value in win_indices:
+		var win_index := int(index_value)
+		_check(win_index >= 0 and win_index < runs.size(), "%s win index stays inside the iteration range" % context)
+		_check(win_index > previous_win_index, "%s win indices are unique and sorted" % context)
+		if win_index >= 0 and win_index < runs.size():
+			_check(bool((runs[win_index] as Dictionary).get("won", false)), "%s win index points to a winning run" % context)
+		previous_win_index = win_index
 	var expected := _aggregate_expected_telemetry(runs)
 	var expected_counts: Dictionary = expected.get("counts", {})
 	var expected_acquisition_runs: Dictionary = expected.get("acquisition_runs", {})

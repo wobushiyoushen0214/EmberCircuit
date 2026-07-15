@@ -198,7 +198,7 @@ func _run_campaign_once(character_id: String, challenge_level: int, max_turns: i
 			var candidates: Array = _successor_nodes(graph, node_id)
 			if candidates.is_empty():
 				break
-			node_id = _choose_next_campaign_node(state, candidates)
+			node_id = _choose_next_campaign_node(state, candidates, graph)
 		if not chapter_finished:
 			state["failed_at"] = chapter_id
 			state["failed_reason"] = "chapter_route_incomplete"
@@ -276,10 +276,11 @@ func _resolve_campaign_combat(state: Dictionary, node: Dictionary, chapter_id: S
 		seed_value,
 		int(state.get("nodes_completed", 0))
 	]
-	_offer_card_reward(state, int(encounter.get("card_reward_count", 0)), "%s|card" % reward_seed)
+	var card_reward_count: int = max(0, int(encounter.get("card_reward_count", 0)))
+	_offer_card_reward(state, card_reward_count, "%s|card" % reward_seed)
 	if bool(encounter.get("relic_reward", false)):
 		_offer_relic_reward(state, "%s|relic" % reward_seed)
-	if _has_empty_potion_slot(state):
+	if _campaign_encounter_allows_potion_reward(encounter) and _has_empty_potion_slot(state):
 		_offer_potion_reward(state, "%s|potion" % reward_seed)
 	if str(node.get("type", "")) == "elite" and str(state.get("deck_mastery_id", "")).is_empty():
 		state["deck_mastery_id"] = _choose_campaign_deck_mastery(state.get("deck_ids", []))
@@ -312,6 +313,9 @@ func _campaign_encounter_gold_reward(encounter: Dictionary, chapter_id: String, 
 
 func _encounter_skips_economy_rewards(encounter: Dictionary) -> bool:
 	return int(encounter.get("card_reward_count", 3)) <= 0 and not bool(encounter.get("relic_reward", false)) and int(encounter.get("gold_reward", 0)) <= 0
+
+func _campaign_encounter_allows_potion_reward(encounter: Dictionary) -> bool:
+	return int(encounter.get("card_reward_count", 0)) > 0
 
 func _simulate_campaign_event(state: Dictionary, node: Dictionary, chapter_id: String, seed_value: int) -> void:
 	state["events_seen"] = int(state.get("events_seen", 0)) + 1
@@ -404,7 +408,7 @@ func _event_condition_failed(state: Dictionary, condition: Dictionary) -> bool:
 		"has_empty_potion_slot":
 			return not _has_empty_potion_slot(state)
 		"has_removable_card":
-			return _worst_removable_non_starter_card_index(state.get("deck_ids", [])) < 0
+			return _first_non_starter_card_index(state.get("deck_ids", [])) < 0
 		"missing_relic":
 			var missing_relic_id: String = str(condition.get("relic_id", ""))
 			return not missing_relic_id.is_empty() and (state.get("relic_ids", []) as Array).has(missing_relic_id)
@@ -530,7 +534,7 @@ func _apply_campaign_event_effect(state: Dictionary, effect: Dictionary) -> void
 				state["potions_gained_ids"] = gained_ids
 		"remove_first_non_starter_card":
 			var deck_ids: Array = state.get("deck_ids", [])
-			var remove_index: int = _worst_removable_non_starter_card_index(deck_ids)
+			var remove_index: int = _first_non_starter_card_index(deck_ids)
 			if remove_index >= 0:
 				var removed_card_id: String = str(deck_ids[remove_index])
 				deck_ids.remove_at(remove_index)
@@ -550,32 +554,19 @@ func _apply_campaign_event_effect(state: Dictionary, effect: Dictionary) -> void
 
 func _remove_non_starter_card_effect_score(state: Dictionary) -> float:
 	var deck_ids: Array = state.get("deck_ids", [])
-	var remove_index: int = _worst_removable_non_starter_card_index(deck_ids)
+	var remove_index: int = _first_non_starter_card_index(deck_ids)
 	if remove_index < 0:
 		return 0.0
 	var entry: String = str(deck_ids[remove_index])
 	var score: float = _deck_entry_card_score(entry, str(state.get("character_id", "")))
-	var upgraded_penalty := 2.0 if entry.ends_with("+") else 0.0
-	return clamp(7.5 - max(0.0, score) * 0.45 - upgraded_penalty, -4.0, 8.0)
+	return clamp(7.5 - max(0.0, score) * 0.45, -4.0, 8.0)
 
-func _worst_removable_non_starter_card_index(deck_ids: Array) -> int:
-	var worst_plain_index := -1
-	var worst_plain_score := 999999.0
-	var worst_upgraded_index := -1
-	var worst_upgraded_score := 999999.0
+func _first_non_starter_card_index(deck_ids: Array) -> int:
 	for i in range(deck_ids.size()):
 		var card: Dictionary = _card_by_id(_base_card_id(str(deck_ids[i])))
 		if not card.is_empty() and str(card.get("rarity", "")) != "starter":
-			var entry: String = str(deck_ids[i])
-			var score: float = _deck_entry_card_score(entry, "")
-			if entry.ends_with("+"):
-				if score < worst_upgraded_score:
-					worst_upgraded_score = score
-					worst_upgraded_index = i
-			elif score < worst_plain_score:
-				worst_plain_score = score
-				worst_plain_index = i
-	return worst_plain_index if worst_plain_index >= 0 else worst_upgraded_index
+			return i
+	return -1
 
 func _deck_contains_card(deck_ids: Array, card_id: String) -> bool:
 	if card_id.is_empty():
@@ -1244,16 +1235,66 @@ func _successor_nodes(graph: Dictionary, node_id: String) -> Array:
 				result.append(node)
 	return result
 
-func _choose_next_campaign_node(state: Dictionary, candidates: Array) -> String:
+func _choose_next_campaign_node(state: Dictionary, candidates: Array, graph: Dictionary = {}) -> String:
 	var best_id := ""
 	var best_score := -999999.0
+	var route_score_cache: Dictionary = {}
 	for node in candidates:
 		var node_dict: Dictionary = node
-		var score: float = _campaign_node_score(state, node_dict)
+		var score: float = _campaign_route_preview_score(state, graph, str(node_dict.get("id", "")), 3, route_score_cache) if not graph.is_empty() else _campaign_node_score(state, node_dict)
 		if score > best_score:
 			best_score = score
 			best_id = str(node_dict.get("id", ""))
 	return best_id
+
+func _campaign_route_preview_score(state: Dictionary, graph: Dictionary, node_id: String, depth: int, cache: Dictionary) -> float:
+	if node_id.is_empty():
+		return -999999.0
+	var cache_key := "%s|%d|%s" % [node_id, depth, _campaign_preview_state_key(state)]
+	if cache.has(cache_key):
+		return float(cache[cache_key])
+	var node: Dictionary = _graph_node_by_id(graph, node_id)
+	if node.is_empty():
+		return -999999.0
+	var score: float = _campaign_node_score(state, node)
+	var next_state: Dictionary = _campaign_preview_state_after_node(state, node)
+	if depth > 1 and str(node.get("type", "")) != "boss":
+		var best_future_score := -999999.0
+		for successor_value in _successor_nodes(graph, node_id):
+			var successor: Dictionary = successor_value
+			best_future_score = max(best_future_score, _campaign_route_preview_score(next_state, graph, str(successor.get("id", "")), depth - 1, cache))
+		if best_future_score > -999998.0:
+			score += best_future_score
+	cache[cache_key] = score
+	return score
+
+func _campaign_preview_state_key(state: Dictionary) -> String:
+	return "%d|%d|%d|%d" % [
+		int(state.get("hp", 0)),
+		int(state.get("max_hp", 1)),
+		int(state.get("gold", 0)),
+		(state.get("relic_ids", []) as Array).size(),
+	]
+
+func _campaign_preview_state_after_node(state: Dictionary, node: Dictionary) -> Dictionary:
+	var preview: Dictionary = state.duplicate(true)
+	var node_type: String = str(node.get("type", ""))
+	if node_type == "campfire":
+		var hp: int = int(preview.get("hp", 0))
+		var max_hp: int = max(1, int(preview.get("max_hp", 1)))
+		if hp <= int(ceil(float(max_hp) * 0.72)):
+			var heal_percent: int = int(economy_data.get("campfire", {}).get("heal_percent_of_max_hp", 30))
+			preview["hp"] = min(max_hp, hp + int(ceil(float(max_hp) * float(heal_percent) / 100.0)))
+	if node_type == "treasure" or node_type == "elite":
+		var relic_ids: Array = preview.get("relic_ids", []).duplicate(true)
+		relic_ids.append("__route_preview_relic_%s" % str(node.get("id", node_type)))
+		preview["relic_ids"] = relic_ids
+	if node_type == "treasure":
+		var treasure: Dictionary = economy_data.get("treasure", {})
+		var min_gold: int = int(treasure.get("gold_min", 0))
+		var max_gold: int = max(min_gold, int(treasure.get("gold_max", min_gold)))
+		preview["gold"] = int(preview.get("gold", 0)) + int(round(float(min_gold + max_gold) * 0.5))
+	return preview
 
 func _campaign_node_score(state: Dictionary, node: Dictionary) -> float:
 	var node_type: String = str(node.get("type", ""))
@@ -1265,7 +1306,7 @@ func _campaign_node_score(state: Dictionary, node: Dictionary) -> float:
 		"elite":
 			var relic_count: int = (state.get("relic_ids", []) as Array).size()
 			if hp_ratio > 0.86:
-				score = 12.0 if relic_count >= 4 else 8.0
+				score = 12.0 if relic_count >= 4 else -8.0
 			else:
 				score = -12.0
 		"shop":
@@ -1427,10 +1468,14 @@ func _offer_relic_reward(state: Dictionary, seed_text: String) -> void:
 func _offer_potion_reward(state: Dictionary, seed_text: String) -> void:
 	if not _has_empty_potion_slot(state):
 		return
-	var chance_percent: int = clampi(int(economy_data.get("potion_reward", {}).get("drop_chance_percent", 100)), 0, 100)
+	var potion_reward_config: Dictionary = economy_data.get("potion_reward", {})
+	var option_count: int = max(0, int(potion_reward_config.get("combat_drop_count", 1)))
+	if option_count <= 0:
+		return
+	var chance_percent: int = clampi(int(potion_reward_config.get("drop_chance_percent", 100)), 0, 100)
 	if chance_percent <= 0 or _deterministic_index("potion_drop|%s" % seed_text, 100) >= chance_percent:
 		return
-	var options: Array = _generate_potion_options(2, seed_text)
+	var options: Array = _generate_potion_options(option_count, seed_text)
 	var best_potion: Dictionary = _best_potion_option(options)
 	if best_potion.is_empty():
 		return
@@ -1850,6 +1895,7 @@ func _aggregate_case(character: Dictionary, challenge: Dictionary, encounter: Di
 		"character_name": str(character.get("name", character.get("id", ""))),
 		"challenge_level": int(challenge.get("level", 0)),
 		"challenge_name": str(challenge.get("short_name", challenge.get("name", ""))),
+		"challenge_modifiers": challenge.get("modifiers", {}).duplicate(true),
 		"encounter_id": str(encounter.get("id", "")),
 		"encounter_name": str(encounter.get("name", encounter.get("id", ""))),
 		"encounter_tier": str(encounter.get("tier", "normal")),
@@ -1946,6 +1992,7 @@ func _aggregate_campaign_case(character: Dictionary, challenge: Dictionary, runs
 		"character_name": str(character.get("name", character.get("id", ""))),
 		"challenge_level": int(challenge.get("level", 0)),
 		"challenge_name": str(challenge.get("short_name", challenge.get("name", ""))),
+		"challenge_modifiers": challenge.get("modifiers", {}).duplicate(true),
 		"runs": count,
 		"wins": wins,
 		"losses": count - wins,
@@ -1970,11 +2017,20 @@ func _aggregate_campaign_case(character: Dictionary, challenge: Dictionary, runs
 		"failure_points": failure_points,
 		"failure_node_types": failure_node_types,
 		"failure_encounters": failure_encounters,
+		"win_iteration_indices": _campaign_win_iteration_indices(runs),
 		"card_telemetry": _aggregate_campaign_card_telemetry(runs),
 		"sample_runs": _sample_campaign_runs(runs)
 	}
 	case["risk_flag"] = _campaign_risk_flag(case)
 	return case
+
+func _campaign_win_iteration_indices(runs: Array) -> Array:
+	var indices: Array = []
+	for iteration in range(runs.size()):
+		var run: Dictionary = runs[iteration]
+		if bool(run.get("won", false)):
+			indices.append(iteration)
+	return indices
 
 func _aggregate_campaign_card_telemetry(runs: Array) -> Array:
 	var rows_by_id: Dictionary = {}
@@ -2262,8 +2318,6 @@ func _campaign_risk_flag(case: Dictionary) -> String:
 			return "campaign_failure_concentration"
 	if win_rate < 0.05 and avg_chapters < 1.0:
 		return "campaign_fails_chapter_one"
-	if win_rate < 0.10 and avg_chapters < 2.0:
-		return "campaign_fails_before_finale"
 	return "ok"
 
 func _campaign_win_rate_target(challenge_level: int) -> Array:

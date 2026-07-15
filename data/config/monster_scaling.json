@@ -22,8 +22,9 @@
     "max_elite_enemy_count": 2,
     "two_enemy_peak_damage_multiplier": 1.55,
     "boss_phase_enter_max_effect_categories": 1,
+    "boss_phase_transition_mode": "highest_reached_only",
     "design_note": "双敌遭遇使用总压力预算，不能把两个单体峰值直接相加。",
-    "balance_note": "Boss 转阶段只能立即给护甲、力量或状态牌中的一个压力类型。"
+    "balance_note": "Boss 每个阶段只能立即给护甲、力量或状态牌中的一个压力类型；单次伤害跨越多个阈值时只进入最高可达阶段，避免叠加多个阶段的即时压力。"
   },
   "challenge_scaling": {
     "source": "challenges.json",

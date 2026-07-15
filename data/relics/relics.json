@@ -172,7 +172,7 @@
       "effects": [
         { "trigger": "combat_start", "type": "gain_block", "amount": 5 }
       ],
-      "design_note": "电弧工匠专属开局容错遗物，缓冲 68 生命带来的早期压力。",
+      "design_note": "电弧工匠专属开局容错遗物，缓冲 69 生命带来的早期压力。",
       "balance_note": "5 点一次性护甲只负责低生命容错；启动势能由角色基础值和电弧电容提供，避免三个开场势能来源重复叠加。",
 			"implementation_note": "复用 combat_start 的 gain_block 遗物效果。"
     },

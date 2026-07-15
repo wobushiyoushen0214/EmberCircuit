@@ -4,6 +4,8 @@ const NumericalTreeAuditorScript = preload("res://scripts/tools/NumericalTreeAud
 
 const REPORT_PATH := "/tmp/embercircuit_numerical_tree_test_report.json"
 
+var _failures: Array[String] = []
+
 func _init() -> void:
 	call_deferred("_run")
 
@@ -21,6 +23,17 @@ func _run() -> void:
 	_check(int(summary.get("card_count", 0)) == cards.size(), "numerical tree card summary is consistent")
 	_check(int(summary.get("player_count", 0)) == players.size(), "numerical tree player summary is consistent")
 	_check(int(summary.get("monster_encounter_count", 0)) == monsters.size(), "numerical tree monster summary is consistent")
+	var category_fixture := [
+		{"type": "block", "target": "self", "amount": 8},
+		{"type": "apply_status", "target": "self", "status": "strength", "amount": 1},
+		{"type": "create_card", "target": "player", "card_id": "searing_wound", "amount": 1},
+	]
+	_check(auditor._phase_entry_effect_categories(category_fixture) == ["block", "status_card", "strength"], "phase entry audit distinguishes block, strength, and status-card pressure")
+	for monster_value in monsters:
+		var monster: Dictionary = monster_value
+		if str(monster.get("tier", "")) == "boss":
+			_check(int(monster.get("max_phase_entry_effect_categories", -1)) <= int(monster.get("phase_entry_effect_category_limit", 0)), "boss phase entry stays inside the configured pressure-category limit: %s" % str(monster.get("id", "")))
+			_check(str(monster.get("phase_transition_mode", "")) == "highest_reached_only", "boss audit declares the runtime multi-threshold transition rule: %s" % str(monster.get("id", "")))
 	_check(int(summary.get("player_warning_count", -1)) == 0, "playable characters satisfy the numerical tree")
 	_check(report.get("economy", {}).has("expected_final_gold_range"), "numerical tree report includes economy targets")
 	_check((report.get("progression", {}).get("trees", []) as Array).size() >= 3, "numerical tree report includes progression trees")
@@ -39,6 +52,12 @@ func _run() -> void:
 	_check(error == OK and FileAccess.file_exists(REPORT_PATH), "numerical tree auditor saves JSON report")
 	var saved = JSON.parse_string(FileAccess.get_file_as_string(REPORT_PATH))
 	_check(saved is Dictionary and str(saved.get("audit_model", "")) == "static_numerical_tree", "saved numerical tree report is valid JSON")
+	if not _failures.is_empty():
+		push_error("Numerical tree auditor test failed with %d issue(s)." % _failures.size())
+		for failure in _failures:
+			push_error(" - %s" % failure)
+		quit(1)
+		return
 	print("Numerical tree auditor smoke test passed.")
 	quit(0)
 
@@ -50,6 +69,5 @@ func _row_by_id(rows: Array, row_id: String) -> Dictionary:
 	return {}
 
 func _check(condition: bool, message: String) -> void:
-	if not condition:
-		push_error("Test failed: %s" % message)
-		quit(1)
+	if not condition and not _failures.has(message):
+		_failures.append(message)

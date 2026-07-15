@@ -504,6 +504,9 @@ func _calculate_block_amount(card: Dictionary, effect: Dictionary) -> int:
 
 func _modified_enemy_max_hp(enemy_data: Dictionary) -> int:
 	var multiplier: float = max(0.1, float(challenge_modifiers.get("enemy_hp_multiplier", 1.0)))
+	var encounter: Dictionary = encounters_by_id.get(selected_encounter_id, {})
+	if str(encounter.get("tier", "normal")) == "boss":
+		multiplier *= max(0.1, float(challenge_modifiers.get("boss_hp_multiplier", 1.0)))
 	return max(1, int(ceil(float(int(enemy_data.get("max_hp", 1))) * multiplier)))
 
 func _modified_enemy_damage(amount: int) -> int:
@@ -880,12 +883,15 @@ func _check_enemy_phase_transitions(enemy: Dictionary) -> void:
 		return
 
 	var current_phase_index: int = int(enemy.get("phase_index", -1))
+	var target_phase_index := -1
 	for i in range(phases.size()):
 		if i <= current_phase_index:
 			continue
 		var phase_data: Dictionary = phases[i]
 		if _enemy_phase_threshold_met(enemy, phase_data):
-			_enter_enemy_phase(enemy, i, phase_data)
+			target_phase_index = i
+	if target_phase_index > current_phase_index:
+		_enter_enemy_phase(enemy, target_phase_index, phases[target_phase_index])
 
 func _enemy_phase_threshold_met(enemy: Dictionary, phase_data: Dictionary) -> bool:
 	var hp: int = int(enemy.get("hp", 0))
