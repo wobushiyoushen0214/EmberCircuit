@@ -809,3 +809,4 @@ jq empty data/cards/cards.json data/enemies/enemies.json data/relics/relics.json
 - PC 图库新增 `07_campfire_720p.png` 与 `07_campfire_forge_720p.png`；人工检查确认顶部角色 HUD、房间插画、两个动作按钮和十张起始牌在 `1280x720` 内完整显示，无裁切、重叠或可见页面滚动条。
 - 完整资源清单增加至 153 个槽位，预期保持 0 缺失、0 hard error、74 个 legacy fallback。
 - 构建标记升级为 `0.1.0-alpha.4`，macOS bundle build number 升级为 4。
+- `0.1.0-alpha.4` 从源码提交 `7313e1d` 导出：Windows embedded-PCK 与 macOS universal 包均通过启动、压缩完整性、篝火纹理入包和版本验证；SHA-256 分别为 `b0a51e4d6b29abe332dd6abf9f2f1f932e6503bbd73b679578033dca62687f01` 与 `02c04e8351f1214d9e699ac03bffaabb30bc727e73e0991c6bfc921e16b731bf`。
