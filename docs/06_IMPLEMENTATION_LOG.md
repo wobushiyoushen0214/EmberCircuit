@@ -798,3 +798,4 @@ jq empty data/cards/cards.json data/enemies/enemies.json data/relics/relics.json
 - `test_run_flow.gd` 覆盖单舞台、纵向决策列、真实按钮接线、显现请求和专用按钮皮肤；`test_visual_bounds.gd` 以四选项事件验证无滚动条和视口边界。PC 图库覆盖四张新事件图的 720p 实际裁切，并新增 2048x1066 宽屏事件快照。
 - 本轮未修改角色、怪物、卡牌、成长或挑战数值；真人每角色/挑战格达到 12/30 个完成局前继续冻结硬调参。
 - 构建标记升级为 `0.1.0-alpha.3`，macOS bundle build number 升级为 3。
+- `0.1.0-alpha.3` 从源码提交 `d105255` 导出：Windows embedded-PCK 与 macOS universal 包均通过启动、压缩完整性和版本验证；SHA-256 分别为 `9e585b5908694064708720d09235373e7859e095a05da2fc17202015269281b2` 与 `66c38bf03d9d0445039506cc6ddac53e2781329b816067a9bfba2285a7c52719`。
