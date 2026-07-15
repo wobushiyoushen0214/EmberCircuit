@@ -153,6 +153,12 @@ func _run_campaign_once(character_id: String, challenge_level: int, max_turns: i
 		"cards_added_ids": [],
 		"cards_removed_ids": [],
 		"cards_upgraded_ids": [],
+		"card_offer_counts_by_id": {},
+		"card_acquisition_counts_by_id": {},
+		"card_acquisition_sources_by_id": {},
+		"card_removal_counts_by_id": {},
+		"card_upgrade_counts_by_id": {},
+		"card_play_counts_by_id": {},
 		"relics_added_ids": [],
 		"potions_gained_ids": [],
 		"potions_used_ids": [],
@@ -249,6 +255,7 @@ func _resolve_campaign_combat(state: Dictionary, node: Dictionary, chapter_id: S
 	state["potions_used_ids"] = campaign_used_potion_ids
 	state["turns"] = int(state.get("turns", 0)) + int(combat_result.get("turns", 0))
 	state["cards_played"] = int(state.get("cards_played", 0)) + int(combat_result.get("cards_played", 0))
+	_merge_count_dictionary(state, "card_play_counts_by_id", combat_result.get("card_play_counts_by_id", {}))
 	if not bool(combat_result.get("won", false)):
 		state["hp"] = int(combat_result.get("player_hp_remaining", state.get("hp", 0)))
 		return {"completed": false, "reason": str(combat_result.get("phase", "combat_failed")), "encounter_id": encounter_id}
@@ -502,13 +509,7 @@ func _apply_campaign_event_effect(state: Dictionary, effect: Dictionary) -> void
 			state["hp"] = min(max_hp, int(state.get("hp", 0)) + heal)
 		"add_card":
 			var card_id: String = str(effect.get("card_id", ""))
-			if not card_id.is_empty():
-				var deck_ids: Array = state.get("deck_ids", [])
-				deck_ids.append(card_id)
-				state["cards_added"] = int(state.get("cards_added", 0)) + 1
-				var added_ids: Array = state.get("cards_added_ids", [])
-				added_ids.append(card_id)
-				state["cards_added_ids"] = added_ids
+			_add_campaign_card(state, card_id, "event")
 		"gain_relic":
 			var relic_id: String = str(effect.get("relic_id", ""))
 			var relic_ids: Array = state.get("relic_ids", [])
@@ -537,6 +538,7 @@ func _apply_campaign_event_effect(state: Dictionary, effect: Dictionary) -> void
 				var removed_ids: Array = state.get("cards_removed_ids", [])
 				removed_ids.append(removed_card_id)
 				state["cards_removed_ids"] = removed_ids
+				_record_card_removed(state, removed_card_id)
 		"complete_event":
 			var event_id: String = str(effect.get("event_id", ""))
 			if not event_id.is_empty():
@@ -594,17 +596,14 @@ func _simulate_campaign_shop(state: Dictionary, chapter_id: String, seed_value: 
 		bought_potion = _buy_best_shop_potion(state, chapter_id, seed_value)
 
 	var card_options: Array = _generate_card_options(str(state.get("character_id", "")), 3, "shop_card|%s|%d" % [chapter_id, seed_value], "shop_card")
+	_record_card_offers(state, card_options)
 	var best_card: Dictionary = _best_card_option(card_options, str(state.get("character_id", "")))
 	if not best_card.is_empty():
 		var card_price: int = _card_price(best_card)
 		var shop_accept_score: float = float(economy_data.get("reward_generation", {}).get("shop_card_accept_score", 7.0))
 		if int(state.get("gold", 0)) >= card_price and _card_reward_score(best_card, str(state.get("character_id", ""))) >= shop_accept_score:
-			deck_ids.append(str(best_card.get("id", "")))
+			_add_campaign_card(state, str(best_card.get("id", "")), "shop")
 			state["gold"] = int(state.get("gold", 0)) - card_price
-			state["cards_added"] = int(state.get("cards_added", 0)) + 1
-			var added_ids: Array = state.get("cards_added_ids", [])
-			added_ids.append(str(best_card.get("id", "")))
-			state["cards_added_ids"] = added_ids
 
 	if not bought_potion:
 		_buy_best_shop_potion(state, chapter_id, seed_value)
@@ -620,6 +619,7 @@ func _simulate_campaign_shop(state: Dictionary, chapter_id: String, seed_value: 
 		var removed_ids: Array = state.get("cards_removed_ids", [])
 		removed_ids.append(removed_card_id)
 		state["cards_removed_ids"] = removed_ids
+		_record_card_removed(state, removed_card_id)
 
 func _buy_best_shop_potion(state: Dictionary, chapter_id: String, seed_value: int) -> bool:
 	if not _has_empty_potion_slot(state):
@@ -680,6 +680,7 @@ func _simulate_campaign_campfire(state: Dictionary) -> void:
 		var upgraded_ids: Array = state.get("cards_upgraded_ids", [])
 		upgraded_ids.append(upgraded_card_id)
 		state["cards_upgraded_ids"] = upgraded_ids
+		_record_card_upgraded(state, upgraded_card_id)
 
 func _campaign_modifier_sources(state: Dictionary) -> Array:
 	var sources: Array = []
@@ -808,6 +809,7 @@ func _run_single_combat_with_loadout(
 	var starting_hp: int = int(combat.player.get("hp", 0))
 	var starting_enemy_hp: int = _total_enemy_max_hp(combat)
 	var cards_played := 0
+	var card_play_counts_by_id: Dictionary = {}
 	var timeout := false
 	var used_potion_ids: Array = []
 
@@ -833,8 +835,13 @@ func _run_single_combat_with_loadout(
 			var decision: Dictionary = _choose_card(combat)
 			if decision.is_empty():
 				break
-			if not combat.play_card(int(decision.get("hand_index", -1)), int(decision.get("target_index", -1))):
+			var hand_index: int = int(decision.get("hand_index", -1))
+			var played_card_id := ""
+			if hand_index >= 0 and hand_index < combat.hand.size():
+				played_card_id = _base_card_id(str(combat.hand[hand_index].get("id", "")))
+			if not combat.play_card(hand_index, int(decision.get("target_index", -1))):
 				break
+			_increment_count(card_play_counts_by_id, played_card_id)
 			cards_played += 1
 			plays_this_turn += 1
 			combat.consume_feedback_events()
@@ -855,6 +862,7 @@ func _run_single_combat_with_loadout(
 		"player_hp_lost": max(0, starting_hp - int(combat.player.get("hp", 0))),
 		"enemy_hp_removed": max(0, starting_enemy_hp - _total_enemy_hp(combat)),
 		"cards_played": cards_played,
+		"card_play_counts_by_id": card_play_counts_by_id,
 		"potions_remaining": potion_ids.duplicate(true),
 		"potions_used_ids": used_potion_ids
 	}
@@ -1323,6 +1331,12 @@ func _campaign_result(won: bool, state: Dictionary) -> Dictionary:
 		"cards_added_ids": state.get("cards_added_ids", []),
 		"cards_removed_ids": state.get("cards_removed_ids", []),
 		"cards_upgraded_ids": state.get("cards_upgraded_ids", []),
+		"card_offer_counts_by_id": state.get("card_offer_counts_by_id", {}),
+		"card_acquisition_counts_by_id": state.get("card_acquisition_counts_by_id", {}),
+		"card_acquisition_sources_by_id": state.get("card_acquisition_sources_by_id", {}),
+		"card_removal_counts_by_id": state.get("card_removal_counts_by_id", {}),
+		"card_upgrade_counts_by_id": state.get("card_upgrade_counts_by_id", {}),
+		"card_play_counts_by_id": state.get("card_play_counts_by_id", {}),
 		"relics_added_ids": state.get("relics_added_ids", []),
 		"potions_gained_ids": state.get("potions_gained_ids", []),
 		"potions_used_ids": state.get("potions_used_ids", []),
@@ -1333,10 +1347,61 @@ func _campaign_result(won: bool, state: Dictionary) -> Dictionary:
 		"path": state.get("path", [])
 	}
 
+func _add_campaign_card(state: Dictionary, card_entry: String, source: String) -> void:
+	var card_id := _base_card_id(card_entry)
+	if card_id.is_empty() or _card_by_id(card_id).is_empty():
+		return
+	var deck_ids: Array = state.get("deck_ids", [])
+	deck_ids.append(card_entry)
+	state["cards_added"] = int(state.get("cards_added", 0)) + 1
+	var added_ids: Array = state.get("cards_added_ids", [])
+	added_ids.append(card_entry)
+	state["cards_added_ids"] = added_ids
+	var acquisition_counts: Dictionary = state.get("card_acquisition_counts_by_id", {})
+	_increment_count(acquisition_counts, card_id)
+	state["card_acquisition_counts_by_id"] = acquisition_counts
+	var sources_by_id: Dictionary = state.get("card_acquisition_sources_by_id", {})
+	var source_counts: Dictionary = sources_by_id.get(card_id, {})
+	_increment_count(source_counts, source if not source.is_empty() else "unknown")
+	sources_by_id[card_id] = source_counts
+	state["card_acquisition_sources_by_id"] = sources_by_id
+
+func _record_card_offers(state: Dictionary, cards: Array) -> void:
+	var offer_counts: Dictionary = state.get("card_offer_counts_by_id", {})
+	for card_value in cards:
+		var card: Dictionary = card_value
+		_increment_count(offer_counts, _base_card_id(str(card.get("id", ""))))
+	state["card_offer_counts_by_id"] = offer_counts
+
+func _record_card_removed(state: Dictionary, card_entry: String) -> void:
+	var counts: Dictionary = state.get("card_removal_counts_by_id", {})
+	_increment_count(counts, _base_card_id(card_entry))
+	state["card_removal_counts_by_id"] = counts
+
+func _record_card_upgraded(state: Dictionary, card_entry: String) -> void:
+	var counts: Dictionary = state.get("card_upgrade_counts_by_id", {})
+	_increment_count(counts, _base_card_id(card_entry))
+	state["card_upgrade_counts_by_id"] = counts
+
+func _increment_count(counts: Dictionary, key: String, amount: int = 1) -> void:
+	if key.is_empty() or amount <= 0:
+		return
+	counts[key] = int(counts.get(key, 0)) + amount
+
+func _merge_count_dictionary(state: Dictionary, field_name: String, incoming_value) -> void:
+	if not incoming_value is Dictionary:
+		return
+	var merged: Dictionary = state.get(field_name, {})
+	var incoming: Dictionary = incoming_value
+	for key_value in incoming.keys():
+		_increment_count(merged, str(key_value), int(incoming.get(key_value, 0)))
+	state[field_name] = merged
+
 func _offer_card_reward(state: Dictionary, amount: int, seed_text: String) -> void:
 	if amount <= 0:
 		return
 	var options: Array = _generate_card_options(str(state.get("character_id", "")), amount, seed_text, "combat_card")
+	_record_card_offers(state, options)
 	var best_card: Dictionary = _best_card_option(options, str(state.get("character_id", "")))
 	if best_card.is_empty():
 		return
@@ -1345,12 +1410,7 @@ func _offer_card_reward(state: Dictionary, amount: int, seed_text: String) -> vo
 	var skip_deck_size: int = int(reward_config.get("skip_reward_when_deck_at_least", 13))
 	if _card_reward_score(best_card, str(state.get("character_id", ""))) < accept_score and (state.get("deck_ids", []) as Array).size() >= skip_deck_size:
 		return
-	var deck_ids: Array = state.get("deck_ids", [])
-	deck_ids.append(str(best_card.get("id", "")))
-	state["cards_added"] = int(state.get("cards_added", 0)) + 1
-	var added_ids: Array = state.get("cards_added_ids", [])
-	added_ids.append(str(best_card.get("id", "")))
-	state["cards_added_ids"] = added_ids
+	_add_campaign_card(state, str(best_card.get("id", "")), "combat_reward")
 
 func _offer_relic_reward(state: Dictionary, seed_text: String) -> void:
 	var options: Array = _generate_relic_options(str(state.get("character_id", "")), state.get("relic_ids", []), 3, seed_text)
@@ -1910,10 +1970,122 @@ func _aggregate_campaign_case(character: Dictionary, challenge: Dictionary, runs
 		"failure_points": failure_points,
 		"failure_node_types": failure_node_types,
 		"failure_encounters": failure_encounters,
+		"card_telemetry": _aggregate_campaign_card_telemetry(runs),
 		"sample_runs": _sample_campaign_runs(runs)
 	}
 	case["risk_flag"] = _campaign_risk_flag(case)
 	return case
+
+func _aggregate_campaign_card_telemetry(runs: Array) -> Array:
+	var rows_by_id: Dictionary = {}
+	var total_wins := 0
+	for run_value in runs:
+		var run: Dictionary = run_value
+		var won := bool(run.get("won", false))
+		if won:
+			total_wins += 1
+		var offers: Dictionary = run.get("card_offer_counts_by_id", {})
+		var acquisitions: Dictionary = run.get("card_acquisition_counts_by_id", {})
+		var acquisition_sources: Dictionary = run.get("card_acquisition_sources_by_id", {})
+		var removals: Dictionary = run.get("card_removal_counts_by_id", {})
+		var upgrades: Dictionary = run.get("card_upgrade_counts_by_id", {})
+		var plays: Dictionary = run.get("card_play_counts_by_id", {})
+		var observed_ids: Dictionary = {}
+		for count_map in [offers, acquisitions, removals, upgrades, plays]:
+			for card_id_value in count_map.keys():
+				observed_ids[str(card_id_value)] = true
+		for card_id_value in acquisition_sources.keys():
+			observed_ids[str(card_id_value)] = true
+
+		for card_id_value in observed_ids.keys():
+			var card_id := str(card_id_value)
+			if card_id.is_empty():
+				continue
+			var row: Dictionary = rows_by_id.get(card_id, _empty_card_telemetry_row(card_id))
+			var acquisition_count := int(acquisitions.get(card_id, 0))
+			var play_count := int(plays.get(card_id, 0))
+			row["offers"] = int(row.get("offers", 0)) + int(offers.get(card_id, 0))
+			row["acquisitions"] = int(row.get("acquisitions", 0)) + acquisition_count
+			row["removals"] = int(row.get("removals", 0)) + int(removals.get(card_id, 0))
+			row["upgrades"] = int(row.get("upgrades", 0)) + int(upgrades.get(card_id, 0))
+			row["plays"] = int(row.get("plays", 0)) + play_count
+			if acquisition_count > 0:
+				row["acquisition_runs"] = int(row.get("acquisition_runs", 0)) + 1
+				if won:
+					row["wins_when_acquired"] = int(row.get("wins_when_acquired", 0)) + 1
+				else:
+					row["losses_when_acquired"] = int(row.get("losses_when_acquired", 0)) + 1
+			if play_count > 0:
+				row["runs_played"] = int(row.get("runs_played", 0)) + 1
+				if won:
+					row["wins_when_played"] = int(row.get("wins_when_played", 0)) + 1
+				else:
+					row["losses_when_played"] = int(row.get("losses_when_played", 0)) + 1
+			var row_sources: Dictionary = row.get("acquisition_sources", {})
+			var run_sources: Dictionary = acquisition_sources.get(card_id, {})
+			for source_value in run_sources.keys():
+				_increment_count(row_sources, str(source_value), int(run_sources.get(source_value, 0)))
+			row["acquisition_sources"] = row_sources
+			rows_by_id[card_id] = row
+
+	var run_count: int = runs.size()
+	var total_losses: int = run_count - total_wins
+	var rows: Array = []
+	for card_id_value in rows_by_id.keys():
+		var row: Dictionary = rows_by_id[card_id_value]
+		var offers := int(row.get("offers", 0))
+		var acquisitions := int(row.get("acquisitions", 0))
+		var acquisition_runs := int(row.get("acquisition_runs", 0))
+		var runs_played := int(row.get("runs_played", 0))
+		var wins_when_acquired := int(row.get("wins_when_acquired", 0))
+		var losses_when_acquired := int(row.get("losses_when_acquired", 0))
+		var wins_when_played := int(row.get("wins_when_played", 0))
+		var losses_when_played := int(row.get("losses_when_played", 0))
+		var sources: Dictionary = row.get("acquisition_sources", {})
+		var offered_acquisitions := int(sources.get("combat_reward", 0)) + int(sources.get("shop", 0))
+		row["offered_acquisitions"] = offered_acquisitions
+		row["acquisition_rate_per_offer"] = _rounded_rate(float(offered_acquisitions) / float(offers)) if offers > 0 else 0.0
+		row["win_rate_when_acquired"] = _rounded_rate(float(wins_when_acquired) / float(acquisition_runs)) if acquisition_runs > 0 else 0.0
+		row["win_rate_when_played"] = _rounded_rate(float(wins_when_played) / float(runs_played)) if runs_played > 0 else 0.0
+		var runs_not_acquired: int = max(0, run_count - acquisition_runs)
+		var wins_not_acquired: int = max(0, total_wins - wins_when_acquired)
+		var losses_not_acquired: int = max(0, total_losses - losses_when_acquired)
+		row["runs_not_acquired"] = runs_not_acquired
+		row["wins_when_not_acquired"] = wins_not_acquired
+		row["losses_when_not_acquired"] = losses_not_acquired
+		row["win_rate_when_not_acquired"] = _rounded_rate(float(wins_not_acquired) / float(runs_not_acquired)) if runs_not_acquired > 0 else 0.0
+		row["acquisition_comparison_available"] = acquisition_runs > 0 and runs_not_acquired > 0
+		row["win_rate_lift_when_acquired"] = _rounded_rate(float(row["win_rate_when_acquired"]) - float(row["win_rate_when_not_acquired"])) if bool(row["acquisition_comparison_available"]) else 0.0
+		var runs_not_played: int = max(0, run_count - runs_played)
+		var wins_not_played: int = max(0, total_wins - wins_when_played)
+		var losses_not_played: int = max(0, total_losses - losses_when_played)
+		row["runs_not_played"] = runs_not_played
+		row["wins_when_not_played"] = wins_not_played
+		row["losses_when_not_played"] = losses_not_played
+		row["win_rate_when_not_played"] = _rounded_rate(float(wins_not_played) / float(runs_not_played)) if runs_not_played > 0 else 0.0
+		row["play_comparison_available"] = runs_played > 0 and runs_not_played > 0
+		row["win_rate_lift_when_played"] = _rounded_rate(float(row["win_rate_when_played"]) - float(row["win_rate_when_not_played"])) if bool(row["play_comparison_available"]) else 0.0
+		rows.append(row)
+	rows.sort_custom(_compare_content_by_id)
+	return rows
+
+func _empty_card_telemetry_row(card_id: String) -> Dictionary:
+	return {
+		"id": card_id,
+		"offers": 0,
+		"acquisitions": 0,
+		"offered_acquisitions": 0,
+		"acquisition_sources": {},
+		"acquisition_runs": 0,
+		"removals": 0,
+		"upgrades": 0,
+		"runs_played": 0,
+		"plays": 0,
+		"wins_when_acquired": 0,
+		"losses_when_acquired": 0,
+		"wins_when_played": 0,
+		"losses_when_played": 0
+	}
 
 func _sample_campaign_runs(runs: Array) -> Array:
 	var samples: Array = []
@@ -1955,6 +2127,12 @@ func _summarize_campaign_run(run: Dictionary) -> Dictionary:
 		"cards_added_ids": run.get("cards_added_ids", []),
 		"cards_removed_ids": run.get("cards_removed_ids", []),
 		"cards_upgraded_ids": run.get("cards_upgraded_ids", []),
+		"card_offer_counts_by_id": run.get("card_offer_counts_by_id", {}),
+		"card_acquisition_counts_by_id": run.get("card_acquisition_counts_by_id", {}),
+		"card_acquisition_sources_by_id": run.get("card_acquisition_sources_by_id", {}),
+		"card_removal_counts_by_id": run.get("card_removal_counts_by_id", {}),
+		"card_upgrade_counts_by_id": run.get("card_upgrade_counts_by_id", {}),
+		"card_play_counts_by_id": run.get("card_play_counts_by_id", {}),
 		"relics_added_ids": run.get("relics_added_ids", []),
 		"potions_gained_ids": run.get("potions_gained_ids", []),
 		"potions_used_ids": run.get("potions_used_ids", []),
