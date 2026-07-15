@@ -2,6 +2,7 @@ extends SceneTree
 
 const DataLoaderScript = preload("res://scripts/core/DataLoader.gd")
 const NumericalTreeAuditorScript = preload("res://scripts/tools/NumericalTreeAuditor.gd")
+const PlaytestTelemetryScript = preload("res://scripts/core/PlaytestTelemetry.gd")
 
 var failed := false
 
@@ -20,6 +21,7 @@ func _run() -> void:
 	var audit_report: Dictionary = NumericalTreeAuditorScript.new().build_report()
 
 	_check(int(tree.get("version", 0)) >= 2, "numerical tree exposes the expanded schema")
+	_check_human_playtest_targets(tree.get("human_playtest_targets", {}))
 	_check_inventory(tree.get("audit_inventory", {}), cards, enemies, encounters, progression, challenges, economy, audit_report)
 	_check_matrix(tree, players, cards, progression, challenges, audit_report)
 	if failed:
@@ -27,6 +29,19 @@ func _run() -> void:
 		return
 	print("Numerical balance matrix contract test passed.")
 	quit(0)
+
+func _check_human_playtest_targets(targets: Dictionary) -> void:
+	_check(int(targets.get("schema_version", 0)) == 1, "human playtest targets expose a versioned contract")
+	_check(int(targets.get("report_schema_version", 0)) == PlaytestTelemetryScript.SCHEMA_VERSION, "human targets match the runtime report schema")
+	_check(targets.get("win_rate_denominator_outcomes", []) == ["victory", "defeat"], "human win rate excludes unfinished runs from its denominator")
+	_check(targets.get("excluded_outcomes", []) == ["abandoned", "in_progress"], "human targets name unfinished outcomes explicitly")
+	_check(int(targets.get("directional_finished_runs_per_cell", 0)) >= 10, "human directional review requires a useful sample per character and challenge")
+	_check(int(targets.get("hard_gate_finished_runs_per_cell", 0)) >= 30, "human hard gate requires a larger sample per character and challenge")
+	_check(int(targets.get("hard_gate_finished_runs_per_cell", 0)) > int(targets.get("directional_finished_runs_per_cell", 0)), "human hard gate sample exceeds directional sample")
+	_check(is_equal_approx(float(targets.get("max_character_win_rate_gap", 0.0)), 0.05), "human character win-rate gap target remains five percent")
+	_check(float(targets.get("single_failure_encounter_share_max", 0.0)) <= 0.5, "human failure concentration has an explicit ceiling")
+	_check(float(targets.get("max_abandon_rate", 0.0)) <= 0.35, "human abandon rate has an explicit ceiling outside the win-rate denominator")
+	_check(int(targets.get("minimum_card_comparison_runs", 0)) >= 20, "human card comparisons require enough acquired or played runs")
 
 func _check_inventory(inventory: Dictionary, cards: Dictionary, enemies: Dictionary, encounters: Dictionary, progression: Dictionary, challenges: Dictionary, economy: Dictionary, audit_report: Dictionary) -> void:
 	var card_inventory: Dictionary = inventory.get("cards", {})

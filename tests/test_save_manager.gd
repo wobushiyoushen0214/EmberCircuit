@@ -1,6 +1,7 @@
 extends SceneTree
 
 const SaveManagerScript = preload("res://scripts/core/SaveManager.gd")
+const PlaytestTelemetryScript = preload("res://scripts/core/PlaytestTelemetry.gd")
 
 var original_user_files: Dictionary = {}
 
@@ -8,6 +9,8 @@ func _init() -> void:
 	_capture_user_file(SaveManagerScript.SAVE_PATH)
 	_capture_user_file(SaveManagerScript.SETTINGS_PATH)
 	_capture_user_file(SaveManagerScript.PROFILE_PATH)
+	_capture_user_file(SaveManagerScript.PLAYTEST_STORE_PATH)
+	_capture_user_file(SaveManagerScript.PLAYTEST_EXPORT_PATH)
 
 	var state := {
 		"version": 1,
@@ -103,6 +106,30 @@ func _init() -> void:
 	_check(SaveManagerScript.save_profile(SaveManagerScript.default_profile()), "save_profile can restore defaults")
 	var default_discovered: Dictionary = SaveManagerScript.default_profile().get("discovered", {})
 	_check(default_discovered.has("cards") and default_discovered.get("cards", []).is_empty(), "default_profile includes empty discovery state")
+
+	var playtest_store: Dictionary = PlaytestTelemetryScript.start_run(
+		PlaytestTelemetryScript.default_store(),
+		{
+			"run_id": "save-manager-fixture",
+			"timestamp_utc": "2026-07-15T12:00:00Z",
+			"character_id": "arc_tinker",
+			"challenge_level": 1,
+			"username": "must-not-survive-normalization",
+			"home_path": "/private/fixture"
+		}
+	)
+	_check(SaveManagerScript.save_playtest_store(playtest_store), "save_playtest_store returns true")
+	var loaded_playtest_store: Dictionary = SaveManagerScript.load_playtest_store()
+	var loaded_active: Dictionary = PlaytestTelemetryScript.active_run(loaded_playtest_store)
+	_check(str(loaded_active.get("run_id", "")) == "save-manager-fixture", "load_playtest_store restores active run")
+	_check(not loaded_active.has("username") and not loaded_active.has("home_path"), "playtest store strips fields outside the privacy schema")
+
+	var report: Dictionary = PlaytestTelemetryScript.build_report(loaded_playtest_store, {"generated_at_utc": "2026-07-15T12:30:00Z"})
+	_check(SaveManagerScript.export_playtest_report(report), "export_playtest_report returns true")
+	_check(FileAccess.file_exists(SaveManagerScript.PLAYTEST_EXPORT_PATH), "playtest export is written to user data")
+	var exported = JSON.parse_string(FileAccess.get_file_as_string(SaveManagerScript.PLAYTEST_EXPORT_PATH))
+	_check(exported is Dictionary and int(exported.get("schema_version", 0)) == PlaytestTelemetryScript.SCHEMA_VERSION, "exported playtest report is valid versioned JSON")
+	_check(SaveManagerScript.playtest_export_absolute_path() == ProjectSettings.globalize_path(SaveManagerScript.PLAYTEST_EXPORT_PATH), "playtest export exposes a shareable absolute path")
 
 	_restore_user_files()
 	print("Save manager smoke test passed.")

@@ -205,6 +205,20 @@
     ],
     "design_note": "成长树以路线弹性和开局容错为主，禁止直接给永久力量、额外初始能量或每回合持续收益。"
   },
+  "human_playtest_targets": {
+    "_comment": "真人试玩报告的独立验收口径。它不覆盖 campaign_matrix，也不能用启发式 AI 样本冒充；每个 cell 指一个角色乘一个挑战等级。",
+    "schema_version": 1,
+    "report_schema_version": 1,
+    "win_rate_denominator_outcomes": ["victory", "defeat"],
+    "excluded_outcomes": ["abandoned", "in_progress"],
+    "directional_finished_runs_per_cell": 12,
+    "hard_gate_finished_runs_per_cell": 30,
+    "minimum_card_comparison_runs": 20,
+    "max_character_win_rate_gap": 0.05,
+    "single_failure_encounter_share_max": 0.5,
+    "max_abandon_rate": 0.35,
+    "design_note": "每格 12 个完成样本只用于发现方向，至少 30 个完成样本才允许触发角色或挑战硬调参；单卡胜率比较要求至少 20 个获取或打出样本。放弃和进行中跑团单列，禁止混入胜率分母。"
+  },
   "campaign_targets": {
     "_comment": "自动战役模拟目标。启发式 AI 不是人类水平，因此目标胜率低于真实玩家预期，用于观察相对平衡。",
     "normal_win_rate_range": [0.27, 0.33],

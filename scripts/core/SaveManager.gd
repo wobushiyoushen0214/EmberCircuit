@@ -1,9 +1,13 @@
 class_name SaveManager
 extends RefCounted
 
+const PlaytestTelemetryScript = preload("res://scripts/core/PlaytestTelemetry.gd")
+
 const SAVE_PATH := "user://ember_circuit_run_save.json"
 const SETTINGS_PATH := "user://ember_circuit_settings.json"
 const PROFILE_PATH := "user://ember_circuit_profile.json"
+const PLAYTEST_STORE_PATH := "user://ember_circuit_playtest_telemetry.json"
+const PLAYTEST_EXPORT_PATH := "user://ember_circuit_playtest_report.json"
 const DISCOVERY_CATEGORIES := ["cards", "relics", "potions", "enemies", "events", "challenges"]
 
 static func save_run(state: Dictionary) -> bool:
@@ -146,6 +150,41 @@ static func load_profile() -> Dictionary:
 		push_error("Profile file is not a dictionary.")
 		return default_profile()
 	return normalized_profile(parsed)
+
+static func save_playtest_store(store: Dictionary) -> bool:
+	var file := FileAccess.open(PLAYTEST_STORE_PATH, FileAccess.WRITE)
+	if file == null:
+		push_error("Cannot open playtest telemetry file for writing: %s" % PLAYTEST_STORE_PATH)
+		return false
+	file.store_string(JSON.stringify(PlaytestTelemetryScript.normalize_store(store), "\t"))
+	return true
+
+static func load_playtest_store() -> Dictionary:
+	if not FileAccess.file_exists(PLAYTEST_STORE_PATH):
+		return PlaytestTelemetryScript.default_store()
+	var file := FileAccess.open(PLAYTEST_STORE_PATH, FileAccess.READ)
+	if file == null:
+		push_error("Cannot open playtest telemetry file for reading: %s" % PLAYTEST_STORE_PATH)
+		return PlaytestTelemetryScript.default_store()
+	var parsed = JSON.parse_string(file.get_as_text())
+	if not parsed is Dictionary:
+		push_error("Playtest telemetry file is not a dictionary.")
+		return PlaytestTelemetryScript.default_store()
+	return PlaytestTelemetryScript.normalize_store(parsed)
+
+static func export_playtest_report(report: Dictionary) -> bool:
+	if int(report.get("schema_version", 0)) != PlaytestTelemetryScript.SCHEMA_VERSION:
+		push_error("Playtest report has an unsupported schema version.")
+		return false
+	var file := FileAccess.open(PLAYTEST_EXPORT_PATH, FileAccess.WRITE)
+	if file == null:
+		push_error("Cannot open playtest report for writing: %s" % PLAYTEST_EXPORT_PATH)
+		return false
+	file.store_string(JSON.stringify(report, "\t"))
+	return true
+
+static func playtest_export_absolute_path() -> String:
+	return ProjectSettings.globalize_path(PLAYTEST_EXPORT_PATH)
 
 static func _unique_string_array(raw_array: Array) -> Array:
 	var normalized: Array = []

@@ -3,6 +3,7 @@ extends Control
 const CombatStateScript = preload("res://scripts/combat/CombatState.gd")
 const DataLoaderScript = preload("res://scripts/core/DataLoader.gd")
 const SaveManagerScript = preload("res://scripts/core/SaveManager.gd")
+const PlaytestTelemetryScript = preload("res://scripts/core/PlaytestTelemetry.gd")
 const MapGeneratorScript = preload("res://scripts/map/MapGenerator.gd")
 const MapViewScript = preload("res://scripts/map/MapView.gd")
 const CurveTrailScript = preload("res://scripts/ui/CurveTrail.gd")
@@ -63,12 +64,14 @@ const UI_DECK_ICON_PATH := "res://assets/art/generated/ui/icons/hud_draw.svg"
 const UI_SETTINGS_ICON_PATH := "res://assets/art/generated/ui/icons/control_settings.svg"
 const UI_NEW_RUN_ICON_PATH := "res://assets/art/generated/ui/icons/control_new_run.svg"
 const UI_LOAD_RUN_ICON_PATH := "res://assets/art/generated/ui/icons/control_load_run.svg"
+const UI_EXPORT_REPORT_ICON_PATH := "res://assets/art/generated/ui/icons/control_load_run.svg"
 const UI_PROFILE_ICON_PATH := "res://assets/art/generated/ui/icons/control_profile.svg"
 const UI_COMPENDIUM_ICON_PATH := "res://assets/art/generated/ui/icons/control_compendium.svg"
 const UI_TUTORIAL_ICON_PATH := "res://assets/art/generated/ui/icons/control_tutorial.svg"
 const UI_SKIP_REWARD_ICON_PATH := "res://assets/art/generated/ui/icons/control_skip_reward.svg"
 const UI_CONTINUE_ROUTE_ICON_PATH := "res://assets/art/generated/ui/icons/control_continue_route.svg"
 const UI_FONT_PATH := "res://assets/fonts/NotoSansSC-Variable.ttf"
+const PLAYTEST_BUILD_LABEL := "0.1.0-alpha.2"
 const PLAYER_ART_PATHS := {
 	"ember_exile": "res://assets/art/generated/player_ember_exile_pc.png",
 	"arc_tinker": "res://assets/art/generated/player_arc_tinker_pc.png",
@@ -163,6 +166,8 @@ var selected_compendium_search: String = ""
 var compendium_reveal_all_details: bool = false
 var user_settings: Dictionary = {}
 var player_profile: Dictionary = {}
+var playtest_store: Dictionary = {}
+var playtest_config_fingerprint: String = ""
 
 var route_nodes: Array = []
 var current_node_index: int = 0
@@ -381,6 +386,7 @@ var last_run_completion_art_loaded: bool = false
 var last_run_completion_stat_chip_count: int = 0
 var last_run_completion_unlock_chip_count: int = 0
 var last_run_completion_action_count: int = 0
+var last_run_completion_export_button_visible: bool = false
 var last_character_selection_title: String = ""
 var last_character_selection_ids: Array[String] = []
 var last_character_selection_confirm_visible: bool = false
@@ -464,6 +470,11 @@ var last_profile_upgrade_node_count: int = 0
 var last_profile_skill_book_count: int = 0
 var last_profile_save_ok: bool = false
 var last_profile_character_selector_count: int = 0
+var last_profile_export_button_visible: bool = false
+var last_playtest_export_ok: bool = false
+var last_playtest_export_path: String = ""
+var last_playtest_export_run_count: int = 0
+var last_playtest_export_summary: String = ""
 var last_compendium_panel_visible: bool = false
 var last_compendium_tab: String = ""
 var last_compendium_filter: String = ""
@@ -530,6 +541,7 @@ var last_music_stream_loaded: bool = false
 func _ready() -> void:
 	_load_user_settings()
 	_load_player_profile()
+	_load_playtest_store()
 	_apply_ui_font_theme()
 	_build_layout()
 	_apply_runtime_settings()
@@ -1375,6 +1387,9 @@ func _build_cinematic_overlay() -> void:
 func _start_new_run(character_id: String = "") -> void:
 	if player_data.is_empty():
 		_load_all_data()
+	if playtest_store.is_empty():
+		_load_playtest_store()
+	_finish_active_playtest_run("abandoned", "new_run_started")
 
 	if not character_id.is_empty():
 		selected_character_id = character_id
@@ -1424,6 +1439,7 @@ func _start_new_run(character_id: String = "") -> void:
 	card_reward_done = false
 	relic_reward_done = true
 	potion_reward_done = true
+	_start_playtest_run()
 	_build_route()
 	_record_current_run_discoveries(false)
 	_record_run_started()
@@ -1510,6 +1526,7 @@ func _load_all_data() -> void:
 	progression_data = DataLoaderScript.load_json("res://data/config/progression_systems.json")
 	monster_scaling_data = DataLoaderScript.load_json("res://data/config/monster_scaling.json")
 	level_tree_data = DataLoaderScript.load_json("res://data/config/level_tree.json")
+	playtest_config_fingerprint = PlaytestTelemetryScript.configuration_fingerprint()
 
 func _load_user_settings() -> void:
 	user_settings = SaveManagerScript.load_settings()
@@ -1518,9 +1535,209 @@ func _load_user_settings() -> void:
 func _load_player_profile() -> void:
 	player_profile = SaveManagerScript.load_profile()
 
+func _load_playtest_store() -> void:
+	playtest_store = SaveManagerScript.load_playtest_store()
+
 func _save_player_profile() -> void:
 	player_profile = SaveManagerScript.normalized_profile(player_profile)
 	last_profile_save_ok = SaveManagerScript.save_profile(player_profile)
+
+func _playtest_active_run() -> Dictionary:
+	return PlaytestTelemetryScript.active_run(playtest_store)
+
+func _start_playtest_run() -> void:
+	if not _playtest_active_run().is_empty():
+		playtest_store = PlaytestTelemetryScript.finish_active_run(playtest_store, "abandoned", _playtest_final_snapshot("new_run_started"))
+	playtest_store = PlaytestTelemetryScript.start_run(playtest_store, {
+		"game_version": PLAYTEST_BUILD_LABEL,
+		"engine_version": str(Engine.get_version_info().get("string", "unknown")),
+		"config_fingerprint": playtest_config_fingerprint,
+		"platform": OS.get_name(),
+		"display_size": [int(_layout_viewport_size().x), int(_layout_viewport_size().y)],
+		"display_scale": DisplayServer.screen_get_scale() if DisplayServer.get_name() != "headless" else 1.0,
+		"locale": TranslationServer.get_locale(),
+		"character_id": selected_character_id,
+		"challenge_level": current_challenge_level,
+		"skill_book_id": run_skill_book_id,
+		"progression_node_ids": run_progression_node_ids.duplicate(true),
+		"starting_hp": run_hp,
+		"max_hp": run_max_hp,
+		"starting_gold": run_gold,
+		"starting_deck_ids": run_deck_ids.duplicate(true),
+		"starting_relic_ids": run_relic_ids.duplicate(true),
+		"starting_potion_ids": run_potion_ids.duplicate(true)
+	})
+	_checkpoint_playtest_store()
+
+func _archive_playtest_run_replaced_by(raw_run: Variant) -> void:
+	var incoming: Dictionary = raw_run if raw_run is Dictionary else {}
+	var current := _playtest_active_run()
+	if not current.is_empty() and (incoming.is_empty() or str(current.get("run_id", "")) != str(incoming.get("run_id", ""))):
+		playtest_store = PlaytestTelemetryScript.finish_active_run(playtest_store, "abandoned", _playtest_final_snapshot("different_save_loaded"))
+		_checkpoint_playtest_store()
+
+func _restore_playtest_run(raw_run: Variant) -> void:
+	var incoming: Dictionary = raw_run if raw_run is Dictionary else {}
+	if not incoming.is_empty():
+		playtest_store = PlaytestTelemetryScript.set_active_run(playtest_store, incoming)
+	else:
+		playtest_store["active_run"] = {}
+	if _playtest_active_run().is_empty() and not run_completed:
+		_start_playtest_run()
+	var restored := _playtest_active_run()
+	if not restored.is_empty():
+		PlaytestTelemetryScript.record_run_loaded(restored)
+		playtest_store["active_run"] = restored
+	_checkpoint_playtest_store()
+
+func _checkpoint_playtest_store() -> void:
+	SaveManagerScript.save_playtest_store(playtest_store)
+
+func _record_playtest_node_started() -> void:
+	var run := _playtest_active_run()
+	if run.is_empty() or current_node_id.is_empty():
+		return
+	var node: Dictionary = _current_node()
+	var node_type := str(node.get("type", ""))
+	var hp := run_hp
+	if combat != null:
+		hp = int(combat.player.get("hp", run_hp))
+	if PlaytestTelemetryScript.record_node_started(run, {
+		"chapter_id": current_chapter_id,
+		"node_id": current_node_id,
+		"node_type": node_type,
+		"encounter_id": str(node.get("encounter_id", "")),
+		"event_id": str(node.get("event_id", "")),
+		"is_battle": _is_battle_node(node_type),
+		"hp": hp,
+		"gold": run_gold,
+		"deck_size": run_deck_ids.size()
+	}):
+		playtest_store["active_run"] = run
+		_checkpoint_playtest_store()
+
+func _record_playtest_combat_terminal() -> void:
+	if combat == null or not ["won", "lost"].has(str(combat.phase)):
+		return
+	var run := _playtest_active_run()
+	if run.is_empty():
+		return
+	var node: Dictionary = _current_node()
+	var result := "won" if combat.phase == "won" else "lost"
+	var changed := PlaytestTelemetryScript.record_node_finished(run, {
+		"chapter_id": current_chapter_id,
+		"node_id": current_node_id,
+		"result": result,
+		"turns": int(combat.turn),
+		"hp": max(0, int(combat.player.get("hp", run_hp))),
+		"gold": run_gold,
+		"deck_size": run_deck_ids.size(),
+		"is_battle": true
+	})
+	if changed:
+		playtest_store["active_run"] = run
+	if combat.phase == "lost":
+		playtest_store = PlaytestTelemetryScript.finish_active_run(playtest_store, "defeat", _playtest_final_snapshot("combat_defeat"))
+		_checkpoint_playtest_store()
+	elif changed:
+		_checkpoint_playtest_store()
+
+func _record_playtest_noncombat_terminal() -> void:
+	if combat != null or current_node_id.is_empty():
+		return
+	var run := _playtest_active_run()
+	if run.is_empty():
+		return
+	if PlaytestTelemetryScript.record_node_finished(run, {
+		"chapter_id": current_chapter_id,
+		"node_id": current_node_id,
+		"result": "completed",
+		"hp": run_hp,
+		"gold": run_gold,
+		"deck_size": run_deck_ids.size(),
+		"is_battle": false
+	}):
+		playtest_store["active_run"] = run
+		_checkpoint_playtest_store()
+
+func _finish_active_playtest_run(outcome: String, reason: String = "") -> void:
+	if _playtest_active_run().is_empty():
+		return
+	playtest_store = PlaytestTelemetryScript.finish_active_run(playtest_store, outcome, _playtest_final_snapshot(reason))
+	_checkpoint_playtest_store()
+
+func _playtest_final_snapshot(reason: String = "") -> Dictionary:
+	var hp := run_hp
+	if combat != null:
+		hp = max(0, int(combat.player.get("hp", run_hp)))
+	var node: Dictionary = _current_node() if not current_node_id.is_empty() else {}
+	return {
+		"reason": reason,
+		"chapter_id": current_chapter_id,
+		"node_id": current_node_id,
+		"encounter_id": str(node.get("encounter_id", "")),
+		"turn": int(combat.turn) if combat != null else 0,
+		"hp": hp,
+		"max_hp": run_max_hp,
+		"gold": run_gold,
+		"deck_ids": run_deck_ids.duplicate(true),
+		"relic_ids": run_relic_ids.duplicate(true),
+		"potion_ids": run_potion_ids.duplicate(true),
+		"completed_chapter_ids": completed_chapter_ids.duplicate(true),
+		"deck_mastery_id": run_deck_mastery_id
+	}
+
+func _record_playtest_card_offers(items: Array, source: String) -> void:
+	var ids: Array = []
+	for item_value in items:
+		if item_value is Dictionary:
+			var item_id := str((item_value as Dictionary).get("id", ""))
+			if not item_id.is_empty():
+				ids.append(item_id)
+	var run := _playtest_active_run()
+	if not run.is_empty():
+		PlaytestTelemetryScript.record_card_offers(run, ids, source)
+		playtest_store["active_run"] = run
+		_checkpoint_playtest_store()
+
+func _record_playtest_card_acquired(card_id: String, source: String) -> void:
+	var run := _playtest_active_run()
+	if run.is_empty():
+		return
+	PlaytestTelemetryScript.record_card_acquired(run, card_id, source)
+	playtest_store["active_run"] = run
+	_checkpoint_playtest_store()
+
+func _record_playtest_item_acquired(category: String, item_id: String, source: String) -> void:
+	var run := _playtest_active_run()
+	if run.is_empty():
+		return
+	PlaytestTelemetryScript.record_item_acquired(run, category, item_id, source)
+	playtest_store["active_run"] = run
+	_checkpoint_playtest_store()
+
+func _on_export_playtest_report_pressed() -> void:
+	_checkpoint_playtest_store()
+	var report: Dictionary = PlaytestTelemetryScript.build_report(playtest_store)
+	last_playtest_export_ok = SaveManagerScript.export_playtest_report(report)
+	last_playtest_export_path = SaveManagerScript.playtest_export_absolute_path()
+	last_playtest_export_run_count = int(report.get("summary", {}).get("total_runs", 0))
+	var summary: Dictionary = report.get("summary", {})
+	last_playtest_export_summary = "试玩记录 %d 局 | 胜利 %d | 战败 %d | 放弃 %d" % [
+		last_playtest_export_run_count,
+		int(summary.get("victories", 0)),
+		int(summary.get("defeats", 0)),
+		int(summary.get("abandoned", 0))
+	]
+	if last_playtest_export_ok and DisplayServer.get_name() != "headless":
+		DisplayServer.clipboard_set(last_playtest_export_path)
+	_audio_event("save" if last_playtest_export_ok else "error")
+	if feedback_label != null:
+		feedback_label.text = "试玩报告已导出，文件路径已复制。" if last_playtest_export_ok else "试玩报告导出失败。"
+		feedback_label.visible = true
+	if status_label != null:
+		status_label.text = "%s | 路径已复制" % last_playtest_export_summary if last_playtest_export_ok else "试玩报告导出失败。"
+		status_label.tooltip_text = last_playtest_export_path if last_playtest_export_ok else status_label.text
 
 func _save_user_settings() -> void:
 	user_settings = SaveManagerScript.normalized_settings(user_settings)
@@ -2307,6 +2524,7 @@ func _start_current_node() -> void:
 			if _record_discovered_content("events", event_id):
 				_save_player_profile()
 		combat = null
+	_record_playtest_node_started()
 	_refresh()
 
 func _refresh() -> void:
@@ -3629,6 +3847,7 @@ func _refresh_run_completed() -> void:
 	last_run_completion_stat_chip_count = 0
 	last_run_completion_unlock_chip_count = 0
 	last_run_completion_action_count = 0
+	last_run_completion_export_button_visible = false
 	run_label.text = "跑团完成 | %s | %s | 挑战 %d | 金币：%d | 生命：%d/%d | 牌组：%d 张" % [
 		_character_display_name(),
 		_chapter_display_name(current_chapter_id),
@@ -3719,6 +3938,8 @@ func _build_run_completion_panel() -> void:
 	action_row.add_theme_constant_override("separation", 8)
 	shell.add_child(action_row)
 	_add_run_completion_action_button(action_row, "最终牌组", UI_DECK_ICON_PATH, "primary", Callable(self, "_on_deck_view_pressed"))
+	_add_run_completion_action_button(action_row, "导出报告", UI_EXPORT_REPORT_ICON_PATH, "event", Callable(self, "_on_export_playtest_report_pressed"))
+	last_run_completion_export_button_visible = true
 	_add_run_completion_action_button(action_row, "档案 %d/%d" % [last_profile_unlocked_count, last_profile_total_count], UI_PROFILE_ICON_PATH, "relic", Callable(self, "_on_profile_pressed"))
 	_add_run_completion_action_button(action_row, "再来一局", UI_NEW_RUN_ICON_PATH, "success", Callable(self, "_on_new_run_pressed"))
 
@@ -4384,6 +4605,7 @@ func _settings_music_volume_percent() -> int:
 
 func _refresh_profile_view() -> void:
 	last_profile_panel_visible = true
+	last_profile_export_button_visible = false
 	last_profile_button_count = 0
 	last_profile_character_selector_count = 0
 	last_profile_forge_marks = _progression_currency_amount()
@@ -4415,6 +4637,8 @@ func _refresh_profile_view() -> void:
 	toolbar.add_theme_constant_override("separation", 6)
 	profile_root.add_child(toolbar)
 	_add_profile_button("返回档案", "primary", Callable(self, "_on_close_profile_pressed"), toolbar)
+	_add_profile_button("导出报告", "event", Callable(self, "_on_export_playtest_report_pressed"), toolbar, UI_EXPORT_REPORT_ICON_PATH, "导出本机匿名逐局数据，文件路径会复制到剪贴板。")
+	last_profile_export_button_visible = true
 	for character_value in player_data.get("characters", []):
 		var character: Dictionary = character_value
 		var character_id: String = str(character.get("id", ""))
@@ -4461,12 +4685,13 @@ func _refresh_profile_view() -> void:
 		last_profile_button_count += 1
 	_record_layout_metrics()
 
-func _add_profile_button(text: String, skin: String, pressed_callable: Callable, parent: Container = null) -> void:
+func _add_profile_button(text: String, skin: String, pressed_callable: Callable, parent: Container = null, icon_path: String = UI_CONTINUE_ROUTE_ICON_PATH, tooltip: String = "") -> void:
 	var button := Button.new()
 	button.custom_minimum_size = Vector2(132, 48)
 	button.text = text
-	button.icon = _load_texture(UI_CONTINUE_ROUTE_ICON_PATH)
+	button.icon = _load_texture(icon_path)
 	button.expand_icon = true
+	button.tooltip_text = tooltip if not tooltip.is_empty() else text
 	_apply_button_skin(button, skin)
 	button.pressed.connect(pressed_callable)
 	(parent if parent != null else reward_row).add_child(button)
@@ -6250,6 +6475,7 @@ func _achievement_by_id(achievement_id: String) -> Dictionary:
 func _refresh_combat() -> void:
 	if combat == null:
 		return
+	_record_playtest_combat_terminal()
 	var reward_visible: bool = combat.phase == "won" or combat.phase == "lost"
 	if reward_visible:
 		_close_pile_view(false)
@@ -6895,6 +7121,7 @@ func _refresh_shop(node: Dictionary) -> void:
 		shop_card_options = _generate_card_rewards(3, "shop_card")
 		shop_relic_options = _generate_relic_rewards(2, "shop_relic")
 		shop_potion_options = _generate_potion_rewards(2, "shop_potion")
+		_record_playtest_card_offers(shop_card_options, "shop")
 		var discovery_changed: bool = _record_discovered_item_array("cards", shop_card_options)
 		discovery_changed = _record_discovered_item_array("relics", shop_relic_options) or discovery_changed
 		discovery_changed = _record_discovered_item_array("potions", shop_potion_options) or discovery_changed
@@ -10683,6 +10910,15 @@ func _refresh_rewards() -> void:
 		lost_label.text = "战败。点击“重开跑团”重新开始。"
 		lost_label.add_theme_font_size_override("font_size", 18)
 		reward_row.add_child(lost_label)
+		var export_button := Button.new()
+		export_button.custom_minimum_size = Vector2(176, 42)
+		export_button.text = "导出试玩报告"
+		export_button.icon = _load_texture(UI_EXPORT_REPORT_ICON_PATH)
+		export_button.expand_icon = true
+		export_button.tooltip_text = "导出本机匿名逐局数据，文件路径会复制到剪贴板。"
+		_apply_button_skin(export_button, "event", "reward")
+		export_button.pressed.connect(_on_export_playtest_report_pressed)
+		reward_row.add_child(export_button)
 		return
 	if combat.phase != "won":
 		return
@@ -10707,6 +10943,7 @@ func _refresh_rewards() -> void:
 		else:
 			potion_reward_options.clear()
 			potion_reward_done = true
+		_record_playtest_card_offers(reward_options, "combat_reward")
 		var discovery_changed: bool = _record_discovered_item_array("cards", reward_options)
 		discovery_changed = _record_discovered_item_array("relics", relic_reward_options) or discovery_changed
 		discovery_changed = _record_discovered_item_array("potions", potion_reward_options) or discovery_changed
@@ -10988,11 +11225,17 @@ func _on_combat_changed() -> void:
 
 func _on_card_pressed(index: int) -> void:
 	var played_payload: Dictionary = {}
+	var played_card_id: String = ""
 	if combat != null and combat.phase == "player":
 		var target_index: int = _normalize_selected_enemy()
 		var payload: Dictionary = {}
 		if index >= 0 and index < combat.hand.size() and combat.can_play_card(index):
+			played_card_id = str(combat.hand[index].get("id", ""))
 			payload = _build_card_visual_payload(index, combat.hand[index], target_index)
+			var active_run := _playtest_active_run()
+			if not active_run.is_empty():
+				PlaytestTelemetryScript.record_card_played(active_run, played_card_id)
+				playtest_store["active_run"] = active_run
 		if combat.play_card(index, selected_enemy_index):
 			if not payload.is_empty():
 				_request_card_play_visual(payload)
@@ -11009,6 +11252,7 @@ func _on_end_turn_pressed() -> void:
 	var action_payloads: Array[Dictionary] = _capture_enemy_action_visuals()
 	_audio_event("turn_end")
 	combat.end_player_turn()
+	_checkpoint_playtest_store()
 	_play_enemy_action_visuals(action_payloads)
 
 func _on_potion_pressed(slot_index: int) -> void:
@@ -11025,6 +11269,10 @@ func _on_potion_pressed(slot_index: int) -> void:
 	var potion_used: bool = combat.use_potion(potion, selected_enemy_index)
 	if potion_used:
 		run_potion_ids.remove_at(slot_index)
+		var active_run := _playtest_active_run()
+		if not active_run.is_empty():
+			PlaytestTelemetryScript.record_potion_used(active_run, str(potion.get("id", "")))
+			playtest_store["active_run"] = active_run
 		_audio_event("potion")
 	if changed_was_connected:
 		combat.changed.connect(changed_callable)
@@ -11034,6 +11282,7 @@ func _on_reward_card_pressed(card_id: String) -> void:
 	if card_id.is_empty():
 		return
 	run_deck_ids.append(card_id)
+	_record_playtest_card_acquired(card_id, "combat_reward")
 	if _record_discovered_content("cards", card_id):
 		_save_player_profile()
 	_audio_event("reward")
@@ -11044,6 +11293,11 @@ func _on_reward_card_pressed(card_id: String) -> void:
 
 func _on_skip_card_reward_pressed() -> void:
 	combat.log_entries.append("跳过卡牌奖励。")
+	var active_run := _playtest_active_run()
+	if not active_run.is_empty():
+		PlaytestTelemetryScript.record_reward_skipped(active_run, "card")
+		playtest_store["active_run"] = active_run
+		_checkpoint_playtest_store()
 	_audio_event("ui_click")
 	card_reward_done = true
 	_refresh()
@@ -11052,6 +11306,7 @@ func _on_reward_relic_pressed(relic_id: String) -> void:
 	if relic_id.is_empty():
 		return
 	run_relic_ids.append(relic_id)
+	_record_playtest_item_acquired("relics", relic_id, "combat_reward")
 	if _record_discovered_content("relics", relic_id):
 		_save_player_profile()
 	_audio_event("reward")
@@ -11065,6 +11320,7 @@ func _on_reward_potion_pressed(potion_id: String) -> void:
 		_audio_event("error")
 		return
 	run_potion_ids.append(potion_id)
+	_record_playtest_item_acquired("potions", potion_id, "combat_reward")
 	if _record_discovered_content("potions", potion_id):
 		_save_player_profile()
 	_audio_event("reward")
@@ -11075,6 +11331,11 @@ func _on_reward_potion_pressed(potion_id: String) -> void:
 
 func _on_skip_potion_reward_pressed() -> void:
 	combat.log_entries.append("跳过药水奖励。")
+	var active_run := _playtest_active_run()
+	if not active_run.is_empty():
+		PlaytestTelemetryScript.record_reward_skipped(active_run, "potion")
+		playtest_store["active_run"] = active_run
+		_checkpoint_playtest_store()
 	_audio_event("ui_click")
 	potion_reward_done = true
 	_refresh()
@@ -11087,6 +11348,11 @@ func _on_deck_mastery_pressed(mastery_id: String) -> void:
 		_audio_event("error")
 		return
 	run_deck_mastery_id = mastery_id
+	var active_run := _playtest_active_run()
+	if not active_run.is_empty():
+		PlaytestTelemetryScript.record_mastery_selected(active_run, mastery_id)
+		playtest_store["active_run"] = active_run
+		_checkpoint_playtest_store()
 	_audio_event("reward")
 	if combat != null:
 		combat.log_entries.append("卡组专精：%s。下一场战斗起生效。" % str(mastery.get("name", mastery_id)))
@@ -11110,6 +11376,7 @@ func _claim_treasure_reward(relic_id: String) -> void:
 	treasure_reward_gold = 0
 	if not relic_id.is_empty() and not run_relic_ids.has(relic_id):
 		run_relic_ids.append(relic_id)
+		_record_playtest_item_acquired("relics", relic_id, "treasure")
 		if _record_discovered_content("relics", relic_id):
 			_save_player_profile()
 	relic_reward_done = true
@@ -11129,6 +11396,10 @@ func _on_upgrade_card_pressed(deck_index: int) -> void:
 	var entry: String = str(run_deck_ids[deck_index])
 	if not entry.ends_with("+"):
 		run_deck_ids[deck_index] = "%s+" % entry
+		var active_run := _playtest_active_run()
+		if not active_run.is_empty():
+			PlaytestTelemetryScript.record_card_upgraded(active_run, entry)
+			playtest_store["active_run"] = active_run
 	_audio_event("campfire")
 	_advance_to_next_node()
 
@@ -11138,6 +11409,7 @@ func _on_shop_buy_card_pressed(card_id: String, price: int) -> void:
 		return
 	run_gold -= price
 	run_deck_ids.append(card_id)
+	_record_playtest_card_acquired(card_id, "shop")
 	if _record_discovered_content("cards", card_id):
 		_save_player_profile()
 	_audio_event("shop")
@@ -11154,6 +11426,7 @@ func _on_shop_buy_relic_pressed(relic_id: String, price: int) -> void:
 		return
 	run_gold -= price
 	run_relic_ids.append(relic_id)
+	_record_playtest_item_acquired("relics", relic_id, "shop")
 	if _record_discovered_content("relics", relic_id):
 		_save_player_profile()
 	_audio_event("shop")
@@ -11170,6 +11443,7 @@ func _on_shop_buy_potion_pressed(potion_id: String, price: int) -> void:
 		return
 	run_gold -= price
 	run_potion_ids.append(potion_id)
+	_record_playtest_item_acquired("potions", potion_id, "shop")
 	if _record_discovered_content("potions", potion_id):
 		_save_player_profile()
 	_audio_event("shop")
@@ -11199,6 +11473,11 @@ func _on_shop_remove_card_selected(deck_index: int) -> void:
 	var removed_entry: String = str(run_deck_ids[deck_index])
 	var removed_card: Dictionary = _deck_display_card(removed_entry)
 	run_deck_ids.remove_at(deck_index)
+	var active_run := _playtest_active_run()
+	if not active_run.is_empty():
+		PlaytestTelemetryScript.record_card_removed(active_run, removed_entry)
+		playtest_store["active_run"] = active_run
+		_checkpoint_playtest_store()
 	run_shop_remove_count += 1
 	shop_remove_selection_open = false
 	_record_card_removed()
@@ -11466,6 +11745,7 @@ func _on_save_pressed() -> void:
 	if welcome_open or character_select_open or run_deck_ids.is_empty():
 		_audio_event("error")
 		return
+	_checkpoint_playtest_store()
 	var state := _create_save_state()
 	var ok: bool = SaveManagerScript.save_run(state)
 	_audio_event("save" if ok else "error")
@@ -11478,9 +11758,10 @@ func _on_load_pressed() -> void:
 	if state.is_empty():
 		_audio_event("error")
 		if combat != null:
-			combat.log_entries.append("没有可读取的存档。")
-			_refresh()
+				combat.log_entries.append("没有可读取的存档。")
+				_refresh()
 		return
+	_archive_playtest_run_replaced_by(state.get("playtest_active_run", {}))
 	_load_all_data()
 	selected_character_id = _valid_character_id(str(state.get("selected_character_id", _default_character_id())))
 	welcome_open = false
@@ -11543,6 +11824,7 @@ func _on_load_pressed() -> void:
 		current_node_index = _node_index_by_id(current_node_id)
 	if _record_current_run_discoveries(false):
 		_save_player_profile()
+	_restore_playtest_run(state.get("playtest_active_run", {}))
 	_start_current_node()
 
 func _on_event_choice_pressed(choice: Dictionary) -> void:
@@ -11554,7 +11836,12 @@ func _on_event_choice_pressed(choice: Dictionary) -> void:
 		return
 	last_event_choice_blocked_reason = ""
 	var current_event_id: String = str(_current_node().get("event_id", ""))
-	for effect in _resolve_event_choice_effects(choice, current_event_id):
+	var resolved_effects: Array = _resolve_event_choice_effects(choice, current_event_id)
+	var active_run := _playtest_active_run()
+	if not active_run.is_empty():
+		PlaytestTelemetryScript.record_event_choice(active_run, current_event_id, str(choice.get("id", "")), last_event_result_id)
+		playtest_store["active_run"] = active_run
+	for effect in resolved_effects:
 		var effect_dict: Dictionary = effect
 		_apply_event_effect(effect_dict)
 	if not current_event_id.is_empty() and bool(_event_by_id(current_event_id).get("one_time", false)):
@@ -11566,6 +11853,10 @@ func _advance_to_next_node() -> void:
 	var completed_node: Dictionary = _current_node()
 	var completed_node_type: String = str(completed_node.get("type", ""))
 	var completed_chapter_id: String = current_chapter_id
+	if combat != null:
+		_record_playtest_combat_terminal()
+	else:
+		_record_playtest_noncombat_terminal()
 	if combat != null:
 		if combat.phase == "won":
 			run_hp = int(combat.player.get("hp", run_hp))
@@ -11587,6 +11878,7 @@ func _advance_to_next_node() -> void:
 		_record_chapter_completed(current_chapter_id)
 		run_completed = true
 		_record_run_completed()
+		_finish_active_playtest_run("victory", "campaign_completed")
 	_refresh()
 
 func _normalize_selected_enemy() -> int:
@@ -12605,24 +12897,32 @@ func _apply_event_effect(effect: Dictionary) -> void:
 			var card_id: String = str(effect.get("card_id", ""))
 			if not card_id.is_empty():
 				run_deck_ids.append(card_id)
+				_record_playtest_card_acquired(card_id, "event:%s" % str(_current_node().get("event_id", "unknown")))
 				if _record_discovered_content("cards", card_id):
 					_save_player_profile()
 		"gain_relic":
 			var relic_id: String = str(effect.get("relic_id", ""))
 			if not relic_id.is_empty() and not run_relic_ids.has(relic_id):
 				run_relic_ids.append(relic_id)
+				_record_playtest_item_acquired("relics", relic_id, "event:%s" % str(_current_node().get("event_id", "unknown")))
 				if _record_discovered_content("relics", relic_id):
 					_save_player_profile()
 		"gain_potion":
 			var potion_id: String = str(effect.get("potion_id", ""))
 			if not potion_id.is_empty() and _has_empty_potion_slot():
 				run_potion_ids.append(potion_id)
+				_record_playtest_item_acquired("potions", potion_id, "event:%s" % str(_current_node().get("event_id", "unknown")))
 				if _record_discovered_content("potions", potion_id):
 					_save_player_profile()
 		"remove_first_non_starter_card":
 			var remove_index: int = _find_removable_card_index()
 			if remove_index >= 0:
+				var removed_entry := str(run_deck_ids[remove_index])
 				run_deck_ids.remove_at(remove_index)
+				var active_run := _playtest_active_run()
+				if not active_run.is_empty():
+					PlaytestTelemetryScript.record_card_removed(active_run, removed_entry)
+					playtest_store["active_run"] = active_run
 		"complete_event":
 			var event_id: String = str(effect.get("event_id", ""))
 			if not event_id.is_empty():
@@ -13058,7 +13358,7 @@ func _create_save_state() -> Dictionary:
 	if combat != null:
 		hp_to_save = int(combat.player.get("hp", run_hp))
 	return {
-		"version": 2,
+		"version": 3,
 		"selected_character_id": selected_character_id,
 		"run_deck_ids": run_deck_ids.duplicate(true),
 		"run_relic_ids": run_relic_ids.duplicate(true),
@@ -13080,7 +13380,8 @@ func _create_save_state() -> Dictionary:
 		"completed_node_ids": completed_node_ids.duplicate(true),
 		"completed_event_ids": completed_event_ids.duplicate(true),
 		"map_graph": map_graph.duplicate(true),
-		"run_completed": run_completed
+		"run_completed": run_completed,
+		"playtest_active_run": _playtest_active_run().duplicate(true)
 	}
 
 func _deck_summary() -> Dictionary:

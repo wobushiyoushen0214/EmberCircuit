@@ -774,3 +774,17 @@ jq empty data/cards/cards.json data/enemies/enemies.json data/relics/relics.json
 - 真实资源清单当前为 152 个槽位、0 缺失、0 hard error、78 个 legacy fallback；测试直接断言真实清单 `hard_failures=0`，未知 `production_tier` 会硬失败而不是静默降级。
 - 新增 Windows PC 与 macOS 导出预设，排除测试、工具、文档、Trellis 和生图临时目录；`--export-pack` 实测生成 88MB 运行资源包且不包含开发目录。
 - 16 项 Godot 回归测试、资源审计、headless 启动和欢迎/选角/战斗/地图 PC 图库验收均作为试玩提交门禁。
+
+## 真人试玩遥测与第二轮试玩准备
+
+- 新增版本化本地真人试玩 schema，将运行时数据与 profile、普通存档和 AI 模拟报告分离；每局附带构建版本、Godot 版本及游戏配置 SHA-256 指纹。
+- 逐局覆盖角色/挑战/成长快照、路线与遭遇、节点前后生命/金币/牌组规模、回合、卡牌展示/获取/删除/升级/打出、遗物/药水获取、药水使用、奖励跳过、事件选择、随机结果 id 和读取次数。
+- 胜率严格使用 `victory + defeat` 为分母；`abandoned` 和活动局单列，历史上限 64 局。读取另一存档会归档被替换局，恢复局增加读取次数，并撤销同一恢复局先前的放弃行以防重复统计。
+- 卡牌报告输出获取和打出两个胜率对照及 lift；报告同时按角色、挑战、角色乘挑战格和失败遭遇聚合，并保留匿名原始逐局行供复核。
+- 本地文件为 `ember_circuit_playtest_telemetry.json`；档案、战败和最终胜利页均可导出 `ember_circuit_playtest_report.json`，非 headless 环境会复制绝对路径到剪贴板。报告不会自动联网发送。
+- 隐私 schema 明确排除用户名、主目录、硬件序列号和网络标识。当前不记录伤害来源、总伤害/受伤、格挡、治疗或逐动作耗时，不把节点净生命变化伪装成这些指标。
+- `numerical_tree.json` 新增真人样本契约：每角色/挑战格 12 个完成局用于方向判断、30 个用于硬调参，单卡比较至少 20 局，角色胜率差目标 5%，单遭遇失败集中度 50%，放弃率 35%。
+- 新增 `test_playtest_telemetry.gd` 和 `test_playtest_run_integration.gd`；后者通过真实主场景覆盖开局、出牌、奖励、保存、切换角色、读取不同存档、终局归档和游戏内导出。
+- PC 图库重新验证 `22_profile_progression_720p.png` 与 `18_run_complete_720p.png`：导出按钮无裁切，最终页四个操作完整处于 1280x720 视口内。
+- 构建标记升级为 `0.1.0-alpha.2`，macOS bundle build number 升级为 2。
+- 最终串行门禁为 18 套 Godot 测试全部通过；双阶段评审首轮发现并关闭“读取不同存档后旧局快照混入新状态”的顺序缺陷，复审无 critical/major 遗留。
