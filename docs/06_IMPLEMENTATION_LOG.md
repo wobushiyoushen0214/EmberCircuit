@@ -788,3 +788,13 @@ jq empty data/cards/cards.json data/enemies/enemies.json data/relics/relics.json
 - PC 图库重新验证 `22_profile_progression_720p.png` 与 `18_run_complete_720p.png`：导出按钮无裁切，最终页四个操作完整处于 1280x720 视口内。
 - 构建标记升级为 `0.1.0-alpha.2`，macOS bundle build number 升级为 2。
 - 最终串行门禁为 18 套 Godot 测试全部通过；双阶段评审首轮发现并关闭“读取不同存档后旧局快照混入新状态”的顺序缺陷，复审无 critical/major 遗留。
+
+## PC 事件页重构与第三轮试玩准备
+
+- PC 问号事件页重构为一个完整决策舞台：左侧大幅插画、事件标题和叙事，右侧纵向选项列；四选项事件在 `1280x720` 下一次显示完整，事件页禁用并归零垂直滚动。
+- 事件选项加入两位编号徽章、场景淡入与交错选项显现；按钮使用独立黄铜/炭黑皮肤，包含悬停、按下、焦点和条件不足状态，不再沿用通用紫色事件按钮。
+- 使用 `gpt-image-2` 生成破裂反应炉、灰烬档案馆、冷却剂暗格和煤烟黑市四张正式候选插画，统一为 `1536x1024 RGB PNG`，无文字、卡框、Logo 或水印。
+- `art_assets.json` 新增严格 `event_illustration` 契约；完整资源审计仍为 152 个槽位、0 缺失、0 hard error，legacy fallback 从 78 降为 74。
+- `test_run_flow.gd` 覆盖单舞台、纵向决策列、真实按钮接线、显现请求和专用按钮皮肤；`test_visual_bounds.gd` 以四选项事件验证无滚动条和视口边界。PC 图库覆盖四张新事件图的 720p 实际裁切，并新增 2048x1066 宽屏事件快照。
+- 本轮未修改角色、怪物、卡牌、成长或挑战数值；真人每角色/挑战格达到 12/30 个完成局前继续冻结硬调参。
+- 构建标记升级为 `0.1.0-alpha.3`，macOS bundle build number 升级为 3。

@@ -44,8 +44,8 @@
         "legacy_fallback_allowed": false
       },
       "event_art_slots": {
-        "contract_id": "legacy_vector_art",
-        "production_tier": "legacy_fallback",
+        "contract_id": "event_illustration",
+        "production_tier": "production_preferred",
         "legacy_fallback_allowed": true
       },
       "relic_icon_slots": {
@@ -213,6 +213,15 @@
         "alpha_requirement": "forbidden",
         "safe_area": {"check": "manual", "normalized_rect": [0.16, 0.18, 0.68, 0.64], "enforcement": "advisory", "note": "反馈短句和数值动画落在中心低噪声区。"},
         "subject_occupancy": {"check": "manual", "metric": "visual_subject_area_ratio", "min": 0.08, "max": 0.45, "enforcement": "advisory", "note": "提示底纹不能遮挡战场关键反馈。"}
+      },
+      "event_illustration": {
+        "allowed_extensions": ["png", "webp"],
+        "expected_dimensions": {"mode": "exact", "width": 1536, "height": 1024},
+        "expected_aspect_ratio": {"mode": "exact", "value": 1.5, "tolerance": 0.001},
+        "color_mode": "RGB",
+        "alpha_requirement": "forbidden",
+        "safe_area": {"check": "manual", "normalized_rect": [0.10, 0.08, 0.80, 0.84], "enforcement": "advisory", "note": "事件主体必须位于中心安全区，适配 PC 左侧叙事画框的 cover 裁切。"},
+        "subject_occupancy": {"check": "manual", "metric": "visual_subject_area_ratio", "min": 0.24, "max": 0.78, "enforcement": "advisory", "note": "缩略和大图状态都应一眼识别事件主体；禁止文字、卡框、Logo 和水印。"}
       },
       "legacy_vector_art": {
         "allowed_extensions": ["svg", "png", "webp"],
@@ -550,35 +559,35 @@
   "event_art_slots": [
     {
       "id": "broken_reactor",
-      "asset_path": "res://assets/art/events/event_broken_reactor.svg",
+      "asset_path": "res://assets/art/generated/events/event_broken_reactor_v2_pc.png",
       "slot_path": "res://assets/art/events/event_broken_reactor.svg",
       "design_note": "破裂反应炉插图应突出裂开的炉芯、喷出的灰烬和风险收益感。",
       "replacement_note": "正式图要把危险热源放在插图中心，但不要使用过亮红色压过事件按钮。",
-      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 事件插图；未来正式插画仍保持同一 slot_path，事件选择和结算继续由 events 数据驱动。"
+      "implementation_note": "当前 asset_path 指向 1536x1024 RGB 正式候选位图；事件选择和结算继续由 events 数据驱动。"
     },
     {
       "id": "ash_archive",
-      "asset_path": "res://assets/art/events/event_ash_archive.svg",
+      "asset_path": "res://assets/art/generated/events/event_ash_archive_v2_pc.png",
       "slot_path": "res://assets/art/events/event_ash_archive.svg",
       "design_note": "灰烬档案馆插图应表现烧焦金属书页和可选择的战斗记录。",
       "replacement_note": "书页形状要清楚，避免看起来像普通商店货架。",
-      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 事件插图；未来正式插画仍保持同一 slot_path，事件选择和结算继续由 events 数据驱动。"
+      "implementation_note": "当前 asset_path 指向 1536x1024 RGB 正式候选位图；事件选择和结算继续由 events 数据驱动。"
     },
     {
       "id": "coolant_cache",
-      "asset_path": "res://assets/art/events/event_coolant_cache.svg",
+      "asset_path": "res://assets/art/generated/events/event_coolant_cache_v2_pc.png",
       "slot_path": "res://assets/art/events/event_coolant_cache.svg",
       "design_note": "冷却剂暗格插图应表现墙内低温药剂和隐藏补给。",
       "replacement_note": "冷色药剂要和战斗背景区分，瓶身轮廓保持可读。",
-      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 事件插图；未来正式插画仍保持同一 slot_path，事件选择和结算继续由 events 数据驱动。"
+      "implementation_note": "当前 asset_path 指向 1536x1024 RGB 正式候选位图；事件选择和结算继续由 events 数据驱动。"
     },
     {
       "id": "soot_market",
-      "asset_path": "res://assets/art/events/event_soot_market.svg",
+      "asset_path": "res://assets/art/generated/events/event_soot_market_v2_pc.png",
       "slot_path": "res://assets/art/events/event_soot_market.svg",
       "design_note": "煤烟黑市插图应表现油布摊位、过滤面具商贩和灰市交易气氛。",
       "replacement_note": "画面需保持暗色市场感，不要变成正式商店界面插图。",
-      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 事件插图；未来正式插画仍保持同一 slot_path，事件选择和结算继续由 events 数据驱动。"
+      "implementation_note": "当前 asset_path 指向 1536x1024 RGB 正式候选位图；事件选择和结算继续由 events 数据驱动。"
     },
     {
       "id": "ember_memorial",

@@ -44,6 +44,26 @@ func _run() -> void:
 		main._on_character_selected("ember_exile")
 		_jump_to_event_id(main, "broken_reactor")
 	)
+	await _capture(scene, "05_event_720p", func(main):
+		main._on_character_selected("ember_exile")
+		_jump_to_event_id(main, "broken_reactor")
+	, DEFAULT_PC_SNAPSHOT_SIZE)
+	await _capture(scene, "05_event_wide", func(main):
+		main._on_character_selected("ember_exile")
+		_jump_to_event_id(main, "broken_reactor")
+	, WIDE_SNAPSHOT_SIZE)
+	await _capture(scene, "05_event_ash_archive_720p", func(main):
+		main._on_character_selected("ember_exile")
+		_jump_to_event_id(main, "ash_archive")
+	, DEFAULT_PC_SNAPSHOT_SIZE)
+	await _capture(scene, "05_event_coolant_cache_720p", func(main):
+		main._on_character_selected("ember_exile")
+		_jump_to_event_id(main, "coolant_cache")
+	, DEFAULT_PC_SNAPSHOT_SIZE)
+	await _capture(scene, "05_event_soot_market_720p", func(main):
+		main._on_character_selected("ember_exile")
+		_jump_to_event_id(main, "soot_market")
+	, DEFAULT_PC_SNAPSHOT_SIZE)
 	await _capture(scene, "06_shop", func(main):
 		main._on_character_selected("ember_exile")
 		_jump_to_node_type(main, "shop")

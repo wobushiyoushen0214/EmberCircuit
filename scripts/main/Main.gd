@@ -71,7 +71,7 @@ const UI_TUTORIAL_ICON_PATH := "res://assets/art/generated/ui/icons/control_tuto
 const UI_SKIP_REWARD_ICON_PATH := "res://assets/art/generated/ui/icons/control_skip_reward.svg"
 const UI_CONTINUE_ROUTE_ICON_PATH := "res://assets/art/generated/ui/icons/control_continue_route.svg"
 const UI_FONT_PATH := "res://assets/fonts/NotoSansSC-Variable.ttf"
-const PLAYTEST_BUILD_LABEL := "0.1.0-alpha.2"
+const PLAYTEST_BUILD_LABEL := "0.1.0-alpha.3"
 const PLAYER_ART_PATHS := {
 	"ember_exile": "res://assets/art/generated/player_ember_exile_pc.png",
 	"arc_tinker": "res://assets/art/generated/player_arc_tinker_pc.png",
@@ -377,6 +377,7 @@ var last_event_art_loaded: bool = false
 var last_event_panel_title: String = ""
 var last_event_panel_body: String = ""
 var last_event_panel_choice_count: int = 0
+var last_event_reveal_animation_count: int = 0
 var last_run_completion_title: String = ""
 var last_run_completion_summary: String = ""
 var last_run_unlocks: Array[String] = []
@@ -2785,6 +2786,9 @@ func _apply_pc_event_chrome() -> void:
 	log_label.visible = false
 	var reward_height: float = clamp(_layout_viewport_size().y - 154.0, 520.0, 760.0)
 	_set_content_heights(0.0, reward_height)
+	if reward_scroll != null:
+		reward_scroll.set("vertical_scroll_mode", 0)
+		reward_scroll.scroll_vertical = 0
 	for button_value in [restart_button, load_button, compendium_button, tutorial_button]:
 		var button := button_value as Button
 		if button != null:
@@ -7295,6 +7299,7 @@ func _refresh_event(node: Dictionary) -> void:
 	last_event_panel_title = ""
 	last_event_panel_body = ""
 	last_event_panel_choice_count = 0
+	last_event_reveal_animation_count = 0
 	_set_page_regions(true, false, false, false, false, true, false, true)
 	_apply_reward_page_layout_constraints(132.0, 204.0)
 	_apply_pc_event_chrome()
@@ -7309,9 +7314,13 @@ func _refresh_event(node: Dictionary) -> void:
 	log_label.text = _route_preview()
 	end_turn_button.disabled = true
 
-	_add_event_story_panel(event, node)
-
 	var event_choices: Array = event.get("choices", [])
+	if _is_pc_layout():
+		_add_pc_event_experience(event, node, event_choices)
+		_record_layout_metrics()
+		return
+
+	_add_event_story_panel(event, node)
 	for choice in event_choices:
 		var choice_dict: Dictionary = choice
 		var button := Button.new()
@@ -7321,7 +7330,7 @@ func _refresh_event(node: Dictionary) -> void:
 		button.tooltip_text = _event_choice_button_text(choice_dict, blocked_reason)
 		_apply_button_skin(button, "event", "event")
 		button.disabled = not blocked_reason.is_empty()
-		_add_event_choice_layout(button, choice_dict, blocked_reason)
+		_add_event_choice_layout(button, choice_dict, blocked_reason, last_event_panel_choice_count)
 		button.pressed.connect(_on_event_choice_pressed.bind(choice_dict))
 		reward_row.add_child(button)
 		last_event_panel_choice_count += 1
@@ -7335,15 +7344,200 @@ func _refresh_event(node: Dictionary) -> void:
 		reward_row.add_child(continue_button)
 	_record_layout_metrics()
 
-func _add_event_choice_layout(button: Button, choice: Dictionary, blocked_reason: String) -> void:
+func _add_pc_event_experience(event: Dictionary, node: Dictionary, event_choices: Array) -> void:
+	var stage := PanelContainer.new()
+	stage.name = "PcEventExperience"
+	var stage_size := Vector2(_scroll_content_width(), max(520.0, last_reward_scroll_height - 2.0))
+	stage.custom_minimum_size = stage_size
+	stage.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	stage.clip_contents = true
+	stage.add_theme_stylebox_override("panel", _pc_event_stage_style())
+	reward_row.add_child(stage)
+
+	var margin := MarginContainer.new()
+	margin.name = "EventMargin"
+	margin.add_theme_constant_override("margin_left", 16)
+	margin.add_theme_constant_override("margin_right", 16)
+	margin.add_theme_constant_override("margin_top", 14)
+	margin.add_theme_constant_override("margin_bottom", 14)
+	stage.add_child(margin)
+
+	var content_center := CenterContainer.new()
+	content_center.name = "EventContentCenter"
+	content_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	margin.add_child(content_center)
+
+	var content_width: float = min(1568.0, max(960.0, stage_size.x - 32.0))
+	var content_height: float = max(490.0, stage_size.y - 28.0)
+	var split := HBoxContainer.new()
+	split.name = "EventSplit"
+	split.custom_minimum_size = Vector2(content_width, content_height)
+	split.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	split.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	split.add_theme_constant_override("separation", 18)
+	content_center.add_child(split)
+
+	var story_width: float = floor((content_width - 18.0) * 0.59)
+	var decision_width: float = max(360.0, content_width - story_width - 18.0)
+	_add_pc_event_story(split, event, node, Vector2(story_width, content_height))
+	_add_pc_event_decisions(split, event_choices, Vector2(decision_width, content_height))
+	var choice_buttons := stage.find_child("EventChoiceButtons", true, false) as VBoxContainer
+	last_event_reveal_animation_count = 1 + (choice_buttons.get_child_count() if choice_buttons != null else 0)
+	if DisplayServer.get_name() != "headless":
+		call_deferred("_play_pc_event_reveal", stage, choice_buttons)
+
+func _play_pc_event_reveal(stage: PanelContainer, choice_buttons: VBoxContainer) -> void:
+	if not is_instance_valid(stage) or not stage.is_inside_tree():
+		return
+	stage.modulate = Color(1, 1, 1, 0)
+	stage.scale = Vector2(0.992, 0.992)
+	stage.pivot_offset = stage.size * 0.5
+	var stage_tween := stage.create_tween().set_parallel(true)
+	stage_tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	stage_tween.tween_property(stage, "modulate:a", 1.0, 0.18)
+	stage_tween.tween_property(stage, "scale", Vector2.ONE, 0.22)
+	if choice_buttons == null:
+		return
+	for index in range(choice_buttons.get_child_count()):
+		var control := choice_buttons.get_child(index) as Control
+		if control == null:
+			continue
+		control.modulate = Color(1, 1, 1, 0)
+		var choice_tween := control.create_tween()
+		choice_tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		choice_tween.tween_interval(0.05 + float(index) * 0.035)
+		choice_tween.tween_property(control, "modulate:a", 1.0, 0.14)
+
+func _add_pc_event_story(parent: Container, event: Dictionary, node: Dictionary, story_size: Vector2) -> void:
+	var story := VBoxContainer.new()
+	story.name = "EventStory"
+	story.custom_minimum_size = story_size
+	story.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	story.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	story.add_theme_constant_override("separation", 8)
+	parent.add_child(story)
+
+	var event_title := str(event.get("name", node.get("name", "事件")))
+	var event_body := str(event.get("body", "你遇到了一个未知事件。"))
+	last_event_panel_title = event_title
+	last_event_panel_body = event_body
+	last_event_art_path = _event_art_path(event)
+	last_event_art_loaded = _asset_loaded(last_event_art_path)
+
+	var art_frame := PanelContainer.new()
+	art_frame.name = "EventArtFrame"
+	art_frame.custom_minimum_size = Vector2(story_size.x, max(330.0, story_size.y - 112.0))
+	art_frame.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	art_frame.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	art_frame.clip_contents = true
+	art_frame.add_theme_stylebox_override("panel", _pc_event_art_frame_style())
+	story.add_child(art_frame)
+
+	var art := TextureRect.new()
+	art.name = "EventArt"
+	art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	art.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	art.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	art.texture = _load_texture(last_event_art_path)
+	art_frame.add_child(art)
+
+	var title := Label.new()
+	title.text = event_title
+	title.clip_text = true
+	title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	title.add_theme_font_size_override("font_size", 24)
+	title.add_theme_color_override("font_color", Color(1.0, 0.90, 0.62))
+	story.add_child(title)
+
+	var body := Label.new()
+	body.text = event_body
+	body.custom_minimum_size = Vector2(0, 54)
+	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	body.max_lines_visible = 3
+	body.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	body.add_theme_font_size_override("font_size", 14)
+	body.add_theme_color_override("font_color", Color(0.91, 0.93, 0.89))
+	story.add_child(body)
+
+func _add_pc_event_decisions(parent: Container, event_choices: Array, decision_size: Vector2) -> void:
+	var decision_column := VBoxContainer.new()
+	decision_column.name = "EventDecisionColumn"
+	decision_column.custom_minimum_size = decision_size
+	decision_column.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	decision_column.add_theme_constant_override("separation", 8)
+	parent.add_child(decision_column)
+
+	var heading_row := HBoxContainer.new()
+	heading_row.custom_minimum_size = Vector2(0, 34)
+	heading_row.add_theme_constant_override("separation", 8)
+	decision_column.add_child(heading_row)
+
+	var heading := Label.new()
+	heading.text = "作出抉择"
+	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	heading.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	heading.add_theme_font_size_override("font_size", 20)
+	heading.add_theme_color_override("font_color", Color(0.84, 0.92, 0.88))
+	heading_row.add_child(heading)
+
+	var count_label := Label.new()
+	count_label.text = "%d 项" % event_choices.size()
+	count_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	count_label.add_theme_font_size_override("font_size", 12)
+	count_label.add_theme_color_override("font_color", Color(0.60, 0.72, 0.70))
+	heading_row.add_child(count_label)
+
+	var choice_buttons := VBoxContainer.new()
+	choice_buttons.name = "EventChoiceButtons"
+	choice_buttons.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	choice_buttons.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	choice_buttons.add_theme_constant_override("separation", 8)
+	decision_column.add_child(choice_buttons)
+
+	if event_choices.is_empty():
+		var continue_button := Button.new()
+		continue_button.custom_minimum_size = Vector2(decision_size.x, 96)
+		continue_button.text = "继续"
+		_apply_button_skin(continue_button, "primary", "event")
+		continue_button.pressed.connect(_advance_to_next_node)
+		choice_buttons.add_child(continue_button)
+		return
+
+	var choice_count: int = max(1, event_choices.size())
+	var usable_height: float = max(360.0, decision_size.y - 42.0 - float(choice_count - 1) * 8.0)
+	var choice_height: float = clamp(floor(usable_height / float(choice_count)), 82.0, 120.0)
+	for choice_value in event_choices:
+		var choice: Dictionary = choice_value
+		var blocked_reason: String = _event_choice_blocked_reason(choice)
+		var button := Button.new()
+		button.custom_minimum_size = Vector2(decision_size.x, choice_height)
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		button.text = ""
+		button.clip_contents = true
+		button.tooltip_text = _event_choice_button_text(choice, blocked_reason)
+		_apply_pc_event_choice_skin(button, not blocked_reason.is_empty())
+		button.disabled = not blocked_reason.is_empty()
+		_add_event_choice_layout(button, choice, blocked_reason, last_event_panel_choice_count)
+		button.pressed.connect(_on_event_choice_pressed.bind(choice))
+		choice_buttons.add_child(button)
+		last_event_panel_choice_count += 1
+
+func _add_event_choice_layout(button: Button, choice: Dictionary, blocked_reason: String, choice_index: int = -1) -> void:
 	var margin := MarginContainer.new()
 	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
-	margin.offset_left = 12
-	margin.offset_top = 10
-	margin.offset_right = -12
-	margin.offset_bottom = -10
+	margin.offset_left = 14 if _is_pc_layout() else 12
+	margin.offset_top = 8 if _is_pc_layout() else 10
+	margin.offset_right = -14 if _is_pc_layout() else -12
+	margin.offset_bottom = -8 if _is_pc_layout() else -10
 	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	button.add_child(margin)
+
+	if _is_pc_layout():
+		_add_pc_event_choice_content(margin, choice, blocked_reason, choice_index)
+		last_event_choice_layout_count += 1
+		return
 
 	var box := VBoxContainer.new()
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -7390,6 +7584,118 @@ func _add_event_choice_layout(button: Button, choice: Dictionary, blocked_reason
 		footer.add_theme_color_override("font_color", footer_color)
 		box.add_child(footer)
 	last_event_choice_layout_count += 1
+
+func _add_pc_event_choice_content(parent: MarginContainer, choice: Dictionary, blocked_reason: String, choice_index: int) -> void:
+	var row := HBoxContainer.new()
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_theme_constant_override("separation", 12)
+	parent.add_child(row)
+
+	var badge := PanelContainer.new()
+	badge.custom_minimum_size = Vector2(36, 36)
+	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	badge.add_theme_stylebox_override("panel", _pc_event_choice_badge_style(not blocked_reason.is_empty()))
+	row.add_child(badge)
+
+	var number := Label.new()
+	number.text = "%02d" % max(1, choice_index + 1)
+	number.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	number.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	number.add_theme_font_size_override("font_size", 13)
+	number.add_theme_color_override("font_color", Color(0.98, 0.88, 0.60) if blocked_reason.is_empty() else Color(0.58, 0.54, 0.52))
+	badge.add_child(number)
+
+	var text_box := VBoxContainer.new()
+	text_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	text_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	text_box.add_theme_constant_override("separation", 3)
+	row.add_child(text_box)
+
+	var title := Label.new()
+	title.text = str(choice.get("label", "选择"))
+	title.clip_text = true
+	title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	title.add_theme_font_size_override("font_size", 17)
+	title.add_theme_color_override("font_color", Color(1.0, 0.97, 0.88))
+	text_box.add_child(title)
+
+	var description := Label.new()
+	description.text = str(choice.get("description", ""))
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	description.max_lines_visible = 2
+	description.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	description.add_theme_font_size_override("font_size", 13)
+	description.add_theme_color_override("font_color", Color(0.88, 0.90, 0.86))
+	text_box.add_child(description)
+
+	var footer_text := ""
+	var footer_color := Color(0.62, 0.82, 0.78)
+	if not blocked_reason.is_empty():
+		footer_text = "条件不足：%s" % blocked_reason
+		footer_color = Color(0.96, 0.56, 0.46)
+	elif choice.has("random_results"):
+		footer_text = "结果随机"
+	if not footer_text.is_empty():
+		var footer := Label.new()
+		footer.text = footer_text
+		footer.clip_text = true
+		footer.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		footer.add_theme_font_size_override("font_size", 11)
+		footer.add_theme_color_override("font_color", footer_color)
+		text_box.add_child(footer)
+
+	var arrow := TextureRect.new()
+	arrow.name = "ChoiceRouteIcon"
+	arrow.custom_minimum_size = Vector2(24, 24)
+	arrow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	arrow.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	arrow.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	arrow.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	arrow.texture = _load_texture(UI_CONTINUE_ROUTE_ICON_PATH)
+	arrow.modulate = Color(0.82, 0.92, 0.80) if blocked_reason.is_empty() else Color(0.42, 0.42, 0.38)
+	row.add_child(arrow)
+
+func _pc_event_stage_style() -> StyleBoxFlat:
+	var style := _button_style(Color(0.045, 0.052, 0.055, 0.95), Color(0.58, 0.68, 0.58, 0.88), 1, 7)
+	style.shadow_color = Color(0, 0, 0, 0.62)
+	style.shadow_size = 8
+	return style
+
+func _pc_event_art_frame_style() -> StyleBoxFlat:
+	return _button_style(Color(0.025, 0.030, 0.032, 0.98), Color(0.74, 0.55, 0.26, 0.92), 2, 6)
+
+func _pc_event_choice_badge_style(blocked: bool) -> StyleBoxFlat:
+	return _button_style(
+		Color(0.10, 0.12, 0.12, 0.88) if not blocked else Color(0.09, 0.08, 0.08, 0.72),
+		Color(0.82, 0.66, 0.32, 0.88) if not blocked else Color(0.35, 0.30, 0.28, 0.70),
+		1,
+		6
+	)
+
+func _apply_pc_event_choice_skin(button: Button, blocked: bool) -> void:
+	_configure_button_bounds(button)
+	var normal := _button_style(Color(0.070, 0.088, 0.080, 0.97), Color(0.58, 0.49, 0.27, 0.84), 1, 5)
+	var hover := _button_style(Color(0.092, 0.128, 0.108, 0.98), Color(0.86, 0.70, 0.34, 0.96), 2, 5)
+	var pressed := _button_style(Color(0.050, 0.072, 0.062, 0.99), Color(0.72, 0.58, 0.28, 0.94), 2, 5)
+	var disabled := _button_style(Color(0.070, 0.064, 0.062, 0.90), Color(0.30, 0.27, 0.23, 0.78), 1, 5)
+	var focus := _button_style(Color(0, 0, 0, 0), Color(0.96, 0.78, 0.38, 0.98), 2, 5)
+	for style in [normal, hover, pressed, disabled]:
+		style.border_width_left = 3
+		style.shadow_color = Color(0, 0, 0, 0.46)
+		style.shadow_size = 4
+	if blocked:
+		normal = disabled
+		hover = disabled
+	button.add_theme_stylebox_override("normal", normal)
+	button.add_theme_stylebox_override("hover", hover)
+	button.add_theme_stylebox_override("pressed", pressed)
+	button.add_theme_stylebox_override("hover_pressed", pressed)
+	button.add_theme_stylebox_override("disabled", disabled)
+	button.add_theme_stylebox_override("focus", focus)
+	button.add_theme_color_override("font_color", Color(0.95, 0.96, 0.91))
+	button.add_theme_color_override("font_disabled_color", Color(0.56, 0.55, 0.51))
+	button.add_theme_font_size_override("font_size", 14)
+	_record_button_skin("event")
 
 func _refresh_treasure(node: Dictionary) -> void:
 	last_treasure_gold_reward = 0

@@ -275,12 +275,17 @@ func _run() -> void:
 	_check(not default_pc_main.log_label.visible, "default PC map removes the legacy RichTextLabel detail strip")
 	_check(int(default_pc_main.map_scroll.get("horizontal_scroll_mode")) == 0 and not default_pc_main.map_scroll.get_h_scroll_bar().visible, "default PC map fits without a horizontal scrollbar")
 	_check(default_pc_main.map_view.find_children("*", "ScrollContainer", true, false).is_empty(), "default PC map detail panel contains no nested scroll containers")
-	_jump_to_event_id(default_pc_main, "mute_calibrator")
+	_jump_to_event_id(default_pc_main, "broken_reactor")
 	await process_frame
 	await process_frame
-	_check(default_pc_main.last_event_choice_layout_count == 3, "default PC event renders structured choice layouts")
-	_check(_children_share_row(default_pc_main.reward_row), "default PC event story and choices stay on one visual row")
-	_check(_visible_children_inside_vertical(default_pc_main.reward_row, default_pc_main.reward_scroll), "default PC event story and choices stay inside the reward viewport")
+	_check(default_pc_main.last_event_choice_layout_count == 4, "default PC event renders all four structured choice layouts")
+	var event_stage := default_pc_main.reward_row.get_node_or_null("PcEventExperience") as PanelContainer
+	var event_choice_buttons := event_stage.find_child("EventChoiceButtons", true, false) as VBoxContainer if event_stage != null else null
+	_check(event_stage != null and default_pc_main.reward_row.get_child_count() == 1, "default PC event uses one complete decision stage")
+	_check(event_choice_buttons != null and event_choice_buttons.get_child_count() == 4, "default PC event keeps four choices in one decision column")
+	_check(int(default_pc_main.reward_scroll.get("vertical_scroll_mode")) == 0 and not default_pc_main.reward_scroll.get_v_scroll_bar().visible, "default PC event does not expose a page scrollbar")
+	_check(_control_inside_vertical(event_stage, default_pc_main.reward_scroll), "default PC event stage stays inside the reward viewport")
+	_check(_visible_children_inside_vertical(event_choice_buttons, default_pc_main.reward_scroll), "default PC event choices stay inside the reward viewport")
 	_complete_run_by_boss_jumps(default_pc_main)
 	await process_frame
 	await process_frame

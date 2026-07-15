@@ -1068,8 +1068,19 @@ func _run() -> void:
 	if not _check(main._discovered_ids("events").has("broken_reactor"), "entering an event discovers it in the profile"):
 		return
 	var event: Dictionary = main._event_by_id("broken_reactor")
-	if not _check(main.reward_row.get_child_count() >= event.get("choices", []).size() + 1 and main.reward_row.get_child(0) is PanelContainer, "event screen renders an illustrated story panel before choices"):
-		return
+	var event_choice_buttons: VBoxContainer
+	if main._is_pc_layout():
+		var event_stage := main.reward_row.get_node_or_null("PcEventExperience") as PanelContainer
+		if not _check(event_stage != null and main.reward_row.get_child_count() == 1, "PC event screen renders one complete illustrated decision stage"):
+			return
+		event_choice_buttons = event_stage.find_child("EventChoiceButtons", true, false) as VBoxContainer
+		if not _check(event_choice_buttons != null and event_choice_buttons.get_child_count() == event.get("choices", []).size(), "PC event stage keeps every choice in one vertical decision column"):
+			return
+		if not _check(main.last_event_reveal_animation_count == event.get("choices", []).size() + 1, "PC event stage requests one scene reveal plus staggered choice reveals"):
+			return
+	else:
+		if not _check(main.reward_row.get_child_count() >= event.get("choices", []).size() + 1 and main.reward_row.get_child(0) is PanelContainer, "event screen renders an illustrated story panel before choices"):
+			return
 	if not _check(main.last_event_art_loaded and main._asset_loaded(main.last_event_art_path), "event story panel loads art from the manifest"):
 		return
 	if not _check(main.last_event_panel_title == "破裂反应炉" and main.last_event_panel_body.contains("废弃反应炉"), "event story panel records readable event title and body"):
@@ -1080,11 +1091,15 @@ func _run() -> void:
 		return
 	if not _check(main.last_event_choice_layout_count == event.get("choices", []).size(), "event choices use structured wrapping layouts"):
 		return
-	var first_event_choice_button := main.reward_row.get_child(1) as Button
+	var first_event_choice_button := event_choice_buttons.get_child(0) as Button if event_choice_buttons != null else main.reward_row.get_child(1) as Button
 	if not _check(first_event_choice_button != null and first_event_choice_button.get_child_count() >= 1 and first_event_choice_button.get_child(0) is MarginContainer, "event choice button contains a structured text layout"):
 		return
+	if main._is_pc_layout():
+		var event_choice_style := first_event_choice_button.get_theme_stylebox("normal") as StyleBoxFlat
+		if not _check(event_choice_style != null and event_choice_style.border_color.r > event_choice_style.border_color.b, "PC event choices use the dedicated brass-and-charcoal skin"):
+			return
 	var gold_before_event: int = main.run_gold
-	main._on_event_choice_pressed(event.get("choices", [])[0])
+	first_event_choice_button.pressed.emit()
 	if not _check(main.run_gold == gold_before_event + 35, "event choice applies gold effect"):
 		return
 	if not _check(main.current_node_id.is_empty() and not main.available_node_ids.is_empty(), "event returns to map choice after choice"):

@@ -7,6 +7,7 @@ const REQUIRED_BITMAP_SECTIONS := [
 	"player_stage_slots",
 	"enemy_stage_slots",
 	"card_art_slots",
+	"event_art_slots",
 	"potion_icon_slots",
 	"hud_texture_slots"
 ]
@@ -162,6 +163,9 @@ func _test_real_manifest_contract() -> void:
 	_check(known_card.get("color_mode", "") == "RGB", "real card channel mode is audited")
 	var known_potion := _find_item(report.get("items", []), "potion_icon_slots", "volatile_vial")
 	_check(known_potion.get("color_mode", "") == "RGBA" and bool(known_potion.get("uses_transparency", false)), "real potion alpha is audited")
+	var known_event := _find_item(report.get("items", []), "event_art_slots", "broken_reactor")
+	_check(known_event.get("width", 0) == 1536 and known_event.get("height", 0) == 1024, "real event illustration dimensions are audited")
+	_check(known_event.get("color_mode", "") == "RGB" and known_event.get("asset_tier", "") == "production_preferred", "real event illustration uses the production RGB contract")
 	var legacy_card := _find_item(report.get("items", []), "card_art_slots", "violent_discharge")
 	_check(legacy_card.get("asset_tier", "") == "legacy_fallback", "real SVG card remains a legacy fallback")
 	_check(legacy_card.get("hard_errors", []).is_empty(), "real SVG card does not hard fail")
