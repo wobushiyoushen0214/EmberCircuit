@@ -156,8 +156,9 @@ func _run() -> void:
 	_check(not desktop_main.status_label.text.contains("□") and not desktop_main.log_label.text.contains("□"), "desktop combat text avoids missing-glyph boxes")
 	_check(_control_above(desktop_main.hand_frame, desktop_main.controls_scroll), "desktop combat hand stays above bottom controls")
 	_check(_hand_cards_fit_hand_tray(desktop_main), "desktop combat rotated hand cards stay inside hand tray")
-	_check(_hand_card_rotation_readable(desktop_main, 2.5), "desktop combat hand card rotation stays readable")
-	_check(_pc_card_description_blocks_readable(desktop_main, 64.0), "desktop combat hand card descriptions have readable space")
+	_check(_hand_card_rotation_readable(desktop_main, 3.3), "desktop combat hand card rotation stays readable")
+	_check(_hand_cards_form_fan(desktop_main), "desktop combat hand forms a restrained bottom fan")
+	_check(_pc_hand_cards_use_hover_details(desktop_main), "desktop combat hand reserves rules text for hover details")
 	_check(_control_inside_horizontal(desktop_main.player_stage_plate, desktop_main.enemy_stage_panel) and _control_inside_vertical(desktop_main.player_stage_plate, desktop_main.enemy_stage_panel), "desktop player health plate stays inside battle stage")
 
 	var default_pc_size := Vector2(1280, 720)
@@ -176,22 +177,43 @@ func _run() -> void:
 	_check(_control_inside_horizontal(default_pc_main.compendium_button, default_pc_main.controls_scroll), "default PC welcome compendium button stays inside the control strip")
 	_check(_control_inside_horizontal(default_pc_main.settings_button, default_pc_main.controls_scroll), "default PC welcome settings button stays inside the control strip")
 	_check(is_equal_approx(default_pc_main._scroll_content_width(), default_pc_size.x - default_pc_main._root_horizontal_margin()), "default PC layout does not reserve space for a disabled vertical scrollbar")
+	default_pc_main._on_new_run_pressed()
+	await process_frame
+	await process_frame
+	var default_pc_roster_flow := default_pc_main.reward_row.get_child(1) as HFlowContainer
+	_check(default_pc_roster_flow != null and default_pc_roster_flow.get_child_count() == 3, "default PC character select renders all three character cards")
+	_check(_children_share_row(default_pc_roster_flow), "default PC character cards stay on one visual row")
+	_check(default_pc_main.controls_scroll.visible and _control_inside_viewport(default_pc_main.controls_scroll, default_pc_size), "default PC character select keeps the utility controls inside the viewport")
+	_check(default_pc_main.restart_button.visible and default_pc_main.load_button.visible and default_pc_main.settings_button.visible, "default PC character select exposes its utility controls")
+	_check(_control_inside_viewport(default_pc_main.restart_button, default_pc_size) and _control_inside_viewport(default_pc_main.load_button, default_pc_size) and _control_inside_viewport(default_pc_main.settings_button, default_pc_size), "default PC character select utility buttons are not clipped")
 	default_pc_main._on_character_selected("arc_tinker")
 	await process_frame
 	await process_frame
 	_check(default_pc_main._is_pc_layout(), "default 1280x720 viewport uses PC combat layout")
+	_check(int(default_pc_main.page_scroll.get("vertical_scroll_mode")) == 0 and not default_pc_main.page_scroll.get_v_scroll_bar().visible, "default PC combat never exposes a page scrollbar")
 	_check(int(default_pc_main.hand_scroll.get("horizontal_scroll_mode")) == 3, "default PC hand keeps horizontal navigation without a visible scrollbar")
+	_check(not default_pc_main.hand_scroll.get_h_scroll_bar().visible and not default_pc_main.controls_scroll.get_h_scroll_bar().visible, "default PC hand and control strips hide scrollbars")
+	_check(default_pc_main.controls_scroll.visible and _control_inside_viewport(default_pc_main.controls_scroll, default_pc_size), "default PC combat control strip stays visible inside the viewport")
+	_check(default_pc_main.deck_button.visible and _control_inside_viewport(default_pc_main.deck_button, default_pc_size), "default PC deck button stays visible inside the viewport")
+	_check(default_pc_main.settings_button.visible and _control_inside_viewport(default_pc_main.settings_button, default_pc_size), "default PC settings button stays visible inside the viewport")
+	_check(default_pc_main.end_turn_button.visible and _control_inside_viewport(default_pc_main.end_turn_button, default_pc_size), "default PC end-turn button stays visible inside the viewport")
 	_check(not default_pc_main.title_label.visible and not default_pc_main.character_frame.visible, "default PC combat hides non-combat chrome")
 	_check(default_pc_main.last_combat_layout_overflow <= 0.0, "default PC combat fits 720p height budget")
+	_check(_control_above(default_pc_main.battle_board_panel, default_pc_main.hand_frame), "default PC battle stage stays above the hand tray")
 	_check(_control_above(default_pc_main.hand_frame, default_pc_main.controls_scroll), "default PC combat hand stays above bottom controls")
 	_check(_hand_cards_fit_hand_tray(default_pc_main), "default PC rotated hand cards stay inside hand tray")
-	_check(_hand_card_rotation_readable(default_pc_main, 2.5), "default PC hand card rotation stays readable")
-	_check(_pc_card_description_blocks_readable(default_pc_main, 62.0), "default PC hand card descriptions have readable space")
+	_check(_hand_card_rotation_readable(default_pc_main, 3.3), "default PC hand card rotation stays readable")
+	_check(_hand_cards_form_fan(default_pc_main), "default PC hand forms a restrained bottom fan")
+	_check(_pc_hand_cards_use_hover_details(default_pc_main), "default PC hand shows art-first cards without duplicate rules text")
+	_check(_pc_enemy_stage_info_readable(default_pc_main), "default PC enemy name, state and health plates remain readable")
 	_check(_potion_belt_stays_outside_enemy_stage(default_pc_main), "default PC potion belt stays out of the enemy stage")
 	_check(_control_inside_horizontal(default_pc_main.player_stage_plate, default_pc_main.enemy_stage_panel) and _control_inside_vertical(default_pc_main.player_stage_plate, default_pc_main.enemy_stage_panel), "default PC player health plate stays inside battle stage")
 	default_pc_main._on_card_previewed(0)
 	_check(default_pc_main.card_detail_preview.visible, "default PC card hover shows the large detail preview")
 	_check(_control_inside_viewport(default_pc_main.card_detail_preview, default_pc_size), "default PC large card preview stays inside the 720p viewport")
+	_check(_preview_stays_above_hand(default_pc_main), "default PC large card preview stays above the hand tray")
+	_check(_pc_hover_preview_has_description(default_pc_main, 0), "default PC hover preview owns the complete card description")
+	_check(_preview_tracks_source_card(default_pc_main, 0), "default PC hover preview stays horizontally anchored to its source card")
 	default_pc_main._hide_card_detail_preview(0)
 	default_pc_main._on_pile_hud_pressed("抽牌")
 	await process_frame
@@ -445,6 +467,7 @@ func _hand_cards_fit_hand_tray(main) -> bool:
 		if button == null or not button.visible:
 			continue
 		if not _control_corners_inside_rect(button, bounds):
+			push_error("Hand card bounds metrics: position=%s size=%s base=%s rest=%s rotation=%s" % [str(button.position), str(button.size), str(button.get_meta("hand_layout_base_position", Vector2.ZERO)), str(button.get_meta("hand_rest_position", Vector2.ZERO)), str(button.rotation_degrees)])
 			return false
 	return true
 
@@ -460,26 +483,92 @@ func _hand_card_rotation_readable(main, max_degrees: float) -> bool:
 			return false
 	return true
 
-func _pc_card_description_blocks_readable(main, minimum_height: float) -> bool:
+func _hand_cards_form_fan(main) -> bool:
+	if main == null or main.hand_row == null or main.hand_row.get_child_count() < 3:
+		return true
+	var first := main.hand_row.get_child(0) as Button
+	var center := main.hand_row.get_child(int(main.hand_row.get_child_count() / 2.0)) as Button
+	var last := main.hand_row.get_child(main.hand_row.get_child_count() - 1) as Button
+	if first == null or center == null or last == null:
+		return false
+	var first_rest: Vector2 = first.get_meta("hand_rest_position", first.position)
+	var center_rest: Vector2 = center.get_meta("hand_rest_position", center.position)
+	var last_rest: Vector2 = last.get_meta("hand_rest_position", last.position)
+	var forms_fan: bool = first.rotation_degrees < 0.0 \
+		and last.rotation_degrees > 0.0 \
+		and center_rest.y <= first_rest.y \
+		and center_rest.y <= last_rest.y
+	if not forms_fan:
+		push_error("Hand fan metrics: rotations=%s/%s/%s rest_y=%s/%s/%s" % [str(first.rotation_degrees), str(center.rotation_degrees), str(last.rotation_degrees), str(first_rest.y), str(center_rest.y), str(last_rest.y)])
+	return forms_fan
+
+func _pc_hand_cards_use_hover_details(main) -> bool:
 	if main == null or main.hand_row == null:
 		return true
+	var card_count := 0
 	for child in main.hand_row.get_children():
 		var button := child as Button
 		if button == null or not button.visible:
 			continue
+		card_count += 1
 		var desc_panel := button.find_child("CardDescriptionPanel", true, false) as Control
-		var desc_text := button.find_child("CardDescriptionText", true, false) as Label
-		if desc_panel == null or desc_text == null:
-			push_error("PC hand card missing description block: %s" % button.name)
+		var art := button.find_child("FullCardArt", true, false) as TextureRect
+		var type_panel := button.find_child("CardTypePanel", true, false) as Control
+		if desc_panel != null or not button.tooltip_text.is_empty():
+			push_error("PC hand card duplicates hover rules text: %s" % button.name)
 			return false
-		var desc_height: float = desc_panel.get_rect().size.y
-		if desc_height < minimum_height:
-			push_error("PC hand card description too short: %s height=%s min=%s" % [button.name, str(desc_height), str(minimum_height)])
+		if art == null or type_panel == null:
+			push_error("PC hand card missing art-first structure: %s" % button.name)
 			return false
-		if desc_text.get_theme_font_size("font_size") > 10:
-			push_error("PC hand card description font too large: %s" % button.name)
-			return false
+	return card_count > 0
+
+func _pc_hover_preview_has_description(main, hand_index: int) -> bool:
+	if main == null or main.card_detail_preview == null or main.combat == null:
+		return false
+	if hand_index < 0 or hand_index >= main.combat.hand.size():
+		return false
+	var desc_panel := main.card_detail_preview.find_child("CardDescriptionPanel", true, false) as Control
+	var desc_text := main.card_detail_preview.find_child("CardDescriptionText", true, false) as Label
+	if desc_panel == null or desc_text == null or not main.card_detail_preview.tooltip_text.is_empty():
+		return false
+	return desc_text.text == str(main.combat.hand[hand_index].get("description", ""))
+
+func _preview_tracks_source_card(main, hand_index: int) -> bool:
+	if main == null or not main.hand_buttons_by_index.has(hand_index):
+		return false
+	var source := main.hand_buttons_by_index.get(hand_index) as Button
+	if source == null:
+		return false
+	return abs(source.get_global_rect().get_center().x - main.card_detail_preview.get_global_rect().get_center().x) <= 2.0
+
+func _preview_stays_above_hand(main) -> bool:
+	if main == null or main.card_detail_preview == null or main.hand_frame == null:
+		return false
+	var preview_rect: Rect2 = main.card_detail_preview.get_global_rect()
+	var hand_rect: Rect2 = main.hand_frame.get_global_rect()
+	if preview_rect.end.y > hand_rect.position.y + 1.0:
+		push_error("Preview overlaps hand: preview=%s hand=%s" % [str(preview_rect), str(hand_rect)])
+		return false
 	return true
+
+func _pc_enemy_stage_info_readable(main) -> bool:
+	if main == null or main.enemy_row == null:
+		return false
+	var readable_count := 0
+	for child in main.enemy_row.get_children():
+		var panel := child as Control
+		if panel == null:
+			continue
+		var info_strip := panel.find_child("EnemyInfoStrip", true, false) as Control
+		var name_label := panel.find_child("EnemyNameLabel", true, false) as Label
+		var state_label := panel.find_child("EnemyStateLabel", true, false) as Label
+		var hp_label := panel.find_child("EnemyHpValue", true, false) as Label
+		if info_strip == null or name_label == null or state_label == null or hp_label == null:
+			return false
+		if info_strip.size.y < 25.0 or name_label.get_theme_font_size("font_size") < 12 or state_label.get_theme_font_size("font_size") < 10 or hp_label.get_theme_font_size("font_size") < 11:
+			return false
+		readable_count += 1
+	return readable_count > 0
 
 func _control_corners_inside_rect(control: Control, bounds: Rect2) -> bool:
 	var control_size: Vector2 = control.size

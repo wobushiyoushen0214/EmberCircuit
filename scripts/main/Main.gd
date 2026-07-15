@@ -1011,6 +1011,7 @@ func _build_layout() -> void:
 	hand_row.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	hand_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	hand_row.add_theme_constant_override("separation", 6)
+	hand_row.sort_children.connect(_apply_hand_card_transforms, CONNECT_DEFERRED)
 	hand_scroll.add_child(hand_row)
 
 	hand_right_hud = VBoxContainer.new()
@@ -1156,7 +1157,7 @@ func _build_card_detail_preview() -> void:
 	card_detail_preview.name = "CardDetailPreview"
 	card_detail_preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	card_detail_preview.focus_mode = Control.FOCUS_NONE
-	card_detail_preview.custom_minimum_size = Vector2(228, 336)
+	card_detail_preview.custom_minimum_size = Vector2(220, 320)
 	card_detail_preview.size = card_detail_preview.custom_minimum_size
 	card_detail_preview.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	card_detail_preview.position = Vector2(22, 70)
@@ -2946,7 +2947,7 @@ func _apply_combat_layout_constraints(reward_visible: bool) -> void:
 		player_portrait.custom_minimum_size = Vector2(portrait_size, portrait_size)
 
 	if battle_board_panel != null:
-		var battle_board_height := 470.0 if _is_pc_layout() else 244.0
+		var battle_board_height := 495.0 if _is_pc_layout() else 244.0
 		battle_board_panel.custom_minimum_size = Vector2(0, clamp(round(battle_board_height * scale_y), 176.0, 500.0 if _is_pc_layout() else 244.0))
 	if battle_board_box != null:
 		battle_board_box.add_theme_constant_override("separation", max(2, int(round((4.0 if _is_pc_layout() else 5.0) * scale_y))))
@@ -2960,13 +2961,13 @@ func _apply_combat_layout_constraints(reward_visible: bool) -> void:
 		feedback_label.custom_minimum_size = Vector2(340.0 if feedback_overlay else 0.0, feedback_height)
 		feedback_label.add_theme_font_size_override("font_size", max(11, int(round((12.0 if _is_pc_layout() else 14.0) * scale_y))))
 	if battle_mid_row != null:
-		var battle_mid_height := 400.0 if _is_pc_layout() else 150.0
+		var battle_mid_height := 420.0 if _is_pc_layout() else 150.0
 		battle_mid_row.custom_minimum_size = Vector2(0, clamp(round(battle_mid_height * scale_y), 108.0, 430.0 if _is_pc_layout() else 150.0))
 	if enemy_stage_panel != null:
-		var enemy_stage_height := 396.0 if _is_pc_layout() else 148.0
+		var enemy_stage_height := 416.0 if _is_pc_layout() else 148.0
 		enemy_stage_panel.custom_minimum_size = Vector2(0, clamp(round(enemy_stage_height * scale_y), 106.0, 426.0 if _is_pc_layout() else 148.0))
 	if enemy_stage_stack != null:
-		var enemy_stack_height := 384.0 if _is_pc_layout() else 136.0
+		var enemy_stack_height := 404.0 if _is_pc_layout() else 136.0
 		enemy_stage_stack.custom_minimum_size = Vector2(0, clamp(round(enemy_stack_height * scale_y), 98.0, 414.0 if _is_pc_layout() else 136.0))
 	if player_stage_art != null:
 		player_stage_art.texture = _load_texture(_character_stage_art_path())
@@ -2992,7 +2993,7 @@ func _apply_combat_layout_constraints(reward_visible: bool) -> void:
 		player_stage_plate.offset_right = 310.0
 		player_stage_plate.offset_bottom = -13.0
 	if enemy_row != null:
-		var enemy_row_height := 378.0 if _is_pc_layout() else 136.0
+		var enemy_row_height := 398.0 if _is_pc_layout() else 136.0
 		enemy_row.custom_minimum_size = Vector2(0, clamp(round(enemy_row_height * scale_y), 98.0, 408.0 if _is_pc_layout() else 136.0))
 		if _is_pc_layout():
 			enemy_row.offset_left = 366.0
@@ -3015,11 +3016,11 @@ func _apply_combat_layout_constraints(reward_visible: bool) -> void:
 	var reward_height: float = 0.0
 	if reward_visible:
 		reward_height = clamp(round((320.0 if _is_pc_layout() else 190.0) * scale_y), 270.0 if _is_pc_layout() else 112.0, 330.0 if _is_pc_layout() else 190.0)
-	var target_hand_frame_height := 262.0 if _is_pc_layout() else 150.0
+	var target_hand_frame_height := 252.0 if _is_pc_layout() else 150.0
 	if _is_pc_layout():
-		target_hand_frame_height = 276.0
-	var hand_frame_height: float = clamp(round(target_hand_frame_height * scale_y), 124.0, 246.0 if _is_pc_layout() else 150.0)
-	var hand_scroll_height: float = clamp(hand_frame_height - 12.0, 114.0, 234.0 if _is_pc_layout() else 140.0)
+		target_hand_frame_height = 252.0
+	var hand_frame_height: float = clamp(round(target_hand_frame_height * scale_y), 124.0, 220.0 if _is_pc_layout() else 150.0)
+	var hand_scroll_height: float = clamp(hand_frame_height - 12.0, 114.0, 208.0 if _is_pc_layout() else 140.0)
 	if hand_frame != null:
 		hand_frame.add_theme_stylebox_override("panel", _hand_frame_style())
 		hand_frame.custom_minimum_size = Vector2(0, hand_frame_height)
@@ -3094,7 +3095,9 @@ func _map_view_required_width() -> float:
 
 func _character_select_card_size() -> Vector2:
 	var available_width: float = _scroll_content_width()
-	var gap := 6.0
+	# Keep this in sync with the roster flow separation. A smaller estimate lets
+	# three PC cards exceed 1280px by a few pixels and wrap onto a second row.
+	var gap := 8.0
 	var columns := 1
 	if available_width >= 1120.0:
 		columns = 3
@@ -3193,8 +3196,8 @@ func _hand_card_size() -> Vector2:
 	var available_width: float = _hand_scroll_content_width()
 	var width: float = floor((available_width - float(card_count - 1) * float(_hand_card_gap())) / float(card_count))
 	width = clamp(width, 88.0, 154.0 if _is_pc_layout() else 136.0)
-	var target_height := 242.0 if _is_pc_layout() else 136.0
-	var height: float = clamp(round(target_height * _combat_layout_scale()), 190.0 if _is_pc_layout() else 112.0, 220.0 if _is_pc_layout() else 140.0)
+	var target_height := 224.0 if _is_pc_layout() else 136.0
+	var height: float = clamp(round(target_height * _combat_layout_scale()), 172.0 if _is_pc_layout() else 112.0, 192.0 if _is_pc_layout() else 140.0)
 	return Vector2(width, height)
 
 func _hand_required_width() -> float:
@@ -6495,8 +6498,8 @@ func _add_pc_hud_block(label_text: String, value_text: String, skin: String) -> 
 	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	margin.add_theme_constant_override("margin_left", 5)
 	margin.add_theme_constant_override("margin_right", 7)
-	margin.add_theme_constant_override("margin_top", 4)
-	margin.add_theme_constant_override("margin_bottom", 4)
+	margin.add_theme_constant_override("margin_top", 5)
+	margin.add_theme_constant_override("margin_bottom", 5)
 	panel.add_child(margin)
 
 	var row := HBoxContainer.new()
@@ -6522,29 +6525,17 @@ func _add_pc_hud_block(label_text: String, value_text: String, skin: String) -> 
 	if icon.texture != null:
 		last_combat_hud_icon_node_count += 1
 
-	var text_box := VBoxContainer.new()
-	text_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	text_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	text_box.add_theme_constant_override("separation", -2)
-	row.add_child(text_box)
-
-	var label := Label.new()
-	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	label.text = label_text
-	label.clip_text = true
-	label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	label.add_theme_font_size_override("font_size", 8)
-	label.add_theme_color_override("font_color", Color(0.68, 0.71, 0.68))
-	text_box.add_child(label)
-
 	var value := Label.new()
+	value.name = "HudValue"
 	value.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	value.text = value_text
+	value.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	value.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	value.clip_text = true
 	value.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	value.add_theme_font_size_override("font_size", 13)
+	value.add_theme_font_size_override("font_size", 14)
 	value.add_theme_color_override("font_color", Color(0.98, 0.96, 0.86))
-	text_box.add_child(value)
+	row.add_child(value)
 
 	if _hud_block_opens_pile(label_text):
 		var hit_area := Button.new()
@@ -7562,8 +7553,8 @@ func _add_pc_enemy_stage_layout(panel: Control, enemy: Dictionary, enemy_index: 
 	hit_area.pressed.connect(_on_enemy_pressed.bind(enemy_index))
 	panel.add_child(hit_area)
 
-	var hp_plate_height := 26.0
-	var hp_plate_width: float = clamp(round(panel_width * 0.46), 118.0, 156.0)
+	var hp_plate_height := 28.0
+	var hp_plate_width: float = clamp(round(panel_width * 0.50), 126.0, 170.0)
 	var hp_plate_y: float = panel_height - hp_plate_height - 8.0
 	var art_y := 38.0
 	if panel_height >= 330.0:
@@ -7620,9 +7611,9 @@ func _add_pc_enemy_stage_layout(panel: Control, enemy: Dictionary, enemy_index: 
 	var info_strip := PanelContainer.new()
 	info_strip.name = "EnemyInfoStrip"
 	info_strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	info_strip.custom_minimum_size = Vector2(info_width, 21.0)
+	info_strip.custom_minimum_size = Vector2(info_width, 26.0)
 	info_strip.size = info_strip.custom_minimum_size
-	info_strip.position = Vector2((panel_width - info_width) * 0.5, hp_plate_y - 24.0)
+	info_strip.position = Vector2((panel_width - info_width) * 0.5, hp_plate_y - 30.0)
 	info_strip.add_theme_stylebox_override("panel", _button_style(Color(0.035, 0.038, 0.040, 0.88), Color(0.54, 0.48, 0.38, 0.76), 1, 5))
 	panel.add_child(info_strip)
 	_add_pc_enemy_info_strip_layout(info_strip, enemy, selected)
@@ -7655,7 +7646,7 @@ func _add_pc_enemy_info_strip_layout(info_strip: PanelContainer, enemy: Dictiona
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_label.clip_text = true
 	name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	name_label.add_theme_font_size_override("font_size", 10)
+	name_label.add_theme_font_size_override("font_size", 12)
 	name_label.add_theme_color_override("font_color", Color(1.0, 0.92, 0.76))
 	row.add_child(name_label)
 
@@ -7665,11 +7656,11 @@ func _add_pc_enemy_info_strip_layout(info_strip: PanelContainer, enemy: Dictiona
 	state_label.name = "EnemyStateLabel"
 	state_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	state_label.text = "盾%d · %s" % [block, status_text]
-	state_label.custom_minimum_size = Vector2(68, 0)
+	state_label.custom_minimum_size = Vector2(74, 0)
 	state_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	state_label.clip_text = true
 	state_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	state_label.add_theme_font_size_override("font_size", 9)
+	state_label.add_theme_font_size_override("font_size", 10)
 	state_label.add_theme_color_override("font_color", Color(0.68, 0.86, 0.88) if block > 0 else Color(0.68, 0.70, 0.68))
 	row.add_child(state_label)
 
@@ -8083,7 +8074,7 @@ func _add_pc_enemy_health_plate_layout(hp_plate: PanelContainer, enemy: Dictiona
 	hp_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	hp_label.clip_text = true
 	hp_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	hp_label.add_theme_font_size_override("font_size", 10)
+	hp_label.add_theme_font_size_override("font_size", 11)
 	hp_label.add_theme_color_override("font_color", Color(1.0, 0.88, 0.76))
 	hp_label.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.92))
 	hp_label.add_theme_constant_override("shadow_offset_x", 1)
@@ -8274,8 +8265,11 @@ func _refresh_hand() -> void:
 		var card: Dictionary = combat.hand[i]
 		var button := Button.new()
 		button.custom_minimum_size = _hand_card_size()
+		button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		button.text = ""
-		button.tooltip_text = "%s [%d]\n%s\n%s" % [
+		# The hand is a quick-scanning surface. Full rules text lives in the
+		# dedicated hover preview so the native tooltip cannot duplicate it.
+		button.tooltip_text = "" if _is_pc_layout() else "%s [%d]\n%s\n%s" % [
 			card.get("name", "卡牌"),
 			int(card.get("cost", 0)),
 			card.get("type", ""),
@@ -8302,7 +8296,7 @@ func _refresh_hand() -> void:
 		button.pressed.connect(_on_card_button_pressed.bind(i))
 		hand_row.add_child(button)
 		hand_buttons_by_index[i] = button
-	call_deferred("_apply_hand_card_transforms")
+	hand_row.queue_sort()
 
 func _add_structured_card_layout(button: Button, card: Dictionary, card_texture: Texture2D, telemetry_bucket: String) -> void:
 	var card_type: String = str(card.get("type", ""))
@@ -8441,11 +8435,13 @@ func _add_structured_card_layout(button: Button, card: Dictionary, card_texture:
 func _add_pc_hand_card_layout(button: Button, card: Dictionary, card_texture: Texture2D, card_type: String, card_name: String, cost_text: String, visible_type_text: String, telemetry_bucket: String) -> void:
 	button.clip_contents = true
 	var detail_preview: bool = telemetry_bucket == "detail_preview"
+	var hand_card: bool = telemetry_bucket == "hand"
+	var show_description: bool = not hand_card
 	var material_frame_texture: Texture2D = _load_texture(_pc_card_material_frame_path(card_type))
 	var has_material_frame: bool = material_frame_texture != null
 	var card_height: float = button.custom_minimum_size.y
 	var top_height: float = clamp(round(card_height * 0.18), 30.0, 38.0)
-	var desc_height: float = 110.0 if detail_preview else clamp(round(card_height * 0.40), 72.0, 86.0)
+	var desc_height: float = 0.0 if hand_card else (110.0 if detail_preview else clamp(round(card_height * 0.40), 72.0, 86.0))
 	var type_height: float = 20.0
 
 	var root := MarginContainer.new()
@@ -8542,7 +8538,7 @@ func _add_pc_hand_card_layout(button: Button, card: Dictionary, card_texture: Te
 	bottom_scrim.anchor_top = 1.0
 	bottom_scrim.anchor_right = 1.0
 	bottom_scrim.anchor_bottom = 1.0
-	bottom_scrim.offset_top = -desc_height - type_height - 16.0
+	bottom_scrim.offset_top = -desc_height - type_height - (10.0 if hand_card else 16.0)
 	bottom_scrim.offset_bottom = 0.0
 	bottom_scrim.color = Color(0.015, 0.014, 0.016, 0.68)
 	bottom_scrim.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -8634,12 +8630,13 @@ func _add_pc_hand_card_layout(button: Button, card: Dictionary, card_texture: Te
 	stack.add_child(rarity_gem)
 
 	var type_panel := PanelContainer.new()
+	type_panel.name = "CardTypePanel"
 	type_panel.anchor_left = 0.08
 	type_panel.anchor_top = 1.0
 	type_panel.anchor_right = 0.92
 	type_panel.anchor_bottom = 1.0
-	type_panel.offset_top = -desc_height - type_height - 4.0
-	type_panel.offset_bottom = -desc_height - 4.0
+	type_panel.offset_top = -desc_height - type_height - (6.0 if hand_card else 4.0)
+	type_panel.offset_bottom = -desc_height - (6.0 if hand_card else 4.0)
 	type_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	type_panel.add_theme_stylebox_override("panel", _pc_hand_card_type_style(card_type))
 	stack.add_child(type_panel)
@@ -8655,43 +8652,44 @@ func _add_pc_hand_card_layout(button: Button, card: Dictionary, card_texture: Te
 	type_label.add_theme_color_override("font_color", _hand_card_type_color(card_type))
 	type_panel.add_child(type_label)
 
-	var desc_panel := PanelContainer.new()
-	desc_panel.name = "CardDescriptionPanel"
-	desc_panel.anchor_left = 0.0
-	desc_panel.anchor_top = 1.0
-	desc_panel.anchor_right = 1.0
-	desc_panel.anchor_bottom = 1.0
-	desc_panel.offset_left = 8.0
-	desc_panel.offset_top = -desc_height
-	desc_panel.offset_right = -8.0
-	desc_panel.offset_bottom = -8.0
-	desc_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	desc_panel.add_theme_stylebox_override("panel", _pc_hand_card_description_style(card_type))
-	stack.add_child(desc_panel)
+	if show_description:
+		var desc_panel := PanelContainer.new()
+		desc_panel.name = "CardDescriptionPanel"
+		desc_panel.anchor_left = 0.0
+		desc_panel.anchor_top = 1.0
+		desc_panel.anchor_right = 1.0
+		desc_panel.anchor_bottom = 1.0
+		desc_panel.offset_left = 8.0
+		desc_panel.offset_top = -desc_height
+		desc_panel.offset_right = -8.0
+		desc_panel.offset_bottom = -8.0
+		desc_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		desc_panel.add_theme_stylebox_override("panel", _pc_hand_card_description_style(card_type))
+		stack.add_child(desc_panel)
 
-	var desc_margin := MarginContainer.new()
-	desc_margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	desc_margin.add_theme_constant_override("margin_left", 7)
-	desc_margin.add_theme_constant_override("margin_right", 7)
-	desc_margin.add_theme_constant_override("margin_top", 4)
-	desc_margin.add_theme_constant_override("margin_bottom", 4)
-	desc_panel.add_child(desc_margin)
+		var desc_margin := MarginContainer.new()
+		desc_margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		desc_margin.add_theme_constant_override("margin_left", 7)
+		desc_margin.add_theme_constant_override("margin_right", 7)
+		desc_margin.add_theme_constant_override("margin_top", 4)
+		desc_margin.add_theme_constant_override("margin_bottom", 4)
+		desc_panel.add_child(desc_margin)
 
-	var desc := Label.new()
-	desc.name = "CardDescriptionText"
-	desc.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	desc.text = str(card.get("description", ""))
-	desc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	desc.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	desc.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	desc.clip_text = not detail_preview
-	desc.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING if detail_preview else TextServer.OVERRUN_TRIM_ELLIPSIS
-	desc.add_theme_font_size_override("font_size", 11 if detail_preview else 10)
-	if card_height <= 200.0:
-		desc.add_theme_font_size_override("font_size", 9)
-	desc.add_theme_color_override("font_color", Color(0.94, 0.90, 0.78))
-	desc_margin.add_child(desc)
+		var desc := Label.new()
+		desc.name = "CardDescriptionText"
+		desc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		desc.text = str(card.get("description", ""))
+		desc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		desc.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		desc.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		desc.clip_text = not detail_preview
+		desc.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING if detail_preview else TextServer.OVERRUN_TRIM_ELLIPSIS
+		desc.add_theme_font_size_override("font_size", 11 if detail_preview else 10)
+		if card_height <= 200.0:
+			desc.add_theme_font_size_override("font_size", 9)
+		desc.add_theme_color_override("font_color", Color(0.94, 0.90, 0.78))
+		desc_margin.add_child(desc)
 
 func _record_structured_card_layout(telemetry_bucket: String, art_loaded: bool, cost_text: String, type_text: String, card_name: String, rarity_text: String) -> void:
 	match telemetry_bucket:
@@ -9351,11 +9349,21 @@ func _apply_hand_card_transforms() -> void:
 		if _is_pc_layout():
 			var center: float = float(max(1, card_count - 1)) * 0.5
 			var distance_from_center: float = abs(float(i) - center)
-			var rest_position: Vector2 = button.position + Vector2(0, 4.0 + distance_from_center * 0.8)
+			var base_position: Vector2 = button.position
+			if button.has_meta("hand_layout_base_position"):
+				base_position = button.get_meta("hand_layout_base_position")
+				var previous_rest: Vector2 = button.get_meta("hand_rest_position", base_position)
+				if button.position.distance_to(previous_rest) > 0.5:
+					base_position = button.position
+			else:
+				button.set_meta("hand_layout_base_position", base_position)
+			button.set_meta("hand_layout_base_position", base_position)
+			var rest_position: Vector2 = base_position + Vector2(0, 0.5 + distance_from_center)
 			button.set_meta("hand_rest_position", rest_position)
 			button.position = rest_position
 			button.rotation_degrees = _hand_card_base_rotation(i, card_count)
 		else:
+			button.remove_meta("hand_layout_base_position")
 			button.remove_meta("hand_rest_position")
 			button.rotation_degrees = 0.0
 
@@ -9367,7 +9375,7 @@ func _hand_card_base_rotation(index: int, card_count: int = -1) -> float:
 	if card_count <= 1:
 		return 0.0
 	var center: float = float(card_count - 1) * 0.5
-	return clamp((float(index) - center) * 1.2, -2.4, 2.4)
+	return clamp((float(index) - center) * 1.6, -3.2, 3.2)
 
 func _on_hand_card_hovered(index: int, hovered: bool) -> void:
 	if not _is_pc_layout() or hand_row == null or not hand_buttons_by_index.has(index):
@@ -9391,7 +9399,7 @@ func _on_hand_card_hovered(index: int, hovered: bool) -> void:
 		button.set_meta("hand_hover_tween", enter_tween)
 		enter_tween.tween_property(button, "scale", Vector2(1.045, 1.045), 0.13).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 		enter_tween.parallel().tween_property(button, "rotation_degrees", 0.0, 0.13).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-		enter_tween.parallel().tween_property(button, "position", rest_position + Vector2(0, -18), 0.13).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		enter_tween.parallel().tween_property(button, "position", rest_position + Vector2(0, -24), 0.13).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	else:
 		var base_position: Vector2 = button.get_meta("hand_hover_base_position", rest_position)
 		button.z_index = index
@@ -9628,15 +9636,20 @@ func _show_card_detail_preview(card: Dictionary, index: int) -> void:
 	var card_type: String = str(card.get("type", "skill"))
 	card_detail_preview.add_theme_stylebox_override("normal", _card_button_style(card_type, true, false))
 	card_detail_preview.add_theme_stylebox_override("hover", _card_button_style(card_type, true, false))
-	card_detail_preview.tooltip_text = "%s\n%s" % [str(card.get("name", "卡牌")), str(card.get("description", ""))]
+	card_detail_preview.tooltip_text = ""
 	_add_structured_card_layout(card_detail_preview, card, _load_texture(_card_art_path(card)), "detail_preview")
 	var preview_position := Vector2(22, 70)
 	if hand_frame != null and is_inside_tree():
 		var hand_rect: Rect2 = hand_frame.get_global_rect()
 		var overlay_transform: Transform2D = feedback_overlay.get_global_transform_with_canvas()
+		var preview_global_center_x: float = hand_rect.get_center().x
+		var source_button := hand_buttons_by_index.get(index, null) as Button
+		if source_button != null and is_instance_valid(source_button):
+			preview_global_center_x = source_button.get_global_rect().get_center().x
+		var stage_top: float = enemy_stage_panel.get_global_rect().position.y + 6.0 if enemy_stage_panel != null else 62.0
 		preview_position = overlay_transform.affine_inverse() * Vector2(
-			hand_rect.position.x + 10.0,
-			hand_rect.position.y - card_detail_preview.size.y + 34.0
+			preview_global_center_x - card_detail_preview.size.x * 0.5,
+			max(stage_top, hand_rect.position.y - card_detail_preview.size.y - 8.0)
 		)
 	card_detail_preview.position = _clamp_feedback_overlay_position(preview_position, card_detail_preview.size)
 	card_detail_preview.visible = true
@@ -10451,11 +10464,17 @@ func _clamp_feedback_overlay_position(position: Vector2, label_size: Vector2) ->
 	)
 
 func _feedback_overlay_safe_top() -> float:
-	var safe_top := 76.0
-	if feedback_overlay == null or status_label == null:
+	var safe_top := 8.0
+	if feedback_overlay == null:
+		return safe_top
+	var overlay_transform: Transform2D = feedback_overlay.get_global_transform_with_canvas()
+	if status_label == null or not status_label.visible:
+		if combat_hud_row != null and combat_hud_row.visible:
+			var hud_rect: Rect2 = combat_hud_row.get_global_rect()
+			var hud_bottom: Vector2 = overlay_transform.affine_inverse() * Vector2(hud_rect.position.x, hud_rect.end.y)
+			return max(safe_top, hud_bottom.y + 6.0)
 		return safe_top
 	var rect: Rect2 = status_label.get_global_rect()
-	var overlay_transform: Transform2D = feedback_overlay.get_global_transform_with_canvas()
 	var overlay_bottom: Vector2 = overlay_transform.affine_inverse() * Vector2(rect.position.x, rect.end.y)
 	return max(safe_top, overlay_bottom.y + 8.0)
 

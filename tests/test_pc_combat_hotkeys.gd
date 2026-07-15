@@ -25,6 +25,9 @@ func _run() -> void:
 	await process_frame
 
 	_check(main._combat_hotkeys_allowed(), "PC player turn enables combat hotkeys")
+	main._on_card_previewed(0)
+	_check(main.card_detail_preview.visible and main._combat_hotkeys_allowed(), "hover preview does not block PC combat hotkeys")
+	main._hide_card_detail_preview(0)
 	var target_before: int = main.selected_enemy_index
 	main._unhandled_input(_key_event(KEY_TAB))
 	await process_frame
