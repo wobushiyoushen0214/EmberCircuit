@@ -4,31 +4,31 @@ stage_state:
   state: S8_RUN_LOG
   loop_mode: L3
   audit_scope: delta
-  current_round: 4
-  max_rounds: 4
+  current_round: 5
+  max_rounds: 6
   open_gaps: 7
   tasks_created: 1
   tasks_completed: 1
   carry_over: 4
   critical_review_issues: 0
-  next_legal_action: distribute 0.1.0-alpha.8 and collect fingerprinted human playtest reports
-  stop_conditions: hard numerical tuning still requires human samples
+  next_legal_action: continue the next non-numerical presentation batch while collecting fingerprinted human playtest reports
+  stop_conditions: none for art/UI work; hard numerical tuning still requires human samples
 ---
 
 loop_mode: L3
-current_round: 4
-next_loop_recommendation: pause-human-needed
+current_round: 5
+next_loop_recommendation: continue-next-batch
 carry_over: 4
 
 ## 基线
 
 - source_requirements: `docs/00_MASTER_PLAN.md`（由 `docs/01-08` 细化）
 - mvp_baseline_commit: `7b3f050`
-- last_audited_commit: `61a13ae4d523c52f3a218a2241ddefefc314cbbf`
+- last_audited_commit: `68a9aaa786a62aba1172e425949c74dc5cff2982`
 - loop_mode: `L3`
-- current_round: `4`
-- max_rounds: `4`
-- current_batch_id: `l3-post-round-playtest-hardening`
+- current_round: `5`
+- max_rounds: `6`
+- current_batch_id: `delivery-batch-014-relic-art-expansion`
 
 ## 需求状态
 
@@ -39,9 +39,9 @@ carry_over: 4
 | REQ-003 | DONE | `data/cards/cards.json`, `data/enemies/enemies.json`, `data/config/monster_scaling.json`, `scripts/tools/NumericalTreeAuditor.gd` | `tests/test_data_integrity.gd`, `tests/test_numerical_tree_auditor.gd` | none | 3 | 0 |
 | REQ-004 | PARTIAL | `data/config/player.json`, `data/config/progression_systems.json`, `data/cards/cards.json`, `scripts/main/Main.gd` | `tests/test_progression_systems.gd`, `tests/test_combat_core.gd`, `tests/test_run_flow.gd`, `tests/test_balance_card_telemetry.gd` | next: expand character-exclusive card pools using human telemetry | 3 | 1 |
 | REQ-005 | PARTIAL | `data/enemies/enemies.json`, `data/encounters/encounters.json`, `data/config/monster_scaling.json`, `scripts/combat/CombatState.gd`, `scripts/main/Main.gd` | `tests/test_combat_core.gd`, `tests/test_balance_simulator.gd`, `tests/test_numerical_tree_auditor.gd`, `tests/test_run_flow.gd` | next: expand chapter encounters and dedicated phase assets/audio | L3-3 | 1 |
-| REQ-006 | PARTIAL | `data/cards/cards.json`, `data/relics/relics.json`, `data/events/events.json`, `data/config/art_assets.json`, `assets/art/generated/` | `tests/test_data_integrity.gd`, `tests/test_art_asset_auditor.gd` | next: replace remaining legacy relic/event/enemy art | L3-1 | 0 |
+| REQ-006 | PARTIAL | `data/cards/cards.json`, `data/relics/relics.json`, `data/events/events.json`, `data/config/art_assets.json`, `assets/art/generated/` | `tests/test_data_integrity.gd`, `tests/test_art_asset_auditor.gd` | batch-014 delivered 8 relic PNGs; next: replace remaining legacy event/enemy art | L3-5 | 0 |
 | REQ-007 | DONE | `scripts/core/SaveManager.gd`, `scripts/main/Main.gd`, `data/config/achievements.json` | v5 奖励事务、原子恢复、错节点/坏 ID/金币回滚和旧战斗 HP 隔离测试 | none | L3-post | 0 |
-| REQ-008 | PARTIAL | `assets/art/generated/`, `assets/fonts/NotoSansSC-Variable.ttf`, `data/config/art_assets.json`, `scripts/main/Main.gd`, `scripts/map/MapView.gd`, `assets/audio/` | `tests/test_visual_bounds.gd`, `tests/test_run_flow.gd`, `tests/test_art_asset_auditor.gd`, `tests/test_pc_combat_hotkeys.gd`, `tests/test_audio_manager.gd`, `tools/render_pc_gallery.gd` | next: replace remaining legacy effects, content art and Boss phase audio | L3-3 | 0 |
+| REQ-008 | PARTIAL | `assets/art/generated/`, `assets/fonts/NotoSansSC-Variable.ttf`, `data/config/art_assets.json`, `scripts/main/Main.gd`, `scripts/map/MapView.gd`, `assets/audio/` | `tests/test_visual_bounds.gd`, `tests/test_run_flow.gd`, `tests/test_art_asset_auditor.gd`, `tests/test_pc_combat_hotkeys.gd`, `tests/test_audio_manager.gd`, `tools/render_pc_gallery.gd` | batch-014 added six-relic HUD and full relic compendium evidence; next: remaining legacy effects/content art/Boss audio | L3-5 | 0 |
 | REQ-009 | PARTIAL | `scripts/core/PlaytestTelemetry.gd`, `scripts/core/SaveManager.gd`, `scripts/main/Main.gd`, `scripts/tools/BalanceSimulator.gd`, `data/config/numerical_tree.json` | 奖励页重复载入的胜场、曝光、卡牌/遗物/药水、跳过和节点计数幂等测试 | next: collect 12/30 finished human runs per character/challenge cell and analyze by configuration fingerprint | L3-post | 0 |
 | REQ-010 | MISSING | none | none | proposed: build-grid-tactics-mode | 1 | 2 |
 | REQ-011 | PARTIAL | `export_presets.cfg`, `project.godot`, `packaging/PLAYTEST_README_ZH.txt` | alpha.8 Windows PE32+ x86_64 embedded-PCK、精确 PCK 启动、版本和压缩完整性通过 | next: native Windows matrix, commercial signing, installer and Steam integration | L3-post | 0 |
@@ -49,13 +49,11 @@ carry_over: 4
 
 ## 当前批次
 
-- batch_id: `l3-post-round-playtest-hardening`
-- scope: `L3 Round 4 后试玩加固：战斗奖励事务存档、坏档恢复、遥测幂等与 0.1.0-alpha.8 Windows 试玩包`
+- batch_id: `delivery-batch-014-relic-art-expansion`
+- scope: `L3 Round 5：八件通用遗物生产位图、统一资源契约、六遗物 HUD 与图鉴视觉证据`
 - selected_reqs:
-  - `REQ-007`
-  - `REQ-009`
-  - `REQ-011`
-  - `REQ-012`
+  - `REQ-006`
+  - `REQ-008`
 - excluded_this_round:
   - `REQ-004/009`: 冻结角色、怪物、卡牌和挑战数值，真人每格未达到 12/30 完成局前不做硬调参
   - `REQ-010`: 空间网格战术模式继续作为后续差异化扩展
@@ -81,6 +79,7 @@ carry_over: 4
 - 2026-07-16: 用户要求完成当前阶段、提交并打包给他人试玩；L3 Round 3 聚焦三章 Boss 阶段可读性和局部战场顿帧，版本递增到 `0.1.0-alpha.6`。
 - 2026-07-16: 用户要求继续完成当前阶段并打包试玩；L3 Round 4 修复卡牌和敌方行动的结算顺序、重复刷新与演出期间输入，版本递增到 `0.1.0-alpha.7`。
 - 2026-07-16: 用户要求完成阶段后提交并打包，同时删除旧构建节省磁盘；试玩加固批次加入奖励页事务存档，只保留 `0.1.0-alpha.8` Windows x86_64 分发包。
+- 2026-07-16: 用户要求读取并接续旧会话的未完成项目；恢复 batch-014 后继续自动验证、中文提交和推送，并允许完成迁移后删除旧 session。
 
 ## 预算快照
 
@@ -92,6 +91,6 @@ carry_over: 4
 
 ## 下一轮建议
 
-- action: `pause-human-needed`
-- reason: `alpha.8 奖励事务存档加固已交付；先让试玩者验证奖励页关闭/重开、部分领奖幂等、卡牌/敌方行动时序、三章 Boss 和完整流程，并按配置指纹收集每格 12 局方向样本，达到 30 局前不做数值硬调参。`
+- action: `continue-next-batch`
+- reason: `batch-014 已把生产遗物位图从 5 件扩展到 13 件并通过严格回归；下一批可继续剩余事件/敌人/效果美术与非数值 UI 加固，同时收集 alpha.8 指纹化真人报告。角色、卡牌、敌人和挑战硬调参仍等待每格 12/30 完成局。`
 - next_audit_scope: `delta`
