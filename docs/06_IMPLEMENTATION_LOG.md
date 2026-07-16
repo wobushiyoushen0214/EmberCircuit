@@ -865,3 +865,9 @@ jq empty data/cards/cards.json data/enemies/enemies.json data/relics/relics.json
 - 敌人回合拆分为 `prepare_enemy_turn()` 与 `resolve_prepared_enemy_turn()`：前者先处理弃牌、敌方护甲清零、灼烧和 Boss 转阶段，后者在演出命中点结算实际行动。
 - 主场景不再缓存回合开始前的旧意图；灼烧触发阶段切换后，敌方起手、意图类型和实际伤害使用同一份状态层载荷。
 - `end_player_turn()` 保留同步组合接口，自动化模拟和旧调用方无需感知表现层计时；完整事务仍只发送一次 `changed`。
+
+## 2026-07-16：PC 战斗奖励页重构
+
+- PC 胜利态改为专注奖励决策的页面 chrome，仅保留“战斗奖励”标题、金币、奖励卡面和右侧跳过/继续命令列。
+- 隐藏重复的跑团摘要、角色面板、战斗日志和通用底部导航；奖励按钮仍使用原有真实结算回调。
+- 新增 `03_reward_720p.png` 图库快照，确认 `1280x720` 下奖励主体完整显示且无页面滚动条。

@@ -34,6 +34,11 @@ func _run() -> void:
 		main.combat.phase = "won"
 		main._refresh_combat()
 	)
+	await _capture(scene, "03_reward_720p", func(main):
+		main._on_character_selected("ember_exile")
+		main.combat.phase = "won"
+		main._refresh_combat()
+	, DEFAULT_PC_SNAPSHOT_SIZE)
 	await _capture(scene, "04_map", func(main):
 		main._on_character_selected("ember_exile")
 		main.combat.phase = "won"

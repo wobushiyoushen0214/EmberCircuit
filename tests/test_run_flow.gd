@@ -998,6 +998,8 @@ func _run() -> void:
 		var reward_action_column := main.reward_row.get_node_or_null("RewardActionColumn") as VBoxContainer
 		if not _check(reward_action_column != null and reward_action_column.get_child_count() == main.last_reward_action_button_count, "PC combat reward actions share one dedicated command column"):
 			return
+		if not _check(main.title_label.visible and main.title_label.text == "战斗奖励" and not main.run_label.visible and not main.character_frame.visible and not main.log_label.visible and not main.controls_scroll.visible, "PC combat reward page uses a focused full-page chrome"):
+			return
 	var first_reward_card_button := _first_structured_button(main.reward_row)
 	if not _check(first_reward_card_button != null and first_reward_card_button.get_child_count() >= 1 and first_reward_card_button.get_child(0) is MarginContainer, "combat reward card button contains a visual layout root"):
 		return

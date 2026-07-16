@@ -2945,6 +2945,25 @@ func _apply_pc_combat_chrome(reward_visible: bool) -> void:
 	if _is_pc_layout() and combat != null and combat.phase == "lost":
 		_apply_pc_defeat_chrome()
 		return
+	if _is_pc_layout() and reward_visible:
+		if title_label != null:
+			title_label.visible = true
+			title_label.text = "战斗奖励"
+			title_label.custom_minimum_size.y = 42.0
+			title_label.add_theme_font_size_override("font_size", 26)
+		title_label.add_theme_color_override("font_color", Color(1.0, 0.88, 0.62))
+		for control_value in [run_label, status_label, character_frame, character_panel, log_label]:
+			var control := control_value as Control
+			if control != null:
+				control.visible = false
+		if controls_scroll != null:
+			controls_scroll.visible = false
+		if controls_row != null:
+			controls_row.visible = false
+		if reward_scroll != null:
+			reward_scroll.visible = true
+			reward_scroll.set("vertical_scroll_mode", 0)
+		return
 	var immersive_combat: bool = _is_pc_layout() and not reward_visible
 	if title_label != null:
 		title_label.visible = not immersive_combat
@@ -3457,7 +3476,7 @@ func _apply_combat_layout_constraints(reward_visible: bool) -> void:
 	var log_height: float = clamp(round((98.0 if reward_visible else (34.0 if _is_pc_layout() else 58.0)) * scale_y), 28.0 if (_is_pc_layout() and not reward_visible) else (40.0 if not reward_visible else 70.0), 98.0 if reward_visible else (38.0 if _is_pc_layout() else 58.0))
 	var reward_height: float = 0.0
 	if reward_visible:
-		reward_height = clamp(round((320.0 if _is_pc_layout() else 190.0) * scale_y), 270.0 if _is_pc_layout() else 112.0, 330.0 if _is_pc_layout() else 190.0)
+		reward_height = clamp(round((480.0 if _is_pc_layout() else 190.0) * scale_y), 390.0 if _is_pc_layout() else 112.0, 500.0 if _is_pc_layout() else 190.0)
 	var target_hand_frame_height := 252.0 if _is_pc_layout() else 150.0
 	if _is_pc_layout():
 		target_hand_frame_height = 252.0
