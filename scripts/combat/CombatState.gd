@@ -28,6 +28,8 @@ var relic_used_this_turn: Dictionary = {}
 var relic_used_this_combat: Dictionary = {}
 var skill_block_bonus_percent: int = 0
 var challenge_modifiers: Dictionary = {}
+var enemy_turn_prepared: bool = false
+var prepared_enemy_actions: Array[Dictionary] = []
 
 func setup(
 	card_data: Dictionary,
@@ -88,6 +90,8 @@ func setup(
 	relic_used_this_turn.clear()
 	relic_used_this_combat.clear()
 	skill_block_bonus_percent = 0
+	enemy_turn_prepared = false
+	prepared_enemy_actions.clear()
 
 	_apply_setup_relics()
 	var deck_ids: Array = deck_override
@@ -220,13 +224,56 @@ func use_potion(potion: Dictionary, target_index: int = -1) -> bool:
 func end_player_turn() -> void:
 	if phase != "player":
 		return
+	prepare_enemy_turn()
+	resolve_prepared_enemy_turn()
+
+func prepare_enemy_turn() -> Array[Dictionary]:
+	if phase != "player":
+		return prepared_enemy_actions
 
 	while not hand.is_empty():
 		discard_pile.append(hand.pop_back())
 
 	_log("玩家结束回合，手牌进入弃牌堆。")
 	phase = "enemy"
-	_enemy_turn()
+	enemy_turn_prepared = true
+	prepared_enemy_actions.clear()
+	_log("敌人回合开始。")
+	for enemy_index in range(enemies.size()):
+		var enemy: Dictionary = enemies[enemy_index]
+		if int(enemy.get("hp", 0)) <= 0:
+			continue
+		enemy["block"] = 0
+		_apply_burn_to_enemy(enemy)
+		if int(enemy.get("hp", 0)) <= 0:
+			continue
+		var action: Dictionary = enemy.get("current_action", {})
+		prepared_enemy_actions.append({
+			"enemy_id": str(enemy.get("id", "")),
+			"enemy_index": enemy_index,
+			"action_id": str(action.get("id", "")),
+			"intent_type": str(action.get("intent", {}).get("type", "none"))
+		})
+	return prepared_enemy_actions.duplicate(true)
+
+func resolve_prepared_enemy_turn() -> void:
+	if not enemy_turn_prepared:
+		return
+	for enemy in enemies:
+		if int(enemy.get("hp", 0)) <= 0:
+			continue
+		var action: Dictionary = enemy.get("current_action", {})
+		_log("%s 执行意图：%s。" % [enemy.get("name", "敌人"), action.get("id", "无行动")])
+		for effect in action.get("effects", []):
+			_resolve_enemy_effect(enemy, effect)
+			if phase == "lost":
+				break
+		if phase == "lost":
+			break
+		_advance_enemy_intent(enemy)
+	_roll_enemy_intents()
+	enemy_turn_prepared = false
+	prepared_enemy_actions.clear()
 	_check_combat_end()
 	if phase != "won" and phase != "lost":
 		_start_player_turn_internal()
@@ -327,27 +374,6 @@ func _enemy_actions(enemy: Dictionary) -> Array:
 	if not phase_actions.is_empty():
 		return phase_actions
 	return enemy.get("data", {}).get("actions", [])
-
-func _enemy_turn() -> void:
-	_log("敌人回合开始。")
-	for enemy in enemies:
-		if int(enemy.get("hp", 0)) <= 0:
-			continue
-
-		enemy["block"] = 0
-		_apply_burn_to_enemy(enemy)
-		if int(enemy.get("hp", 0)) <= 0:
-			continue
-
-		var action: Dictionary = enemy.get("current_action", {})
-		_log("%s 执行意图：%s。" % [enemy.get("name", "敌人"), action.get("id", "无行动")])
-		for effect in action.get("effects", []):
-			_resolve_enemy_effect(enemy, effect)
-			if phase == "lost":
-				return
-		_advance_enemy_intent(enemy)
-
-	_roll_enemy_intents()
 
 func _resolve_card(card: Dictionary, target_index: int) -> void:
 	for effect in card.get("effects", []):

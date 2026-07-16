@@ -12852,7 +12852,7 @@ func _on_card_pressed(index: int) -> void:
 func _on_end_turn_pressed() -> void:
 	if combat_presentation_busy or combat == null or combat.phase != "player":
 		return
-	var action_payloads: Array[Dictionary] = _capture_enemy_action_visuals()
+	var action_payloads: Array[Dictionary] = combat.prepare_enemy_turn()
 	_run_enemy_turn_presentation(action_payloads)
 
 func _run_card_presentation(index: int, target_index: int, card_id: String, payload: Dictionary) -> void:
@@ -12885,7 +12885,7 @@ func _run_enemy_turn_presentation(action_payloads: Array[Dictionary]) -> void:
 	if not _combat_presentation_ticket_valid(ticket):
 		return
 	combat_presentation_sequence.append("enemy:impact")
-	combat.end_player_turn()
+	combat.resolve_prepared_enemy_turn()
 	combat_presentation_sequence.append("enemy:resolved")
 	_checkpoint_playtest_store()
 	if not _combat_presentation_is_instant():

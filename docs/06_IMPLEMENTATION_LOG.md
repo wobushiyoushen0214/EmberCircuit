@@ -859,3 +859,9 @@ jq empty data/cards/cards.json data/enemies/enemies.json data/relics/relics.json
 - 美术审计达到 23 个 compliant、71 个 legacy fallback、0 hard error；其余遗物 SVG 后续按同一契约分批迁移。
 - 第二批接入余烬瓶与绝缘电池生产位图，三角色六件开局遗物已有五件完成迁移；灰烬念珠因生图上游连续超时继续保留 SVG。
 - PC 图库增加余烬流亡者与熔痕苦修者的 `1280x720` 遗物 HUD 快照，确保不同角色的双遗物组合不会挤压顶部资源与药水槽。
+
+## 2026-07-16：敌人回合真实行动准备
+
+- 敌人回合拆分为 `prepare_enemy_turn()` 与 `resolve_prepared_enemy_turn()`：前者先处理弃牌、敌方护甲清零、灼烧和 Boss 转阶段，后者在演出命中点结算实际行动。
+- 主场景不再缓存回合开始前的旧意图；灼烧触发阶段切换后，敌方起手、意图类型和实际伤害使用同一份状态层载荷。
+- `end_player_turn()` 保留同步组合接口，自动化模拟和旧调用方无需感知表现层计时；完整事务仍只发送一次 `changed`。

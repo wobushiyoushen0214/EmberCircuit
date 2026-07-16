@@ -440,6 +440,18 @@ func _init() -> void:
 	_check(int(boss.get("block", 0)) >= second_phase_entry_block, "boss phase entry applies block")
 	var phase_feedback: Array = boss_combat.consume_feedback_events()
 	_check(_has_feedback_type(phase_feedback, "phase"), "boss phase transition emits phase feedback")
+
+	var prepared_boss_combat = CombatStateScript.new()
+	prepared_boss_combat.setup(card_data, enemy_data, relic_data, encounter_data, player_data, "chapter_one_boss", ["ash_guard"], [], 72)
+	prepared_boss_combat.consume_feedback_events()
+	var prepared_boss: Dictionary = prepared_boss_combat.enemies[0]
+	prepared_boss["hp"] = 70
+	prepared_boss_combat._add_status(prepared_boss["statuses"], "burn", 5)
+	var prepared_actions: Array[Dictionary] = prepared_boss_combat.prepare_enemy_turn()
+	_check(str(prepared_boss.get("phase_id", "")) == "second_sermon", "enemy-turn preparation applies burn before choosing a boss action")
+	_check(not prepared_actions.is_empty() and str(prepared_actions[0].get("action_id", "")) == "cinder_cross", "enemy-turn visual payload uses the post-burn phase action")
+	prepared_boss_combat.resolve_prepared_enemy_turn()
+	_check(not prepared_boss_combat.enemy_turn_prepared and prepared_boss_combat.phase == "player", "prepared enemy turn resolves and returns to player phase")
 	var final_phase_threshold: int = int(floor(float(int(boss.get("max_hp", 1))) * 0.33))
 	var final_phase_probe_damage: int = max(1, int(boss.get("hp", 1)) + int(boss.get("block", 0)) - final_phase_threshold + 1)
 	boss_combat._damage_enemy(boss, final_phase_probe_damage, {"name": "测试伤害", "ignore_player_modifiers": true})
