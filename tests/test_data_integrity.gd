@@ -35,6 +35,7 @@ const SUPPORTED_CARD_EFFECT_TYPES := [
 
 const CARD_EFFECT_TARGETS := ["self", "enemy", "all_enemies"]
 const CREATED_CARD_DESTINATIONS := ["hand", "draw", "discard"]
+const PRODUCTION_STARTER_RELIC_IDS := ["cracked_charm", "arc_capacitor", "penitent_censer"]
 
 var failed: bool = false
 
@@ -257,6 +258,8 @@ func _init() -> void:
 		var relic_icon_slot: Dictionary = relic_icon_slots_by_id.get(relic_id, {})
 		_validate_art_slot(relic_icon_slot, "relic icon slot %s" % relic_id, "res://assets/art/relics/")
 		_validate_svg_art_quality(str(relic_icon_slot.get("asset_path", "")), "relic icon art quality: %s" % relic_id, 10, true)
+		if PRODUCTION_STARTER_RELIC_IDS.has(relic_id):
+			_check(str(relic_icon_slot.get("asset_path", "")).begins_with("res://assets/art/generated/relics/") and str(relic_icon_slot.get("asset_path", "")).ends_with(".png"), "starter relic uses production raster art: %s" % relic_id)
 		for character_id_value in relic_dict.get("character_ids", []):
 			var relic_character_id: String = str(character_id_value)
 			_check(character_ids.has(relic_character_id), "relic character_ids references playable character: %s" % relic_dict.get("id", "unknown"))

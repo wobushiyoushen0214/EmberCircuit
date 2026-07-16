@@ -505,6 +505,8 @@ func _run() -> void:
 			return
 		if not _check(not main.character_frame.visible and main.last_character_panel_style_applied and main.character_frame.get_theme_stylebox("panel") != null, "PC combat hides the redundant player panel while keeping its style configured"):
 			return
+		if not _check(main.relic_belt_row.visible and main.relic_belt_row.get_parent() == main.combat_hud_row, "PC combat keeps the relic belt visible inside the top HUD"):
+			return
 	else:
 		if not _check(main.character_frame.visible and main.last_character_panel_style_applied and main.character_frame.get_theme_stylebox("panel") != null, "compact combat renders a styled player panel"):
 			return

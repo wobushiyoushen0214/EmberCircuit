@@ -2426,6 +2426,11 @@ func _relic_names(relic_ids: Array) -> String:
 func _refresh_character_panel() -> void:
 	if character_panel == null or player_portrait == null or character_summary_label == null:
 		return
+	if relic_belt_row != null and relic_belt_row.get_parent() != character_panel:
+		var relic_parent := relic_belt_row.get_parent()
+		if relic_parent != null:
+			relic_parent.remove_child(relic_belt_row)
+		character_panel.add_child(relic_belt_row)
 	var config: Dictionary = _current_player_config()
 	if config.is_empty():
 		character_panel.visible = false
@@ -2952,7 +2957,7 @@ func _apply_pc_combat_chrome(reward_visible: bool) -> void:
 	if character_panel != null:
 		character_panel.visible = not immersive_combat
 	if relic_belt_row != null:
-		relic_belt_row.visible = not immersive_combat
+		relic_belt_row.visible = immersive_combat or not run_relic_ids.is_empty()
 	if log_label != null and immersive_combat:
 		log_label.visible = false
 
@@ -7169,6 +7174,9 @@ func _refresh_combat_hud() -> void:
 	var preserved_potion_row := potion_row if potion_row != null and potion_row.get_parent() == combat_hud_row else null
 	if preserved_potion_row != null:
 		combat_hud_row.remove_child(preserved_potion_row)
+	var preserved_relic_belt := relic_belt_row if _is_pc_layout() and relic_belt_row != null else null
+	if preserved_relic_belt != null and preserved_relic_belt.get_parent() != null:
+		preserved_relic_belt.get_parent().remove_child(preserved_relic_belt)
 	_clear_container(combat_hud_row)
 	last_combat_hud_block_count = 0
 	last_combat_hud_icon_node_count = 0
@@ -7205,6 +7213,10 @@ func _refresh_combat_hud() -> void:
 		var value: String = str(entry_dict.get("value", ""))
 		_add_hud_block(label, value, str(entry_dict.get("skin", "neutral")))
 		text_parts.append("%s %s" % [label, value])
+	if preserved_relic_belt != null:
+		preserved_relic_belt.custom_minimum_size.y = 38
+		preserved_relic_belt.visible = not run_relic_ids.is_empty()
+		combat_hud_row.add_child(preserved_relic_belt)
 	if preserved_potion_row != null:
 		var spacer := Control.new()
 		spacer.custom_minimum_size = Vector2(8, 1)

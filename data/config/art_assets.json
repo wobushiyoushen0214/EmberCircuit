@@ -54,8 +54,8 @@
         "legacy_fallback_allowed": false
       },
       "relic_icon_slots": {
-        "contract_id": "legacy_vector_art",
-        "production_tier": "legacy_fallback",
+        "contract_id": "relic_icon",
+        "production_tier": "production_preferred",
         "legacy_fallback_allowed": true
       }
     },
@@ -163,6 +163,27 @@
           "max": 0.82,
           "enforcement": "advisory",
           "note": "按 alpha 可见包围盒计算，保证 32px HUD 图标下轮廓仍清楚。"
+        }
+      },
+      "relic_icon": {
+        "allowed_extensions": ["png", "webp"],
+        "expected_dimensions": {"mode": "minimum", "width": 512, "height": 512},
+        "expected_aspect_ratio": {"mode": "exact", "value": 1.0, "tolerance": 0.001},
+        "color_mode": "RGBA",
+        "alpha_requirement": "required",
+        "safe_area": {
+          "check": "alpha_bounds",
+          "normalized_rect": [0.01, 0.01, 0.98, 0.98],
+          "enforcement": "advisory",
+          "note": "透明边必须完整包住遗物轮廓，不得裁断链条、把手、尖角或外溢能量。"
+        },
+        "subject_occupancy": {
+          "check": "alpha_bounds",
+          "metric": "alpha_bbox_area_ratio",
+          "min": 0.24,
+          "max": 0.86,
+          "enforcement": "advisory",
+          "note": "按 alpha 可见包围盒计算，保证 32px HUD 和 42px 奖励图标下仍有清晰轮廓。"
         }
       },
       "hud_battle_stage_frame": {
@@ -1299,11 +1320,11 @@
   "relic_icon_slots": [
     {
       "id": "cracked_charm",
-      "asset_path": "res://assets/art/relics/relic_cracked_charm.svg",
+      "asset_path": "res://assets/art/generated/relics/relic_cracked_charm_v2_pc.png",
       "slot_path": "res://assets/art/relics/relic_cracked_charm.svg",
       "design_note": "裂纹护符是起始防御遗物，正式图标应表现破损但仍有效的护符。",
       "replacement_note": "遗物图标需在 32px 下可读，外轮廓应明确。",
-      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 遗物图标；未来正式图标仍保持同一 slot_path，遗物触发逻辑继续由 relic 数据和 CombatState 结算。"
+      "implementation_note": "当前 asset_path 已接入生图模型生成并完成透明底处理的 PC 正式遗物位图；slot_path 保留原 SVG 稳定槽位，遗物触发逻辑继续由 relic 数据和 CombatState 结算。"
     },
     {
       "id": "heavy_gear",
@@ -1323,11 +1344,11 @@
     },
     {
       "id": "arc_capacitor",
-      "asset_path": "res://assets/art/relics/relic_arc_capacitor.svg",
+      "asset_path": "res://assets/art/generated/relics/relic_arc_capacitor_v2_pc.png",
       "slot_path": "res://assets/art/relics/relic_arc_capacitor.svg",
       "design_note": "电弧电容是电弧工匠起始遗物，正式图标应表现电容核心。",
       "replacement_note": "使用蓝白电弧形成角色识别。",
-      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 遗物图标；未来正式图标仍保持同一 slot_path，遗物触发逻辑继续由 relic 数据和 CombatState 结算。"
+      "implementation_note": "当前 asset_path 已接入生图模型生成并完成透明底处理的 PC 正式遗物位图；slot_path 保留原 SVG 稳定槽位，遗物触发逻辑继续由 relic 数据和 CombatState 结算。"
     },
     {
       "id": "war_drum_fragment",
@@ -1443,11 +1464,11 @@
     },
     {
       "id": "penitent_censer",
-      "asset_path": "res://assets/art/relics/relic_penitent_censer.svg",
+      "asset_path": "res://assets/art/generated/relics/relic_penitent_censer_v2_pc.png",
       "slot_path": "res://assets/art/relics/relic_penitent_censer.svg",
       "design_note": "苦修香炉是熔痕苦修者起始遗物，正式图标应表现低矮香炉和白焰烟线。",
       "replacement_note": "香炉轮廓需区别于药瓶，小尺寸下保留火焰识别。",
-      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 遗物图标；未来正式图标仍保持同一 slot_path，遗物触发逻辑继续由 relic 数据和 CombatState 结算。"
+      "implementation_note": "当前 asset_path 已接入生图模型生成并完成透明底处理的 PC 正式遗物位图；slot_path 保留原 SVG 稳定槽位，遗物触发逻辑继续由 relic 数据和 CombatState 结算。"
     },
     {
       "id": "ash_rosary",

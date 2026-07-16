@@ -850,3 +850,10 @@ jq empty data/cards/cards.json data/enemies/enemies.json data/relics/relics.json
 - 新增 `test_combat_presentation.gd`，完整回归 19/19 通过；PC 图库增加敌方起手帧并重新生成成功。
 - 构建标记升级为 `0.1.0-alpha.7`，macOS bundle build number 升级为 7。
 - `0.1.0-alpha.7` 从源码提交 `db3ef16` 导出：Windows PE x86_64 embedded-PCK 与 macOS universal 包均通过解压、原生启动、资源排除、版本、架构和签名验证；SHA-256 分别为 `7b2a919be375f2ae23f1cb843750464f67414385a9549342a9b0952fdb8ee447` 与 `6199014aac35206b097e3a03225825fefdefd036683ef3522c1ac73a436b9d75`。
+
+## 2026-07-16：起始遗物生产美术与战斗 HUD
+
+- 使用 `gpt-image-2` 生成裂纹护符、电弧电容和苦修香炉，经过色键去底与缩放后接入三名角色的起始遗物槽位；临时 API 响应和源图未进入仓库。
+- 新增 `relic_icon` 位图生产契约，要求至少 `512x512`、1:1、RGBA、真实透明像素，并审计透明安全边和主体占比。
+- PC 战斗不再隐藏遗物带；遗物现在位于顶部资源 HUD 与药水槽之间，紧凑布局仍使用角色面板内遗物带。
+- 美术审计达到 23 个 compliant、71 个 legacy fallback、0 hard error；其余遗物 SVG 后续按同一契约分批迁移。
