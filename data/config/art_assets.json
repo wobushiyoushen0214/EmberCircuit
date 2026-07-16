@@ -1328,11 +1328,11 @@
     },
     {
       "id": "heavy_gear",
-      "asset_path": "res://assets/art/relics/relic_heavy_gear.svg",
+      "asset_path": "res://assets/art/generated/relics/relic_heavy_gear_v2_pc.png",
       "slot_path": "res://assets/art/relics/relic_heavy_gear.svg",
       "design_note": "沉重齿轮应表现低速高扭矩的机械感。",
       "replacement_note": "轮齿数量不要过密，避免小尺寸糊成圆形。",
-      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 遗物图标；未来正式图标仍保持同一 slot_path，遗物触发逻辑继续由 relic 数据和 CombatState 结算。"
+      "implementation_note": "当前 asset_path 已接入 gpt-image-2 生成并完成透明底处理的 PC 正式遗物位图；slot_path 保留原 SVG 稳定槽位，遗物触发逻辑继续由 relic 数据和 CombatState 结算。"
     },
     {
       "id": "ember_bottle",
@@ -1352,35 +1352,35 @@
     },
     {
       "id": "war_drum_fragment",
-      "asset_path": "res://assets/art/relics/relic_war_drum_fragment.svg",
+      "asset_path": "res://assets/art/generated/relics/relic_war_drum_fragment_v2_pc.png",
       "slot_path": "res://assets/art/relics/relic_war_drum_fragment.svg",
       "design_note": "战鼓残片应表现节奏推进和战斗开场优势。",
       "replacement_note": "碎片轮廓要明显，不要像普通圆盘。",
-      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 遗物图标；未来正式图标仍保持同一 slot_path，遗物触发逻辑继续由 relic 数据和 CombatState 结算。"
+      "implementation_note": "当前 asset_path 已接入 gpt-image-2 生成并完成透明底处理的 PC 正式遗物位图；slot_path 保留原 SVG 稳定槽位，遗物触发逻辑继续由 relic 数据和 CombatState 结算。"
     },
     {
       "id": "molten_core_ring",
-      "asset_path": "res://assets/art/relics/relic_molten_core_ring.svg",
+      "asset_path": "res://assets/art/generated/relics/relic_molten_core_ring_v2_pc.png",
       "slot_path": "res://assets/art/relics/relic_molten_core_ring.svg",
       "design_note": "熔芯戒指应表现高温环形核心。",
       "replacement_note": "中心留空能增强戒指识别。",
-      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 遗物图标；未来正式图标仍保持同一 slot_path，遗物触发逻辑继续由 relic 数据和 CombatState 结算。"
+      "implementation_note": "当前 asset_path 已接入 gpt-image-2 生成并完成透明底处理的 PC 正式遗物位图；slot_path 保留原 SVG 稳定槽位，遗物触发逻辑继续由 relic 数据和 CombatState 结算。"
     },
     {
       "id": "shield_break_wedge",
-      "asset_path": "res://assets/art/relics/relic_shield_break_wedge.svg",
+      "asset_path": "res://assets/art/generated/relics/relic_shield_break_wedge_v2_pc.png",
       "slot_path": "res://assets/art/relics/relic_shield_break_wedge.svg",
       "design_note": "破盾楔应表现楔形工具撬开护甲。",
       "replacement_note": "楔形尖端方向要清楚，支持破盾联想。",
-      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 遗物图标；未来正式图标仍保持同一 slot_path，遗物触发逻辑继续由 relic 数据和 CombatState 结算。"
+      "implementation_note": "当前 asset_path 已接入 gpt-image-2 生成并完成透明底处理的 PC 正式遗物位图；slot_path 保留原 SVG 稳定槽位，遗物触发逻辑继续由 relic 数据和 CombatState 结算。"
     },
     {
       "id": "blank_contract",
-      "asset_path": "res://assets/art/relics/relic_blank_contract.svg",
+      "asset_path": "res://assets/art/generated/relics/relic_blank_contract_v2_pc.png",
       "slot_path": "res://assets/art/relics/relic_blank_contract.svg",
       "design_note": "空白契约应表现危险交易和未知代价。",
       "replacement_note": "纸张或契约轮廓要在深色 UI 中可读。",
-      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 遗物图标；未来正式图标仍保持同一 slot_path，遗物触发逻辑继续由 relic 数据和 CombatState 结算。"
+      "implementation_note": "当前 asset_path 已接入 gpt-image-2 生成并完成透明底处理的 PC 正式遗物位图；slot_path 保留原 SVG 稳定槽位，遗物触发逻辑继续由 relic 数据和 CombatState 结算。"
     },
     {
       "id": "burn_needle",
@@ -1392,19 +1392,19 @@
     },
     {
       "id": "echo_stone",
-      "asset_path": "res://assets/art/relics/relic_echo_stone.svg",
+      "asset_path": "res://assets/art/generated/relics/relic_echo_stone_v2_pc.png",
       "slot_path": "res://assets/art/relics/relic_echo_stone.svg",
       "design_note": "回声石应表现重复触发或回响纹路。",
       "replacement_note": "可用同心波纹，但轮廓需稳固。",
-      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 遗物图标；未来正式图标仍保持同一 slot_path，遗物触发逻辑继续由 relic 数据和 CombatState 结算。"
+      "implementation_note": "当前 asset_path 已接入 gpt-image-2 生成并完成透明底处理的 PC 正式遗物位图；slot_path 保留原 SVG 稳定槽位，遗物触发逻辑继续由 relic 数据和 CombatState 结算。"
     },
     {
       "id": "old_compass",
-      "asset_path": "res://assets/art/relics/relic_old_compass.svg",
+      "asset_path": "res://assets/art/generated/relics/relic_old_compass_v2_pc.png",
       "slot_path": "res://assets/art/relics/relic_old_compass.svg",
       "design_note": "旧罗盘应表现路线选择和探索收益。",
       "replacement_note": "指针形状要清楚，地图相关遗物要和战斗遗物区分。",
-      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 遗物图标；未来正式图标仍保持同一 slot_path，遗物触发逻辑继续由 relic 数据和 CombatState 结算。"
+      "implementation_note": "当前 asset_path 已接入 gpt-image-2 生成并完成透明底处理的 PC 正式遗物位图；slot_path 保留原 SVG 稳定槽位，遗物触发逻辑继续由 relic 数据和 CombatState 结算。"
     },
     {
       "id": "cinder_lens",
@@ -1472,11 +1472,11 @@
     },
     {
       "id": "ash_rosary",
-      "asset_path": "res://assets/art/relics/relic_ash_rosary.svg",
+      "asset_path": "res://assets/art/generated/relics/relic_ash_rosary_v2_pc.png",
       "slot_path": "res://assets/art/relics/relic_ash_rosary.svg",
       "design_note": "灰烬念珠应表现串珠、灰烬和短暂防护感。",
       "replacement_note": "串珠数量不要过密，避免缩小时糊成一条线。",
-      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 遗物图标；未来正式图标仍保持同一 slot_path，遗物触发逻辑继续由 relic 数据和 CombatState 结算。"
+      "implementation_note": "当前 asset_path 已接入 gpt-image-2 生成并完成透明底处理的 PC 正式遗物位图；slot_path 保留原 SVG 稳定槽位，遗物触发逻辑继续由 relic 数据和 CombatState 结算。"
     },
     {
       "id": "red_wick",

@@ -142,6 +142,8 @@ func _run() -> void:
 	await _capture(scene, "33_enemy_windup_720p", Callable(self, "_setup_enemy_windup_snapshot"), DEFAULT_PC_SNAPSHOT_SIZE, 0.08)
 	await _capture(scene, "34_ember_relic_hud_720p", func(main): main._on_character_selected("ember_exile"), DEFAULT_PC_SNAPSHOT_SIZE)
 	await _capture(scene, "35_pyre_relic_hud_720p", func(main): main._on_character_selected("pyre_ascetic"), DEFAULT_PC_SNAPSHOT_SIZE)
+	await _capture(scene, "36_relic_showcase_hud_720p", Callable(self, "_setup_relic_showcase_hud_snapshot"), DEFAULT_PC_SNAPSHOT_SIZE)
+	await _capture(scene, "37_relic_compendium_720p", Callable(self, "_setup_relic_compendium_snapshot"), DEFAULT_PC_SNAPSHOT_SIZE)
 	_release_audio_streams()
 	SaveManagerScript.cleanup_storage_namespace()
 	SaveManagerScript.clear_storage_namespace()
@@ -234,6 +236,23 @@ func _setup_combat_action_snapshot(main) -> void:
 func _setup_enemy_windup_snapshot(main) -> void:
 	main._on_character_selected("ember_exile")
 	main._on_end_turn_pressed()
+
+func _setup_relic_showcase_hud_snapshot(main) -> void:
+	main._on_character_selected("ember_exile")
+	main.run_relic_ids = [
+		"heavy_gear",
+		"war_drum_fragment",
+		"molten_core_ring",
+		"shield_break_wedge",
+		"blank_contract",
+		"echo_stone"
+	]
+	main._refresh_relic_belt()
+
+func _setup_relic_compendium_snapshot(main) -> void:
+	main._on_compendium_pressed()
+	main.compendium_reveal_all_details = true
+	main._on_compendium_tab_pressed("relics")
 
 func _setup_run_complete_snapshot(main) -> void:
 	main._on_character_selected("ember_exile")

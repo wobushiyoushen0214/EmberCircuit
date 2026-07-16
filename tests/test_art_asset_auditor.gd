@@ -9,9 +9,45 @@ const REQUIRED_BITMAP_SECTIONS := [
 	"card_art_slots",
 	"event_art_slots",
 	"room_scene_slots",
+	"relic_icon_slots",
 	"potion_icon_slots",
 	"hud_texture_slots"
 ]
+
+const EXPANDED_PRODUCTION_RELICS := {
+	"ash_rosary": {
+		"asset_path": "res://assets/art/generated/relics/relic_ash_rosary_v2_pc.png",
+		"slot_path": "res://assets/art/relics/relic_ash_rosary.svg"
+	},
+	"blank_contract": {
+		"asset_path": "res://assets/art/generated/relics/relic_blank_contract_v2_pc.png",
+		"slot_path": "res://assets/art/relics/relic_blank_contract.svg"
+	},
+	"echo_stone": {
+		"asset_path": "res://assets/art/generated/relics/relic_echo_stone_v2_pc.png",
+		"slot_path": "res://assets/art/relics/relic_echo_stone.svg"
+	},
+	"heavy_gear": {
+		"asset_path": "res://assets/art/generated/relics/relic_heavy_gear_v2_pc.png",
+		"slot_path": "res://assets/art/relics/relic_heavy_gear.svg"
+	},
+	"molten_core_ring": {
+		"asset_path": "res://assets/art/generated/relics/relic_molten_core_ring_v2_pc.png",
+		"slot_path": "res://assets/art/relics/relic_molten_core_ring.svg"
+	},
+	"old_compass": {
+		"asset_path": "res://assets/art/generated/relics/relic_old_compass_v2_pc.png",
+		"slot_path": "res://assets/art/relics/relic_old_compass.svg"
+	},
+	"shield_break_wedge": {
+		"asset_path": "res://assets/art/generated/relics/relic_shield_break_wedge_v2_pc.png",
+		"slot_path": "res://assets/art/relics/relic_shield_break_wedge.svg"
+	},
+	"war_drum_fragment": {
+		"asset_path": "res://assets/art/generated/relics/relic_war_drum_fragment_v2_pc.png",
+		"slot_path": "res://assets/art/relics/relic_war_drum_fragment.svg"
+	}
+}
 
 var failed := false
 
@@ -164,6 +200,36 @@ func _test_real_manifest_contract() -> void:
 	_check(known_card.get("color_mode", "") == "RGB", "real card channel mode is audited")
 	var known_potion := _find_item(report.get("items", []), "potion_icon_slots", "volatile_vial")
 	_check(known_potion.get("color_mode", "") == "RGBA" and bool(known_potion.get("uses_transparency", false)), "real potion alpha is audited")
+	var expanded_relic_paths := {}
+	var expanded_relic_hashes := {}
+	for relic_id_value in EXPANDED_PRODUCTION_RELICS.keys():
+		var relic_id: String = str(relic_id_value)
+		var expected: Dictionary = EXPANDED_PRODUCTION_RELICS.get(relic_id, {})
+		var relic_slot := _find_slot(art_data.get("relic_icon_slots", []), relic_id)
+		var relic_item := _find_item(report.get("items", []), "relic_icon_slots", relic_id)
+		var asset_path: String = str(relic_slot.get("asset_path", ""))
+		var subject_bounds: Dictionary = relic_item.get("subject_bounds", {})
+		var subject_area_ratio := float(subject_bounds.get("area_ratio", 0.0))
+		_check(asset_path == expected.get("asset_path", ""), "expanded relic keeps its exact production path: %s" % relic_id)
+		_check(relic_slot.get("slot_path", "") == expected.get("slot_path", ""), "expanded relic keeps its stable SVG slot: %s" % relic_id)
+		_check(relic_item.get("width", 0) == 512 and relic_item.get("height", 0) == 512, "expanded relic is exactly 512x512: %s" % relic_id)
+		_check(relic_item.get("color_mode", "") == "RGBA" and bool(relic_item.get("has_alpha_channel", false)) and bool(relic_item.get("uses_transparency", false)), "expanded relic has RGBA transparency: %s" % relic_id)
+		_check(relic_item.get("asset_tier", "") == "production_preferred", "expanded relic uses the production bitmap contract: %s" % relic_id)
+		_check(subject_area_ratio >= 0.30 and subject_area_ratio <= 0.82, "expanded relic subject occupancy matches the batch design: %s" % relic_id)
+		_check(not expanded_relic_paths.has(asset_path), "expanded relic uses a unique production path: %s" % relic_id)
+		expanded_relic_paths[asset_path] = relic_id
+		var asset_hash := FileAccess.get_md5(asset_path)
+		_check(not asset_hash.is_empty(), "expanded relic file is hashable: %s" % relic_id)
+		_check(not expanded_relic_hashes.has(asset_hash), "expanded relic has independent image content: %s" % relic_id)
+		expanded_relic_hashes[asset_hash] = relic_id
+	_check(expanded_relic_paths.size() == EXPANDED_PRODUCTION_RELICS.size(), "all expanded relic production paths are unique")
+	_check(expanded_relic_hashes.size() == EXPANDED_PRODUCTION_RELICS.size(), "all expanded relic images have unique content")
+	var production_relic_count := 0
+	for report_item_value in report.get("items", []):
+		var report_item: Dictionary = report_item_value
+		if report_item.get("section", "") == "relic_icon_slots" and report_item.get("asset_tier", "") == "production_preferred":
+			production_relic_count += 1
+	_check(production_relic_count >= 13, "real manifest contains the expanded production relic batch")
 	var known_event := _find_item(report.get("items", []), "event_art_slots", "broken_reactor")
 	_check(known_event.get("width", 0) == 1536 and known_event.get("height", 0) == 1024, "real event illustration dimensions are audited")
 	_check(known_event.get("color_mode", "") == "RGB" and known_event.get("asset_tier", "") == "production_preferred", "real event illustration uses the production RGB contract")

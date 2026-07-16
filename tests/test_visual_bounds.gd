@@ -213,6 +213,16 @@ func _run() -> void:
 	_check(_pc_enemy_stage_info_readable(default_pc_main), "default PC enemy name, state and health plates remain readable")
 	_check(_potion_belt_stays_outside_enemy_stage(default_pc_main), "default PC potion belt stays out of the enemy stage")
 	_check(_control_inside_horizontal(default_pc_main.player_stage_plate, default_pc_main.enemy_stage_panel) and _control_inside_vertical(default_pc_main.player_stage_plate, default_pc_main.enemy_stage_panel), "default PC player health plate stays inside battle stage")
+	var original_relic_ids: Array = default_pc_main.run_relic_ids.duplicate()
+	default_pc_main.run_relic_ids = ["heavy_gear", "war_drum_fragment", "molten_core_ring", "shield_break_wedge", "blank_contract", "echo_stone"]
+	default_pc_main._refresh_relic_belt()
+	await process_frame
+	await process_frame
+	_check(default_pc_main.last_relic_belt_layout_count == 6 and default_pc_main.last_relic_belt_icon_node_count == 6, "default PC relic belt renders six production icons")
+	_check(default_pc_main.last_relic_belt_overflow_count == 0, "default PC relic belt fits its six visible slots without overflow")
+	_check(_control_inside_viewport(default_pc_main.relic_belt_row, default_pc_size), "default PC six-relic belt stays inside the 720p viewport")
+	default_pc_main.run_relic_ids = original_relic_ids
+	default_pc_main._refresh_relic_belt()
 	default_pc_main._on_card_previewed(0)
 	_check(default_pc_main.card_detail_preview.visible, "default PC card hover shows the large detail preview")
 	_check(_control_inside_viewport(default_pc_main.card_detail_preview, default_pc_size), "default PC large card preview stays inside the 720p viewport")

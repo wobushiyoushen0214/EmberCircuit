@@ -35,7 +35,26 @@ const SUPPORTED_CARD_EFFECT_TYPES := [
 
 const CARD_EFFECT_TARGETS := ["self", "enemy", "all_enemies"]
 const CREATED_CARD_DESTINATIONS := ["hand", "draw", "discard"]
-const PRODUCTION_STARTER_RELIC_IDS := ["cracked_charm", "ember_bottle", "arc_capacitor", "insulated_battery", "penitent_censer"]
+const PRODUCTION_RELIC_IDS := [
+	"cracked_charm",
+	"heavy_gear",
+	"ember_bottle",
+	"arc_capacitor",
+	"war_drum_fragment",
+	"molten_core_ring",
+	"shield_break_wedge",
+	"blank_contract",
+	"echo_stone",
+	"old_compass",
+	"insulated_battery",
+	"penitent_censer",
+	"ash_rosary"
+]
+const EXPECTED_STARTER_RELIC_IDS := {
+	"ember_exile": ["ember_bottle", "cracked_charm"],
+	"arc_tinker": ["arc_capacitor", "insulated_battery"],
+	"pyre_ascetic": ["penitent_censer", "ash_rosary"]
+}
 
 var failed: bool = false
 
@@ -109,6 +128,7 @@ func _init() -> void:
 	var exclusive_card_count_by_character: Dictionary = {}
 	var exclusive_event_count_by_character: Dictionary = {}
 	var exclusive_relic_count_by_character: Dictionary = {}
+	var starter_relic_ids_seen: Dictionary = {}
 	_check(player_data.get("characters", []).size() >= 3, "player config has at least three playable characters")
 	for character in player_data.get("characters", []):
 		var character_dict: Dictionary = character
@@ -124,6 +144,7 @@ func _init() -> void:
 		_check(character_dict.has("balance_note"), "character has balance_note: %s" % character_id)
 		_check(character_dict.has("implementation_note"), "character has implementation_note: %s" % character_id)
 		_check(character_dict.get("reward_pool_tags", []).has("shared"), "character reward pool includes shared tag: %s" % character_id)
+		_check(character_dict.get("starter_relic_ids", []) == EXPECTED_STARTER_RELIC_IDS.get(character_id, []), "character keeps its two production starter relics: %s" % character_id)
 		_check(CHARACTER_ART_PATHS.has(character_id), "character has configured portrait art: %s" % character_id)
 		_validate_svg_art_quality(str(CHARACTER_ART_PATHS.get(character_id, "")), "character portrait art quality: %s" % character_id, 10, true)
 		var ending: Dictionary = character_dict.get("ending", {})
@@ -136,8 +157,13 @@ func _init() -> void:
 			_check(cards_by_id.has(str(card_id)), "character starter deck references existing card: %s" % str(card_id))
 		for relic_id in character_dict.get("starter_relic_ids", []):
 			_check(relics_by_id.has(str(relic_id)), "character starter relic references existing relic: %s" % str(relic_id))
+			starter_relic_ids_seen[str(relic_id)] = true
+			var starter_relic_slot: Dictionary = relic_icon_slots_by_id.get(str(relic_id), {})
+			var starter_relic_path: String = str(starter_relic_slot.get("asset_path", ""))
+			_check(starter_relic_path.begins_with("res://assets/art/generated/relics/") and starter_relic_path.ends_with(".png"), "character starter relic uses production raster art: %s" % str(relic_id))
 		for potion_id in character_dict.get("starting_potions", []):
 			_check(potions_by_id.has(str(potion_id)), "character starting potion references existing potion: %s" % str(potion_id))
+	_check(starter_relic_ids_seen.size() == 6, "three characters expose six distinct production starter relics")
 	_check(character_ids.has(str(player_data.get("default_character_id", ""))), "default character id references a playable character")
 	_validate_progression_systems(progression_data, character_ids)
 	_validate_monster_scaling(monster_scaling_data, level_tree_data, map_generation_data, encounter_data, enemies_by_id)
@@ -258,8 +284,8 @@ func _init() -> void:
 		var relic_icon_slot: Dictionary = relic_icon_slots_by_id.get(relic_id, {})
 		_validate_art_slot(relic_icon_slot, "relic icon slot %s" % relic_id, "res://assets/art/relics/")
 		_validate_svg_art_quality(str(relic_icon_slot.get("asset_path", "")), "relic icon art quality: %s" % relic_id, 10, true)
-		if PRODUCTION_STARTER_RELIC_IDS.has(relic_id):
-			_check(str(relic_icon_slot.get("asset_path", "")).begins_with("res://assets/art/generated/relics/") and str(relic_icon_slot.get("asset_path", "")).ends_with(".png"), "starter relic uses production raster art: %s" % relic_id)
+		if PRODUCTION_RELIC_IDS.has(relic_id):
+			_check(str(relic_icon_slot.get("asset_path", "")).begins_with("res://assets/art/generated/relics/") and str(relic_icon_slot.get("asset_path", "")).ends_with(".png"), "production relic uses raster art: %s" % relic_id)
 		for character_id_value in relic_dict.get("character_ids", []):
 			var relic_character_id: String = str(character_id_value)
 			_check(character_ids.has(relic_character_id), "relic character_ids references playable character: %s" % relic_dict.get("id", "unknown"))
