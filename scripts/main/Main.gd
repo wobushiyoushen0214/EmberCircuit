@@ -64,6 +64,7 @@ const UI_DECK_ICON_PATH := "res://assets/art/generated/ui/icons/hud_draw.svg"
 const UI_SETTINGS_ICON_PATH := "res://assets/art/generated/ui/icons/control_settings.svg"
 const UI_NEW_RUN_ICON_PATH := "res://assets/art/generated/ui/icons/control_new_run.svg"
 const UI_LOAD_RUN_ICON_PATH := "res://assets/art/generated/ui/icons/control_load_run.svg"
+const UI_SAVE_RUN_ICON_PATH := "res://assets/art/generated/ui/icons/control_save_run.svg"
 const UI_EXPORT_REPORT_ICON_PATH := "res://assets/art/generated/ui/icons/control_export_report.svg"
 const UI_RETRY_RUN_ICON_PATH := "res://assets/art/generated/ui/icons/control_retry.svg"
 const UI_PROFILE_ICON_PATH := "res://assets/art/generated/ui/icons/control_profile.svg"
@@ -72,7 +73,7 @@ const UI_TUTORIAL_ICON_PATH := "res://assets/art/generated/ui/icons/control_tuto
 const UI_SKIP_REWARD_ICON_PATH := "res://assets/art/generated/ui/icons/control_skip_reward.svg"
 const UI_CONTINUE_ROUTE_ICON_PATH := "res://assets/art/generated/ui/icons/control_continue_route.svg"
 const UI_FONT_PATH := "res://assets/fonts/NotoSansSC-Variable.ttf"
-const PLAYTEST_BUILD_LABEL := "0.1.0-alpha.5"
+const PLAYTEST_BUILD_LABEL := "0.1.0-alpha.8"
 const PLAYER_ART_PATHS := {
 	"ember_exile": "res://assets/art/generated/player_ember_exile_pc.png",
 	"arc_tinker": "res://assets/art/generated/player_arc_tinker_pc.png",
@@ -187,6 +188,7 @@ var shop_potion_options: Array = []
 var treasure_reward_gold: int = 0
 var combat_reward_gold: int = 0
 var reward_generated_for: String = ""
+var restoring_combat_reward_state: bool = false
 var shop_generated_for: int = -1
 var shop_remove_selection_open: bool = false
 var campfire_upgrade_selection_open: bool = false
@@ -2650,7 +2652,8 @@ func _start_current_node() -> void:
 			if _record_discovered_content("events", event_id):
 				_save_player_profile()
 		combat = null
-	_record_playtest_node_started()
+	if not restoring_combat_reward_state:
+		_record_playtest_node_started()
 	_refresh()
 
 func _refresh() -> void:
@@ -2803,7 +2806,7 @@ func _set_run_controls_enabled(active_run: bool) -> void:
 		settings_button.disabled = false
 
 func _run_save_blocked() -> bool:
-	return run_completed or (combat != null and ["won", "lost"].has(str(combat.phase)))
+	return run_completed or (combat != null and str(combat.phase) == "lost")
 
 func _set_page_regions(character_visible: bool, hud_visible: bool, map_visible: bool, potions_visible: bool, enemies_visible: bool, log_visible: bool, hand_visible: bool, rewards_visible: bool) -> void:
 	if title_label != null:
@@ -12733,6 +12736,16 @@ func _refresh_rewards() -> void:
 
 	var can_continue: bool = standard_rewards_done and not last_mastery_reward_pending
 	action_target.add_child(_add_reward_action_button(
+		"保存进度",
+		"可从奖励页继续",
+		"保存当前奖励选项和已处理状态。",
+		UI_SAVE_RUN_ICON_PATH,
+		"event",
+		false,
+		Callable(self, "_on_save_pressed"),
+		action_column != null
+	))
+	action_target.add_child(_add_reward_action_button(
 		"继续路线",
 		"进入下个节点" if can_continue else ("选择一项卡组专精" if last_mastery_reward_pending else "等待奖励处理"),
 		"完成所有奖励和卡组专精选择后继续推进路线。",
@@ -13485,6 +13498,15 @@ func _on_load_pressed() -> void:
 	profile_open = false
 	compendium_open = false
 	_audio_event("save")
+	_cancel_card_drag()
+	combat_presentation_ticket += 1
+	combat_presentation_busy = false
+	_restore_battle_stage_processing()
+	combat = null
+	var saved_combat_reward_state: Dictionary = {}
+	var raw_combat_reward_state: Variant = state.get("combat_reward_state", {})
+	if raw_combat_reward_state is Dictionary:
+		saved_combat_reward_state = (raw_combat_reward_state as Dictionary).duplicate(true)
 	run_deck_ids = state.get("run_deck_ids", []).duplicate(true)
 	run_relic_ids = state.get("run_relic_ids", []).duplicate(true)
 	run_potion_ids = state.get("run_potion_ids", []).duplicate(true)
@@ -13538,9 +13560,19 @@ func _on_load_pressed() -> void:
 	if _record_current_run_discoveries(false):
 		_save_player_profile()
 	_restore_playtest_run(state.get("playtest_active_run", {}), str(state.get("run_id", "")))
-	if not SaveManagerScript.save_run(_create_save_state()):
+	var can_restore_combat_reward: bool = _combat_reward_state_matches_current_node(saved_combat_reward_state)
+	if not saved_combat_reward_state.is_empty() and not can_restore_combat_reward:
+		_rollback_invalid_combat_reward_gold(saved_combat_reward_state)
+	var migrated_state: Dictionary = _create_save_state()
+	if can_restore_combat_reward:
+		migrated_state["combat_reward_state"] = saved_combat_reward_state.duplicate(true)
+	if not SaveManagerScript.save_run(migrated_state):
 		last_terminal_persistence_error = "迁移后的跑团存档写回失败；本次读取仍可继续。"
+	restoring_combat_reward_state = can_restore_combat_reward
 	_start_current_node()
+	if can_restore_combat_reward and _restore_combat_reward_state(saved_combat_reward_state):
+		_refresh()
+	restoring_combat_reward_state = false
 
 func _on_event_choice_pressed(choice: Dictionary) -> void:
 	var blocked_reason: String = _event_choice_blocked_reason(choice)
@@ -15108,7 +15140,7 @@ func _create_save_state() -> Dictionary:
 	if combat != null:
 		hp_to_save = int(combat.player.get("hp", run_hp))
 	return {
-		"version": 4,
+		"version": SaveManagerScript.RUN_SAVE_VERSION,
 		"run_id": _terminal_settlement_run_id(),
 		"selected_character_id": selected_character_id,
 		"run_deck_ids": run_deck_ids.duplicate(true),
@@ -15132,8 +15164,146 @@ func _create_save_state() -> Dictionary:
 		"completed_event_ids": completed_event_ids.duplicate(true),
 		"map_graph": map_graph.duplicate(true),
 		"run_completed": run_completed,
+		"combat_reward_state": _combat_reward_state_for_save(),
 		"playtest_active_run": _playtest_active_run().duplicate(true)
 	}
+
+func _combat_reward_state_for_save() -> Dictionary:
+	if combat == null or combat.phase != "won" or reward_generated_for.is_empty():
+		return {}
+	var node: Dictionary = _current_node()
+	var run_id: String = _terminal_settlement_run_id()
+	var node_id: String = str(node.get("id", ""))
+	var encounter_id: String = str(node.get("encounter_id", ""))
+	var gold_before_reward: int = run_gold - combat_reward_gold
+	if run_id.is_empty() or node_id.is_empty() or encounter_id.is_empty() or gold_before_reward < 0:
+		return {}
+	return {
+		"schema_version": 1,
+		"active": true,
+		"run_id": run_id,
+		"chapter_id": current_chapter_id,
+		"node_id": node_id,
+		"encounter_id": encounter_id,
+		"reward_generated_for": reward_generated_for,
+		"run_gold_before_reward": gold_before_reward,
+		"combat_reward_gold": combat_reward_gold,
+		"card_ids": _item_ids(reward_options),
+		"relic_ids": _item_ids(relic_reward_options),
+		"potion_ids": _item_ids(potion_reward_options),
+		"card_reward_done": card_reward_done,
+		"relic_reward_done": relic_reward_done,
+		"potion_reward_done": potion_reward_done
+	}
+
+func _item_ids(items: Array) -> Array[String]:
+	var ids: Array[String] = []
+	for item_value in items:
+		var item: Dictionary = item_value
+		var item_id: String = str(item.get("id", ""))
+		if not item_id.is_empty():
+			ids.append(item_id)
+	return ids
+
+func _restore_combat_reward_state(raw_state: Variant) -> bool:
+	if combat == null or not _combat_reward_state_matches_current_node(raw_state):
+		return false
+	var state: Dictionary = raw_state
+	reward_generated_for = str(state.get("reward_generated_for", ""))
+	combat_reward_gold = max(0, int(state.get("combat_reward_gold", 0)))
+	last_combat_gold_reward = combat_reward_gold
+	reward_options = _items_by_ids(state.get("card_ids", []), Callable(self, "_card_by_id"))
+	relic_reward_options = _items_by_ids(state.get("relic_ids", []), Callable(self, "_relic_by_id"))
+	potion_reward_options = _items_by_ids(state.get("potion_ids", []), Callable(self, "_potion_by_id"))
+	card_reward_done = bool(state.get("card_reward_done", false)) or reward_options.is_empty()
+	relic_reward_done = bool(state.get("relic_reward_done", false)) or relic_reward_options.is_empty()
+	potion_reward_done = bool(state.get("potion_reward_done", false)) or potion_reward_options.is_empty()
+	combat.phase = "won"
+	return true
+
+func _combat_reward_state_matches_current_node(raw_state: Variant) -> bool:
+	if not raw_state is Dictionary or run_completed:
+		return false
+	var state: Dictionary = raw_state
+	if not _is_nonnegative_json_integer(state.get("schema_version", null)) or int(state.get("schema_version", 0)) != 1:
+		return false
+	if typeof(state.get("active", null)) != TYPE_BOOL or not bool(state.get("active", false)):
+		return false
+	for field_name in ["run_id", "chapter_id", "node_id", "encounter_id", "reward_generated_for"]:
+		if typeof(state.get(field_name, null)) != TYPE_STRING or str(state.get(field_name, "")).is_empty():
+			return false
+	for field_name in ["run_gold_before_reward", "combat_reward_gold"]:
+		if not _is_nonnegative_json_integer(state.get(field_name, null)):
+			return false
+	for field_name in ["card_reward_done", "relic_reward_done", "potion_reward_done"]:
+		if typeof(state.get(field_name, null)) != TYPE_BOOL:
+			return false
+	if not _reward_item_ids_are_valid(state.get("card_ids", null), Callable(self, "_card_by_id")):
+		return false
+	if not _reward_item_ids_are_valid(state.get("relic_ids", null), Callable(self, "_relic_by_id")):
+		return false
+	if not _reward_item_ids_are_valid(state.get("potion_ids", null), Callable(self, "_potion_by_id")):
+		return false
+	if not bool(state.get("card_reward_done", false)) and (state.get("card_ids", []) as Array).is_empty():
+		return false
+	if not bool(state.get("relic_reward_done", false)) and (state.get("relic_ids", []) as Array).is_empty():
+		return false
+	if not bool(state.get("potion_reward_done", false)) and (state.get("potion_ids", []) as Array).is_empty():
+		return false
+	if int(state.get("run_gold_before_reward", 0)) + int(state.get("combat_reward_gold", 0)) != run_gold:
+		return false
+	var saved_reward_key: String = str(state.get("reward_generated_for", ""))
+	var node: Dictionary = _current_node()
+	if node.is_empty() or not _is_battle_node(str(node.get("type", ""))):
+		return false
+	var encounter_id: String = str(node.get("encounter_id", ""))
+	if encounter_id.is_empty():
+		return false
+	return str(state.get("run_id", "")) == _terminal_settlement_run_id() \
+		and str(state.get("chapter_id", "")) == current_chapter_id \
+		and str(state.get("node_id", "")) == str(node.get("id", "")) \
+		and str(state.get("encounter_id", "")) == encounter_id \
+		and saved_reward_key == _combat_reward_key(node, encounter_id)
+
+func _reward_item_ids_are_valid(raw_ids: Variant, lookup: Callable) -> bool:
+	if not raw_ids is Array:
+		return false
+	var seen_ids: Dictionary = {}
+	for item_id_value in raw_ids:
+		if typeof(item_id_value) != TYPE_STRING:
+			return false
+		var item_id: String = str(item_id_value)
+		if item_id.is_empty() or seen_ids.has(item_id) or (lookup.call(item_id) as Dictionary).is_empty():
+			return false
+		seen_ids[item_id] = true
+	return true
+
+func _rollback_invalid_combat_reward_gold(raw_state: Variant) -> void:
+	if not raw_state is Dictionary:
+		return
+	var state: Dictionary = raw_state
+	if not _is_nonnegative_json_integer(state.get("run_gold_before_reward", null)) or not _is_nonnegative_json_integer(state.get("combat_reward_gold", null)):
+		return
+	var gold_before_reward: int = int(state.get("run_gold_before_reward", -1))
+	var reward_gold: int = int(state.get("combat_reward_gold", -1))
+	if gold_before_reward >= 0 and reward_gold >= 0 and gold_before_reward + reward_gold == run_gold:
+		run_gold = gold_before_reward
+
+func _is_nonnegative_json_integer(value: Variant) -> bool:
+	if typeof(value) != TYPE_INT and typeof(value) != TYPE_FLOAT:
+		return false
+	var number: float = float(value)
+	return number >= 0.0 and number == floor(number)
+
+func _items_by_ids(raw_ids: Variant, lookup: Callable) -> Array:
+	var items: Array = []
+	if not raw_ids is Array:
+		return items
+	for item_id_value in raw_ids:
+		var item: Dictionary = lookup.call(str(item_id_value))
+		if not item.is_empty():
+			items.append(item.duplicate(true))
+	return items
 
 func _deck_summary() -> Dictionary:
 	var summary := {

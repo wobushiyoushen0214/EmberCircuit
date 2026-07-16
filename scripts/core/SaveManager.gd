@@ -9,7 +9,7 @@ const PROFILE_PATH := "user://ember_circuit_profile.json"
 const PLAYTEST_STORE_PATH := "user://ember_circuit_playtest_telemetry.json"
 const PLAYTEST_EXPORT_PATH := "user://ember_circuit_playtest_report.json"
 const DISCOVERY_CATEGORIES := ["cards", "relics", "potions", "enemies", "events", "challenges"]
-const RUN_SAVE_VERSION := 4
+const RUN_SAVE_VERSION := 5
 const ATOMIC_TEMP_SUFFIX := ".tmp"
 const ATOMIC_BACKUP_SUFFIX := ".bak"
 

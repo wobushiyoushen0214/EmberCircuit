@@ -37,27 +37,116 @@ func _run() -> void:
 	active = PlaytestTelemetryScript.active_run(main.playtest_store)
 	_check(int(active.get("card_telemetry", {}).get(played_id, {}).get("plays", 0)) == 1, "real Main card path records the played card")
 
-	_check(SaveManagerScript.save_run({"terminal_guard": "before_reward"}), "integration fixture writes a pre-reward sentinel save")
 	main.combat.phase = "won"
 	main._refresh_combat()
-	_check(main.save_button.disabled, "combat victory reward state disables run saving")
+	_check(not main.save_button.disabled, "combat victory reward state allows transactional saving")
+	var reward_card_ids_before_save: Array[String] = []
+	for reward_card_value in main.reward_options:
+		reward_card_ids_before_save.append(str((reward_card_value as Dictionary).get("id", "")))
+	var reward_relic_ids_before_save: Array[String] = []
+	for reward_relic_value in main.relic_reward_options:
+		reward_relic_ids_before_save.append(str((reward_relic_value as Dictionary).get("id", "")))
+	var reward_potion_ids_before_save: Array[String] = []
+	for reward_potion_value in main.potion_reward_options:
+		reward_potion_ids_before_save.append(str((reward_potion_value as Dictionary).get("id", "")))
+	var reward_flags_before_save: Array[bool] = [main.card_reward_done, main.relic_reward_done, main.potion_reward_done]
+	var reward_gold_before_save: int = main.run_gold
 	main._on_save_pressed()
-	_check(str(SaveManagerScript.load_run().get("terminal_guard", "")) == "before_reward", "combat reward state cannot overwrite the prior resumable save")
+	var reward_save: Dictionary = SaveManagerScript.load_run()
+	_check(bool(reward_save.get("combat_reward_state", {}).get("active", false)), "combat reward save persists an active reward transaction")
+	_check(str(reward_save.get("combat_reward_state", {}).get("run_id", "")) == main._active_playtest_run_id() and str(reward_save.get("combat_reward_state", {}).get("chapter_id", "")) == main.current_chapter_id, "combat reward save binds the transaction to its run and chapter")
+	_check(reward_save.get("combat_reward_state", {}).get("card_ids", []) == reward_card_ids_before_save, "combat reward save preserves the exact card offers")
+	_check(reward_save.get("combat_reward_state", {}).get("relic_ids", []) == reward_relic_ids_before_save, "combat reward save preserves the exact relic offers")
+	_check(reward_save.get("combat_reward_state", {}).get("potion_ids", []) == reward_potion_ids_before_save, "combat reward save preserves the exact potion offers")
+	main._on_load_pressed()
+	var reward_card_ids_after_load: Array[String] = []
+	for reward_card_value in main.reward_options:
+		reward_card_ids_after_load.append(str((reward_card_value as Dictionary).get("id", "")))
+	var reward_relic_ids_after_load: Array[String] = []
+	for reward_relic_value in main.relic_reward_options:
+		reward_relic_ids_after_load.append(str((reward_relic_value as Dictionary).get("id", "")))
+	var reward_potion_ids_after_load: Array[String] = []
+	for reward_potion_value in main.potion_reward_options:
+		reward_potion_ids_after_load.append(str((reward_potion_value as Dictionary).get("id", "")))
+	_check(main.combat.phase == "won" and reward_card_ids_after_load == reward_card_ids_before_save, "loading from the reward page restores the same unresolved card offers")
+	_check(reward_relic_ids_after_load == reward_relic_ids_before_save and reward_potion_ids_after_load == reward_potion_ids_before_save, "loading from the reward page restores the same item offers")
+	_check([main.card_reward_done, main.relic_reward_done, main.potion_reward_done] == reward_flags_before_save, "loading from the reward page restores all reward completion flags")
+	_check(main.run_gold == reward_gold_before_save, "loading a reward transaction does not grant combat gold twice")
+	_check(bool(SaveManagerScript.load_run().get("combat_reward_state", {}).get("active", false)), "load migration writeback keeps the active reward transaction resumable")
+	var malformed_reward_save: Dictionary = reward_save.duplicate(true)
+	malformed_reward_save["combat_reward_state"]["card_ids"] = ["missing_card_fixture"]
+	_check(SaveManagerScript.save_run(malformed_reward_save), "same-node malformed reward transaction fixture is written")
+	main._on_load_pressed()
+	_check(main.combat.phase == "player" and main.reward_generated_for.is_empty(), "a same-node transaction with an unknown reward ID is rejected")
+	_check(main.run_gold == reward_gold_before_save - int(reward_save.get("combat_reward_state", {}).get("combat_reward_gold", 0)), "rejecting a malformed reward transaction rolls back its already granted combat gold")
+	_check(SaveManagerScript.load_run().get("combat_reward_state", {}).is_empty(), "loading clears a malformed same-node reward transaction")
+	_check(SaveManagerScript.save_run(reward_save), "valid reward transaction fixture is restored after malformed-state verification")
+	main._on_load_pressed()
+	_check(main.combat.phase == "won" and main.run_gold == reward_gold_before_save, "valid reward state remains resumable after malformed-state rejection")
+	var stale_reward_save: Dictionary = reward_save.duplicate(true)
+	stale_reward_save["combat_reward_state"]["reward_generated_for"] = "stale_node:stale_encounter"
+	_check(SaveManagerScript.save_run(stale_reward_save), "stale reward transaction fixture is written")
+	main._on_load_pressed()
+	_check(main.combat.phase == "player" and main.reward_generated_for.is_empty(), "a reward transaction from another node is rejected instead of being restored")
+	_check(main.run_gold == reward_gold_before_save - int(reward_save.get("combat_reward_state", {}).get("combat_reward_gold", 0)), "rejecting a stale reward transaction rolls back its already granted combat gold")
+	_check(SaveManagerScript.load_run().get("combat_reward_state", {}).is_empty(), "loading strips a stale reward transaction from the migrated save")
+	_check(SaveManagerScript.save_run(reward_save), "valid reward transaction fixture is restored after stale-state verification")
+	main._on_load_pressed()
+	_check(main.combat.phase == "won" and main.run_gold == reward_gold_before_save, "the valid reward transaction remains repeatably resumable without duplicate gold")
 	active = PlaytestTelemetryScript.active_run(main.playtest_store)
 	_check(int(active.get("summary", {}).get("combats_won", 0)) == 1, "combat reward refresh records encounter victory once")
 	_check(int(active.get("summary", {}).get("cards_offered", 0)) == main.reward_options.size(), "visible combat reward options are recorded once")
+	_check(int(active.get("summary", {}).get("nodes_visited", 0)) == 1 and int(active.get("summary", {}).get("combats_started", 0)) == 1, "valid reward-page reloads do not record duplicate node or combat starts")
 	if not main.reward_options.is_empty():
 		var reward_id := str((main.reward_options[0] as Dictionary).get("id", ""))
+		var reward_id_count_before: int = main.run_deck_ids.count(reward_id)
 		main._on_reward_card_pressed(reward_id)
 		active = PlaytestTelemetryScript.active_run(main.playtest_store)
 		_check(int(active.get("card_telemetry", {}).get(reward_id, {}).get("acquisitions", 0)) == 1, "selected combat reward records acquisition")
 		_check(int(active.get("card_telemetry", {}).get(reward_id, {}).get("acquisition_sources", {}).get("combat_reward", 0)) == 1, "selected combat reward records its source")
+		main._on_save_pressed()
+		_check(bool(SaveManagerScript.load_run().get("combat_reward_state", {}).get("card_reward_done", false)), "a partially processed reward transaction persists the completed card choice")
+		main._on_load_pressed()
+		_check(main.card_reward_done and main.run_deck_ids.count(reward_id) == reward_id_count_before + 1, "loading a partially processed reward does not duplicate the acquired card")
+	var fixture_relic_id := "cinder_lens"
+	var fixture_potion_id := "guard_tonic"
+	var fixture_relic: Dictionary = main._relic_by_id(fixture_relic_id)
+	var fixture_potion: Dictionary = main._potion_by_id(fixture_potion_id)
+	_check(not fixture_relic.is_empty() and not fixture_potion.is_empty(), "item reward persistence fixtures resolve from authoritative data")
+	main.relic_reward_options = [fixture_relic.duplicate(true)]
+	main.potion_reward_options = [fixture_potion.duplicate(true)]
+	main.relic_reward_done = false
+	main.potion_reward_done = false
+	var relic_count_before: int = main.run_relic_ids.count(fixture_relic_id)
+	main._on_reward_relic_pressed(fixture_relic_id)
+	main._on_save_pressed()
+	main._on_load_pressed()
+	active = PlaytestTelemetryScript.active_run(main.playtest_store)
+	_check(main.relic_reward_done and not main.potion_reward_done and main.run_relic_ids.count(fixture_relic_id) == relic_count_before + 1, "loading a partially processed item reward preserves one relic and the unresolved potion")
+	_check(int(active.get("item_acquisitions", {}).get("relics", {}).get(fixture_relic_id, {}).get("count", 0)) == 1, "reward-page reload does not duplicate relic acquisition telemetry")
+	main._on_skip_potion_reward_pressed()
+	main._on_save_pressed()
+	main._on_load_pressed()
+	active = PlaytestTelemetryScript.active_run(main.playtest_store)
+	_check(int(active.get("reward_skips", {}).get("potion", 0)) == 1, "reward-page reload does not duplicate potion-skip telemetry")
+	main.potion_reward_options = [fixture_potion.duplicate(true)]
+	main.potion_reward_done = false
+	var potion_count_before: int = main.run_potion_ids.count(fixture_potion_id)
+	main._on_reward_potion_pressed(fixture_potion_id)
+	main._on_save_pressed()
+	main._on_load_pressed()
+	active = PlaytestTelemetryScript.active_run(main.playtest_store)
+	_check(main.potion_reward_done and main.run_potion_ids.count(fixture_potion_id) == potion_count_before + 1, "loading a processed potion reward preserves exactly one acquired potion")
+	_check(int(active.get("item_acquisitions", {}).get("potions", {}).get(fixture_potion_id, {}).get("count", 0)) == 1 and int(active.get("reward_skips", {}).get("potion", 0)) == 1, "reward-page reload keeps potion acquisition and prior skip telemetry idempotent")
+	_check(int(active.get("summary", {}).get("nodes_visited", 0)) == 1 and int(active.get("summary", {}).get("combats_started", 0)) == 1, "partial reward reloads keep node-start telemetry idempotent")
 	main.card_reward_done = true
 	main.relic_reward_done = true
 	main.potion_reward_done = true
 	main._advance_to_next_node()
 
 	var saved: Dictionary = main._create_save_state()
+	var saved_load_count: int = int(saved.get("playtest_active_run", {}).get("summary", {}).get("loads", 0))
+	var saved_run_hp: int = int(saved.get("run_hp", 0))
 	_check(saved.get("playtest_active_run", {}) is Dictionary and not saved.get("playtest_active_run", {}).is_empty(), "run save snapshots active playtest telemetry")
 	_check(SaveManagerScript.save_run(saved), "integration fixture writes a resumable run save")
 
@@ -70,7 +159,8 @@ func _run() -> void:
 	main._on_load_pressed()
 	active = PlaytestTelemetryScript.active_run(main.playtest_store)
 	_check(str(active.get("character_id", "")) == "ember_exile", "loading a different save restores its active telemetry row")
-	_check(int(active.get("summary", {}).get("loads", 0)) == 1, "restored telemetry records one save-load restart")
+	_check(int(active.get("summary", {}).get("loads", 0)) == saved_load_count + 1, "restored telemetry records exactly one additional save-load restart")
+	_check(int(SaveManagerScript.load_run().get("run_hp", -1)) == saved_run_hp, "load migration writeback cannot leak HP from the replaced combat")
 	_check(main.playtest_store.get("runs", []).size() == 1, "loading a previously abandoned save removes its stale abandoned row")
 	var replaced: Dictionary = main.playtest_store.get("runs", [])[0]
 	_check(str(replaced.get("character_id", "")) == "arc_tinker", "loading a different save archives the replaced active run")
@@ -217,7 +307,7 @@ func _run() -> void:
 	await process_frame
 	var migrated_run_id: String = legacy_first_load._active_playtest_run_id()
 	var migrated_state: Dictionary = SaveManagerScript.load_run()
-	_check(migrated_run_id.begins_with("legacy_") and str(migrated_state.get("run_id", "")) == migrated_run_id and str(migrated_state.get("playtest_active_run", {}).get("run_id", "")) == migrated_run_id, "first legacy load persists one stable identity into the v4 run save")
+	_check(migrated_run_id.begins_with("legacy_") and int(migrated_state.get("version", 0)) == 5 and str(migrated_state.get("run_id", "")) == migrated_run_id and str(migrated_state.get("playtest_active_run", {}).get("run_id", "")) == migrated_run_id, "first legacy load persists one stable identity into the v5 run save")
 	legacy_first_load.queue_free()
 	await process_frame
 

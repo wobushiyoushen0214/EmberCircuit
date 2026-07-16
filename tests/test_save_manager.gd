@@ -32,6 +32,28 @@ func _init() -> void:
 	_check(str(loaded.get("run_deck_ids", [])[1]) == "ash_guard+", "load_run keeps upgraded card marker")
 	_check(str(loaded.get("run_potion_ids", [])[0]) == "volatile_vial", "load_run restores potions")
 	_check(str(loaded.get("selected_character_id", "")) == "arc_tinker", "load_run restores selected character")
+	_check(int(loaded.get("version", 0)) == SaveManagerScript.RUN_SAVE_VERSION and SaveManagerScript.RUN_SAVE_VERSION == 5, "legacy run saves migrate to the v5 reward-transaction schema")
+	var v4_reward_state: Dictionary = state.duplicate(true)
+	v4_reward_state["version"] = 4
+	v4_reward_state["combat_reward_state"] = {
+		"active": true,
+		"reward_generated_for": "fixture_node:fixture_encounter",
+		"combat_reward_gold": 17,
+		"card_ids": ["ember_strike"],
+		"relic_ids": [],
+		"potion_ids": ["volatile_vial"],
+		"card_reward_done": false,
+		"relic_reward_done": true,
+		"potion_reward_done": false
+	}
+	_check(SaveManagerScript.save_run(v4_reward_state), "v4 reward transaction fixture is written")
+	var migrated_v4_reward_state: Dictionary = SaveManagerScript.load_run()
+	_check(int(migrated_v4_reward_state.get("version", 0)) == 5, "v4 reward transaction migrates to v5")
+	var migrated_reward_transaction: Dictionary = migrated_v4_reward_state.get("combat_reward_state", {})
+	_check(str(migrated_reward_transaction.get("reward_generated_for", "")) == "fixture_node:fixture_encounter", "v4 migration preserves reward transaction ownership")
+	_check(int(migrated_reward_transaction.get("combat_reward_gold", 0)) == 17 and migrated_reward_transaction.get("card_ids", []) == ["ember_strike"] and migrated_reward_transaction.get("potion_ids", []) == ["volatile_vial"], "v4 migration preserves reward offers and gold")
+	_check(not bool(migrated_reward_transaction.get("card_reward_done", true)) and bool(migrated_reward_transaction.get("relic_reward_done", false)) and not bool(migrated_reward_transaction.get("potion_reward_done", true)), "v4 migration preserves reward completion flags")
+	_check(SaveManagerScript.save_run(state), "atomic recovery fixture restores the baseline run save")
 	var recovery_path := SaveManagerScript.run_save_path()
 	var recovery_temp_path := recovery_path + SaveManagerScript.ATOMIC_TEMP_SUFFIX
 	var recovery_backup_path := recovery_path + SaveManagerScript.ATOMIC_BACKUP_SUFFIX
