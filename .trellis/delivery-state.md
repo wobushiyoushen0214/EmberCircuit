@@ -4,19 +4,19 @@ stage_state:
   state: S8_RUN_LOG
   loop_mode: L3
   audit_scope: delta
-  current_round: 3
+  current_round: 4
   max_rounds: 4
   open_gaps: 7
   tasks_created: 0
   tasks_completed: 1
   carry_over: 4
   critical_review_issues: 0
-  next_legal_action: distribute 0.1.0-alpha.6 and collect fingerprinted human playtest reports
+  next_legal_action: distribute 0.1.0-alpha.7 and collect fingerprinted human playtest reports
   stop_conditions: hard numerical tuning still requires human samples
 ---
 
 loop_mode: L3
-current_round: 3
+current_round: 4
 next_loop_recommendation: pause-human-needed
 carry_over: 4
 
@@ -24,11 +24,11 @@ carry_over: 4
 
 - source_requirements: `docs/00_MASTER_PLAN.md`（由 `docs/01-08` 细化）
 - mvp_baseline_commit: `7b3f050`
-- last_audited_commit: `85e8d8c57f0c0dcbdfbde556ca7eaafbf4886e01`
+- last_audited_commit: `db3ef160ab16cbef7e5f1e5d9f3bc5fe07dbb323`
 - loop_mode: `L3`
-- current_round: `3`
+- current_round: `4`
 - max_rounds: `4`
-- current_batch_id: `l3-round-3-boss-phase-feedback`
+- current_batch_id: `l3-round-4-combat-presentation-order`
 
 ## 需求状态
 
@@ -44,15 +44,14 @@ carry_over: 4
 | REQ-008 | PARTIAL | `assets/art/generated/`, `assets/fonts/NotoSansSC-Variable.ttf`, `data/config/art_assets.json`, `scripts/main/Main.gd`, `scripts/map/MapView.gd`, `assets/audio/` | `tests/test_visual_bounds.gd`, `tests/test_run_flow.gd`, `tests/test_art_asset_auditor.gd`, `tests/test_pc_combat_hotkeys.gd`, `tests/test_audio_manager.gd`, `tools/render_pc_gallery.gd` | next: replace remaining legacy effects, content art and Boss phase audio | L3-3 | 0 |
 | REQ-009 | PARTIAL | `scripts/core/PlaytestTelemetry.gd`, `scripts/core/SaveManager.gd`, `scripts/main/Main.gd`, `scripts/tools/BalanceSimulator.gd`, `data/config/numerical_tree.json` | `tests/test_playtest_telemetry.gd`, `tests/test_playtest_run_integration.gd`, `tests/test_balance_card_telemetry.gd`, `tests/test_numerical_balance_matrix.gd` | next: collect 12/30 finished human runs per character/challenge cell and analyze by configuration fingerprint | 5 | 0 |
 | REQ-010 | MISSING | none | none | proposed: build-grid-tactics-mode | 1 | 2 |
-| REQ-011 | PARTIAL | `export_presets.cfg`, `project.godot`, `packaging/PLAYTEST_README_ZH.txt` | alpha.6 Windows PE x86_64 embedded-PCK bootstrap；macOS universal 原生启动、build 6 与 adhoc 签名验证 | next: native Windows matrix, commercial signing, installer and Steam integration | L3-3 | 0 |
-| REQ-012 | DONE | `tests/`, `tools/render_pc_gallery.gd`, `scripts/tools/ArtAssetAuditor.gd` | 18-suite strict-log regression、153-slot art audit、三张 720p Boss 阶段图、压缩完整性与导出包启动验证通过 | none | L3-3 | 0 |
+| REQ-011 | PARTIAL | `export_presets.cfg`, `project.godot`, `packaging/PLAYTEST_README_ZH.txt` | alpha.7 Windows PE x86_64 embedded-PCK；macOS universal 原生启动、build 7 与 adhoc 签名验证 | next: native Windows matrix, commercial signing, installer and Steam integration | L3-4 | 0 |
+| REQ-012 | DONE | `tests/`, `tools/render_pc_gallery.gd`, `scripts/tools/ArtAssetAuditor.gd` | 19-suite strict-log regression、153-slot art audit、720p 卡牌/敌方行动帧、压缩完整性与导出包启动验证通过 | none | L3-4 | 0 |
 
 ## 当前批次
 
-- batch_id: `l3-round-3-boss-phase-feedback`
-- scope: `L3 Round 3 delta：三章 Boss 阶段 HUD、战场内横幅、局部顿帧与 0.1.0-alpha.6 试玩包`
+- batch_id: `l3-round-4-combat-presentation-order`
+- scope: `L3 Round 4 delta：卡牌/敌方行动先演出后结算、统一输入锁、单次刷新与 0.1.0-alpha.7 试玩包`
 - selected_reqs:
-  - `REQ-005`
   - `REQ-008`
   - `REQ-011`
   - `REQ-012`
@@ -79,6 +78,7 @@ carry_over: 4
 - 2026-07-15: 用户要求继续独立 UI/美术开发并在本阶段提交后打包试玩；旧 L2 已到 6/6，按既有授权开启 L3 新 loop，首批只重构 PC 篝火与完整牌组锻造，不触碰冻结数值。
 - 2026-07-15: 用户要求完成当前阶段、提交并打包给他人试玩；L3 Round 2 聚焦战败复盘和终局存档保护，版本递增到 `0.1.0-alpha.5`。
 - 2026-07-16: 用户要求完成当前阶段、提交并打包给他人试玩；L3 Round 3 聚焦三章 Boss 阶段可读性和局部战场顿帧，版本递增到 `0.1.0-alpha.6`。
+- 2026-07-16: 用户要求继续完成当前阶段并打包试玩；L3 Round 4 修复卡牌和敌方行动的结算顺序、重复刷新与演出期间输入，版本递增到 `0.1.0-alpha.7`。
 
 ## 预算快照
 
@@ -91,5 +91,5 @@ carry_over: 4
 ## 下一轮建议
 
 - action: `pause-human-needed`
-- reason: `L3 Round 3 与 alpha.6 已交付；先让试玩者验证三章 Boss 阶段可读性、局部顿帧和完整三章流程，并按配置指纹收集每格 12 局方向样本，达到 30 局前不做数值硬调参。`
+- reason: `L3 Round 4 与 alpha.7 已交付；先让试玩者验证卡牌/敌方行动时序、输入锁、三章 Boss 可读性和完整三章流程，并按配置指纹收集每格 12 局方向样本，达到 30 局前不做数值硬调参。`
 - next_audit_scope: `delta`

@@ -848,3 +848,5 @@ jq empty data/cards/cards.json data/enemies/enemies.json data/relics/relics.json
 - `CombatState` 的回合事务改为单次 `changed` 通知，消除结束回合的重复全量刷新。
 - 战斗演出期间统一锁定卡牌、拖拽、药水、结束回合与快捷键；新增演出票据和退出恢复，防止过期协程误结算或永久锁输入。
 - 新增 `test_combat_presentation.gd`，完整回归 19/19 通过；PC 图库增加敌方起手帧并重新生成成功。
+- 构建标记升级为 `0.1.0-alpha.7`，macOS bundle build number 升级为 7。
+- `0.1.0-alpha.7` 从源码提交 `db3ef16` 导出：Windows PE x86_64 embedded-PCK 与 macOS universal 包均通过解压、原生启动、资源排除、版本、架构和签名验证；SHA-256 分别为 `7b2a919be375f2ae23f1cb843750464f67414385a9549342a9b0952fdb8ee447` 与 `6199014aac35206b097e3a03225825fefdefd036683ef3522c1ac73a436b9d75`。
