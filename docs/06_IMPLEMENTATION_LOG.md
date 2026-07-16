@@ -842,3 +842,9 @@ jq empty data/cards/cards.json data/enemies/enemies.json data/relics/relics.json
 - 本轮未修改卡牌、角色、怪物、成长、挑战或经济数值；真人每角色/挑战格达到 12/30 个完成局前继续冻结硬调参。
 - 构建标记升级为 `0.1.0-alpha.6`，macOS bundle build number 升级为 6。
 - `0.1.0-alpha.6` 从源码提交 `85e8d8c` 导出：Windows PE x86_64 embedded-PCK 与 macOS universal 包均通过解压、引导/原生启动、资源入包、版本、架构和签名验证；SHA-256 分别为 `6b3160223b023e622a7cc1ff76bef58bcc4f80cb279b0396f7f37836a12e4dd3` 与 `30c39c2101e9ef0d6238b8b0b8381783b80712c976977d8e3a907c19bf356c09`。
+## 2026-07-16：战斗演出顺序与输入锁
+
+- 出牌改为先播放角色起手与卡牌飞行，在命中检查点结算战斗状态；敌方回合先播放敌人起手，再结算伤害与下一回合抽牌。
+- `CombatState` 的回合事务改为单次 `changed` 通知，消除结束回合的重复全量刷新。
+- 战斗演出期间统一锁定卡牌、拖拽、药水、结束回合与快捷键；新增演出票据和退出恢复，防止过期协程误结算或永久锁输入。
+- 新增 `test_combat_presentation.gd`，完整回归 19/19 通过；PC 图库增加敌方起手帧并重新生成成功。

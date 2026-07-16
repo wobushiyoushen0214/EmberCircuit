@@ -134,6 +134,7 @@ func _run() -> void:
 	await _capture(scene, "30_forge_bishop_phase_720p", Callable(self, "_setup_boss_phase_snapshot").bind("chapter_one", "chapter_one_boss"), DEFAULT_PC_SNAPSHOT_SIZE, 0.55)
 	await _capture(scene, "31_storm_archon_phase_720p", Callable(self, "_setup_boss_phase_snapshot").bind("chapter_two", "chapter_two_boss"), DEFAULT_PC_SNAPSHOT_SIZE, 0.55)
 	await _capture(scene, "32_nexus_heart_phase_720p", Callable(self, "_setup_boss_phase_snapshot").bind("chapter_three", "chapter_three_boss"), DEFAULT_PC_SNAPSHOT_SIZE, 0.55)
+	await _capture(scene, "33_enemy_windup_720p", Callable(self, "_setup_enemy_windup_snapshot"), DEFAULT_PC_SNAPSHOT_SIZE, 0.08)
 	_release_audio_streams()
 	SaveManagerScript.cleanup_storage_namespace()
 	SaveManagerScript.clear_storage_namespace()
@@ -222,6 +223,10 @@ func _setup_combat_action_snapshot(main) -> void:
 	var card_index: int = _first_playable_attack_card_index(main)
 	if card_index >= 0:
 		main._on_card_pressed(card_index)
+
+func _setup_enemy_windup_snapshot(main) -> void:
+	main._on_character_selected("ember_exile")
+	main._on_end_turn_pressed()
 
 func _setup_run_complete_snapshot(main) -> void:
 	main._on_character_selected("ember_exile")

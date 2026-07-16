@@ -728,6 +728,10 @@ func _run() -> void:
 	main._finish_card_drag(true)
 	if not _check(main.refresh_call_count == refresh_count_before_card + 1, "playing a card refreshes the combat UI exactly once"):
 		return
+	if not _check(main.combat_presentation_sequence == ["card:lock", "card:windup", "card:impact", "card:resolved", "card:unlock"], "card presentation resolves state at impact before unlocking input"):
+		return
+	if not _check(not main.combat_presentation_busy, "card presentation releases its input lock after settlement"):
+		return
 	if not _check(main.last_card_drag_played_count == drag_played_before + 1, "valid card drag resolves through the normal play-card path"):
 		return
 	if not _check(main.last_card_play_animation_count == play_animation_count_before + 1, "playing a card requests card flight animation"):

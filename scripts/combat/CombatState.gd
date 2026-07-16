@@ -97,7 +97,7 @@ func setup(
 	_load_encounter(encounter_id)
 	_roll_enemy_intents()
 	_log("进入遭遇：%s" % encounters_by_id.get(encounter_id, {}).get("name", encounter_id))
-	start_player_turn()
+	_start_player_turn_internal()
 	_apply_relics("combat_start", {})
 	emit_signal("changed")
 
@@ -114,8 +114,12 @@ func _player_config_from_data(player_data: Dictionary) -> Dictionary:
 	return player_data.get("player", {})
 
 func start_player_turn() -> void:
+	if _start_player_turn_internal():
+		emit_signal("changed")
+
+func _start_player_turn_internal() -> bool:
 	if phase == "won" or phase == "lost":
-		return
+		return false
 
 	turn += 1
 	phase = "player"
@@ -125,13 +129,12 @@ func start_player_turn() -> void:
 	relic_used_this_turn.clear()
 	_apply_burn_to_player()
 	if phase == "lost":
-		emit_signal("changed")
-		return
+		return true
 
 	draw_cards(5)
 	_log("第 %d 回合开始：抽 5 张牌，能量恢复到 %d。" % [turn, player["energy"]])
 	_apply_relics("turn_start", {})
-	emit_signal("changed")
+	return true
 
 func draw_cards(amount: int) -> void:
 	for _i in range(amount):
@@ -226,7 +229,7 @@ func end_player_turn() -> void:
 	_enemy_turn()
 	_check_combat_end()
 	if phase != "won" and phase != "lost":
-		start_player_turn()
+		_start_player_turn_internal()
 	emit_signal("changed")
 
 func get_alive_enemies() -> Array:

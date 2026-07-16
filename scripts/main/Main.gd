@@ -318,6 +318,10 @@ var last_player_reaction_animation_count: int = 0
 var last_enemy_reaction_animation_count: int = 0
 var last_enemy_action_animation_count: int = 0
 var last_enemy_action_ids: Array[String] = []
+var combat_presentation_busy: bool = false
+var combat_presentation_ticket: int = 0
+var combat_presentation_sequence: Array[String] = []
+var combat_presentation_instant_override: bool = false
 var last_player_stage_plate_visible: bool = false
 var last_player_stage_hp_text: String = ""
 var last_player_stage_block_text: String = ""
@@ -599,6 +603,8 @@ func _notification(what: int) -> void:
 			call_deferred("_refresh_after_resize")
 
 func _exit_tree() -> void:
+	combat_presentation_ticket += 1
+	combat_presentation_busy = false
 	_restore_battle_stage_processing()
 
 func _refresh_after_resize() -> void:
@@ -699,7 +705,7 @@ func _potion_index_for_key(keycode: Key) -> int:
 	return -1
 
 func _combat_hotkeys_allowed() -> bool:
-	if not _is_pc_layout() or combat == null or combat.phase != "player" or card_drag_active:
+	if combat_presentation_busy or not _is_pc_layout() or combat == null or combat.phase != "player" or card_drag_active:
 		return false
 	if pile_view_open or deck_view_open or settings_open or profile_open or compendium_open or tutorial_open:
 		return false
@@ -7121,7 +7127,7 @@ func _refresh_combat() -> void:
 	_refresh_feedback()
 	_apply_pc_combat_chrome(reward_visible)
 	_record_combat_layout_metrics(reward_visible)
-	end_turn_button.disabled = combat.phase != "player"
+	end_turn_button.disabled = combat_presentation_busy or combat.phase != "player"
 
 func _record_combat_layout_metrics(reward_visible: bool) -> void:
 	last_combat_reward_region_visible = reward_visible
@@ -8914,7 +8920,7 @@ func _refresh_potions() -> void:
 				button.tooltip_text = "%s\n%s" % [potion.get("name", run_potion_ids[i]), potion.get("description", "")]
 				_apply_pc_potion_slot_skin(button, true)
 				_add_pc_potion_slot_layout(button, potion_texture, true, i)
-				button.disabled = combat == null or combat.phase != "player"
+				button.disabled = combat_presentation_busy or combat == null or combat.phase != "player"
 				button.pressed.connect(_on_potion_pressed.bind(i))
 			else:
 				last_potion_icon_path = _potion_fallback_icon_path()
@@ -8965,7 +8971,7 @@ func _refresh_potions() -> void:
 				"potion_slot",
 				true
 			)
-			button.disabled = combat == null or combat.phase != "player"
+			button.disabled = combat_presentation_busy or combat == null or combat.phase != "player"
 			button.pressed.connect(_on_potion_pressed.bind(i))
 		else:
 			last_potion_icon_path = _potion_fallback_icon_path()
@@ -9948,6 +9954,7 @@ func _refresh_hand() -> void:
 	for i in range(combat.hand.size()):
 		var card: Dictionary = combat.hand[i]
 		var button := Button.new()
+		button.set_meta("hand_index", i)
 		button.custom_minimum_size = _hand_card_size()
 		button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		button.text = ""
@@ -9966,7 +9973,7 @@ func _refresh_hand() -> void:
 		button.add_theme_stylebox_override("hover", _card_button_style(str(card.get("type", "")), true, false))
 		button.add_theme_stylebox_override("pressed", _card_button_style(str(card.get("type", "")), true, true))
 		button.add_theme_stylebox_override("disabled", _button_style(Color(0.13, 0.13, 0.15), Color(0.34, 0.34, 0.38)))
-		button.disabled = not combat.can_play_card(i)
+		button.disabled = combat_presentation_busy or not combat.can_play_card(i)
 		_add_structured_card_layout(button, card, card_texture, "hand")
 		button.mouse_entered.connect(_on_card_previewed.bind(i))
 		button.mouse_entered.connect(_on_hand_card_hovered.bind(i, true))
@@ -11280,7 +11287,7 @@ func _on_hand_card_hovered(index: int, hovered: bool) -> void:
 		button.remove_meta("hand_hover_base_position")
 
 func _on_hand_card_gui_input(event: InputEvent, index: int) -> void:
-	if not _is_pc_layout() or combat == null or combat.phase != "player":
+	if combat_presentation_busy or not _is_pc_layout() or combat == null or combat.phase != "player":
 		return
 	if event is InputEventMouseButton:
 		var mouse_button := event as InputEventMouseButton
@@ -11302,7 +11309,7 @@ func _on_card_button_pressed(index: int) -> void:
 	_on_card_pressed(index)
 
 func _begin_card_drag(index: int, pointer: Vector2) -> void:
-	if combat == null or combat.phase != "player" or index < 0 or index >= combat.hand.size() or not combat.can_play_card(index):
+	if combat_presentation_busy or combat == null or combat.phase != "player" or index < 0 or index >= combat.hand.size() or not combat.can_play_card(index):
 		return
 	card_drag_active = true
 	card_drag_candidate_index = index
@@ -12821,39 +12828,95 @@ func _on_combat_changed() -> void:
 	_refresh()
 
 func _on_card_pressed(index: int) -> void:
-	var played_payload: Dictionary = {}
-	var played_card_id: String = ""
-	if combat != null and combat.phase == "player":
-		var target_index: int = _normalize_selected_enemy()
-		var payload: Dictionary = {}
-		if index >= 0 and index < combat.hand.size() and combat.can_play_card(index):
-			played_card_id = str(combat.hand[index].get("id", ""))
-			payload = _build_card_visual_payload(index, combat.hand[index], target_index)
-			var active_run := _playtest_active_run()
-			if not active_run.is_empty():
-				PlaytestTelemetryScript.record_card_played(active_run, played_card_id)
-				playtest_store["active_run"] = active_run
-		if combat.play_card(index, selected_enemy_index):
-			if not payload.is_empty():
-				_request_card_play_visual(payload)
-				played_payload = payload
-			else:
-				last_card_audio_event = "card_play"
-				_audio_event("card_play")
-	if not played_payload.is_empty():
-		_play_player_card_action(played_payload)
+	if combat_presentation_busy or combat == null or combat.phase != "player":
+		return
+	var target_index: int = _normalize_selected_enemy()
+	if index < 0 or index >= combat.hand.size() or not combat.can_play_card(index):
+		return
+	var card: Dictionary = combat.hand[index]
+	var payload: Dictionary = _build_card_visual_payload(index, card, target_index)
+	_run_card_presentation(index, target_index, str(card.get("id", "")), payload)
 
 func _on_end_turn_pressed() -> void:
-	if combat == null:
+	if combat_presentation_busy or combat == null or combat.phase != "player":
 		return
 	var action_payloads: Array[Dictionary] = _capture_enemy_action_visuals()
+	_run_enemy_turn_presentation(action_payloads)
+
+func _run_card_presentation(index: int, target_index: int, card_id: String, payload: Dictionary) -> void:
+	var ticket := _begin_combat_presentation("card:lock")
+	combat_presentation_sequence.append("card:windup")
+	_request_card_play_visual(payload)
+	_play_player_card_action(payload)
+	if not _combat_presentation_is_instant():
+		await get_tree().create_timer(0.20).timeout
+	if not _combat_presentation_ticket_valid(ticket):
+		return
+	combat_presentation_sequence.append("card:impact")
+	var active_run := _playtest_active_run()
+	if not active_run.is_empty():
+		PlaytestTelemetryScript.record_card_played(active_run, card_id)
+		playtest_store["active_run"] = active_run
+	var played: bool = combat.play_card(index, target_index)
+	combat_presentation_sequence.append("card:resolved" if played else "card:rejected")
+	if not _combat_presentation_is_instant():
+		await get_tree().create_timer(0.16).timeout
+	_end_combat_presentation(ticket, "card:unlock")
+
+func _run_enemy_turn_presentation(action_payloads: Array[Dictionary]) -> void:
+	var ticket := _begin_combat_presentation("enemy:lock")
+	combat_presentation_sequence.append("enemy:windup")
 	_audio_event("turn_end")
-	combat.end_player_turn()
-	_checkpoint_playtest_store()
 	_play_enemy_action_visuals(action_payloads)
+	if not _combat_presentation_is_instant():
+		await get_tree().create_timer(0.14).timeout
+	if not _combat_presentation_ticket_valid(ticket):
+		return
+	combat_presentation_sequence.append("enemy:impact")
+	combat.end_player_turn()
+	combat_presentation_sequence.append("enemy:resolved")
+	_checkpoint_playtest_store()
+	if not _combat_presentation_is_instant():
+		await get_tree().create_timer(0.20).timeout
+	_end_combat_presentation(ticket, "enemy:unlock")
+
+func _begin_combat_presentation(checkpoint: String) -> int:
+	_cancel_card_drag()
+	combat_presentation_ticket += 1
+	combat_presentation_busy = true
+	combat_presentation_sequence.clear()
+	combat_presentation_sequence.append(checkpoint)
+	_apply_combat_presentation_input_state()
+	return combat_presentation_ticket
+
+func _end_combat_presentation(ticket: int, checkpoint: String) -> void:
+	if not _combat_presentation_ticket_valid(ticket):
+		return
+	combat_presentation_sequence.append(checkpoint)
+	combat_presentation_busy = false
+	_apply_combat_presentation_input_state()
+
+func _combat_presentation_ticket_valid(ticket: int) -> bool:
+	return combat_presentation_busy and ticket == combat_presentation_ticket and combat != null
+
+func _combat_presentation_is_instant() -> bool:
+	return combat_presentation_instant_override or DisplayServer.get_name() == "headless" or not is_inside_tree()
+
+func _apply_combat_presentation_input_state() -> void:
+	if end_turn_button != null:
+		end_turn_button.disabled = combat_presentation_busy or combat == null or combat.phase != "player"
+	for button_value in hand_buttons_by_index.values():
+		var button := button_value as Button
+		if button != null:
+			var hand_index: int = int(button.get_meta("hand_index", -1))
+			button.disabled = combat_presentation_busy or combat == null or not combat.can_play_card(hand_index)
+	if potion_row != null:
+		for child in potion_row.get_children():
+			if child is Button:
+				(child as Button).disabled = combat_presentation_busy or combat == null or combat.phase != "player"
 
 func _on_potion_pressed(slot_index: int) -> void:
-	if combat == null or slot_index < 0 or slot_index >= run_potion_ids.size():
+	if combat_presentation_busy or combat == null or slot_index < 0 or slot_index >= run_potion_ids.size():
 		return
 	var potion: Dictionary = _potion_by_id(str(run_potion_ids[slot_index]))
 	if potion.is_empty():

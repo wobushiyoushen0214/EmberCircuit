@@ -4,6 +4,7 @@ const CombatStateScript = preload("res://scripts/combat/CombatState.gd")
 const DataLoaderScript = preload("res://scripts/core/DataLoader.gd")
 
 var failed: bool = false
+var changed_signal_count: int = 0
 
 func _init() -> void:
 	var card_data: Dictionary = DataLoaderScript.load_json("res://data/cards/cards.json")
@@ -21,6 +22,15 @@ func _init() -> void:
 	_check(combat.hand.size() >= 5, "player draws opening hand")
 	_check(combat.enemies.size() == 2, "intro encounter has two enemies")
 	_check(int(combat.player.get("energy", 0)) == 3, "player starts with 3 energy")
+
+	changed_signal_count = 0
+	combat.changed.connect(_on_combat_changed_counted)
+	combat.end_player_turn()
+	_check(changed_signal_count == 1, "ending a player turn emits one changed signal")
+	changed_signal_count = 0
+	combat.start_player_turn()
+	_check(changed_signal_count == 1, "public player-turn start emits one changed signal")
+	combat.changed.disconnect(_on_combat_changed_counted)
 
 	var challenge_player_data: Dictionary = player_data.duplicate(true)
 	challenge_player_data["challenge_modifiers"] = {
@@ -543,3 +553,6 @@ func _check(condition: bool, message: String) -> void:
 	if not condition:
 		failed = true
 		push_error("Test failed: %s" % message)
+
+func _on_combat_changed_counted() -> void:
+	changed_signal_count += 1
