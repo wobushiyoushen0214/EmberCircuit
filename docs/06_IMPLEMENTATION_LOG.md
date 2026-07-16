@@ -881,3 +881,4 @@ jq empty data/cards/cards.json data/enemies/enemies.json data/relics/relics.json
 - `test_save_manager.gd` 和 `test_playtest_run_integration.gd` 覆盖 v4 到 v5 迁移、精确奖励恢复、三类完成标记、未知奖励 ID、错节点拒绝、金币回滚、重复读取幂等及旧战斗 HP 隔离。
 - 本轮未修改角色、卡牌、怪物、成长、挑战或经济数值；真人样本达到既定 12/30 门槛前继续冻结硬调参。
 - 构建标记升级为 `0.1.0-alpha.8`，Windows x86_64 为本轮唯一分发包。
+- `0.1.0-alpha.8` 从源码提交 `61a13ae` 导出：Windows PE32+ x86_64 embedded-PCK 通过压缩完整性、流式解包哈希、精确 PCK 启动、资源排除、版本和新保存图标入包验证；压缩包 SHA-256 为 `a5215d481bda4d9f4572dc24a14cc8e911fece591788ca48ca0bad4d5a0471ac`。
