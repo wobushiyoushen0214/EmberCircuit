@@ -135,6 +135,8 @@ func _run() -> void:
 	await _capture(scene, "31_storm_archon_phase_720p", Callable(self, "_setup_boss_phase_snapshot").bind("chapter_two", "chapter_two_boss"), DEFAULT_PC_SNAPSHOT_SIZE, 0.55)
 	await _capture(scene, "32_nexus_heart_phase_720p", Callable(self, "_setup_boss_phase_snapshot").bind("chapter_three", "chapter_three_boss"), DEFAULT_PC_SNAPSHOT_SIZE, 0.55)
 	await _capture(scene, "33_enemy_windup_720p", Callable(self, "_setup_enemy_windup_snapshot"), DEFAULT_PC_SNAPSHOT_SIZE, 0.08)
+	await _capture(scene, "34_ember_relic_hud_720p", func(main): main._on_character_selected("ember_exile"), DEFAULT_PC_SNAPSHOT_SIZE)
+	await _capture(scene, "35_pyre_relic_hud_720p", func(main): main._on_character_selected("pyre_ascetic"), DEFAULT_PC_SNAPSHOT_SIZE)
 	_release_audio_streams()
 	SaveManagerScript.cleanup_storage_namespace()
 	SaveManagerScript.clear_storage_namespace()

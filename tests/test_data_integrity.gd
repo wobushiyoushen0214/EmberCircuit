@@ -35,7 +35,7 @@ const SUPPORTED_CARD_EFFECT_TYPES := [
 
 const CARD_EFFECT_TARGETS := ["self", "enemy", "all_enemies"]
 const CREATED_CARD_DESTINATIONS := ["hand", "draw", "discard"]
-const PRODUCTION_STARTER_RELIC_IDS := ["cracked_charm", "arc_capacitor", "penitent_censer"]
+const PRODUCTION_STARTER_RELIC_IDS := ["cracked_charm", "ember_bottle", "arc_capacitor", "insulated_battery", "penitent_censer"]
 
 var failed: bool = false
 

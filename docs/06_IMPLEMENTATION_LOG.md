@@ -857,3 +857,5 @@ jq empty data/cards/cards.json data/enemies/enemies.json data/relics/relics.json
 - 新增 `relic_icon` 位图生产契约，要求至少 `512x512`、1:1、RGBA、真实透明像素，并审计透明安全边和主体占比。
 - PC 战斗不再隐藏遗物带；遗物现在位于顶部资源 HUD 与药水槽之间，紧凑布局仍使用角色面板内遗物带。
 - 美术审计达到 23 个 compliant、71 个 legacy fallback、0 hard error；其余遗物 SVG 后续按同一契约分批迁移。
+- 第二批接入余烬瓶与绝缘电池生产位图，三角色六件开局遗物已有五件完成迁移；灰烬念珠因生图上游连续超时继续保留 SVG。
+- PC 图库增加余烬流亡者与熔痕苦修者的 `1280x720` 遗物 HUD 快照，确保不同角色的双遗物组合不会挤压顶部资源与药水槽。

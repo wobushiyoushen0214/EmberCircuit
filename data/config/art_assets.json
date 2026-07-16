@@ -1336,11 +1336,11 @@
     },
     {
       "id": "ember_bottle",
-      "asset_path": "res://assets/art/relics/relic_ember_bottle.svg",
+      "asset_path": "res://assets/art/generated/relics/relic_ember_bottle_v2_pc.png",
       "slot_path": "res://assets/art/relics/relic_ember_bottle.svg",
       "design_note": "余烬瓶是起始过牌遗物，正式图标应表现瓶中余火。",
       "replacement_note": "瓶身轮廓应和药水类图标区分，强调遗物质感。",
-      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 遗物图标；未来正式图标仍保持同一 slot_path，遗物触发逻辑继续由 relic 数据和 CombatState 结算。"
+      "implementation_note": "当前 asset_path 已接入生图模型生成并完成透明底处理的 PC 正式遗物位图；slot_path 保留原 SVG 稳定槽位，遗物触发逻辑继续由 relic 数据和 CombatState 结算。"
     },
     {
       "id": "arc_capacitor",
@@ -1448,11 +1448,11 @@
     },
     {
       "id": "insulated_battery",
-      "asset_path": "res://assets/art/relics/relic_insulated_battery.svg",
+      "asset_path": "res://assets/art/generated/relics/relic_insulated_battery_v2_pc.png",
       "slot_path": "res://assets/art/relics/relic_insulated_battery.svg",
       "design_note": "绝缘电池应表现安全储能和防过载。",
       "replacement_note": "电池轮廓应区别于药瓶和核心。",
-      "implementation_note": "当前 asset_path 已指向第一版独立 SVG 遗物图标；未来正式图标仍保持同一 slot_path，遗物触发逻辑继续由 relic 数据和 CombatState 结算。"
+      "implementation_note": "当前 asset_path 已接入生图模型生成并完成透明底处理的 PC 正式遗物位图；slot_path 保留原 SVG 稳定槽位，遗物触发逻辑继续由 relic 数据和 CombatState 结算。"
     },
     {
       "id": "micro_dynamo",
