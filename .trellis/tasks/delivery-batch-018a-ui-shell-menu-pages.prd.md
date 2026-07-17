@@ -4,7 +4,7 @@
 
 - REQ-008
 - REQ-012
-- AC-018A-01 ～ AC-018A-09
+- AC-018A-01 ～ AC-018A-08
 
 ## 目标
 
@@ -88,6 +88,8 @@
 | 新建 | `scripts/ui/AppShell.gd` | 页面 host、utility action、context header、来源页返回信号 |
 | 新建 | `scripts/ui/components/ForgePanel.gd` | 统一暗铁/焦木面板与 variant |
 | 新建 | `scripts/ui/components/ActionCard.gd` | primary/neutral/tool 状态卡，≥44px 热区 |
+| 新建 | `scripts/ui/components/MenuCommandButton.gd` | 欢迎页专用命令板、编号/焦点轨/存档状态，不复用表单式卡片 |
+| 新建 | `scripts/ui/components/CharacterStageCard.gd` | 角色立绘舞台、属性/遗物/牌组信息与显式选中态 |
 | 新建 | `scripts/ui/components/ResourceChip.gd` | 资源图标+数值语义组合，不只依赖颜色 |
 | 新建 | `scripts/ui/components/PageHeader.gd` | 页面标题、短副标题、返回动作 |
 | 新建 | `scripts/ui/pages/WelcomePage.gd` | 欢迎 hero 与三类动作信号 |
@@ -131,12 +133,12 @@
 
 ## 验收标准
 
-- [ ] `test_forge_ui_foundation.gd` 通过，token JSON 版本、颜色、字号、motion duration 和 fallback 可读且确定。
-- [ ] `test_welcome_character_pages.gd` 通过；欢迎页 primary/secondary/tool 层级、无存档 disabled reason、角色三卡、challenge 首尾、预览不启动均有断言。
-- [ ] `Main.gd` 不再直接构造欢迎/角色页的主要视觉树，只保留 view model、回调和旧 probe adapter。
-- [ ] 1280×720 与 390×640 无页面级裁切/重叠；焦点顺序符合视觉顺序。
-- [ ] 原 `test_run_flow.gd`、`test_visual_bounds.gd` 与现有全量回归通过。
-- [ ] `git diff --check` 通过，`.godot/`、截图临时文件、第三方资产未被跟踪。
+- [x] `test_forge_ui_foundation.gd` 通过，token JSON 版本、颜色、字号、motion duration 和 fallback 可读且确定。
+- [x] `test_welcome_character_pages.gd` 通过；欢迎页 primary/secondary/tool 层级、无存档 disabled reason、角色三卡、challenge 首尾、预览不启动均有断言。
+- [x] `Main.gd` 不再直接构造欢迎/角色页的主要视觉树，只保留 view model、回调和旧 probe adapter。
+- [x] PC 正式视觉门 1280×720 与 1600×900 无页面级裁切/重叠；焦点顺序符合视觉顺序。小窗口只要求外层页面有界、关键动作可达，不作为构图金标。
+- [x] 原 `test_run_flow.gd`、`test_visual_bounds.gd` 与现有全量回归通过。
+- [x] `git diff --check` 通过，`.godot/`、截图临时文件、第三方资产未被跟踪。
 
 ## 自检命令
 

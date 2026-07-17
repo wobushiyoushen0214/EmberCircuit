@@ -2,3 +2,4 @@
 {"file":"tests/test_run_flow.gd","reason":"保护既有欢迎/角色确认/存档流程"}
 {"file":"tests/test_visual_bounds.gd","reason":"保护 PC 视口边界和旧节点 probe"}
 {"file":".trellis/audits/2026-07-17-ember-spire-ui-reference.md","reason":"保护 token/motion/性能边界不漂移"}
+{"file":"tests/test_welcome_character_pages.gd","reason":"保护欢迎页命令层级、角色卡视口边界、肖像焦点裁切，并以 warning-as-error 防止新增 GDScript Variant 推断回归"}

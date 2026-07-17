@@ -917,3 +917,14 @@ jq empty data/cards/cards.json data/enemies/enemies.json data/relics/relics.json
 - 新增 `attack_block`、`attack_buff`、`attack_status_card` 复合意图；战场文字、图标、投射与 Simulator 同时显示/识别伤害和次要效果。
 - pressure schema 升为 v2，too-easy 同时考虑胜率、完美率和 HP 损失 p50/p90。`3×7×256` 单战 21/21 无风险，Boss 胜率为 28.5%/28.9%/33.2%。
 - `3×4×256` current-greedy campaign 平均胜率 3.4%，12 格全部登记低胜率诊断；该结果用于后续二三章补缺，不代表真人难度，也不回滚本批开局压力。
+
+## 2026-07-18：暗炉 UI Shell 与菜单页基础
+
+- 新增暗炉/余烬/黄铜 theme token 与统一 motion profile，提供确定的颜色、字号、间距、StyleBox、时长 fallback 和 reduced-motion 行为。
+- 新增 `AppShell`、ForgePanel、ActionCard、ResourceChip、PageHeader，统一 44px 热区、2px focus ring 和 disabled 状态语义。
+- 欢迎页迁入 `WelcomePage`，并使用专用 `MenuCommandButton`：开始新跑团是唯一 primary，继续跑团无存档时显式降级，档案/回路档案/设置收进安静工具层。
+- 角色页迁入 `CharacterSelectPage` 与 `CharacterStageCard`：三张上半身立绘舞台、完整属性/遗物/牌组信息、挑战轨道和固定确认行与 Main 状态解耦；预览只更新当前选择，确认才调用原始跑团启动回调。
+- `Main.gd` 保留旧 probe、节点名和回调，并通过 AppShell 把页面挂入既有 reward host；未修改存档、遥测、战斗或数值语义。
+- 删除 Main 内已无调用的旧角色卡/挑战条视觉构造；motion 统一 clamp 到 80–320ms，降低动态效果会停止菜单背景循环，锁定挑战不会显示可点击手型或进入焦点。
+- foundation、页面 API、run flow、PC 1280×720/1600×900 bounds 与小窗口兼容烟测通过；24 个 Godot 测试全绿，退出日志无未知错误或资源泄漏。
+- 双阶段评审最终 C0/M0/m0；最新 1280×720 欢迎页与角色选择页实图复核通过。

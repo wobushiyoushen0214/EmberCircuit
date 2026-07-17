@@ -7,6 +7,10 @@ const PlaytestTelemetryScript = preload("res://scripts/core/PlaytestTelemetry.gd
 const MapGeneratorScript = preload("res://scripts/map/MapGenerator.gd")
 const MapViewScript = preload("res://scripts/map/MapView.gd")
 const CurveTrailScript = preload("res://scripts/ui/CurveTrail.gd")
+const ForgeMotionScript = preload("res://scripts/ui/ForgeMotion.gd")
+const AppShellScript = preload("res://scripts/ui/AppShell.gd")
+const WelcomePageScript = preload("res://scripts/ui/pages/WelcomePage.gd")
+const CharacterSelectPageScript = preload("res://scripts/ui/pages/CharacterSelectPage.gd")
 
 const ENEMY_ART_PATHS := {
 	"placeholder_soot_raider": "res://assets/art/generated/enemy_soot_raider_pc.png",
@@ -262,6 +266,7 @@ var enemy_row: HBoxContainer
 var hand_row: HBoxContainer
 var reward_scroll: ScrollContainer
 var reward_row: HFlowContainer
+var app_shell
 var log_label: RichTextLabel
 var controls_scroll: ScrollContainer
 var controls_row: HBoxContainer
@@ -1129,6 +1134,13 @@ func _build_layout() -> void:
 	reward_row.add_theme_constant_override("h_separation", 6)
 	reward_row.add_theme_constant_override("v_separation", 6)
 	reward_scroll.add_child(reward_row)
+
+	app_shell = AppShellScript.new()
+	app_shell.name = "MenuAppShell"
+	app_shell.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	app_shell.z_index = 8
+	app_shell.visible = false
+	add_child(app_shell)
 
 	controls_scroll = ScrollContainer.new()
 	controls_scroll.custom_minimum_size = Vector2(0, 34)
@@ -2192,86 +2204,6 @@ func _character_selection_tooltip_text(character: Dictionary) -> String:
 		_card_names(character.get("starter_deck_ids", []))
 	]
 
-func _add_character_select_card_layout(button: Button, character: Dictionary, character_texture: Texture2D) -> void:
-	var character_id: String = str(character.get("id", ""))
-	var compact: bool = button.custom_minimum_size.x < 340.0
-	var desktop: bool = _is_pc_layout() and not compact
-	var root := MarginContainer.new()
-	root.set_anchors_preset(Control.PRESET_FULL_RECT)
-	root.offset_left = 12 if desktop else 8
-	root.offset_top = 12 if desktop else 8
-	root.offset_right = -12 if desktop else -8
-	root.offset_bottom = -12 if desktop else -8
-	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	button.add_child(root)
-
-	var row := HBoxContainer.new()
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_theme_constant_override("separation", 8 if compact else (16 if desktop else 10))
-	root.add_child(row)
-
-	var portrait_frame := PanelContainer.new()
-	var portrait_width := 72.0 if compact else (152.0 if desktop else 84.0)
-	portrait_frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	portrait_frame.custom_minimum_size = Vector2(portrait_width, 0)
-	portrait_frame.add_theme_stylebox_override("panel", _button_style(Color(0.055, 0.060, 0.065, 0.86), _character_accent_color(character_id).darkened(0.10), 2 if desktop else 1, 7))
-	row.add_child(portrait_frame)
-
-	var portrait := TextureRect.new()
-	portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	portrait.texture = character_texture
-	portrait.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
-	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	portrait_frame.add_child(portrait)
-
-	var text_box := VBoxContainer.new()
-	text_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	text_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	text_box.add_theme_constant_override("separation", 3 if compact else (7 if desktop else 4))
-	row.add_child(text_box)
-
-	var name_label := Label.new()
-	name_label.text = str(character.get("name", character.get("id", "角色")))
-	_configure_character_card_label(name_label, 15 if compact else (21 if desktop else 17), Color(1.0, 0.96, 0.82), false)
-	text_box.add_child(name_label)
-
-	var archetype_label := Label.new()
-	archetype_label.text = str(character.get("archetype_note", ""))
-	_configure_character_card_label(archetype_label, 11 if compact else (13 if desktop else 12), Color(0.80, 0.88, 0.88), true)
-	text_box.add_child(archetype_label)
-
-	var stats_label := Label.new()
-	stats_label.text = "生命 %d | 能量 %d | 药水 %d" % [
-		int(character.get("max_hp", 0)),
-		int(character.get("max_energy", 0)),
-		int(character.get("potion_slots", 0))
-	]
-	_configure_character_card_label(stats_label, 11 if not desktop else 13, Color(0.95, 0.94, 0.86), false)
-	text_box.add_child(stats_label)
-
-	var momentum_label := Label.new()
-	momentum_label.text = "势能 %d/%d | 初始遗物" % [
-		int(character.get("starting_momentum", 0)),
-		int(character.get("momentum_max", 0))
-	]
-	_configure_character_card_label(momentum_label, 11 if not desktop else 13, Color(0.92, 0.80, 0.58), false)
-	text_box.add_child(momentum_label)
-
-	var relic_label := Label.new()
-	relic_label.text = _relic_names(character.get("starter_relic_ids", []))
-	_configure_character_card_label(relic_label, 10 if compact else (12 if desktop else 11), _character_accent_color(character_id), true)
-	text_box.add_child(relic_label)
-
-func _configure_character_card_label(label: Label, font_size: int, color: Color, wrap: bool) -> void:
-	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	label.custom_minimum_size = Vector2(0, 0)
-	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	label.clip_text = true
-	label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART if wrap else TextServer.AUTOWRAP_OFF
-	label.add_theme_font_size_override("font_size", font_size)
-	label.add_theme_color_override("font_color", color)
-
 func _character_accent_color(character_id: String) -> Color:
 	match character_id:
 		"arc_tinker":
@@ -2290,51 +2222,6 @@ func _character_selection_roster_text() -> String:
 			str(character_dict.get("design_note", ""))
 		])
 	return "\n".join(lines)
-
-func _add_challenge_selection_controls(parent: Container = null) -> void:
-	var target_parent: Container = parent if parent != null else reward_row
-	if target_parent == null:
-		return
-	selected_challenge_level = _valid_challenge_level(selected_challenge_level)
-	last_challenge_level = selected_challenge_level
-	last_challenge_unlocked_max = _max_unlocked_challenge_level()
-	last_challenge_modifier_summary = _challenge_modifier_summary(selected_challenge_level)
-
-	var down_button := Button.new()
-	down_button.custom_minimum_size = _challenge_button_size()
-	down_button.text = "挑战 -\n当前 %d" % selected_challenge_level
-	down_button.disabled = selected_challenge_level <= 0
-	_apply_button_skin(down_button, "neutral")
-	down_button.pressed.connect(_on_challenge_down_pressed)
-	target_parent.add_child(down_button)
-	last_challenge_button_count += 1
-
-	var current_button := Button.new()
-	current_button.custom_minimum_size = _challenge_button_size()
-	current_button.text = "挑战 %d/%d\n%s" % [
-		selected_challenge_level,
-		last_challenge_unlocked_max,
-		str(_challenge_config(selected_challenge_level).get("short_name", "普通"))
-	]
-	current_button.tooltip_text = _challenge_tooltip_text(selected_challenge_level)
-	current_button.disabled = true
-	_apply_button_skin(current_button, "relic")
-	target_parent.add_child(current_button)
-	last_challenge_button_count += 1
-
-	var up_button := Button.new()
-	up_button.custom_minimum_size = _challenge_button_size()
-	up_button.text = "挑战 +\n最高 %d" % last_challenge_unlocked_max
-	up_button.disabled = selected_challenge_level >= last_challenge_unlocked_max
-	_apply_button_skin(up_button, "primary")
-	up_button.pressed.connect(_on_challenge_up_pressed)
-	target_parent.add_child(up_button)
-	last_challenge_button_count += 1
-
-func _challenge_button_size() -> Vector2:
-	var available_width: float = _scroll_content_width()
-	var width: float = floor((available_width - 12.0) / 3.0)
-	return Vector2(clamp(width, 96.0, 146.0), clamp(round(76.0 * _page_layout_scale()), 52.0, 76.0))
 
 func _challenge_selection_summary() -> String:
 	selected_challenge_level = _valid_challenge_level(selected_challenge_level)
@@ -2686,6 +2573,8 @@ func _refresh() -> void:
 	if status_label != null:
 		status_label.visible = true
 	_refresh_screen_backdrop()
+	var menu_shell_active := (welcome_open or character_select_open) and not settings_open and not profile_open and not tutorial_open and not compendium_open
+	_set_menu_shell_active(menu_shell_active)
 	if profile_open:
 		_music_context("menu")
 		_set_run_controls_enabled(not character_select_open and not run_deck_ids.is_empty())
@@ -2774,6 +2663,16 @@ func _refresh() -> void:
 		_refresh_unknown_node(node)
 		_apply_tutorial_hint("")
 
+func _set_menu_shell_active(active: bool) -> void:
+	if page_scroll != null:
+		page_scroll.visible = not active
+	if app_shell == null:
+		return
+	app_shell.visible = active
+	app_shell.reduced_motion = bool(user_settings.get("reduced_motion", false))
+	if not active and app_shell.active_page != null:
+		app_shell.clear_page()
+
 func _refresh_screen_backdrop() -> void:
 	if screen_background_art == null:
 		return
@@ -2796,7 +2695,8 @@ func _refresh_screen_backdrop() -> void:
 		status_label.visible = false
 
 func _update_menu_backdrop_motion(menu_page: bool) -> void:
-	if not menu_page:
+	var continuous_motion_allowed := ForgeMotionScript.allows_continuous_motion(bool(user_settings.get("reduced_motion", false)))
+	if not menu_page or not continuous_motion_allowed:
 		if menu_backdrop_tween != null and menu_backdrop_tween.is_valid():
 			menu_backdrop_tween.kill()
 		menu_backdrop_tween = null
@@ -2891,7 +2791,7 @@ func _set_content_heights(log_height: float = 210.0, reward_height: float = 112.
 func _apply_character_select_layout_constraints() -> void:
 	var scale_y: float = _page_layout_scale()
 	var log_height: float = clamp(round(52.0 * scale_y), 44.0, 56.0)
-	var reward_height: float = clamp(_layout_viewport_size().y - 286.0, 390.0, 620.0) if _is_pc_layout() else clamp(round(322.0 * scale_y), 232.0, 322.0)
+	var reward_height: float = clamp(_layout_viewport_size().y - 330.0, 390.0, 560.0) if _is_pc_layout() else clamp(round(322.0 * scale_y), 232.0, 322.0)
 	_set_content_heights(log_height, reward_height)
 	_record_scroll_region_metrics()
 
@@ -3585,22 +3485,6 @@ func _map_view_required_width() -> float:
 	var required_width: float = 88.0 + float(layer_count) * minimum_layer_width
 	return max(_scroll_content_width(), required_width)
 
-func _character_select_card_size() -> Vector2:
-	var available_width: float = _scroll_content_width()
-	# Keep this in sync with the roster flow separation. A smaller estimate lets
-	# three PC cards exceed 1280px by a few pixels and wrap onto a second row.
-	var gap := 8.0
-	var columns := 1
-	if available_width >= 1120.0:
-		columns = 3
-	elif available_width >= 720.0:
-		columns = 2
-	var width: float = floor((available_width - gap * float(columns - 1)) / float(columns))
-	width = _bounded_width(width, 286.0, 430.0 if _is_pc_layout() else 380.0)
-	var target_height: float = clamp(_layout_viewport_size().y - 610.0, 260.0, 360.0) if _is_pc_layout() else 204.0
-	var height: float = clamp(round(target_height * _page_layout_scale()), 146.0, target_height)
-	return Vector2(width, height)
-
 func _large_card_button_size() -> Vector2:
 	var scale_y: float = _page_layout_scale()
 	if _is_pc_layout():
@@ -3856,45 +3740,22 @@ func _refresh_welcome() -> void:
 	log_label.text = "余烬回路已失去控制。选择一名回路行者，沿分叉路线战斗、改造牌组并关闭核心。"
 	log_label.tooltip_text = "当前版本包含三名角色、三章路线、普通/精英/Boss 战斗、事件、商店、篝火、宝箱与局外成长。"
 
-	var action_width: float = clamp((_scroll_content_width() - 16.0) / 3.0, 220.0, 390.0)
-	var start_button := _add_reward_action_button(
-		"开始新跑团",
-		"选择角色与挑战等级",
-		"从第一章启程，建立新的牌组与路线记录。",
-		UI_NEW_RUN_ICON_PATH,
-		"primary",
-		false,
-		Callable(self, "_on_new_run_pressed")
-	)
-	start_button.custom_minimum_size = Vector2(action_width, 150.0)
-	reward_row.add_child(start_button)
-	last_welcome_action_count += 1
-
-	var continue_button := _add_reward_action_button(
-		"继续跑团",
-		"返回最近一次保存",
-		"读取当前角色、牌组、遗物、生命和路线进度。" if last_welcome_continue_available else "当前没有可读取的跑团存档。",
-		UI_LOAD_RUN_ICON_PATH,
-		"neutral",
-		not last_welcome_continue_available,
-		Callable(self, "_on_load_pressed")
-	)
-	continue_button.custom_minimum_size = Vector2(action_width, 150.0)
-	reward_row.add_child(continue_button)
-	last_welcome_action_count += 1
-
-	var compendium_entry := _add_reward_action_button(
-		"回路档案",
-		"图鉴、角色成长与记录",
-		"查看已发现卡牌、遗物、敌人和事件，检查长期解锁进度。",
-		UI_COMPENDIUM_ICON_PATH,
-		"event",
-		false,
-		Callable(self, "_on_compendium_pressed")
-	)
-	compendium_entry.custom_minimum_size = Vector2(action_width, 150.0)
-	reward_row.add_child(compendium_entry)
-	last_welcome_action_count += 1
+	var welcome_page = WelcomePageScript.new()
+	welcome_page.configure({
+		"title": "余烬回路",
+		"eyebrow": "EMBER CIRCUIT",
+		"subtitle": "穿过三章失控回路，在行动意图中重写战斗协议。",
+		"continue_available": last_welcome_continue_available,
+		"available_width": _layout_viewport_size().x,
+		"reduced_motion": bool(user_settings.get("reduced_motion", false))
+	})
+	welcome_page.new_run_requested.connect(_on_new_run_pressed)
+	welcome_page.continue_requested.connect(_on_load_pressed)
+	welcome_page.archive_requested.connect(_on_compendium_pressed)
+	welcome_page.profile_requested.connect(_on_profile_pressed)
+	welcome_page.settings_requested.connect(_on_settings_pressed)
+	app_shell.mount_page(welcome_page, "welcome")
+	last_welcome_action_count = 5
 	_record_layout_metrics()
 
 func _refresh_character_select() -> void:
@@ -3904,6 +3765,10 @@ func _refresh_character_select() -> void:
 	last_challenge_button_count = 0
 	last_character_selection_confirm_visible = false
 	last_character_selection_selected_id = selected_character_id
+	selected_challenge_level = _valid_challenge_level(selected_challenge_level)
+	last_challenge_level = selected_challenge_level
+	last_challenge_unlocked_max = _max_unlocked_challenge_level()
+	last_challenge_modifier_summary = _challenge_modifier_summary(selected_challenge_level)
 	for character in player_data.get("characters", []):
 		var character_dict: Dictionary = character
 		last_character_selection_ids.append(str(character_dict.get("id", "")))
@@ -3926,99 +3791,71 @@ func _refresh_character_select() -> void:
 	_apply_character_select_layout_constraints()
 	var challenge_summary: String = _challenge_selection_summary()
 	var challenge_config: Dictionary = _challenge_config(selected_challenge_level)
-	log_label.text = _challenge_log_text(
-		selected_challenge_level,
-		last_challenge_unlocked_max,
-		str(challenge_config.get("short_name", "普通"))
-	)
+	log_label.text = _challenge_log_text(selected_challenge_level, last_challenge_unlocked_max, str(challenge_config.get("short_name", "普通")))
 	log_label.tooltip_text = "%s\n\n%s" % [challenge_summary, _character_selection_roster_text()]
-
-	var character_select_width: float = _scroll_content_width()
-	var challenge_row := HBoxContainer.new()
-	challenge_row.custom_minimum_size = Vector2(character_select_width, _challenge_button_size().y)
-	challenge_row.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	challenge_row.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	challenge_row.add_theme_constant_override("separation", 8)
-	reward_row.add_child(challenge_row)
-	_add_challenge_selection_controls(challenge_row)
-
-	var roster_parent: Container = null
-	if character_select_width < 720.0:
-		var roster_scroll := ScrollContainer.new()
-		roster_scroll.custom_minimum_size = Vector2(character_select_width, _character_select_card_size().y)
-		roster_scroll.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-		roster_scroll.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-		roster_scroll.clip_contents = true
-		roster_scroll.set("horizontal_scroll_mode", 1)
-		roster_scroll.set("vertical_scroll_mode", 0)
-		reward_row.add_child(roster_scroll)
-
-		var roster_row := HBoxContainer.new()
-		var card_size: Vector2 = _character_select_card_size()
-		var card_count: int = max(1, player_data.get("characters", []).size())
-		var required_width: float = card_size.x * float(card_count) + 8.0 * float(max(0, card_count - 1))
-		roster_row.custom_minimum_size = Vector2(required_width, card_size.y)
-		roster_row.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-		roster_row.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-		roster_row.add_theme_constant_override("separation", 8)
-		roster_scroll.add_child(roster_row)
-		roster_parent = roster_row
-	else:
-		var roster_flow := HFlowContainer.new()
-		roster_flow.custom_minimum_size = Vector2(character_select_width, _character_select_card_size().y)
-		roster_flow.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-		roster_flow.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-		roster_flow.add_theme_constant_override("separation", 8)
-		roster_flow.add_theme_constant_override("h_separation", 8)
-		roster_flow.add_theme_constant_override("v_separation", 8)
-		reward_row.add_child(roster_flow)
-		roster_parent = roster_flow
-
+	var character_models: Array = []
 	for character in player_data.get("characters", []):
 		var character_dict: Dictionary = character
-		var character_id: String = str(character_dict.get("id", ""))
+		var character_id := str(character_dict.get("id", ""))
 		if character_id.is_empty():
 			continue
-		var button := Button.new()
-		button.custom_minimum_size = _character_select_card_size()
-		button.tooltip_text = _character_selection_tooltip_text(character_dict)
-		button.text = ""
-		var character_texture: Texture2D = _load_texture(_character_art_path(character_id))
-		if character_texture != null:
+		var texture: Texture2D = _load_texture(_character_art_path(character_id))
+		if texture != null:
 			last_character_button_icon_count += 1
-		button.add_theme_font_size_override("font_size", 15)
-		button.add_theme_color_override("font_color", Color(0.95, 0.96, 0.92))
-		button.add_theme_stylebox_override("normal", _character_button_style(character_id, character_id == selected_character_id, false))
-		button.add_theme_stylebox_override("hover", _character_button_style(character_id, true, false))
-		button.add_theme_stylebox_override("pressed", _character_button_style(character_id, true, true))
-		_configure_button_bounds(button)
-		_add_character_select_card_layout(button, character_dict, character_texture)
-		button.pressed.connect(_on_character_preview_selected.bind(character_id))
-		roster_parent.add_child(button)
-
-	var action_row := HBoxContainer.new()
-	action_row.custom_minimum_size = Vector2(character_select_width, 48.0)
-	action_row.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	action_row.alignment = BoxContainer.ALIGNMENT_END
-	action_row.add_theme_constant_override("separation", 10)
-	reward_row.add_child(action_row)
-
-	var back_button := Button.new()
-	back_button.text = "返回主菜单"
-	back_button.custom_minimum_size = Vector2(156, 42)
-	_apply_button_skin(back_button, "neutral")
-	back_button.pressed.connect(_on_welcome_pressed)
-	action_row.add_child(back_button)
-
-	var confirm_button := Button.new()
-	confirm_button.text = "以%s开始" % _character_display_name(selected_character_id)
-	confirm_button.custom_minimum_size = Vector2(220, 42)
-	confirm_button.tooltip_text = "使用当前角色和挑战 %d 开始新的跑团。" % selected_challenge_level
-	_apply_button_skin(confirm_button, "primary")
-	confirm_button.pressed.connect(_on_character_confirm_pressed)
-	action_row.add_child(confirm_button)
-	last_character_selection_confirm_visible = true
+		character_models.append({
+			"id": character_id,
+			"name": str(character_dict.get("name", character_id)),
+			"archetype": str(character_dict.get("archetype_note", "")),
+			"max_hp": int(character_dict.get("max_hp", 0)),
+			"max_energy": int(character_dict.get("max_energy", 0)),
+			"starting_momentum": int(character_dict.get("starting_momentum", 0)),
+			"momentum_max": int(character_dict.get("momentum_max", 0)),
+			"starting_gold": int(character_dict.get("starting_gold", 0)),
+			"potion_slots": int(character_dict.get("potion_slots", 0)),
+			"accent_color": _character_accent_color(character_id),
+			"relic_names": _relic_names(character_dict.get("starter_relic_ids", [])),
+			"deck_count": character_dict.get("starter_deck_ids", []).size(),
+			"deck_summary": _card_names(character_dict.get("starter_deck_ids", [])),
+			"tooltip": _character_selection_tooltip_text(character_dict),
+			"texture": texture
+		})
+	var challenge_models: Array = []
+	for challenge_value in challenge_data.get("levels", []):
+		var challenge: Dictionary = challenge_value
+		var level := int(challenge.get("level", 0))
+		challenge_models.append({
+			"level": level,
+			"short_name": str(challenge.get("short_name", "挑战 %d" % level)),
+			"description": str(challenge.get("description", "")),
+			"modifier_summary": _challenge_modifier_summary(level),
+			"tooltip": _challenge_tooltip_text(level)
+		})
+	var character_page = CharacterSelectPageScript.new()
+	character_page.configure({
+		"selected_character_id": selected_character_id,
+		"selected_challenge_level": selected_challenge_level,
+		"unlocked_challenge_max": last_challenge_unlocked_max,
+		"characters": character_models,
+		"challenges": challenge_models,
+		"compact": _layout_viewport_size().x < 900.0,
+		"available_width": _layout_viewport_size().x,
+		"available_height": _layout_viewport_size().y,
+		"reduced_motion": bool(user_settings.get("reduced_motion", false))
+	})
+	character_page.character_preview_requested.connect(_on_character_preview_selected)
+	character_page.challenge_delta_requested.connect(_on_character_challenge_level_requested)
+	character_page.confirm_requested.connect(func(_id: String, _level: int) -> void: _on_character_confirm_pressed())
+	character_page.back_requested.connect(_on_welcome_pressed)
+	app_shell.mount_page(character_page, "character_select")
+	last_challenge_button_count = character_page.challenge_buttons.size()
+	last_character_selection_confirm_visible = character_page.confirm_button != null
+	last_character_selection_selected_id = selected_character_id
 	_record_layout_metrics()
+
+func _on_character_challenge_level_requested(level: int) -> void:
+	selected_challenge_level = _valid_challenge_level(level)
+	_audio_event("ui_click")
+	_refresh()
 
 func _refresh_run_header(node: Dictionary) -> void:
 	run_label.text = "%s | %s | 挑战 %d | 路线 %d/%d：%s [%s] | 金币：%d | 生命：%d/%d | 牌组：%d 张 | 遗物：%s | 药水：%s" % [
@@ -14153,25 +13990,6 @@ func _pc_enemy_foot_shadow_style(enemy: Dictionary, selected: bool) -> StyleBoxF
 	style.shadow_size = 5
 	return style
 
-func _character_button_style(character_id: String, highlighted: bool, pressed: bool) -> StyleBoxFlat:
-	var bg := Color(0.16, 0.18, 0.20)
-	var border := Color(0.62, 0.68, 0.72)
-	if character_id == "arc_tinker":
-		bg = Color(0.10, 0.19, 0.22)
-		border = Color(0.38, 0.78, 0.96)
-	elif character_id == "ember_exile":
-		bg = Color(0.22, 0.13, 0.10)
-		border = Color(0.88, 0.48, 0.28)
-	elif character_id == "pyre_ascetic":
-		bg = Color(0.20, 0.12, 0.13)
-		border = Color(0.96, 0.50, 0.38)
-	if highlighted:
-		bg = bg.lightened(0.10)
-		border = border.lightened(0.14)
-	if pressed:
-		bg = bg.darkened(0.12)
-	return _button_style(bg, border, 3 if _is_pc_layout() else 2, 6)
-
 func _apply_card_button_skin(button: Button, card_type: String, telemetry_bucket: String = "") -> void:
 	_configure_button_bounds(button)
 	button.add_theme_stylebox_override("normal", _card_button_style(card_type, false, false))
@@ -15192,6 +15010,8 @@ func _node_detail_text(node: Dictionary) -> String:
 func _clear_container(container: Node) -> void:
 	if container == null:
 		return
+	if container == reward_row and app_shell != null and app_shell.active_page != null and app_shell.active_page.get_parent() == reward_row:
+		app_shell.clear_page()
 	for child in container.get_children():
 		container.remove_child(child)
 		child.queue_free()

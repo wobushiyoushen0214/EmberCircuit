@@ -47,9 +47,12 @@ func _run() -> void:
 		return
 	if not _check(main.last_music_context == "menu", "welcome page uses menu music context"):
 		return
-	if not _check(main.last_welcome_action_count == 3, "welcome page exposes new run, continue and archive actions"):
+	if not _check(main.last_welcome_action_count == 5, "welcome page exposes primary, continue and consolidated utility actions"):
 		return
-	if not _check(main.reward_scroll.visible and main.reward_row.get_child_count() >= 3, "welcome page renders a bounded primary action area"):
+	var welcome_page := main.app_shell.active_page as Control
+	var welcome_header := welcome_page.find_child("PageHeader", true, false) as Control if welcome_page != null else null
+	var welcome_utility_row := welcome_page.find_child("UtilityActionRow", true, false) as Container if welcome_page != null else null
+	if not _check(main.app_shell.visible and not main.page_scroll.visible and welcome_page != null and welcome_header != null and welcome_utility_row != null and welcome_utility_row.get_child_count() == 3, "welcome page owns the full-screen menu shell with one utility row"):
 		return
 	if not _check(not main.battle_board_panel.visible and not main.hand_frame.visible and not main.character_frame.visible, "welcome page hides run-only regions"):
 		return
@@ -64,9 +67,13 @@ func _run() -> void:
 		return
 	if not _check(main.last_character_selection_ids.has("ember_exile") and main.last_character_selection_ids.has("arc_tinker") and main.last_character_selection_ids.has("pyre_ascetic"), "character selection lists playable characters"):
 		return
-	if not _check(main.reward_row.get_child_count() >= 2 and main.last_character_button_icon_count >= 3, "character selection renders separated challenge and character sections"):
+	var character_page := main.app_shell.active_page as Control
+	var challenge_track := character_page.get_node_or_null("ChallengeTrack") as HBoxContainer if character_page != null else null
+	var character_roster := character_page.get_node_or_null("CharacterRoster") as Container if character_page != null else null
+	var character_footer := character_page.get_node_or_null("CharacterFooter") as Control if character_page != null else null
+	if not _check(character_page != null and challenge_track != null and character_roster != null and character_footer != null and main.last_character_button_icon_count >= 3, "character selection renders complete header, vertical stages and fixed footer"):
 		return
-	if not _check(main.reward_row.visible and main.last_character_button_icon_count >= 3, "character selection shows visible art-backed character cards"):
+	if not _check(main.app_shell.visible and not main.page_scroll.visible and main.last_character_button_icon_count >= 3, "character selection shows visible art-backed character stages without legacy chrome"):
 		return
 	if not _check(main.last_character_selection_confirm_visible and main.last_character_selection_selected_id == "ember_exile", "character selection shows explicit confirmation for the selected character"):
 		return
@@ -74,7 +81,8 @@ func _run() -> void:
 	if not _check(main.character_select_open and main.combat == null and main.selected_character_id == "arc_tinker" and main.last_character_selection_selected_id == "arc_tinker", "character click previews without starting the run"):
 		return
 	main._on_character_preview_selected("ember_exile")
-	if not _check(main.reward_scroll.visible and main.reward_row is HFlowContainer, "character selection uses a bounded wrapping reward area"):
+	character_page = main.app_shell.active_page as Control
+	if not _check(main.app_shell.active_page != null and main.app_shell.active_page.name == "CharacterSelectPage", "character selection remains mounted as a full page"):
 		return
 	if not _check(main.last_combat_layout_overflow <= 0.0, "character selection page fits inside the configured viewport"):
 		return
@@ -82,20 +90,19 @@ func _run() -> void:
 		return
 	if not _check(not main.battle_board_panel.visible and not main.hand_frame.visible, "character selection hides combat board frames"):
 		return
-	if not _check(main.reward_row.custom_minimum_size.y >= 200.0 and main.log_label.custom_minimum_size.y <= 140.0, "character selection keeps character cards in first viewport"):
+	var refreshed_character_roster: HFlowContainer = character_page.get_node_or_null("CharacterRoster") as HFlowContainer if character_page != null else null
+	if not _check(refreshed_character_roster != null and refreshed_character_roster.get_child_count() == 3 and refreshed_character_roster.size.x <= character_page.size.x - 39.0, "desktop character selection keeps all stages in a bounded one-row roster"):
 		return
 	if not _check(main.save_button.disabled and main.deck_button.disabled, "character selection disables run-only buttons"):
 		return
 	if not _check(not main.settings_button.disabled, "character selection keeps settings available"):
 		return
 	if main._is_pc_layout():
-		if not _check(not main.end_turn_button.visible and not main.save_button.visible and not main.deck_button.visible, "PC character selection hides combat-only and run-only control buttons"):
+		if not _check(not main.page_scroll.visible, "PC character selection hides all legacy page and control chrome"):
 			return
-		if not _check(main.restart_button.visible and main.load_button.visible and main.profile_button.visible and main.compendium_button.visible and main.settings_button.visible, "PC character selection keeps only menu controls visible"):
+		if not _check(character_page.confirm_button != null and character_page.back_button != null, "PC character selection keeps back and confirm commands inside the page footer"):
 			return
-		if not _check(_control_has_texture_named(main.compendium_button, "MenuButtonIcon") and main.compendium_button.custom_minimum_size.x <= 92.0, "PC character selection renders compendium as a compact menu tool button"):
-			return
-	if not _check(main.last_challenge_button_count == 3 and main.last_challenge_level == 0 and main.last_challenge_unlocked_max == 0, "character selection shows locked base challenge selector"):
+	if not _check(main.last_challenge_button_count == 4 and main.last_challenge_level == 0 and main.last_challenge_unlocked_max == 0, "character selection shows the complete locked challenge selector"):
 		return
 	if not _check(main.last_challenge_summary.contains("普通模式"), "base challenge summary is readable"):
 		return
@@ -244,12 +251,13 @@ func _run() -> void:
 	compact_main._on_new_run_pressed()
 	if not _check(compact_main.page_scroll != null and compact_main.last_combat_layout_overflow <= 0.0, "compact character selection fits a 540px viewport with page scroll fallback"):
 		return
-	var compact_roster_scroll := compact_main.reward_row.get_child(1) as ScrollContainer
-	var compact_roster := compact_roster_scroll.get_child(0) as HBoxContainer if compact_roster_scroll != null and compact_roster_scroll.get_child_count() > 0 else null
-	var compact_card := compact_roster.get_child(0) as Button if compact_roster != null and compact_roster.get_child_count() > 0 else null
-	if not _check(compact_roster_scroll != null and compact_roster_scroll.custom_minimum_size.x <= compact_main.last_reward_flow_available_width, "compact character roster scroll stays inside the reward width"):
+	var compact_character_page := compact_main.app_shell.active_page as Control
+	var compact_roster_scroll := compact_character_page.get_node_or_null("CharacterRosterScroll") as ScrollContainer if compact_character_page != null else null
+	var compact_roster := compact_roster_scroll.get_node_or_null("CharacterRoster") as HBoxContainer if compact_roster_scroll != null else null
+	var compact_stage = compact_character_page.character_stages[0] if compact_character_page != null and not compact_character_page.character_stages.is_empty() else null
+	if not _check(compact_roster_scroll != null and compact_roster_scroll.custom_minimum_size.x <= compact_main._layout_viewport_size().x, "compact character roster scroll stays inside the menu shell"):
 		return
-	if not _check(compact_card != null and compact_roster.custom_minimum_size.x >= compact_card.custom_minimum_size.x, "compact character cards are available inside the horizontal roster"):
+	if not _check(compact_stage != null and compact_roster.custom_minimum_size.x >= compact_stage.custom_minimum_size.x, "compact character stages are available inside the horizontal roster"):
 		return
 	compact_main._on_character_preview_selected("arc_tinker")
 	compact_main._on_character_confirm_pressed()
@@ -1719,6 +1727,7 @@ func _run() -> void:
 	if not _check(defeat_main.character_select_open and defeat_main.combat == null, "defeat retry action returns to character selection"):
 		return
 	defeat_main.free()
+	compact_main.free()
 
 	SaveManagerScript.save_profile(SaveManagerScript.default_profile())
 	main.free()

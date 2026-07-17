@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "durations_ms": {
+    "micro": 100,
+    "press_in": 80,
+    "press_out": 120,
+    "hover": 140,
+    "focus": 160,
+    "page_enter": 260,
+    "selection": 180,
+    "reward": 300,
+    "outcome": 320
+  },
+  "scales": {
+    "press": 0.98,
+    "menu_press": 0.992
+  },
+  "reduced_motion": {
+    "disable_translation": true,
+    "disable_scale": true,
+    "allow_opacity": true,
+    "max_feedback_ms": 120
+  }
+}

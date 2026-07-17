@@ -25,14 +25,22 @@ func _run() -> void:
 	await process_frame
 	await process_frame
 
-	_check(_control_width_fits(main.page_scroll, viewport_size.x), "page scroll fits compact viewport width")
-	_check(_control_width_fits(main.page_margin, viewport_size.x), "page margin fits compact viewport width")
-	_check(_control_width_fits(main.root_box, viewport_size.x), "root content fits compact viewport width")
-	_check(_visible_children_fit_horizontally(main.root_box, viewport_size.x), "character select visible page sections fit compact width")
-	_check(main.reward_row.custom_minimum_size.x <= main.last_reward_flow_available_width, "character select reward flow is bounded to visible width")
-	_check(_visible_children_fit_horizontally(main.reward_row, viewport_size.x), "character select reward controls fit compact width")
-	_check(_control_above(main.reward_scroll, main.controls_scroll), "compact character select reward area stays above bottom controls")
-	_check(_control_bottom_fits(main.root_box, viewport_size.y), "compact character select page fits initial viewport height")
+	var compact_welcome_page := main.app_shell.active_page as Control
+	var compact_primary_action := compact_welcome_page.find_child("PrimaryAction", true, false) as Button if compact_welcome_page != null else null
+	var compact_utility_row := compact_welcome_page.find_child("UtilityActionRow", true, false) as Control if compact_welcome_page != null else null
+	_check(main.app_shell.visible and not main.page_scroll.visible, "compact welcome uses the full-screen AppShell without legacy chrome")
+	_check(_control_inside_viewport(compact_welcome_page, viewport_size), "compact welcome page stays inside the viewport")
+	_check(_control_inside_viewport(compact_primary_action, viewport_size), "compact welcome primary command stays inside the viewport")
+	_check(_visible_children_fit_horizontally(compact_utility_row, viewport_size.x), "compact welcome utility commands fit the viewport")
+	main._on_new_run_pressed()
+	await process_frame
+	await process_frame
+	var compact_character_page := main.app_shell.active_page as Control
+	var compact_roster_scroll := compact_character_page.get_node_or_null("CharacterRosterScroll") as ScrollContainer if compact_character_page != null else null
+	var compact_footer := compact_character_page.get_node_or_null("CharacterFooterCompact") as Control if compact_character_page != null else null
+	_check(_control_inside_viewport(compact_character_page, viewport_size), "compact character page stays inside the viewport")
+	_check(_control_inside_viewport(compact_roster_scroll, viewport_size), "compact character roster stays inside its horizontal viewport")
+	_check(_control_inside_viewport(compact_footer, viewport_size), "compact character footer stays inside the viewport")
 
 	main._on_character_selected("ember_exile")
 	await process_frame
@@ -130,24 +138,30 @@ func _run() -> void:
 	desktop_host.add_child(desktop_main)
 	await process_frame
 	await process_frame
-	_check(_control_width_fits(desktop_main.page_scroll, desktop_size.x), "desktop page scroll fits viewport width")
-	_check(desktop_main.welcome_open and desktop_main.last_welcome_action_count == 3, "desktop welcome page exposes complete primary navigation")
-	_check(_visible_children_fit_horizontally(desktop_main.reward_row, desktop_size.x), "desktop welcome actions fit viewport width")
+	_check(desktop_main.app_shell.visible and not desktop_main.page_scroll.visible, "desktop welcome uses the full-screen AppShell")
+	_check(desktop_main.welcome_open and desktop_main.last_welcome_action_count == 5, "desktop welcome exposes the complete five-command navigation")
+	var desktop_welcome_page := desktop_main.app_shell.active_page as Control
+	var desktop_primary_action := desktop_welcome_page.find_child("PrimaryAction", true, false) as Button if desktop_welcome_page != null else null
+	var desktop_utility_actions := desktop_welcome_page.find_child("UtilityActionRow", true, false) as Container if desktop_welcome_page != null else null
+	_check(_control_inside_viewport(desktop_welcome_page, desktop_size) and _control_inside_viewport(desktop_primary_action, desktop_size), "desktop welcome page and primary command stay inside the viewport")
+	_check(desktop_utility_actions != null and desktop_utility_actions.get_child_count() == 3 and _visible_children_fit_horizontally(desktop_utility_actions, desktop_size.x), "desktop welcome utility row stays complete and bounded")
 	desktop_main._on_new_run_pressed()
 	await process_frame
 	await process_frame
-	_check(_visible_children_fit_horizontally(desktop_main.root_box, desktop_size.x), "desktop character select visible page sections fit width")
+	_check(desktop_main.app_shell.visible and not desktop_main.page_scroll.visible, "desktop character select keeps legacy chrome hidden")
 	_check(desktop_main.last_combat_layout_overflow <= 0.0, "desktop character select fits intended height budget")
-	_check(desktop_main.reward_row.get_child_count() >= 2, "desktop character select separates challenge controls and roster")
-	var desktop_challenge_row := desktop_main.reward_row.get_child(0) as HBoxContainer
-	var desktop_roster_flow := desktop_main.reward_row.get_child(1) as HFlowContainer
-	_check(desktop_challenge_row != null and desktop_challenge_row.get_child_count() == 3, "desktop challenge controls stay in their own row")
+	var desktop_character_page := desktop_main.app_shell.active_page as Control
+	var desktop_challenge_row := desktop_character_page.get_node_or_null("ChallengeTrack") as HBoxContainer if desktop_character_page != null else null
+	var desktop_roster_flow := desktop_character_page.get_node_or_null("CharacterRoster") as HFlowContainer if desktop_character_page != null else null
+	var desktop_character_actions := desktop_character_page.get_node_or_null("CharacterActionRow") as HBoxContainer if desktop_character_page != null else null
+	var desktop_character_footer := desktop_character_page.get_node_or_null("CharacterFooter") as Control if desktop_character_page != null else null
+	_check(_control_inside_viewport(desktop_character_page, desktop_size) and _control_inside_viewport(desktop_character_actions, desktop_size) and _control_inside_viewport(desktop_character_footer, desktop_size), "desktop character page, footer and action row stay inside the viewport")
+	_check(desktop_challenge_row != null and desktop_challenge_row.get_child_count() == 4 and _control_inside_viewport(desktop_challenge_row, desktop_size), "desktop complete challenge track stays in its own row")
 	_check(desktop_roster_flow != null and desktop_roster_flow.get_child_count() >= 3, "desktop roster renders all character cards in one section")
 	if desktop_roster_flow != null:
 		_check(_visible_children_fit_horizontally(desktop_roster_flow, desktop_size.x), "desktop roster cards fit viewport width")
 		_check(_children_share_row(desktop_roster_flow), "desktop roster cards stay on one visual row")
-		_check(_control_above(desktop_roster_flow, desktop_main.controls_scroll), "desktop roster stays above bottom controls")
-	_check(_control_above(desktop_main.reward_scroll, desktop_main.controls_scroll), "desktop character reward area stays above bottom controls")
+		_check(_control_above(desktop_roster_flow, desktop_character_footer), "desktop roster stays above the fixed character footer")
 
 	desktop_main._on_character_selected("ember_exile")
 	await process_frame
@@ -174,21 +188,26 @@ func _run() -> void:
 	default_pc_host.add_child(default_pc_main)
 	await process_frame
 	await process_frame
-	_check(int(default_pc_main.controls_scroll.get("horizontal_scroll_mode")) == 0, "default PC welcome controls do not use a horizontal scrollbar")
-	_check(_control_inside_horizontal(default_pc_main.profile_button, default_pc_main.controls_scroll), "default PC welcome profile button stays inside the control strip")
-	_check(_control_inside_horizontal(default_pc_main.compendium_button, default_pc_main.controls_scroll), "default PC welcome compendium button stays inside the control strip")
-	_check(_control_inside_horizontal(default_pc_main.settings_button, default_pc_main.controls_scroll), "default PC welcome settings button stays inside the control strip")
+	var default_pc_welcome_page := default_pc_main.app_shell.active_page as Control
+	var default_pc_primary_action := default_pc_welcome_page.find_child("PrimaryAction", true, false) as Button if default_pc_welcome_page != null else null
+	var default_pc_utility_row := default_pc_welcome_page.find_child("UtilityActionRow", true, false) as Container if default_pc_welcome_page != null else null
+	_check(default_pc_main.app_shell.visible and not default_pc_main.page_scroll.visible and default_pc_main.last_welcome_action_count == 5, "default PC welcome uses the complete AppShell navigation")
+	_check(_control_inside_viewport(default_pc_welcome_page, default_pc_size) and _control_inside_viewport(default_pc_primary_action, default_pc_size), "default PC welcome page and primary command stay inside 720p")
+	_check(default_pc_utility_row != null and default_pc_utility_row.get_child_count() == 3 and _visible_children_fit_horizontally(default_pc_utility_row, default_pc_size.x), "default PC welcome utilities stay complete and bounded")
 	_check(is_equal_approx(default_pc_main._scroll_content_width(), default_pc_size.x - default_pc_main._root_horizontal_margin()), "default PC layout does not reserve space for a disabled vertical scrollbar")
 	default_pc_main._on_new_run_pressed()
 	await process_frame
 	await process_frame
-	var default_pc_roster_flow := default_pc_main.reward_row.get_child(1) as HFlowContainer
+	var default_pc_character_page := default_pc_main.app_shell.active_page as Control
+	var default_pc_roster_flow := default_pc_character_page.get_node_or_null("CharacterRoster") as HFlowContainer if default_pc_character_page != null else null
+	var default_pc_challenge_track := default_pc_character_page.get_node_or_null("ChallengeTrack") as HBoxContainer if default_pc_character_page != null else null
+	var default_pc_character_footer := default_pc_character_page.get_node_or_null("CharacterFooter") as Control if default_pc_character_page != null else null
+	var default_pc_character_actions := default_pc_character_page.get_node_or_null("CharacterActionRow") as Control if default_pc_character_page != null else null
 	_check(default_pc_roster_flow != null and default_pc_roster_flow.get_child_count() == 3, "default PC character select renders all three character cards")
 	_check(_children_share_row(default_pc_roster_flow), "default PC character cards stay on one visual row")
-	_check(default_pc_main.controls_scroll.visible and _control_inside_viewport(default_pc_main.controls_scroll, default_pc_size), "default PC character select keeps the utility controls inside the viewport")
-	_check(default_pc_main.restart_button.visible and default_pc_main.load_button.visible and default_pc_main.settings_button.visible, "default PC character select exposes its utility controls")
-	_check(_control_inside_viewport(default_pc_main.restart_button, default_pc_size) and _control_inside_viewport(default_pc_main.load_button, default_pc_size) and _control_inside_viewport(default_pc_main.settings_button, default_pc_size), "default PC character select utility buttons are not clipped")
-	_check(not default_pc_main.title_label.visible and default_pc_main.run_label.visible, "default PC character select hides the clipped welcome title and keeps its page heading")
+	_check(default_pc_challenge_track != null and default_pc_challenge_track.get_child_count() == 4 and _control_inside_viewport(default_pc_challenge_track, default_pc_size), "default PC complete challenge track stays inside 720p")
+	_check(_control_inside_viewport(default_pc_character_page, default_pc_size) and _control_inside_viewport(default_pc_character_footer, default_pc_size) and _control_inside_viewport(default_pc_character_actions, default_pc_size), "default PC character page and fixed commands stay inside 720p")
+	_check(default_pc_main.app_shell.visible and not default_pc_main.page_scroll.visible, "default PC character select keeps all legacy chrome hidden")
 	default_pc_main._on_character_selected("arc_tinker")
 	await process_frame
 	await process_frame
