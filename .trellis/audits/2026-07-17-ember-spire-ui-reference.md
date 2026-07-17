@@ -52,3 +52,35 @@
 - Windows 集显帧预算和节点/粒子数量门。
 
 Batch 017 继续专注第一章与起始包数值，避免 UI 大改污染配对平衡证据。
+
+## 全流程页面扩展
+
+用户明确要求欢迎页、角色选择页及其余页面都摆脱当前低级感。Batch 018 因此不是局部战斗皮肤，而是完整 PC UI shell 重构：
+
+| 页面 | 当前主要问题 | Batch 018 方向 |
+| --- | --- | --- |
+| 欢迎页 | 说明文字与三个同级操作卡缺少品牌焦点 | 全屏锻炉 hero、Logo/短副标题、开始为唯一主 CTA、继续为次 CTA、档案进入工具区 |
+| 角色选择 | 三卡 + 挑战条功能完整，但缺舞台和选择重量 | 角色立绘舞台、属性/起始牌/遗物预览、专属色边、挑战升阶宝石轨道、右下固定确认 |
+| 地图 | 结构成熟但材质和状态层级薄 | 暗羊皮/焦铁底、路径流光、当前节点余烬环、Boss 红铜冠饰、风险/奖励分栏预览 |
+| 事件 | 已有较好 PC 单舞台 | 强化插画焦点、代价/收益图标、禁用原因显式条，保留短 reveal |
+| 商店 | 所有商品与服务挤在同一 flow，是最明显旧式页面 | 独立 ShopExperience、商人 hero、固定金币 HUD、分类货架、删卡服务柜台、售罄占位 |
+| 篝火 | 结构较好 | 休息/锻造两大选择、升级前后卡牌并排、统一火光材质 |
+| 战斗奖励 | 奖励优先级不够清晰 | 金币收据→卡牌三选→遗物/药水→继续，已领取态压暗并烙印 |
+| 战败/胜利 | 功能完整但视觉情绪不足 | 冷暗红铜战败舞台、余烬落幕胜利舞台、统计/解锁/主次 CTA 分层 |
+| 设置 | 13 个同尺寸按钮网格认知负担高 | 声音/视觉反馈/辅助功能/教程分组，滑杆与 toggle，加入动态/粒子/闪光设置 |
+| 图鉴 | 功能强但 toolbar 过密、通用卡片同质化 | 左侧分类 rail、顶部搜索筛选、按卡/遗物/敌人分模板，未发现态保留轮廓与获取提示 |
+
+### 结构前置条件
+
+当前页面主要由 1.5 万行 `scripts/main/Main.gd` 动态构造并复用 `reward_row`。Batch 018 必须先拆：
+
+- `scripts/ui/AppShell.gd`
+- `scripts/ui/ForgeTheme.gd`
+- `scripts/ui/components/ForgePanel.gd`、`ActionCard.gd`、`ResourceChip.gd`、`ItemShelf.gd`、`ChoiceRow.gd`、`OutcomeStage.gd`
+- `scripts/ui/pages/WelcomePage.gd`、`CharacterSelectPage.gd`、`MapPage.gd`、`EventPage.gd`、`ShopPage.gd`、`CampfirePage.gd`、`RewardPage.gd`、`OutcomePage.gd`、`SettingsPage.gd`、`CompendiumPage.gd`
+
+`Main.gd` 只协调状态和信号，不再继续堆页面绘制特例。
+
+### 视觉验收矩阵
+
+每页至少验证：1280×720 默认、长中文/最大数值、键盘焦点、hover/pressed/disabled、滚动极限、reduced-motion、低粒子档和正文 4.5:1 对比度。证据必须同时包含截图金标与结构断言；现有 bounds/run-flow 测试只证明不溢出和功能存在，不能证明视觉质量。
