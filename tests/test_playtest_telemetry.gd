@@ -185,6 +185,9 @@ func _run() -> void:
 	var comparison_store: Dictionary = PlaytestTelemetryScript.start_run(store, {
 		"run_id": "fixture-run-002",
 		"timestamp_utc": "2026-07-15T13:00:00Z",
+		"game_version": "0.1.0.1",
+		"engine_version": "4.7.stable",
+		"config_fingerprint": fingerprint,
 		"character_id": "ember_exile",
 		"challenge_level": 2
 	})
@@ -218,17 +221,19 @@ func _run() -> void:
 	_check(failure_rows.size() == 1 and is_equal_approx(float((failure_rows[0] as Dictionary).get("share_of_defeats", 0.0)), 1.0), "failure report exposes encounter concentration directly")
 
 	var bounded_store: Dictionary = PlaytestTelemetryScript.default_store()
-	for index in range(70):
+	for index in range(110):
+		var sample_day: int = 15 + index / 24
+		var sample_hour: int = index % 24
 		bounded_store = PlaytestTelemetryScript.start_run(bounded_store, {
 			"run_id": "bounded-%03d" % index,
-			"timestamp_utc": "2026-07-15T12:%02d:00Z" % (index % 60),
+			"timestamp_utc": "2026-07-%02dT%02d:00:00Z" % [sample_day, sample_hour],
 			"character_id": "ember_exile"
 		})
 		bounded_store = PlaytestTelemetryScript.finish_active_run(bounded_store, "abandoned", {
-			"timestamp_utc": "2026-07-15T13:%02d:00Z" % (index % 60)
+			"timestamp_utc": "2026-07-%02dT%02d:30:00Z" % [sample_day, sample_hour]
 		})
 	_check(bounded_store.get("runs", []).size() == PlaytestTelemetryScript.MAX_RUN_HISTORY, "local playtest history stays bounded")
-	_check(str((bounded_store.get("runs", [])[0] as Dictionary).get("run_id", "")) == "bounded-006", "bounded history retains the newest runs")
+	_check(str((bounded_store.get("runs", [])[0] as Dictionary).get("run_id", "")) == "bounded-014", "bounded abandoned history retains the newest runs without consuming finished-run capacity")
 	var bounded_report: Dictionary = PlaytestTelemetryScript.build_report(bounded_store)
 	_check(int(bounded_report.get("summary", {}).get("finished_runs", -1)) == 0, "abandoned runs never enter the win-rate denominator")
 	_check(is_equal_approx(float(bounded_report.get("summary", {}).get("win_rate", -1.0)), 0.0), "unfinished-only history has a zero win rate instead of a false loss rate")

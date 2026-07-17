@@ -1,0 +1,3 @@
+{"file":".trellis/tasks/delivery-batch-015-playtest-evidence-gate.prd.md","reason":"逐条核对 AC 与禁止事项"}
+{"file":"tests/test_playtest_telemetry.gd","reason":"保护现有遥测 schema、幂等与单报告兼容行为"}
+{"file":"tests/test_playtest_run_integration.gd","reason":"保护游戏内真实导出路径"}

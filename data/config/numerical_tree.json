@@ -208,7 +208,7 @@
   "human_playtest_targets": {
     "_comment": "真人试玩报告的独立验收口径。它不覆盖 campaign_matrix，也不能用启发式 AI 样本冒充；每个 cell 指一个角色乘一个挑战等级。",
     "schema_version": 1,
-    "report_schema_version": 1,
+    "report_schema_version": 2,
     "win_rate_denominator_outcomes": ["victory", "defeat"],
     "excluded_outcomes": ["abandoned", "in_progress"],
     "directional_finished_runs_per_cell": 12,

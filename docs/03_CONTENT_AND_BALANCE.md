@@ -451,4 +451,4 @@ profile 统计新增：
 | 单一失败遭遇集中度 | 不超过 50% | 超过时先检查遭遇，而不是先削弱角色。 |
 | 放弃率 | 不超过 35% | 放弃单列，不进入胜率分母。 |
 
-完成局只包含 `victory` 和 `defeat`。`abandoned` 与 `in_progress` 不得当作失败；配置指纹不同的报告先分版本分析。单卡 lift 只说明相关性，不证明卡牌导致胜负，达到样本门槛后仍需结合展示率、获取率、角色、挑战和死亡点复核。
+完成局只包含 `victory` 和 `defeat`。`abandoned` 与 `in_progress` 不得当作失败，离线合并器直接拒绝 `in_progress` 和未知 outcome。正式证据门按遥测 schema、游戏版本和配置指纹组成 cohort；不同 cohort 永不合并，同 cohort 的 fixture/legacy 也不得进入真人统计。每格输出 `insufficient`、`directional_ready` 或 `hard_gate_ready` 及距 12/30 的缺口。多报告按匿名 `run_id` 去重；同一 ID 内容冲突必须拒绝整次合并。单卡 lift 只说明相关性，不证明卡牌导致胜负；报告用 `acquisition_sample_ready` / `play_sample_ready` 标记获取与未获取、打出与未打出两侧是否各达到 20 个完成局，未达门槛时只能作为探索性信号。

@@ -1,8 +1,12 @@
 class_name PlaytestTelemetry
 extends RefCounted
 
-const SCHEMA_VERSION := 1
-const MAX_RUN_HISTORY := 64
+const PlaytestEvidenceGateScript = preload("res://scripts/core/PlaytestEvidenceGate.gd")
+
+const SCHEMA_VERSION := 2
+const MAX_ABANDONED_RUN_HISTORY := PlaytestEvidenceGateScript.MAX_ABANDONED_RUNS_PER_COHORT
+# Compatibility alias for existing consumers; retention is now cohort/cell aware.
+const MAX_RUN_HISTORY := MAX_ABANDONED_RUN_HISTORY
 const TERMINAL_OUTCOMES := ["victory", "defeat", "abandoned"]
 const GAMEPLAY_CONFIG_PATHS := [
 	"res://data/cards/cards.json",
@@ -72,9 +76,7 @@ static func normalize_store(raw_store: Dictionary) -> Dictionary:
 		if run.is_empty() or not TERMINAL_OUTCOMES.has(str(run.get("outcome", ""))):
 			continue
 		runs.append(run)
-	if runs.size() > MAX_RUN_HISTORY:
-		runs = runs.slice(runs.size() - MAX_RUN_HISTORY, runs.size())
-	store["runs"] = runs
+	store["runs"] = PlaytestEvidenceGateScript.retain_runs(runs)
 	var active_value = raw_store.get("active_run", {})
 	if active_value is Dictionary:
 		var active: Dictionary = _normalized_run(active_value)
@@ -304,110 +306,10 @@ static func record_run_loaded(run: Dictionary) -> void:
 
 static func build_report(raw_store: Dictionary, context: Dictionary = {}) -> Dictionary:
 	var store := normalize_store(raw_store)
-	var runs: Array = store.get("runs", []).duplicate(true)
-	var victories := 0
-	var defeats := 0
-	var abandoned := 0
-	var total_turns := 0
-	var finished_runs := 0
-	var total_chapters := 0
-	var total_loads := 0
-	var by_character: Dictionary = {}
-	var by_challenge: Dictionary = {}
-	var by_character_challenge: Dictionary = {}
-	var card_aggregates: Dictionary = {}
-	var failure_counts: Dictionary = {}
-	var game_versions: Array[String] = []
-	var fingerprints: Array[String] = []
-
-	for run_value in runs:
-		var run: Dictionary = run_value
-		var outcome := str(run.get("outcome", ""))
-		match outcome:
-			"victory":
-				victories += 1
-				finished_runs += 1
-			"defeat":
-				defeats += 1
-				finished_runs += 1
-			"abandoned":
-				abandoned += 1
-		var summary: Dictionary = run.get("summary", {})
-		total_loads += int(summary.get("loads", 0))
-		if outcome == "victory" or outcome == "defeat":
-			total_turns += int(summary.get("turns", 0))
-		total_chapters += (run.get("final", {}).get("completed_chapter_ids", []) as Array).size()
-		_aggregate_dimension(by_character, str(run.get("character_id", "unknown")), outcome)
-		_aggregate_dimension(by_challenge, str(int(run.get("challenge_level", 0))), outcome)
-		_aggregate_dimension(by_character_challenge, "%s|%d" % [str(run.get("character_id", "unknown")), int(run.get("challenge_level", 0))], outcome)
-		var game_version := str(run.get("game_version", ""))
-		if not game_version.is_empty() and not game_versions.has(game_version):
-			game_versions.append(game_version)
-		var fingerprint := str(run.get("config_fingerprint", ""))
-		if not fingerprint.is_empty() and not fingerprints.has(fingerprint):
-			fingerprints.append(fingerprint)
-		var failure: Dictionary = run.get("failure", {})
-		var failure_id := str(failure.get("encounter_id", ""))
-		if outcome == "defeat" and not failure_id.is_empty():
-			_increment_count_map(failure_counts, failure_id, 1)
-		_aggregate_cards(card_aggregates, run)
-
-	var card_rows: Array = []
-	for card_id_value in card_aggregates.keys():
-		var card_id := str(card_id_value)
-		var row: Dictionary = card_aggregates.get(card_id, {})
-		_finalize_card_aggregate(row, finished_runs, victories, defeats)
-		card_rows.append(row)
-	card_rows.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
-		var a_plays := int(a.get("plays", 0))
-		var b_plays := int(b.get("plays", 0))
-		return str(a.get("id", "")) < str(b.get("id", "")) if a_plays == b_plays else a_plays > b_plays
-	)
-
-	var failure_rows: Array = []
-	for encounter_id_value in failure_counts.keys():
-		var failure_defeats := int(failure_counts.get(encounter_id_value, 0))
-		failure_rows.append({
-			"encounter_id": str(encounter_id_value),
-			"defeats": failure_defeats,
-			"share_of_defeats": float(failure_defeats) / float(defeats) if defeats > 0 else 0.0
-		})
-	failure_rows.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
-		var a_count := int(a.get("defeats", 0))
-		var b_count := int(b.get("defeats", 0))
-		return str(a.get("encounter_id", "")) < str(b.get("encounter_id", "")) if a_count == b_count else a_count > b_count
-	)
-
-	game_versions.sort()
-	fingerprints.sort()
-	return {
-		"schema_version": SCHEMA_VERSION,
-		"report_kind": "human_playtest_local_export",
-		"generated_at_utc": str(context.get("generated_at_utc", _timestamp_utc())),
-		"privacy_note": "本报告不收集用户名、主目录、设备序列号或网络标识；不会自动联网发送。",
-		"game_versions": game_versions,
-		"configuration_fingerprints": fingerprints,
-		"summary": {
-			"total_runs": runs.size(),
-			"finished_runs": finished_runs,
-			"victories": victories,
-			"defeats": defeats,
-			"abandoned": abandoned,
-			"win_rate": float(victories) / float(finished_runs) if finished_runs > 0 else 0.0,
-			"abandon_rate": float(abandoned) / float(runs.size()) if not runs.is_empty() else 0.0,
-			"average_turns": float(total_turns) / float(finished_runs) if finished_runs > 0 else 0.0,
-			"average_chapters_completed": float(total_chapters) / float(runs.size()) if not runs.is_empty() else 0.0,
-			"loads": total_loads,
-			"active_run_present": not active_run(store).is_empty()
-		},
-		"by_character": _dimension_rows(by_character, "character_id"),
-		"by_challenge": _dimension_rows(by_challenge, "challenge_level"),
-		"by_character_challenge": _character_challenge_rows(by_character_challenge),
-		"card_telemetry": card_rows,
-		"failure_encounters": failure_rows,
-		"active_run": active_run(store).duplicate(true),
-		"runs": runs
-	}
+	var report := PlaytestEvidenceGateScript.build_report(store.get("runs", []), context)
+	report["active_run"] = active_run(store).duplicate(true)
+	report["summary"]["active_run_present"] = not active_run(store).is_empty()
+	return report
 
 static func base_card_id(card_id_value: String) -> String:
 	var card_id := card_id_value.strip_edges()
@@ -418,8 +320,10 @@ static func _new_run(context: Dictionary) -> Dictionary:
 	var run_id := str(context.get("run_id", ""))
 	if run_id.is_empty():
 		run_id = ("%s|%d|%d" % [timestamp, Time.get_ticks_usec(), randi()]).sha256_text().substr(0, 20)
-	return {
+	var sample_kind := str(context.get("sample_kind", "human"))
+	var run := {
 		"schema_version": SCHEMA_VERSION,
+		"source_schema_version": SCHEMA_VERSION,
 		"run_id": run_id,
 		"started_at_utc": timestamp,
 		"finished_at_utc": "",
@@ -427,6 +331,8 @@ static func _new_run(context: Dictionary) -> Dictionary:
 		"game_version": str(context.get("game_version", "unknown")),
 		"engine_version": str(context.get("engine_version", "unknown")),
 		"config_fingerprint": str(context.get("config_fingerprint", "")),
+		"sample_kind": sample_kind,
+		"gate_eligible": sample_kind == "human",
 		"environment": {
 			"platform": str(context.get("platform", "unknown")),
 			"display_size": _normalized_int_pair(context.get("display_size", [])),
@@ -456,10 +362,17 @@ static func _new_run(context: Dictionary) -> Dictionary:
 		"deck_mastery_id": "",
 		"failure": {}
 	}
+	run["cohort_id"] = PlaytestEvidenceGateScript.cohort_id(run)
+	return run
 
 static func _normalized_run(raw_run: Dictionary) -> Dictionary:
 	if raw_run.is_empty() or str(raw_run.get("run_id", "")).is_empty():
 		return {}
+	var source_schema_version: int = max(1, int(raw_run.get("source_schema_version", raw_run.get("schema_version", 1))))
+	var sample_kind := str(raw_run.get("sample_kind", ""))
+	if sample_kind.is_empty():
+		sample_kind = "legacy_unapproved" if source_schema_version < SCHEMA_VERSION else "human"
+	var gate_eligible := bool(raw_run.get("gate_eligible", sample_kind == "human")) and sample_kind == "human"
 	var starting: Dictionary = raw_run.get("starting", {})
 	var final_state: Dictionary = raw_run.get("final", {})
 	var summary: Dictionary = _default_summary()
@@ -487,8 +400,9 @@ static func _normalized_run(raw_run: Dictionary) -> Dictionary:
 				"result_id": str(choice_value.get("result_id", ""))
 			})
 	var raw_items: Dictionary = raw_run.get("item_acquisitions", {})
-	return {
+	var normalized := {
 		"schema_version": SCHEMA_VERSION,
+		"source_schema_version": source_schema_version,
 		"run_id": str(raw_run.get("run_id", "")),
 		"started_at_utc": str(raw_run.get("started_at_utc", "")),
 		"finished_at_utc": str(raw_run.get("finished_at_utc", "")),
@@ -496,6 +410,8 @@ static func _normalized_run(raw_run: Dictionary) -> Dictionary:
 		"game_version": str(raw_run.get("game_version", "unknown")),
 		"engine_version": str(raw_run.get("engine_version", "unknown")),
 		"config_fingerprint": str(raw_run.get("config_fingerprint", "")),
+		"sample_kind": sample_kind,
+		"gate_eligible": gate_eligible,
 		"environment": {
 			"platform": str(raw_run.get("environment", {}).get("platform", "unknown")),
 			"display_size": _normalized_int_pair(raw_run.get("environment", {}).get("display_size", [])),
@@ -528,6 +444,8 @@ static func _normalized_run(raw_run: Dictionary) -> Dictionary:
 		"deck_mastery_id": str(raw_run.get("deck_mastery_id", "")),
 		"failure": _normalized_failure(raw_run.get("failure", {}))
 	}
+	normalized["cohort_id"] = PlaytestEvidenceGateScript.cohort_id(normalized)
+	return normalized
 
 static func _normalized_route_entry(raw: Dictionary) -> Dictionary:
 	return {
@@ -627,9 +545,7 @@ static func _append_finished_run(store: Dictionary, run: Dictionary) -> void:
 			continue
 		runs.append(existing)
 	runs.append(retained_terminal if not retained_terminal.is_empty() else finished_run)
-	if runs.size() > MAX_RUN_HISTORY:
-		runs = runs.slice(runs.size() - MAX_RUN_HISTORY, runs.size())
-	store["runs"] = runs
+	store["runs"] = PlaytestEvidenceGateScript.retain_runs(runs)
 
 static func _run_is_active(run: Dictionary) -> bool:
 	return not run.is_empty() and str(run.get("outcome", "")) == "in_progress"
@@ -715,126 +631,6 @@ static func _current_route_chapter(run: Dictionary) -> String:
 static func _current_route_node(run: Dictionary) -> String:
 	var route: Array = run.get("route", [])
 	return str((route[-1] as Dictionary).get("node_id", "")) if not route.is_empty() else ""
-
-static func _aggregate_dimension(target: Dictionary, id_value: String, outcome: String) -> void:
-	var id := id_value if not id_value.is_empty() else "unknown"
-	var row: Dictionary = target.get(id, {"runs": 0, "victories": 0, "defeats": 0, "abandoned": 0})
-	row["runs"] = int(row.get("runs", 0)) + 1
-	if outcome == "victory":
-		row["victories"] = int(row.get("victories", 0)) + 1
-	elif outcome == "defeat":
-		row["defeats"] = int(row.get("defeats", 0)) + 1
-	elif outcome == "abandoned":
-		row["abandoned"] = int(row.get("abandoned", 0)) + 1
-	target[id] = row
-
-static func _dimension_rows(source: Dictionary, id_field: String) -> Array:
-	var ids: Array = source.keys()
-	ids.sort()
-	var rows: Array = []
-	for id_value in ids:
-		var row: Dictionary = source.get(id_value, {}).duplicate(true)
-		row[id_field] = int(id_value) if id_field == "challenge_level" else str(id_value)
-		var finished := int(row.get("victories", 0)) + int(row.get("defeats", 0))
-		row["finished_runs"] = finished
-		row["win_rate"] = float(row.get("victories", 0)) / float(finished) if finished > 0 else 0.0
-		row["abandon_rate"] = float(row.get("abandoned", 0)) / float(row.get("runs", 0)) if int(row.get("runs", 0)) > 0 else 0.0
-		rows.append(row)
-	return rows
-
-static func _character_challenge_rows(source: Dictionary) -> Array:
-	var keys: Array = source.keys()
-	keys.sort()
-	var rows: Array = []
-	for key_value in keys:
-		var key := str(key_value)
-		var row: Dictionary = source.get(key_value, {}).duplicate(true)
-		row["character_id"] = key.get_slice("|", 0)
-		row["challenge_level"] = int(key.get_slice("|", 1))
-		var finished := int(row.get("victories", 0)) + int(row.get("defeats", 0))
-		row["finished_runs"] = finished
-		row["win_rate"] = float(row.get("victories", 0)) / float(finished) if finished > 0 else 0.0
-		row["abandon_rate"] = float(row.get("abandoned", 0)) / float(row.get("runs", 0)) if int(row.get("runs", 0)) > 0 else 0.0
-		rows.append(row)
-	return rows
-
-static func _aggregate_cards(target: Dictionary, run: Dictionary) -> void:
-	var won := str(run.get("outcome", "")) == "victory"
-	var lost := str(run.get("outcome", "")) == "defeat"
-	var cards: Dictionary = run.get("card_telemetry", {})
-	for card_id_value in cards.keys():
-		var card_id := str(card_id_value)
-		var source: Dictionary = cards.get(card_id_value, {})
-		var row: Dictionary = target.get(card_id, {
-			"id": card_id,
-			"offers": 0,
-			"acquisitions": 0,
-			"removals": 0,
-			"upgrades": 0,
-			"plays": 0,
-			"offer_sources": {},
-			"acquisition_sources": {},
-			"runs_acquired": 0,
-			"wins_when_acquired": 0,
-			"losses_when_acquired": 0,
-			"runs_played": 0,
-			"wins_when_played": 0,
-			"losses_when_played": 0
-		})
-		for field in CARD_COUNT_FIELDS:
-			row[str(field)] = int(row.get(field, 0)) + int(source.get(field, 0))
-		_merge_count_map(row.get("offer_sources", {}), source.get("offer_sources", {}))
-		_merge_count_map(row.get("acquisition_sources", {}), source.get("acquisition_sources", {}))
-		if int(source.get("acquisitions", 0)) > 0:
-			row["runs_acquired"] = int(row.get("runs_acquired", 0)) + 1
-			if won:
-				row["wins_when_acquired"] = int(row.get("wins_when_acquired", 0)) + 1
-			elif lost:
-				row["losses_when_acquired"] = int(row.get("losses_when_acquired", 0)) + 1
-		if int(source.get("plays", 0)) > 0:
-			row["runs_played"] = int(row.get("runs_played", 0)) + 1
-			if won:
-				row["wins_when_played"] = int(row.get("wins_when_played", 0)) + 1
-			elif lost:
-				row["losses_when_played"] = int(row.get("losses_when_played", 0)) + 1
-		target[card_id] = row
-
-static func _merge_count_map(target_value: Variant, source_value: Variant) -> void:
-	if not target_value is Dictionary or not source_value is Dictionary:
-		return
-	var target: Dictionary = target_value
-	var source: Dictionary = source_value
-	for key_value in source.keys():
-		_increment_count_map(target, str(key_value), int(source.get(key_value, 0)))
-
-static func _finalize_card_aggregate(row: Dictionary, finished_runs: int, victories: int, defeats: int) -> void:
-	var offers := int(row.get("offers", 0))
-	var acquisitions := int(row.get("acquisitions", 0))
-	var acquired_finished := int(row.get("wins_when_acquired", 0)) + int(row.get("losses_when_acquired", 0))
-	var played_finished := int(row.get("wins_when_played", 0)) + int(row.get("losses_when_played", 0))
-	var wins_not_acquired: int = max(0, victories - int(row.get("wins_when_acquired", 0)))
-	var losses_not_acquired: int = max(0, defeats - int(row.get("losses_when_acquired", 0)))
-	var wins_not_played: int = max(0, victories - int(row.get("wins_when_played", 0)))
-	var losses_not_played: int = max(0, defeats - int(row.get("losses_when_played", 0)))
-	var not_acquired_finished: int = max(0, finished_runs - acquired_finished)
-	var not_played_finished: int = max(0, finished_runs - played_finished)
-	row["acquisition_rate_per_offer"] = float(acquisitions) / float(offers) if offers > 0 else 0.0
-	row["finished_runs_acquired"] = acquired_finished
-	row["win_rate_when_acquired"] = float(row.get("wins_when_acquired", 0)) / float(acquired_finished) if acquired_finished > 0 else 0.0
-	row["finished_runs_played"] = played_finished
-	row["win_rate_when_played"] = float(row.get("wins_when_played", 0)) / float(played_finished) if played_finished > 0 else 0.0
-	row["runs_not_acquired"] = not_acquired_finished
-	row["wins_when_not_acquired"] = wins_not_acquired
-	row["losses_when_not_acquired"] = losses_not_acquired
-	row["win_rate_when_not_acquired"] = float(wins_not_acquired) / float(not_acquired_finished) if not_acquired_finished > 0 else 0.0
-	row["acquisition_comparison_available"] = acquired_finished > 0 and not_acquired_finished > 0
-	row["win_rate_lift_when_acquired"] = float(row.get("win_rate_when_acquired", 0.0)) - float(row.get("win_rate_when_not_acquired", 0.0)) if bool(row.get("acquisition_comparison_available", false)) else 0.0
-	row["runs_not_played"] = not_played_finished
-	row["wins_when_not_played"] = wins_not_played
-	row["losses_when_not_played"] = losses_not_played
-	row["win_rate_when_not_played"] = float(wins_not_played) / float(not_played_finished) if not_played_finished > 0 else 0.0
-	row["play_comparison_available"] = played_finished > 0 and not_played_finished > 0
-	row["win_rate_lift_when_played"] = float(row.get("win_rate_when_played", 0.0)) - float(row.get("win_rate_when_not_played", 0.0)) if bool(row.get("play_comparison_available", false)) else 0.0
 
 static func _timestamp_utc() -> String:
 	var timestamp := Time.get_datetime_string_from_system(true, true)

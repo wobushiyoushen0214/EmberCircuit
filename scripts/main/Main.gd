@@ -1823,16 +1823,22 @@ func _record_playtest_item_acquired(category: String, item_id: String, source: S
 
 func _on_export_playtest_report_pressed() -> void:
 	_checkpoint_playtest_store()
-	var report: Dictionary = PlaytestTelemetryScript.build_report(playtest_store)
+	var report: Dictionary = PlaytestTelemetryScript.build_report(playtest_store, _playtest_report_context())
 	last_playtest_export_ok = SaveManagerScript.export_playtest_report(report)
 	last_playtest_export_path = SaveManagerScript.playtest_export_absolute_path()
 	last_playtest_export_run_count = int(report.get("summary", {}).get("total_runs", 0))
 	var summary: Dictionary = report.get("summary", {})
-	last_playtest_export_summary = "试玩记录 %d 局 | 胜利 %d | 战败 %d | 放弃 %d" % [
+	var coverage: Dictionary = report.get("coverage", {})
+	last_playtest_export_summary = "试玩 %d 局 · 胜 %d / 败 %d / 弃 %d | 方向 %d/%d | 硬门 %d/%d | 尚缺 %d 完成局" % [
 		last_playtest_export_run_count,
 		int(summary.get("victories", 0)),
 		int(summary.get("defeats", 0)),
-		int(summary.get("abandoned", 0))
+		int(summary.get("abandoned", 0)),
+		int(coverage.get("directional_ready_cells", 0)),
+		int(coverage.get("total_cells", 0)),
+		int(coverage.get("hard_gate_ready_cells", 0)),
+		int(coverage.get("total_cells", 0)),
+		int(coverage.get("missing_finished_for_hard_gate", 0))
 	]
 	if last_playtest_export_ok and DisplayServer.get_name() != "headless":
 		DisplayServer.clipboard_set(last_playtest_export_path)
@@ -1848,6 +1854,22 @@ func _on_export_playtest_report_pressed() -> void:
 		if defeat_export_button != null:
 			defeat_export_button.text = "报告已导出" if last_playtest_export_ok else "导出失败"
 			defeat_export_button.tooltip_text = last_playtest_export_path if last_playtest_export_ok else "试玩报告导出失败，请检查本机存储权限。"
+
+func _playtest_report_context() -> Dictionary:
+	var character_ids: Array = []
+	for character_value in player_data.get("characters", []):
+		var character_id := str((character_value as Dictionary).get("id", ""))
+		if not character_id.is_empty() and not character_ids.has(character_id):
+			character_ids.append(character_id)
+	var challenge_levels: Array = []
+	for level_value in challenge_data.get("levels", []):
+		var level := int((level_value as Dictionary).get("level", 0))
+		if not challenge_levels.has(level):
+			challenge_levels.append(level)
+	return {
+		"expected_character_ids": character_ids,
+		"expected_challenge_levels": challenge_levels
+	}
 
 func _on_retry_terminal_persistence_pressed() -> void:
 	if combat != null and combat.phase == "lost" and not _playtest_active_run().is_empty():
