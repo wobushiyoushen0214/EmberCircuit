@@ -11,12 +11,12 @@ stage_state:
   tasks_completed: 2
   carry_over: 3
   critical_review_issues: 0
-  next_legal_action: pause after merging Batch 018A; resume with delivery-batch-018b-run-pages when requested
+  next_legal_action: review and merge delivery-batch-018b-ui-run-pages after documentation update
   stop_conditions: none
 ---
 
 loop_mode: L3
-current_round: 3
+current_round: 4
 next_loop_recommendation: await-user-resume
 carry_over: 3
 
@@ -26,9 +26,9 @@ carry_over: 3
 - mvp_baseline_commit: `2e3e857`
 - last_audited_commit: `4032b8d`
 - loop_mode: `L3`
-- current_round: `3`
+- current_round: `4`
 - max_rounds: `6`
-- current_batch_id: `delivery-batch-018a-ui-shell-menu-pages`
+- current_batch_id: `delivery-batch-018b-ui-run-pages`
 
 ## 需求状态
 
@@ -49,8 +49,8 @@ carry_over: 3
 
 ## 当前批次
 
-- batch_id: `delivery-batch-018-ui-ember-forge-cohesion`
-- scope: `完整 PC UI shell 与欢迎、角色、地图、事件、商店、篝火、奖励、结算、设置、图鉴页面质量重构`
+- batch_id: `delivery-batch-018b-ui-run-pages`
+- scope: `地图、事件、商店、篝火与奖励页面的独立 API、状态结构和暗炉主题迁移`
 - selected_reqs:
   - `REQ-008`
   - `REQ-012`
@@ -102,6 +102,6 @@ carry_over: 3
 ## 下一轮建议
 
 - action: `await-user-resume`
-- reason: `Batch 018A 已以严格 TDD、24/24 回归、双阶段评审 C0/M0/m0 和 PC 实图验收交付；按用户要求合并后暂停。`
-- next_batch: `delivery-batch-018b-run-pages`，继续迁移地图、事件、商店、篝火与奖励页；恢复前不自动进入下一批。
+- reason: `Batch 018B 页面 API、结构断言和全量回归已通过；保留 Main 旧编排以隔离事务风险，挂载替换作为 018C 独立批次。`
+- next_batch: `delivery-batch-018c-run-page-mounts`，执行页面挂载替换与结算/设置/图鉴补齐；恢复前不自动进入下一批。
 - next_audit_scope: `delta`

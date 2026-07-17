@@ -928,3 +928,10 @@ jq empty data/cards/cards.json data/enemies/enemies.json data/relics/relics.json
 - 删除 Main 内已无调用的旧角色卡/挑战条视觉构造；motion 统一 clamp 到 80–320ms，降低动态效果会停止菜单背景循环，锁定挑战不会显示可点击手型或进入焦点。
 - foundation、页面 API、run flow、PC 1280×720/1600×900 bounds 与小窗口兼容烟测通过；24 个 Godot 测试全绿，退出日志无未知错误或资源泄漏。
 - 双阶段评审最终 C0/M0/m0；最新 1280×720 欢迎页与角色选择页实图复核通过。
+
+## 2026-07-18：018B 路由房间 API 与结构迁移
+
+- 新增 `MapPage`、`EventPage`、`ShopExperience`、`CampfirePage`、`RewardPage`，以及 `ChoiceRow`、`ItemShelf`、`CardCompare`。
+- 页面统一复用 `ForgeTheme`，保留 `EmberMapView`、`PcEventExperience`、`PcCampfireExperience`、`RewardActionColumn` 等旧节点名和 typed signal 表面。
+- 事件禁用原因、商店买不起/售罄/药水槽满、篝火 44px 热区、奖励金币收据与卡/遗物/药水阶段均有结构断言。
+- 严格 TDD 先红后绿；路由房间、地图、视觉边界、运行流程和全部 `tests/test_*.gd` 均通过。Main 旧编排暂不删除，挂载替换留在下一批以隔离事务风险。
