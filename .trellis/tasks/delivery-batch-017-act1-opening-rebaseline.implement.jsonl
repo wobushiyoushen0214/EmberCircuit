@@ -1,0 +1,3 @@
+{"file":".trellis/audits/2026-07-17-act1-opening-rebaseline-delta-audit.md","reason":"冻结 Batch 017 边界、候选与 UI/数值接缝决策"}
+{"file":".trellis/tasks/delivery-batch-016-numerical-pressure-contract.prd.md","reason":"提供 pressure schema、指标口径和兼容约束"}
+{"file":"docs/09_NUMERICAL_TREE_AND_BALANCE.md","reason":"正式数值审计规则与工具生成纪律"}

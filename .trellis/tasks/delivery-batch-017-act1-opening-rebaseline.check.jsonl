@@ -1,0 +1,3 @@
+{"file":".trellis/tasks/delivery-batch-017-act1-opening-rebaseline.prd.md","reason":"逐条核对 AC、数值、File Manifest 和禁止事项"}
+{"file":".trellis/tasks/delivery-batch-016-numerical-pressure-contract.review-report.md","reason":"保护 Stage 2 已确认的 pressure 指标语义与已知风险"}
+{"file":"docs/03_CONTENT_AND_BALANCE.md","reason":"验证正式玩法说明与实际数据同步"}
