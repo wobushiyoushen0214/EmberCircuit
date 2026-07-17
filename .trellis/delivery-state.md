@@ -1,17 +1,17 @@
 # EmberCircuit Delivery State
 
 stage_state:
-  state: S7_CREATE_TASKS
+  state: S8_RUN_LOG
   loop_mode: L3
   audit_scope: full
   current_round: 1
   max_rounds: 6
   open_gaps: 8
   tasks_created: 1
-  tasks_completed: 0
+  tasks_completed: 1
   carry_over: 3
   critical_review_issues: 0
-  next_legal_action: implement delivery-batch-016-numerical-pressure-contract in the required isolated worktree
+  next_legal_action: run a delta audit and plan delivery-batch-017-act1-opening-rebaseline
   stop_conditions: none
 ---
 
@@ -24,7 +24,7 @@ carry_over: 3
 
 - source_requirements: `docs/00_MASTER_PLAN.md`（由 `docs/01-08` 细化）
 - mvp_baseline_commit: `2e3e857`
-- last_audited_commit: `2e3e857`
+- last_audited_commit: `67427f2`
 - loop_mode: `L3`
 - current_round: `1`
 - max_rounds: `6`
@@ -36,21 +36,21 @@ carry_over: 3
 | --- | --- | --- | --- | --- | --- | --- |
 | REQ-001 | DONE | `scripts/combat/CombatState.gd` | `tests/test_combat_core.gd` | none | 3 | 0 |
 | REQ-002 | DONE | `scripts/main/Main.gd`, `scripts/map/MapGenerator.gd`, `data/config/level_tree.json` | `tests/test_run_flow.gd`, `tests/test_map_generator.gd`, `tests/test_map_view.gd` | none | 3 | 0 |
-| REQ-003 | PARTIAL | `data/cards/cards.json`, `data/enemies/enemies.json`, `data/config/monster_scaling.json`, `scripts/tools/NumericalTreeAuditor.gd`, `data/config/numerical_tree.json` | `tests/test_data_integrity.gd`, `tests/test_numerical_tree_auditor.gd`, `tests/test_numerical_balance_matrix.gd` | `delivery-batch-016-numerical-pressure-contract`：先建立 opening package、分位数和 too-easy 门；下一批再调正式数值 | L3-new-1 | 0 |
+| REQ-003 | PARTIAL | `data/cards/cards.json`, `data/enemies/enemies.json`, `data/config/monster_scaling.json`, `scripts/tools/NumericalTreeAuditor.gd`, `scripts/tools/NumericalPressureMetrics.gd`, `data/config/numerical_tree.json` | `tests/test_numerical_pressure_metrics.gd`, `tests/test_numerical_tree_auditor.gd`, `tests/test_balance_simulator.gd`, `tests/test_numerical_balance_matrix.gd` | Batch 016 DONE：opening/分位数/too-easy/EHP 门已建立；next `delivery-batch-017-act1-opening-rebaseline` 调正式数值 | L3-new-1 | 0 |
 | REQ-004 | PARTIAL | `data/config/player.json`, `data/config/progression_systems.json`, `data/cards/cards.json`, `scripts/main/Main.gd` | `tests/test_progression_systems.gd`, `tests/test_combat_core.gd`, `tests/test_run_flow.gd`, `tests/test_balance_card_telemetry.gd` | next: expand character-exclusive card pools using human telemetry | 3 | 1 |
-| REQ-005 | PARTIAL | `data/enemies/enemies.json`, `data/encounters/encounters.json`, `data/config/monster_scaling.json`, `scripts/combat/CombatState.gd`, `scripts/main/Main.gd` | `tests/test_combat_core.gd`, `tests/test_balance_simulator.gd`, `tests/test_numerical_tree_auditor.gd`, `tests/test_run_flow.gd` | `delivery-batch-016-numerical-pressure-contract`：补攻击密度、空窗、前三行动伤害、实际回合与 Boss/elite EHP 层级 | L3-new-1 | 1 |
+| REQ-005 | PARTIAL | `data/enemies/enemies.json`, `data/encounters/encounters.json`, `data/config/monster_scaling.json`, `scripts/combat/CombatState.gd`, `scripts/tools/NumericalTreeAuditor.gd` | `tests/test_combat_core.gd`, `tests/test_balance_simulator.gd`, `tests/test_numerical_tree_auditor.gd`, `tests/test_run_flow.gd` | Batch 016 DONE：攻击密度、循环空窗、前三行动、实际回合与 Boss/elite EHP 已可执行；next Batch 017 修第一章节奏 | L3-new-1 | 1 |
 | REQ-006 | PARTIAL | `data/cards/cards.json`, `data/relics/relics.json`, `data/events/events.json`, `data/config/art_assets.json`, `assets/art/generated/` | `tests/test_data_integrity.gd`, `tests/test_art_asset_auditor.gd` | batch-014 delivered 8 relic PNGs; next: replace remaining legacy event/enemy art | L3-5 | 0 |
 | REQ-007 | DONE | `scripts/core/SaveManager.gd`, `scripts/main/Main.gd`, `data/config/achievements.json` | v5 奖励事务、原子恢复、错节点/坏 ID/金币回滚和旧战斗 HP 隔离测试 | none | L3-post | 0 |
 | REQ-008 | PARTIAL | `assets/art/generated/`, `assets/fonts/NotoSansSC-Variable.ttf`, `data/config/art_assets.json`, `scripts/main/Main.gd`, `scripts/map/MapView.gd`, `assets/audio/` | `tests/test_visual_bounds.gd`, `tests/test_run_flow.gd`, `tests/test_art_asset_auditor.gd`, `tests/test_pc_combat_hotkeys.gd`, `tests/test_audio_manager.gd`, `tools/render_pc_gallery.gd` | batch-014 added six-relic HUD and full relic compendium evidence; next: remaining legacy effects/content art/Boss audio | L3-5 | 0 |
-| REQ-009 | PARTIAL | `scripts/core/PlaytestTelemetry.gd`, `scripts/core/PlaytestEvidenceGate.gd`, `tools/merge_playtest_reports.gd`, `scripts/core/SaveManager.gd`, `scripts/main/Main.gd`, `scripts/tools/BalanceSimulator.gd`, `data/config/numerical_tree.json` | `tests/test_playtest_evidence_gate.gd`, `tests/test_playtest_telemetry.gd`, `tests/test_playtest_run_integration.gd`, `tests/test_numerical_balance_matrix.gd` | evidence gate DONE；`delivery-batch-016` 增加开局压力基线，后续 candidate 必须 paired-by-seed 对比 | L3-new-1 | 0 |
+| REQ-009 | PARTIAL | `scripts/core/PlaytestTelemetry.gd`, `scripts/core/PlaytestEvidenceGate.gd`, `tools/merge_playtest_reports.gd`, `scripts/tools/BalanceSimulator.gd`, `data/config/numerical_tree.json` | `tests/test_playtest_evidence_gate.gd`, `tests/test_balance_simulator.gd`, `tests/test_numerical_balance_matrix.gd` | evidence gate + pressure baseline DONE；256-seed opening 21/21 cases flagged，后续 candidate 必须 paired-by-seed 对比 | L3-new-1 | 0 |
 | REQ-010 | MISSING | none | none | proposed: build-grid-tactics-mode | 1 | 2 |
 | REQ-011 | PARTIAL | `export_presets.cfg`, `project.godot`, `packaging/PLAYTEST_README_ZH.txt` | alpha.8 Windows PE32+ x86_64 embedded-PCK、精确 PCK 启动、版本和压缩完整性通过 | next: native Windows matrix, commercial signing, installer and Steam integration | L3-post | 0 |
-| REQ-012 | DONE | `tests/`, `tools/render_pc_gallery.gd`, `scripts/tools/ArtAssetAuditor.gd` | 20-suite strict-log regression、153-slot art audit、720p 奖励页、资源排除与导出包启动验证通过 | none | L3-6 | 0 |
+| REQ-012 | DONE | `tests/`, `tools/render_pc_gallery.gd`, `scripts/tools/ArtAssetAuditor.gd` | 21-suite strict-log regression、153-slot art audit、720p 奖励页、资源排除与导出包启动验证通过 | none | L3-new-1 | 0 |
 
 ## 当前批次
 
 - batch_id: `delivery-batch-016-numerical-pressure-contract`
-- scope: `新 L3 Round 1：只建立起始包、单战分位数、too-easy、行动压力和 Boss/elite 层级的机器契约，不调整正式玩法数值`
+- scope: `已交付：起始包、单战分位数、too-easy、行动压力和 Boss/elite 层级机器契约；未调整正式玩法数值`
 - selected_reqs:
   - `REQ-003`
   - `REQ-005`
@@ -86,6 +86,7 @@ carry_over: 3
 - 2026-07-17: 用户确认扩展 batch-015 File Manifest，同步真人报告 schema 元数据并纳入 Godot UID sidecar；证据门通过 20/20 严格回归和双阶段评审后提交推送。
 - 2026-07-17: 资深 Slay the Spire 玩家反馈当前开局数值偏高、难度简单、体验无聊；用户要求重新精确计算并迭代严谨、高可玩性的数值树。该反馈重新打开 REQ-003，下一 loop 以数值重标定为唯一高风险批次。
 - 2026-07-17: 用户在重基线 full audit 提交后明确回复“确认执行”，确认 `delivery-batch-016-numerical-pressure-contract`；允许创建任务、隔离 worktree，并按严格 TDD 自动推进到评审门。
+- 2026-07-17: Batch 016 以严格 TDD、21/21 回归和双阶段评审交付；最终 Stage 1 PASS，Stage 2 C0/M0/m2。256-seed opening 21/21 cases 均命中过易风险，正式调值转入 Batch 017。
 
 ## 预算快照
 
@@ -98,5 +99,5 @@ carry_over: 3
 ## 下一轮建议
 
 - action: `continue-next-batch`
-- reason: `full audit 已由用户确认；Batch 016 先让当前 intro_patrol 与 starter-only 第一章 Boss 自动触发过易风险，并冻结 opening package、分位数、攻击密度、空窗和 EHP 层级 schema。该契约通过后，Batch 017 才调整正式数值。`
+- reason: `Batch 016 已交付并推送：当前 opening package 为 91.38/82.47/88.41；256-seed 第一章 21/21 cases 触发过易，Boss 胜率 97.3%/96.1%/99.6% 且回合过快；Boss/最高精英 EHP 比 0.9231。下一批在这些硬门下实际重标定起始包、恢复/金币和第一章敌人节奏。`
 - next_audit_scope: `delta`
