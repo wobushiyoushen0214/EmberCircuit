@@ -54,6 +54,9 @@ const HUD_ICON_PATHS := {
 const INTENT_ICON_PATHS := {
 	"attack": "res://assets/art/generated/ui/icons/intent_attack.svg",
 	"attack_debuff": "res://assets/art/generated/ui/icons/intent_attack.svg",
+	"attack_block": "res://assets/art/generated/ui/icons/intent_attack.svg",
+	"attack_buff": "res://assets/art/generated/ui/icons/intent_attack.svg",
+	"attack_status_card": "res://assets/art/generated/ui/icons/intent_attack.svg",
 	"block": "res://assets/art/generated/ui/icons/hud_block.svg",
 	"block_buff": "res://assets/art/generated/ui/icons/hud_block.svg",
 	"buff": "res://assets/art/generated/ui/icons/intent_buff.svg",
@@ -9494,7 +9497,7 @@ func _refresh_stage_forecast_layer() -> void:
 			_add_stage_beam(enemy_center, player_center, intent_type)
 
 func _intent_projects_to_player(intent_type: String) -> bool:
-	return ["attack", "attack_debuff", "debuff", "status_card"].has(intent_type)
+	return ["attack", "attack_debuff", "attack_block", "attack_buff", "attack_status_card", "debuff", "status_card"].has(intent_type)
 
 func _add_stage_floor_marker(center: Vector2, size: Vector2, intent_type: String, selected: bool) -> void:
 	if battle_forecast_layer == null:
@@ -9616,7 +9619,7 @@ func _stage_selection_reticle_style(intent_type: String) -> StyleBoxFlat:
 
 func _stage_forecast_color(intent_type: String) -> Color:
 	match intent_type:
-		"attack", "attack_debuff":
+		"attack", "attack_debuff", "attack_block", "attack_buff", "attack_status_card":
 			return Color(1.0, 0.30, 0.18, 1.0)
 		"block", "block_buff":
 			return Color(0.42, 0.90, 0.72, 1.0)
@@ -9855,6 +9858,15 @@ func _intent_text(intent: Dictionary) -> String:
 			return "施加 %s x%d" % [intent.get("status", ""), int(intent.get("amount", 0))]
 		"attack_debuff":
 			return "攻击 %d 并施加 %s" % [int(intent.get("amount", 0)), intent.get("status", "")]
+		"attack_block":
+			return "攻击 %d x%d，并获得 %d 护甲" % [int(intent.get("amount", 0)), int(intent.get("hits", 1)), int(intent.get("block", 0))]
+		"attack_buff":
+			return "攻击 %d x%d，并强化 %s x%d" % [int(intent.get("amount", 0)), int(intent.get("hits", 1)), intent.get("status", ""), int(intent.get("status_amount", 1))]
+		"attack_status_card":
+			var status_id: String = str(intent.get("status", ""))
+			if not status_id.is_empty():
+				return "攻击 %d x%d，并施加 %s x%d，并加入 %d 张 %s" % [int(intent.get("amount", 0)), int(intent.get("hits", 1)), status_id, int(intent.get("status_amount", 1)), int(intent.get("card_amount", 1)), intent.get("card_id", "")]
+			return "攻击 %d x%d，并加入 %d 张 %s" % [int(intent.get("amount", 0)), int(intent.get("hits", 1)), int(intent.get("card_amount", 1)), intent.get("card_id", "")]
 		"status_card":
 			return "加入状态牌 %s" % intent.get("card_id", "")
 		"buff":
@@ -9935,6 +9947,15 @@ func _intent_compact_text(intent: Dictionary) -> String:
 			return "%d x%d" % [int(intent.get("amount", 0)), int(intent.get("hits", 1))]
 		"attack_debuff":
 			return "%d+" % int(intent.get("amount", 0))
+		"attack_block":
+			return "%d+盾%d" % [int(intent.get("amount", 0)) * int(intent.get("hits", 1)), int(intent.get("block", 0))]
+		"attack_buff":
+			return "%d+强%d" % [int(intent.get("amount", 0)) * int(intent.get("hits", 1)), int(intent.get("status_amount", 1))]
+		"attack_status_card":
+			var status_id: String = str(intent.get("status", ""))
+			if not status_id.is_empty():
+				return "%d+%s%d+伤%d" % [int(intent.get("amount", 0)) * int(intent.get("hits", 1)), _intent_status_compact_label(status_id), int(intent.get("status_amount", 1)), int(intent.get("card_amount", 1))]
+			return "%d+伤%d" % [int(intent.get("amount", 0)) * int(intent.get("hits", 1)), int(intent.get("card_amount", 1))]
 		"block":
 			return "+%d" % int(intent.get("amount", 0))
 		"block_buff":
@@ -9947,6 +9968,18 @@ func _intent_compact_text(intent: Dictionary) -> String:
 			return "x%d" % int(intent.get("amount", 0))
 	return _intent_text(intent)
 
+func _intent_status_compact_label(status_id: String) -> String:
+	match status_id:
+		"vulnerable":
+			return "易"
+		"weak":
+			return "弱"
+		"frail":
+			return "脆"
+		"strength":
+			return "强"
+	return "状"
+
 func _intent_badge_label(intent: Dictionary) -> String:
 	var intent_type: String = str(intent.get("type", "none"))
 	var category := "意图"
@@ -9955,6 +9988,12 @@ func _intent_badge_label(intent: Dictionary) -> String:
 			category = "攻击"
 		"attack_debuff":
 			category = "攻击/减益"
+		"attack_block":
+			category = "攻击/护甲"
+		"attack_buff":
+			category = "攻击/强化"
+		"attack_status_card":
+			category = "攻击/干扰"
 		"block":
 			category = "护甲"
 		"block_buff":
@@ -9982,7 +10021,7 @@ func _intent_badge_palette(intent_type: String) -> Dictionary:
 	match intent_type:
 		"attack":
 			return {"bg": Color(0.24, 0.10, 0.09), "border": Color(0.92, 0.34, 0.24), "font": Color(1.00, 0.86, 0.78)}
-		"attack_debuff":
+		"attack_debuff", "attack_block", "attack_buff", "attack_status_card":
 			return {"bg": Color(0.22, 0.10, 0.18), "border": Color(0.92, 0.38, 0.66), "font": Color(1.00, 0.84, 0.94)}
 		"block", "block_buff":
 			return {"bg": Color(0.10, 0.19, 0.17), "border": Color(0.40, 0.78, 0.62), "font": Color(0.84, 1.00, 0.92)}

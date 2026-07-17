@@ -763,7 +763,8 @@ func _run_single_combat(character_id: String, challenge_level: int, encounter_id
 		character.get("starter_deck_ids", []).duplicate(true),
 		character.get("starter_relic_ids", []).duplicate(true),
 		_starting_hp_for_character(character_id, modifiers),
-		[]
+		[],
+		_campaign_modifier_sources({"skill_book_id": "steel_manual", "deck_mastery_id": ""})
 	)
 
 func _run_single_combat_with_loadout(
@@ -801,6 +802,7 @@ func _run_single_combat_with_loadout(
 	combat.consume_feedback_events()
 
 	var starting_hp: int = int(combat.player.get("hp", 0))
+	var player_starting_block: int = int(combat.player.get("block", 0))
 	var starting_enemy_hp: int = _total_enemy_max_hp(combat)
 	var cards_played := 0
 	var card_play_counts_by_id: Dictionary = {}
@@ -854,6 +856,7 @@ func _run_single_combat_with_loadout(
 		"turns": int(combat.turn),
 		"player_hp_remaining": int(combat.player.get("hp", 0)),
 		"player_hp_lost": max(0, starting_hp - int(combat.player.get("hp", 0))),
+		"player_starting_block": player_starting_block,
 		"enemy_hp_removed": max(0, starting_enemy_hp - _total_enemy_hp(combat)),
 		"cards_played": cards_played,
 		"card_play_counts_by_id": card_play_counts_by_id,
@@ -1093,7 +1096,7 @@ func _incoming_damage(combat) -> int:
 func _intent_damage(enemy: Dictionary) -> int:
 	var intent: Dictionary = enemy.get("current_action", {}).get("intent", {})
 	var intent_type: String = str(intent.get("type", ""))
-	if intent_type != "attack" and intent_type != "attack_debuff":
+	if not _is_attack_intent_type(intent_type):
 		return 0
 	var amount: int = int(intent.get("amount", 0))
 	amount += _status_amount(enemy.get("statuses", {}), "strength")
@@ -1104,7 +1107,7 @@ func _intent_damage(enemy: Dictionary) -> int:
 func _intent_damage_against_player(combat, enemy: Dictionary, apply_player_vulnerable: bool) -> int:
 	var intent: Dictionary = enemy.get("current_action", {}).get("intent", {})
 	var intent_type: String = str(intent.get("type", ""))
-	if intent_type != "attack" and intent_type != "attack_debuff":
+	if not _is_attack_intent_type(intent_type):
 		return 0
 	var amount: int = int(intent.get("amount", 0))
 	var multiplier: float = max(0.1, float(combat.challenge_modifiers.get("enemy_damage_multiplier", 1.0)))
@@ -1115,6 +1118,9 @@ func _intent_damage_against_player(combat, enemy: Dictionary, apply_player_vulne
 	if apply_player_vulnerable:
 		amount = int(ceil(float(amount) * 1.5))
 	return max(0, amount * int(intent.get("hits", 1)))
+
+func _is_attack_intent_type(intent_type: String) -> bool:
+	return ["attack", "attack_debuff", "attack_block", "attack_buff", "attack_status_card"].has(intent_type)
 
 func _effect_condition_failed_for_score(combat, effect: Dictionary) -> bool:
 	if effect.has("requires_momentum_at_least") and int(combat.player.get("momentum", 0)) < int(effect.get("requires_momentum_at_least", 0)):
@@ -1928,7 +1934,8 @@ func _aggregate_case(character: Dictionary, challenge: Dictionary, encounter: Di
 	tier_targets["expected_turns_max"] = float(expected_turns[1])
 	var pressure_metrics: Dictionary = NumericalPressureMetricsScript.aggregate_runs(runs, tier_targets)
 	case["chapter_id"] = chapter_id
-	case["loadout_profile"] = "starter_deck_relics"
+	case["loadout_profile"] = "starter_deck_relics_default_skill_book"
+	case["skill_book_id"] = "steel_manual"
 	case["strategy_profile"] = "current-greedy"
 	case["pressure_contract_version"] = int(pressure_contract.get("schema_version", 0))
 	case["expected_turns_min"] = int(expected_turns[0])

@@ -119,7 +119,7 @@ func _run() -> void:
 	mastery_combat.setup(card_data, enemy_data, relic_data, encounter_data, mastery_player_data, "intro_patrol", ["spark_throw"], [], 72)
 	var mastery_enemy_hp: int = int(mastery_combat.enemies[0].get("hp", 0))
 	_check(mastery_combat.play_card(0, 0), "deck mastery test can play a starter attack")
-	_check(int(mastery_combat.enemies[0].get("hp", 0)) == mastery_enemy_hp - 6, "offense forging adds its one-time 2 damage without duplicating card damage")
+	_check(int(mastery_combat.enemies[0].get("hp", 0)) == mastery_enemy_hp - 5, "offense forging adds its one-time 2 damage to the rebaselined three-damage spark throw")
 
 	var book_player_data: Dictionary = player_data.duplicate(true)
 	book_player_data["runtime_player_config"] = player_data.get("player", {}).duplicate(true)

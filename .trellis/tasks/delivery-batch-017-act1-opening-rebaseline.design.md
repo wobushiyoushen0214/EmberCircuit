@@ -14,7 +14,7 @@
 
 - 战斗效果仍完全由 action `effects[]` 结算；intent 只做准确预告。
 - campaign 继续使用默认 `steel_manual`，single 只补齐此前缺失的同源 modifier。
-- 旧 `risk_flag/risk_flags`、pressure schema 1、current-greedy 与确定性 seed 保留。
+- 旧 `risk_flag/risk_flags` 兼容字段、current-greedy 与确定性 seed 保留；pressure schema 升为 2，以 p50/p90 损血区分真正低消耗碾压与高损耗胜局。
 - 商店/奖励/删牌价格、挑战倍率、地图、后章敌人与存档不变。
 
 ## 复合意图契约
@@ -26,11 +26,11 @@
 
 ## 挂载点清单
 
-- [ ] legacy/default Ember 与正式角色配置同步。
-- [ ] single combat 接入默认技能书 modifier sources。
-- [ ] Simulator 投影伤害识别三种复合攻击。
-- [ ] Main intent helpers 完整识别三种复合攻击。
-- [ ] numerical tree inventory、矩阵、文档和 22 套回归同步。
+- [x] legacy/default Ember 与正式角色配置同步。
+- [x] single combat 接入默认技能书 modifier sources。
+- [x] Simulator 投影伤害识别三种复合攻击。
+- [x] Main intent helpers 完整识别三种复合攻击。
+- [x] numerical tree inventory、矩阵、文档和 22 套回归同步。
 
 ## 非目标
 

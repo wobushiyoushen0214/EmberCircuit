@@ -6,27 +6,27 @@
       "id": "soot_raider",
       "name": "煤烟盗兵",
       "tier": "normal",
-      "max_hp": 32,
+      "max_hp": 34,
       "sprite_key": "placeholder_soot_raider",
       "actions": [
-        { "id": "knife", "intent": { "type": "attack", "amount": 7, "hits": 1 }, "effects": [ { "type": "damage", "amount": 7, "target": "player" } ] },
-        { "id": "guard", "intent": { "type": "block", "amount": 6 }, "effects": [ { "type": "block", "amount": 6, "target": "self" } ] },
-        { "id": "heavy_knife", "intent": { "type": "attack", "amount": 10, "hits": 1 }, "effects": [ { "type": "damage", "amount": 10, "target": "player" } ] }
+        { "id": "knife", "intent": { "type": "attack", "amount": 8, "hits": 1 }, "effects": [ { "type": "damage", "amount": 8, "target": "player" } ] },
+        { "id": "guard", "intent": { "type": "attack_block", "amount": 5, "hits": 1, "block": 6 }, "effects": [ { "type": "damage", "amount": 5, "target": "player" }, { "type": "block", "amount": 6, "target": "self" } ] },
+        { "id": "heavy_knife", "intent": { "type": "attack", "amount": 12, "hits": 1 }, "effects": [ { "type": "damage", "amount": 12, "target": "player" } ] }
       ],
       "design_note": "第一只标准敌人，测试玩家对攻击和防御意图的理解。",
-      "balance_note": "32 生命能在 3 到 5 回合内解决，伤害不致命。",
-      "intent_note": "攻击、防御、重攻击循环，方便玩家学习节奏。"
+      "balance_note": "34 生命与三回合持续攻击要求玩家从首战开始权衡防御，单次峰值仍保持教学容错。",
+      "intent_note": "攻击、攻击并格挡、重攻击循环，复合意图会完整预告。"
     },
     {
       "id": "ash_hound",
       "name": "灰烬猎犬",
       "tier": "normal",
-      "max_hp": 26,
+      "max_hp": 28,
       "sprite_key": "placeholder_ash_hound",
       "actions": [
-        { "id": "bite_chain", "intent": { "type": "attack", "amount": 4, "hits": 2 }, "effects": [ { "type": "damage", "amount": 4, "hits": 2, "target": "player" } ] },
+        { "id": "bite_chain", "intent": { "type": "attack", "amount": 5, "hits": 2 }, "effects": [ { "type": "damage", "amount": 5, "hits": 2, "target": "player" } ] },
         { "id": "howl", "intent": { "type": "debuff", "status": "weak", "amount": 1 }, "effects": [ { "type": "apply_status", "target": "player", "status": "weak", "amount": 1 } ] },
-        { "id": "bite", "intent": { "type": "attack", "amount": 9, "hits": 1 }, "effects": [ { "type": "damage", "amount": 9, "target": "player" } ] }
+        { "id": "bite", "intent": { "type": "attack", "amount": 11, "hits": 1 }, "effects": [ { "type": "damage", "amount": 11, "target": "player" } ] }
       ],
       "design_note": "多段攻击敌人，检验玩家是否重视护甲。",
       "balance_note": "生命偏低，但多段伤害对低护甲回合惩罚明显。",
@@ -36,27 +36,27 @@
       "id": "plague_alchemist",
       "name": "瘟疫炼金师",
       "tier": "normal",
-      "max_hp": 38,
+      "max_hp": 40,
       "sprite_key": "placeholder_plague_alchemist",
       "actions": [
-        { "id": "acid", "intent": { "type": "attack_debuff", "amount": 6, "status": "vulnerable" }, "effects": [ { "type": "damage", "amount": 6, "target": "player" }, { "type": "apply_status", "target": "player", "status": "vulnerable", "amount": 1 } ] },
-        { "id": "pollute", "intent": { "type": "status_card", "card_id": "searing_wound" }, "effects": [ { "type": "create_card", "target": "player", "card_id": "searing_wound", "destination": "discard", "amount": 1 } ] },
-        { "id": "hide", "intent": { "type": "block", "amount": 9 }, "effects": [ { "type": "block", "amount": 9, "target": "self" } ] }
+        { "id": "acid", "intent": { "type": "attack_debuff", "amount": 7, "status": "vulnerable" }, "effects": [ { "type": "damage", "amount": 7, "target": "player" }, { "type": "apply_status", "target": "player", "status": "vulnerable", "amount": 1 } ] },
+        { "id": "pollute", "intent": { "type": "attack_status_card", "amount": 5, "hits": 1, "card_id": "searing_wound", "card_amount": 1 }, "effects": [ { "type": "damage", "amount": 5, "target": "player" }, { "type": "create_card", "target": "player", "card_id": "searing_wound", "destination": "discard", "amount": 1 } ] },
+        { "id": "hide", "intent": { "type": "block", "amount": 7 }, "effects": [ { "type": "block", "amount": 7, "target": "self" } ] }
       ],
       "design_note": "状态污染敌人，让玩家体验牌堆变脏的压力。",
       "balance_note": "直接伤害较低，但长期威胁来自灼伤和易伤。",
-      "intent_note": "污染回合不造成伤害，给玩家进攻窗口。"
+      "intent_note": "酸液、伤害并污染、防御循环；污染回合不再是完全无压窗口。"
     },
     {
       "id": "iron_shell_guard",
       "name": "铁壳守卫",
       "tier": "normal",
-      "max_hp": 46,
+      "max_hp": 40,
       "sprite_key": "placeholder_iron_shell_guard",
       "actions": [
-        { "id": "brace", "intent": { "type": "block", "amount": 12 }, "effects": [ { "type": "block", "amount": 12, "target": "self" } ] },
-        { "id": "bash", "intent": { "type": "attack", "amount": 11, "hits": 1 }, "effects": [ { "type": "damage", "amount": 11, "target": "player" } ] },
-        { "id": "brace_more", "intent": { "type": "block", "amount": 16 }, "effects": [ { "type": "block", "amount": 16, "target": "self" } ] }
+        { "id": "brace", "intent": { "type": "attack_block", "amount": 6, "hits": 1, "block": 8 }, "effects": [ { "type": "damage", "amount": 6, "target": "player" }, { "type": "block", "amount": 8, "target": "self" } ] },
+        { "id": "bash", "intent": { "type": "attack", "amount": 12, "hits": 1 }, "effects": [ { "type": "damage", "amount": 12, "target": "player" } ] },
+        { "id": "brace_more", "intent": { "type": "block", "amount": 12 }, "effects": [ { "type": "block", "amount": 12, "target": "self" } ] }
       ],
       "design_note": "高护甲敌人，鼓励易伤、灼烧和爆发。",
       "balance_note": "生命和护甲都高，但攻击频率低。",
@@ -66,11 +66,11 @@
       "id": "bomb_mite",
       "name": "爆裂炉虫",
       "tier": "normal",
-      "max_hp": 22,
+      "max_hp": 24,
       "sprite_key": "placeholder_bomb_mite",
       "actions": [
         { "id": "tick", "intent": { "type": "buff", "status": "strength", "amount": 2 }, "effects": [ { "type": "apply_status", "target": "self", "status": "strength", "amount": 2 } ] },
-        { "id": "burst", "intent": { "type": "attack", "amount": 14, "hits": 1 }, "effects": [ { "type": "damage", "amount": 14, "target": "player" } ] }
+        { "id": "burst", "intent": { "type": "attack", "amount": 15, "hits": 1 }, "effects": [ { "type": "damage", "amount": 15, "target": "player" } ] }
       ],
       "design_note": "低生命高威胁目标，训练玩家优先级判断。",
       "balance_note": "如果不及时处理，第二回合压力明显。",
@@ -80,11 +80,11 @@
       "id": "thorn_shield",
       "name": "刺盾兵",
       "tier": "normal",
-      "max_hp": 36,
+      "max_hp": 34,
       "sprite_key": "placeholder_thorn_shield",
       "actions": [
-        { "id": "spikes", "intent": { "type": "block_buff", "amount": 8, "status": "thorn" }, "effects": [ { "type": "block", "amount": 8, "target": "self" }, { "type": "apply_status", "target": "self", "status": "thorn", "amount": 1 } ] },
-        { "id": "shield_bash", "intent": { "type": "attack", "amount": 8, "hits": 1 }, "effects": [ { "type": "damage", "amount": 8, "target": "player" } ] }
+        { "id": "spikes", "intent": { "type": "block_buff", "amount": 6, "status": "thorn" }, "effects": [ { "type": "block", "amount": 6, "target": "self" }, { "type": "apply_status", "target": "self", "status": "thorn", "amount": 1 } ] },
+        { "id": "shield_bash", "intent": { "type": "attack", "amount": 10, "hits": 1 }, "effects": [ { "type": "damage", "amount": 10, "target": "player" } ] }
       ],
       "design_note": "反伤敌人，用尖刺状态测试多段攻击风险。",
       "balance_note": "尖刺每层对攻击者造成 1 点生命反伤，多段攻击逐段触发；当前只给 1 层，作为第一章低风险教学。",
@@ -109,12 +109,12 @@
       "id": "ember_wraith",
       "name": "余烬游魂",
       "tier": "normal",
-      "max_hp": 30,
+      "max_hp": 34,
       "sprite_key": "placeholder_ember_wraith",
       "actions": [
-        { "id": "burn_touch", "intent": { "type": "debuff", "status": "burn", "amount": 3 }, "effects": [ { "type": "apply_status", "target": "player", "status": "burn", "amount": 3 } ] },
-        { "id": "phase_hit", "intent": { "type": "attack", "amount": 10, "hits": 1 }, "effects": [ { "type": "damage", "amount": 10, "target": "player" } ] },
-        { "id": "fade", "intent": { "type": "block", "amount": 10 }, "effects": [ { "type": "block", "amount": 10, "target": "self" } ] }
+        { "id": "burn_touch", "intent": { "type": "attack_debuff", "amount": 6, "status": "burn" }, "effects": [ { "type": "damage", "amount": 6, "target": "player" }, { "type": "apply_status", "target": "player", "status": "burn", "amount": 3 } ] },
+        { "id": "phase_hit", "intent": { "type": "attack", "amount": 12, "hits": 1 }, "effects": [ { "type": "damage", "amount": 12, "target": "player" } ] },
+        { "id": "fade", "intent": { "type": "block", "amount": 8 }, "effects": [ { "type": "block", "amount": 8, "target": "self" } ] }
       ],
       "design_note": "持续伤害敌人，测试玩家处理回合压力的能力。",
       "balance_note": "生命低，状态伤害可通过快速击杀规避。",
@@ -127,9 +127,9 @@
       "max_hp": 86,
       "sprite_key": "placeholder_twinblade_executor",
       "actions": [
-        { "id": "double_cut", "intent": { "type": "attack", "amount": 7, "hits": 2 }, "effects": [ { "type": "damage", "amount": 7, "hits": 2, "target": "player" } ] },
-        { "id": "mark", "intent": { "type": "attack_debuff", "amount": 8, "status": "vulnerable" }, "effects": [ { "type": "damage", "amount": 8, "target": "player" }, { "type": "apply_status", "target": "player", "status": "vulnerable", "amount": 1 } ] },
-        { "id": "execute", "intent": { "type": "attack", "amount": 18, "hits": 1 }, "effects": [ { "type": "damage", "amount": 18, "target": "player" } ] }
+        { "id": "double_cut", "intent": { "type": "attack", "amount": 8, "hits": 2 }, "effects": [ { "type": "damage", "amount": 8, "hits": 2, "target": "player" } ] },
+        { "id": "mark", "intent": { "type": "attack_debuff", "amount": 10, "status": "vulnerable" }, "effects": [ { "type": "damage", "amount": 10, "target": "player" }, { "type": "apply_status", "target": "player", "status": "vulnerable", "amount": 1 } ] },
+        { "id": "execute", "intent": { "type": "attack", "amount": 22, "hits": 1 }, "effects": [ { "type": "damage", "amount": 22, "target": "player" } ] }
       ],
       "design_note": "第一章精英，测试防御连续性和爆发击杀窗口。",
       "balance_note": "高伤害但无自我防御，允许激进构筑竞速。",
@@ -139,12 +139,12 @@
       "id": "furnace_colossus",
       "name": "熔炉巨像",
       "tier": "elite",
-      "max_hp": 104,
+      "max_hp": 96,
       "sprite_key": "placeholder_furnace_colossus",
       "actions": [
-        { "id": "armor_up", "intent": { "type": "block", "amount": 18 }, "effects": [ { "type": "block", "amount": 18, "target": "self" } ] },
-        { "id": "ground_slam", "intent": { "type": "attack", "amount": 16, "hits": 1 }, "effects": [ { "type": "damage", "amount": 16, "target": "player" } ] },
-        { "id": "heat_wave", "intent": { "type": "attack_debuff", "amount": 10, "status": "burn" }, "effects": [ { "type": "damage", "amount": 10, "target": "player" }, { "type": "apply_status", "target": "player", "status": "burn", "amount": 4 } ] }
+        { "id": "armor_up", "intent": { "type": "attack_block", "amount": 8, "hits": 1, "block": 12 }, "effects": [ { "type": "damage", "amount": 8, "target": "player" }, { "type": "block", "amount": 12, "target": "self" } ] },
+        { "id": "ground_slam", "intent": { "type": "attack", "amount": 18, "hits": 1 }, "effects": [ { "type": "damage", "amount": 18, "target": "player" } ] },
+        { "id": "heat_wave", "intent": { "type": "attack_debuff", "amount": 12, "status": "burn" }, "effects": [ { "type": "damage", "amount": 12, "target": "player" }, { "type": "apply_status", "target": "player", "status": "burn", "amount": 4 } ] }
       ],
       "design_note": "高生命高护甲精英，检验长线构筑和破甲能力。",
       "balance_note": "伤害峰值低于执行者，但防御厚，拖长战斗。",
@@ -154,14 +154,14 @@
       "id": "forge_bishop",
       "name": "熔炉主教",
       "tier": "boss",
-	      "max_hp": 100,
+	      "max_hp": 116,
       "sprite_key": "placeholder_forge_bishop",
       "actions": [
-        { "id": "sermon", "intent": { "type": "buff", "status": "strength", "amount": 1 }, "effects": [ { "type": "apply_status", "target": "self", "status": "strength", "amount": 1 } ] },
+        { "id": "sermon", "intent": { "type": "attack_buff", "amount": 6, "hits": 1, "status": "strength", "status_amount": 1 }, "effects": [ { "type": "damage", "amount": 6, "target": "player" }, { "type": "apply_status", "target": "self", "status": "strength", "amount": 1 } ] },
         { "id": "cinder_rain", "intent": { "type": "attack", "amount": 5, "hits": 3 }, "effects": [ { "type": "damage", "amount": 5, "hits": 3, "target": "player" } ] },
-	        { "id": "brand", "intent": { "type": "status_card", "card_id": "searing_wound" }, "effects": [ { "type": "create_card", "target": "player", "card_id": "searing_wound", "destination": "discard", "amount": 1 } ] },
-	        { "id": "sanctuary", "intent": { "type": "block", "amount": 12 }, "effects": [ { "type": "block", "amount": 12, "target": "self" } ] },
-	        { "id": "judgement", "intent": { "type": "attack", "amount": 20, "hits": 1 }, "effects": [ { "type": "damage", "amount": 20, "target": "player" } ] }
+	        { "id": "brand", "intent": { "type": "attack_status_card", "amount": 6, "hits": 1, "card_id": "searing_wound", "card_amount": 1 }, "effects": [ { "type": "damage", "amount": 6, "target": "player" }, { "type": "create_card", "target": "player", "card_id": "searing_wound", "destination": "discard", "amount": 1 } ] },
+	        { "id": "sanctuary", "intent": { "type": "block", "amount": 10 }, "effects": [ { "type": "block", "amount": 10, "target": "self" } ] },
+	        { "id": "judgement", "intent": { "type": "attack", "amount": 22, "hits": 1 }, "effects": [ { "type": "damage", "amount": 22, "target": "player" } ] }
       ],
       "phases": [
         {
@@ -174,9 +174,9 @@
           ],
           "actions": [
 	            { "id": "cinder_cross", "intent": { "type": "attack", "amount": 4, "hits": 4 }, "effects": [ { "type": "damage", "amount": 4, "hits": 4, "target": "player" } ] },
-	            { "id": "second_brand", "intent": { "type": "status_card", "card_id": "searing_wound", "amount": 1 }, "effects": [ { "type": "create_card", "target": "player", "card_id": "searing_wound", "destination": "discard", "amount": 1 } ] },
-	            { "id": "iron_sanctuary", "intent": { "type": "block_buff", "amount": 13, "status": "strength" }, "effects": [ { "type": "block", "amount": 13, "target": "self" }, { "type": "apply_status", "target": "self", "status": "strength", "amount": 1 } ] },
-	            { "id": "second_judgement", "intent": { "type": "attack", "amount": 20, "hits": 1 }, "effects": [ { "type": "damage", "amount": 20, "target": "player" } ] }
+	            { "id": "second_brand", "intent": { "type": "attack_status_card", "amount": 6, "hits": 1, "card_id": "searing_wound", "card_amount": 1 }, "effects": [ { "type": "damage", "amount": 6, "target": "player" }, { "type": "create_card", "target": "player", "card_id": "searing_wound", "destination": "discard", "amount": 1 } ] },
+	            { "id": "iron_sanctuary", "intent": { "type": "block_buff", "amount": 11, "status": "strength" }, "effects": [ { "type": "block", "amount": 11, "target": "self" }, { "type": "apply_status", "target": "self", "status": "strength", "amount": 1 } ] },
+	            { "id": "second_judgement", "intent": { "type": "attack", "amount": 22, "hits": 1 }, "effects": [ { "type": "damage", "amount": 22, "target": "player" } ] }
           ]
         },
         {
@@ -189,14 +189,14 @@
           ],
           "actions": [
 	            { "id": "final_rain", "intent": { "type": "attack", "amount": 5, "hits": 4 }, "effects": [ { "type": "damage", "amount": 5, "hits": 4, "target": "player" } ] },
-	            { "id": "ashen_edict", "intent": { "type": "debuff", "status": "vulnerable", "amount": 1 }, "effects": [ { "type": "apply_status", "target": "player", "status": "vulnerable", "amount": 1 }, { "type": "create_card", "target": "player", "card_id": "searing_wound", "destination": "discard", "amount": 1 } ] },
-	            { "id": "profane_shield", "intent": { "type": "block_buff", "amount": 14, "status": "strength" }, "effects": [ { "type": "block", "amount": 14, "target": "self" }, { "type": "apply_status", "target": "self", "status": "strength", "amount": 1 } ] },
-	            { "id": "last_judgement", "intent": { "type": "attack", "amount": 22, "hits": 1 }, "effects": [ { "type": "damage", "amount": 22, "target": "player" } ] }
+	            { "id": "ashen_edict", "intent": { "type": "attack_status_card", "amount": 6, "hits": 1, "status": "vulnerable", "status_amount": 1, "card_id": "searing_wound", "card_amount": 1 }, "effects": [ { "type": "damage", "amount": 6, "target": "player" }, { "type": "apply_status", "target": "player", "status": "vulnerable", "amount": 1 }, { "type": "create_card", "target": "player", "card_id": "searing_wound", "destination": "discard", "amount": 1 } ] },
+	            { "id": "profane_shield", "intent": { "type": "block_buff", "amount": 12, "status": "strength" }, "effects": [ { "type": "block", "amount": 12, "target": "self" }, { "type": "apply_status", "target": "self", "status": "strength", "amount": 1 } ] },
+	            { "id": "last_judgement", "intent": { "type": "attack", "amount": 24, "hits": 1 }, "effects": [ { "type": "damage", "amount": 24, "target": "player" } ] }
           ]
         }
       ],
       "design_note": "第一章 Boss，综合考验持续防御、状态污染和爆发窗口。",
-	      "balance_note": "100 生命用于当前第一章普通模式基线；每次转阶段只施加一种即时压力，避免护甲、力量和状态牌同时结算。",
+	      "balance_note": "116 生命使普通模式 Boss 的有效生命高于第一章精英；基础与阶段循环提高攻击密度，但转阶段即时效果仍只含一个压力类别。",
       "intent_note": "基础阶段为强化、多段、污染、防御、重击循环；66% 后进入更紧凑循环；33% 后进入终局高压循环。"
     },
     {

@@ -39,9 +39,10 @@ func _run() -> void:
 		_check(float(case_dict.get("loss_rate", -1.0)) >= 0.0 and float(case_dict.get("loss_rate", -1.0)) <= 1.0, "case loss rate is normalized")
 		_check(float(case_dict.get("avg_turns", 0.0)) > 0.0, "case records average turns")
 		_check(str(case_dict.get("chapter_id", "")) == "chapter_one", "single encounter case records its chapter")
-		_check(str(case_dict.get("loadout_profile", "")) == "starter_deck_relics", "single encounter case declares its starter loadout")
+		_check(str(case_dict.get("loadout_profile", "")) == "starter_deck_relics_default_skill_book", "single encounter case declares its complete default loadout")
+		_check(str(case_dict.get("skill_book_id", "")) == "steel_manual", "single encounter case declares the default steel manual")
 		_check(str(case_dict.get("strategy_profile", "")) == "current-greedy", "single encounter case declares the current greedy strategy")
-		_check(int(case_dict.get("pressure_contract_version", 0)) == 1, "single encounter case declares pressure schema version one")
+		_check(int(case_dict.get("pressure_contract_version", 0)) == 2, "single encounter case declares attrition-aware pressure schema version two")
 		_check(not bool(case_dict.get("pressure_gate_eligible", true)), "three-run cases remain diagnostic-only")
 		for field in ["zero_damage_win_count", "perfect_win_rate", "hp_loss_p50", "hp_loss_p90", "turn_sample_count", "turns_p50", "turns_p90", "cards_played_per_turn", "expected_turns_min", "expected_turns_max", "risk_flags"]:
 			_check(case_dict.has(field), "single encounter case exposes pressure field %s" % field)
@@ -50,7 +51,7 @@ func _run() -> void:
 		_check(int(case_dict.get("turn_sample_count", -1)) == int(case_dict.get("wins", 0)), "single encounter turn samples include wins only")
 		_check(float(case_dict.get("turns_p90", -1.0)) >= float(case_dict.get("turns_p50", -1.0)), "single encounter case reports ordered winning-turn percentiles")
 		_check(float(case_dict.get("cards_played_per_turn", -1.0)) >= 0.0, "single encounter case reports cards per turn")
-		var expected_turns: Array = [8, 12] if str(case_dict.get("encounter_tier", "")) == "boss" else [3, 6]
+		var expected_turns: Array = [8, 12] if str(case_dict.get("encounter_tier", "")) == "boss" else ([7, 13] if str(case_dict.get("encounter_tier", "")) == "elite" else [5, 9])
 		_check(int(case_dict.get("expected_turns_min", 0)) == int(expected_turns[0]) and int(case_dict.get("expected_turns_max", 0)) == int(expected_turns[1]), "single encounter case binds configured expected turns")
 		var risk_flags: Array = case_dict.get("risk_flags", [])
 		_check(str(case_dict.get("risk_flag", "")) == (str(risk_flags[0]) if not risk_flags.is_empty() else "ok"), "legacy risk flag matches the first composite pressure risk")
@@ -62,33 +63,21 @@ func _run() -> void:
 	var repeat_report: Dictionary = simulator.run_suite(options)
 	_check(JSON.stringify(report.get("cases", [])) == JSON.stringify(repeat_report.get("cases", [])), "balance simulator is deterministic for the same options")
 
-	var intro_pressure_report: Dictionary = simulator.run_suite({
-		"iterations": 64,
-		"max_turns": 30,
-		"character_ids": ["ember_exile"],
-		"challenge_levels": [0],
-		"encounter_ids": ["intro_patrol"],
-	})
-	var intro_pressure_case: Dictionary = (intro_pressure_report.get("cases", []) as Array)[0]
-	_check(bool(intro_pressure_case.get("pressure_gate_eligible", false)), "64 intro seeds satisfy the pressure evidence gate")
-	_check(str(intro_pressure_case.get("risk_flag", "")) == "normal_too_easy", "Ember intro patrol is primarily classified as normal too easy")
-	var intro_risk_flags: Array = intro_pressure_case.get("risk_flags", [])
-	_check(not intro_risk_flags.is_empty() and str(intro_risk_flags[0]) == "normal_too_easy", "Ember intro composite risks preserve too-easy priority")
-
-	var boss_pressure_report: Dictionary = simulator.run_suite({
+	var act1_pressure_report: Dictionary = simulator.run_suite({
 		"iterations": 64,
 		"max_turns": 30,
 		"character_ids": ["ember_exile", "arc_tinker", "pyre_ascetic"],
 		"challenge_levels": [0],
-		"encounter_ids": ["chapter_one_boss"],
+		"encounter_ids": ["intro_patrol", "polluted_lab", "iron_checkpoint", "cinder_kennels", "executor_elite", "furnace_colossus_elite", "chapter_one_boss"],
 	})
-	_check(int(boss_pressure_report.get("case_count", 0)) == 3, "boss pressure fixture covers all three starter loadouts")
-	for boss_case_value in boss_pressure_report.get("cases", []):
-		var boss_case: Dictionary = boss_case_value
-		_check(bool(boss_case.get("pressure_gate_eligible", false)), "64 boss seeds satisfy the pressure evidence gate: %s" % str(boss_case.get("character_id", "")))
-		_check(str(boss_case.get("risk_flag", "")) == "boss_too_easy", "starter-only chapter one boss is primarily too easy: %s" % str(boss_case.get("character_id", "")))
-		var boss_risk_flags: Array = boss_case.get("risk_flags", [])
-		_check(not boss_risk_flags.is_empty() and str(boss_risk_flags[0]) == "boss_too_easy", "boss composite risks preserve too-easy priority: %s" % str(boss_case.get("character_id", "")))
+	_check(int(act1_pressure_report.get("case_count", 0)) == 21, "Act 1 pressure fixture covers three starter loadouts across seven encounters")
+	for act1_case_value in act1_pressure_report.get("cases", []):
+		var act1_case: Dictionary = act1_case_value
+		var case_key := "%s/%s" % [str(act1_case.get("character_id", "")), str(act1_case.get("encounter_id", ""))]
+		_check(bool(act1_case.get("pressure_gate_eligible", false)), "64 paired seeds satisfy the pressure gate: %s" % case_key)
+		_check((act1_case.get("risk_flags", []) as Array).is_empty() and str(act1_case.get("risk_flag", "")) == "ok", "Act 1 case has no forbidden pressure risk: %s" % case_key)
+		if str(act1_case.get("character_id", "")) == "arc_tinker":
+			_check(float(act1_case.get("cards_played_per_turn", 99.0)) <= 5.3, "Arc high-tempo starter loop stays below the measured runaway action ceiling: %s" % case_key)
 
 	var chain_state := {"completed_event_ids": {}, "gold": 50, "hp": 50, "max_hp": 72, "deck_ids": [], "relic_ids": [], "potion_ids": [], "character_id": "ember_exile"}
 	var chapter_two_events: Array = simulator.map_generation_data.get("chapter_two", {}).get("event_pool", [])

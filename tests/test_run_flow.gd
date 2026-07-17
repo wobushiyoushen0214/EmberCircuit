@@ -1184,7 +1184,7 @@ func _run() -> void:
 		heal_button.pressed.emit()
 	else:
 		main._on_campfire_heal_pressed()
-	if not _check(main.run_hp > 10, "campfire healing restores HP"):
+	if not _check(main._campfire_heal_percent() == 25 and main.run_hp == min(main.run_max_hp, 28), "campfire healing restores the rebaselined eighteen HP"):
 		return
 
 	_jump_to_event_id(main, "broken_reactor")

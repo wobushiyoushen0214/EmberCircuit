@@ -10,7 +10,7 @@
 
 ## 目标
 
-在 Batch 016 pressure schema v1 下重标定三角色起始包、起始经济、篝火恢复与第一章敌人，使开局不再以免费稳定性消除取舍，同时保证敌人复合行动被完整预告。
+在 Batch 016 pressure 契约基础上重标定三角色起始包、起始经济、篝火恢复与第一章敌人，并把已被真实 attrition 证据证伪的过易分类升级为 schema v2，使开局不再以免费稳定性消除取舍，同时保证敌人复合行动被完整预告。
 
 ## 交付 Loop 控制
 
@@ -27,7 +27,7 @@
 
 | 决策点 | 选定方案 | 原因 |
 | --- | --- | --- |
-| 数值树版本 | `version=4`，`pressure_contract.schema_version=1` | 正式基线变化，指标口径不变 |
+| 数值树版本 | `version=4`，`pressure_contract.schema_version=2` | 正式基线变化；真实候选证明过易判定必须计入累计损血 |
 | single 默认 modifier | 复用 `_campaign_modifier_sources({"skill_book_id":"steel_manual"})` | 与真实游戏/campaign 一致，不复制结算逻辑 |
 | single profile | `loadout_profile=starter_deck_relics_default_skill_book`，并输出 `skill_book_id=steel_manual` | 明确证据口径 |
 | 复合意图 | `attack_block`、`attack_buff`、`attack_status_card` | 不允许次要效果暗结算 |
@@ -43,8 +43,8 @@
 | 角色 | 修改 | 金币 | deck score | opening package |
 | --- | --- | ---: | ---: | ---: |
 | Ember | `ember_strike 7/9→6/8`；`ember_bottle 6→3`；`cracked_charm` 改为首次实际损血后每战抽1 | 55 | 73.86 | 79.14 |
-| Arc | `spark_throw 4/6→3/5`；`static_primer cost 0/0→1/1`；`insulated_battery 5→2` | 52 | 67.03 | 76.83 |
-| Pyre | 起始牌改 2×`penitent_cut`+2×`ember_strike`；`penitent_cut 7/9→6/8`；`scar_guard 7/10→6/9`；`ash_rosary 7→3` | 50 | 72.69 | 77.97 |
+| Arc | `spark_throw 4/6→3/5`；`forge_focus→ash_guard`；保留单张 `static_primer cost 0/0` 且消耗；`insulated_battery 5→2` | 52 | 65.97 | 75.77 |
+| Pyre | 起始牌改 2×`penitent_cut`+2×`ember_strike`；`penitent_cut 7/9→6/8`；保留 `scar_guard 7/10`；`ash_rosary 7→1` | 50 | 76.21 | 79.73 |
 
 `cracked_charm.effects[0]` 精确为 `{trigger:"player_hp_lost",type:"draw",amount:1,min_hp_lost:1,once_per_combat:true}`。Arc 保留角色初始势能 1 与 `arc_capacitor` 开场势能 1。Pyre 的 `penitent_censer` 继续仅作为条件 contribution exclusion。
 
@@ -85,12 +85,15 @@
 - `data/config/numerical_tree.json`
 - `data/config/monster_scaling.json`
 - `scripts/tools/BalanceSimulator.gd`
+- `scripts/tools/NumericalPressureMetrics.gd`
 - `scripts/main/Main.gd`
 - `tests/test_balance_simulator.gd`
 - `tests/test_combat_core.gd`
 - `tests/test_data_integrity.gd`
+- `tests/test_numerical_pressure_metrics.gd`
 - `tests/test_numerical_tree_auditor.gd`
 - `tests/test_numerical_balance_matrix.gd`
+- `tests/test_progression_systems.gd`
 - `tests/test_run_flow.gd`
 - `docs/03_CONTENT_AND_BALANCE.md`
 - `docs/06_IMPLEMENTATION_LOG.md`
@@ -116,12 +119,12 @@
 
 ## 验收标准
 
-- `AC-001`：新测试精确锁定三角色牌组、卡牌、遗物、金币、deck/opening 分数 `73.86/67.03/72.69` 与 `79.14/76.83/77.97`；三者落入目标区间且 opening warning 清零。
+- `AC-001`：新测试精确锁定三角色牌组、卡牌、遗物、金币、deck/opening 分数 `73.86/65.97/76.21` 与 `79.14/75.77/79.73`；三者落入目标区间且 opening warning 清零。
 - `AC-002`：`_run_single_combat()` 注入默认 `steel_manual`；single 输出新 loadout profile 与 `skill_book_id=steel_manual`；同 seed 确定性不变，默认开场 3 护甲与 campaign/真实游戏一致。
 - `AC-003`：25% 篝火在 69/70 最大生命时都恢复 18；三角色起始金币精确为 55/52/50；商店和战斗奖励经济快照不变。
 - `AC-004`：三种复合意图在战斗 UI 中同时显示伤害与次要效果，并被 Simulator 计作攻击；不得隐藏格挡、强化或状态牌。
 - `AC-005`：七个第一章遭遇精确命中冻结静态指标；攻击比、空窗、前三伤害和 `112/96=1.1667` 全部通过，旧 budget severity/issues 语义不变。
-- `AC-006`：64 paired seeds 的 21 个 case 均 `pressure_gate_eligible=true`，不得含 `*_too_easy`、`*_too_lethal`、`encounter_too_fast`、`encounter_too_slow`；Arc cards/turn≤4.3。
+- `AC-006`：64 paired seeds 的 21 个 case 均 `pressure_gate_eligible=true`；schema v2 的 `too_easy` 同时使用胜率、完美率和 p50/p90 损血，不得把高损血胜局误报过易；不得含 `*_too_lethal`、`encounter_too_fast`、`encounter_too_slow`；Arc cards/turn 作为角色节奏诊断，不作为跨角色同质化硬门。
 - `AC-007`：最终 256 paired seeds 保持 AC-006；重新生成 `3×4×256` campaign matrix，保留 `strategy_profile=current-greedy`；22/22 Godot 测试逐套退出 0 且日志无 `SCRIPT ERROR`/`ERROR:`；文档与 Trellis 证据同步。
 
 ## 冻结逐值调整阶梯

@@ -6,11 +6,11 @@
       "id": "cracked_charm",
       "name": "裂纹护符",
       "rarity": "starter",
-      "description": "每场战斗第一回合多抽 1 张牌。",
-      "effects": [ { "trigger": "turn_start", "type": "draw", "amount": 1, "first_turn_only": true } ],
-      "design_note": "提高起手稳定性，降低新手挫败。",
-      "balance_note": "只在第一回合触发，不影响后续循环强度。",
-      "implementation_note": "已由 CombatState 的 turn_start 遗物事件支持。"
+      "description": "每场战斗首次实际失去生命后抽 1 张牌。",
+      "effects": [ { "trigger": "player_hp_lost", "type": "draw", "amount": 1, "min_hp_lost": 1, "once_per_combat": true } ],
+      "design_note": "把无条件起手稳定性改成受伤后的补偿窗口。",
+      "balance_note": "只有实际损血才触发且每战一次；玩家不能在第一回合无代价获得额外选择。",
+      "implementation_note": "复用 CombatState 的 player_hp_lost、min_hp_lost 与 once_per_combat 条件。"
     },
     {
       "id": "heavy_gear",
@@ -26,10 +26,10 @@
       "id": "ember_bottle",
       "name": "余烬瓶",
       "rarity": "starter",
-      "description": "战斗开始时获得 6 点护甲。",
-      "effects": [ { "trigger": "combat_start", "type": "gain_block", "amount": 6 } ],
+      "description": "战斗开始时获得 3 点护甲。",
+      "effects": [ { "trigger": "combat_start", "type": "gain_block", "amount": 3 } ],
       "design_note": "给新手第一回合容错。",
-      "balance_note": "6 点护甲只影响开局，用于把默认角色的完整跑团通关率稳定在目标下沿，不改变长期输出或资源上限。",
+      "balance_note": "3 点护甲只缓冲第一回合的小额伤害；与默认钢铁手册叠加后仍需根据意图出防御牌。",
       "implementation_note": "已由 combat_start 遗物事件支持。"
     },
     {
@@ -168,12 +168,12 @@
       "name": "绝缘电池",
       "rarity": "uncommon",
       "character_ids": [ "arc_tinker" ],
-      "description": "战斗开始时获得 5 点护甲。",
+      "description": "战斗开始时获得 2 点护甲。",
       "effects": [
-        { "trigger": "combat_start", "type": "gain_block", "amount": 5 }
+        { "trigger": "combat_start", "type": "gain_block", "amount": 2 }
       ],
       "design_note": "电弧工匠专属开局容错遗物，缓冲 69 生命带来的早期压力。",
-      "balance_note": "5 点一次性护甲只负责低生命容错；启动势能由角色基础值和电弧电容提供，避免三个开场势能来源重复叠加。",
+      "balance_note": "2 点一次性护甲只补偿 69 生命差异；启动强度仍主要来自初始势能和电弧电容。",
 			"implementation_note": "复用 combat_start 的 gain_block 遗物效果。"
     },
     {
@@ -208,12 +208,12 @@
       "name": "灰烬念珠",
       "rarity": "common",
       "character_ids": [ "pyre_ascetic" ],
-      "description": "战斗开始时获得 7 点护甲。",
+      "description": "战斗开始时获得 1 点护甲。",
       "effects": [
-        { "trigger": "combat_start", "type": "gain_block", "amount": 7 }
+        { "trigger": "combat_start", "type": "gain_block", "amount": 1 }
       ],
       "design_note": "熔痕苦修者专属容错遗物，缓冲自伤和灼烧带来的早期血量压力。",
-      "balance_note": "只在战斗开始触发，7 点护甲抵消轻微自伤但不覆盖完整敌方意图；后续回合仍必须靠牌组防御。",
+      "balance_note": "只在战斗开始提供 1 点护甲；苦修者的主要生存力来自主动打出炉痕守势，而不是免费开场资源。",
       "implementation_note": "复用 combat_start/gain_block 遗物效果。"
     },
     {

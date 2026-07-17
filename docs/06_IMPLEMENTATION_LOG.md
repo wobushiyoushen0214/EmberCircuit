@@ -908,3 +908,12 @@ jq empty data/cards/cards.json data/enemies/enemies.json data/relics/relics.json
 - 单战模拟保留全部旧字段，同时输出 chapter/loadout/strategy、无伤率、HP 与回合分位数、cards/turn、expected turns 和复合风险。64 seeds 下 Ember 首战主风险为 `normal_too_easy`，三角色第一章 Boss 主风险均为 `boss_too_easy`。
 - single/campaign 报告与冻结 campaign matrix 均声明 `strategy_profile=current-greedy`；16 个当前 monster pressure warning 与 3 个 opening warning 已进入 audit inventory，供下一批单调消除。
 - Batch 017 才执行第一章与起始包实际重标定；禁止以全局 HP/伤害倍率替代攻击节奏、决策压力和 Boss 层级修复。
+
+## 2026-07-17：第一章与开局重标定
+
+- 三角色 opening package 从 `91.38/82.47/88.41` 调整为 `79.14/75.77/79.73`；起始金币改为 `55/52/50`，篝火恢复改为 25%（69/70 HP 均恢复 18）。
+- 流亡者降低基础攻击与免费开局资源，裂纹护符改为首次实际损血后每战抽 1；工匠保留单张 0 费消耗预充，用第二张主动防御替换纯资源牌；苦修者把防御从免费念珠转回 4 张主动守势。
+- 第一章 7 遭遇静态压力全部通过：攻击比至少 0.60、零伤空窗不超过 1、Boss C0 EHP `112` 对最高精英 `96`，比例 `1.1667`。
+- 新增 `attack_block`、`attack_buff`、`attack_status_card` 复合意图；战场文字、图标、投射与 Simulator 同时显示/识别伤害和次要效果。
+- pressure schema 升为 v2，too-easy 同时考虑胜率、完美率和 HP 损失 p50/p90。`3×7×256` 单战 21/21 无风险，Boss 胜率为 28.5%/28.9%/33.2%。
+- `3×4×256` current-greedy campaign 平均胜率 3.4%，12 格全部登记低胜率诊断；该结果用于后续二三章补缺，不代表真人难度，也不回滚本批开局压力。

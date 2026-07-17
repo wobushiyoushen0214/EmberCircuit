@@ -24,14 +24,14 @@
       "type": "attack",
       "rarity": "starter",
       "target": "enemy",
-      "description": "造成 7 点伤害。获得 1 点势能。",
+      "description": "造成 6 点伤害。获得 1 点势能。",
       "effects": [
-        { "type": "damage", "amount": 7 },
+        { "type": "damage", "amount": 6 },
         { "type": "gain_momentum", "amount": 1 }
       ],
-      "upgrade": { "cost": 1, "description": "造成 9 点伤害。获得 1 点势能。", "effects": [ { "type": "damage", "amount": 9 }, { "type": "gain_momentum", "amount": 1 } ] },
+      "upgrade": { "cost": 1, "description": "造成 8 点伤害。获得 1 点势能。", "effects": [ { "type": "damage", "amount": 8 }, { "type": "gain_momentum", "amount": 1 } ] },
       "design_note": "基础攻击牌，让玩家理解攻击也能积累势能。",
-      "balance_note": "1 费 7 伤害附带 1 势能；默认角色依靠稳定牌组和生命容错，而不是超出普通攻击预算的直接伤害。",
+      "balance_note": "1 费 6 伤害附带 1 势能；默认角色的稳定性来自清晰循环，不再由高基础伤害与免费开场资源叠加。",
       "upgrade_note": "只提升伤害，不提升势能，避免初始牌升级后成为资源核心。"
     },
     {
@@ -206,13 +206,13 @@
       "type": "attack",
       "rarity": "common",
       "target": "enemy",
-      "description": "造成 4 点伤害。",
+      "description": "造成 3 点伤害。",
       "effects": [
-        { "type": "damage", "amount": 4 }
+        { "type": "damage", "amount": 3 }
       ],
-      "upgrade": { "cost": 0, "description": "造成 6 点伤害。", "effects": [ { "type": "damage", "amount": 6 } ] },
+      "upgrade": { "cost": 0, "description": "造成 5 点伤害。", "effects": [ { "type": "damage", "amount": 5 } ] },
       "design_note": "低费连打流基础件。",
-      "balance_note": "0 费 4 伤害处于免费攻击预算下限；起始牌组只保留三张，避免过牌和药水资源把免费伤害放大过度。",
+      "balance_note": "0 费 3 伤害保留连打身份，但不再让三张免费攻击与初始势能稳定清空第一章低生命目标。",
       "upgrade_note": "纯伤害升级，让它在后期不至于过早淘汰。"
     },
     {
@@ -568,7 +568,7 @@
       "exhaust": true,
       "upgrade": { "cost": 0, "description": "获得 2 点势能。抽 1 张牌。消耗。", "effects": [ { "type": "gain_momentum", "amount": 2 }, { "type": "draw", "amount": 1 } ], "exhaust": true },
       "design_note": "电弧工匠专属启动牌，用一次性 0 费资源把低费牌串起来。",
-      "balance_note": "0 费抽牌加资源必须消耗；未升级只给 1 势能，不足以单卡制造爆发。",
+      "balance_note": "0 费抽牌加势能必须消耗；只出现一张，负责补偿工匠较薄的单卡质量而不进入循环。",
       "upgrade_note": "提高势能获得量，强化爆发回合但仍保持消耗。"
     },
     {
@@ -769,14 +769,14 @@
       "rarity": "starter",
       "target": "enemy",
       "character_ids": [ "pyre_ascetic" ],
-      "description": "造成 7 点伤害。施加 1 层灼烧。",
+      "description": "造成 6 点伤害。施加 1 层灼烧。",
       "effects": [
-        { "type": "damage", "amount": 7 },
+        { "type": "damage", "amount": 6 },
         { "type": "apply_status", "target": "enemy", "status": "burn", "amount": 1 }
       ],
-      "upgrade": { "cost": 1, "description": "造成 9 点伤害。施加 1 层灼烧。", "effects": [ { "type": "damage", "amount": 9 }, { "type": "apply_status", "target": "enemy", "status": "burn", "amount": 1 } ] },
+      "upgrade": { "cost": 1, "description": "造成 8 点伤害。施加 1 层灼烧。", "effects": [ { "type": "damage", "amount": 8 }, { "type": "apply_status", "target": "enemy", "status": "burn", "amount": 1 } ] },
       "design_note": "熔痕苦修者基础攻击，尽早让玩家看到灼烧是角色身份的一部分。",
-      "balance_note": "1 费 7 伤害附带 1 层延迟灼烧，给高生命敌人提供持续战基础；灼烧层数不随升级增加，避免后期指数叠层。",
+      "balance_note": "1 费 6 伤害附带 1 层延迟灼烧；只在起始牌组保留两张，避免持续伤害与苦修香炉过早形成无条件优势。",
       "upgrade_note": "提高直接伤害，不提高灼烧层数，控制持续伤害叠加速度。"
     },
     {
@@ -794,7 +794,7 @@
       ],
       "upgrade": { "cost": 1, "description": "获得 10 点护甲。获得 1 点势能。", "effects": [ { "type": "block", "amount": 10 }, { "type": "gain_momentum", "amount": 1 } ] },
       "design_note": "熔痕苦修者基础防御牌，用较低护甲换势能上限玩法的入口。",
-      "balance_note": "未升级 7 护甲达到基础防御线，同时只给 1 势能；用于抵消角色自伤，不改变高风险牌的代价。",
+      "balance_note": "未升级 7 护甲附带 1 势能；把苦修者的生存力放在需要主动打出的防御牌，而不是免费开场护甲。",
       "upgrade_note": "只提高护甲，保持势能节奏稳定。"
     },
     {

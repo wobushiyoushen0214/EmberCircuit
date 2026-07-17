@@ -1,3 +1,6 @@
 {"file":".trellis/tasks/delivery-batch-017-act1-opening-rebaseline.prd.md","reason":"逐条核对 AC、数值、File Manifest 和禁止事项"}
 {"file":".trellis/tasks/delivery-batch-016-numerical-pressure-contract.review-report.md","reason":"保护 Stage 2 已确认的 pressure 指标语义与已知风险"}
 {"file":"docs/03_CONTENT_AND_BALANCE.md","reason":"验证正式玩法说明与实际数据同步"}
+{"file":"tests/test_progression_systems.gd","reason":"保护基础卡牌重标定与成长修正组合值同步，避免旧常量残留"}
+{"file":"tests/test_numerical_pressure_metrics.gd","reason":"直接保护高胜率高损耗不误报过易、低损耗高胜率仍报过易的 schema v2 分支"}
+{"file":"tests/test_act1_rebaseline.gd","reason":"保护三角色冻结开局、第一章静态压力与真实 Boss 三效果意图完整预告"}

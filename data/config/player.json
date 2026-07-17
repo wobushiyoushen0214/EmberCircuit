@@ -9,7 +9,7 @@
     "max_energy": 3,
     "starting_momentum": 0,
     "momentum_max": 6,
-    "starting_gold": 99,
+    "starting_gold": 55,
     "potion_slots": 2,
     "starting_potions": [],
     "reward_pool_tags": [ "shared", "ember_exile" ],
@@ -49,7 +49,7 @@
       "max_energy": 3,
       "starting_momentum": 0,
       "momentum_max": 6,
-      "starting_gold": 99,
+      "starting_gold": 55,
       "potion_slots": 2,
       "starting_potions": [],
       "reward_pool_tags": [ "shared", "ember_exile" ],
@@ -88,7 +88,7 @@
       "max_energy": 3,
       "starting_momentum": 1,
       "momentum_max": 5,
-      "starting_gold": 96,
+      "starting_gold": 52,
       "potion_slots": 3,
       "starting_potions": [],
       "reward_pool_tags": [ "shared", "arc_tinker" ],
@@ -101,7 +101,7 @@
         "soot_step",
         "soot_step",
         "ash_guard",
-        "forge_focus",
+        "ash_guard",
         "static_primer"
       ],
       "starter_relic_ids": [ "arc_capacitor", "insulated_battery" ],
@@ -117,7 +117,7 @@
       },
       "archetype_note": "节奏型角色，依赖 0 费攻击、轻量过牌和药水槽优势寻找爆发窗口。",
       "design_note": "第二名可玩角色，用略低生命、更低势能上限和更多药水槽制造与默认角色不同的节奏。",
-      "balance_note": "69 生命仍低于默认角色；额外 1 点生命用于降低高挑战过早止步导致的牌组过薄风险，起手 4 张 0 费牌与 1 张会消耗的静电预充保证首轮循环。",
+      "balance_note": "69 生命仍低于默认角色；3 张 0 费攻击与单张会消耗的静电预充保留高节奏身份，额外药水槽承担长期容错。",
       "implementation_note": "使用现有卡牌池实现，先验证多角色数据管线；后续可补专属卡池与专属事件。"
     },
     {
@@ -128,13 +128,13 @@
       "max_energy": 3,
       "starting_momentum": 0,
       "momentum_max": 7,
-      "starting_gold": 92,
+      "starting_gold": 50,
       "potion_slots": 2,
       "starting_potions": [],
       "reward_pool_tags": [ "shared", "pyre_ascetic" ],
       "starter_deck_ids": [
-        "penitent_cut",
-        "penitent_cut",
+        "ember_strike",
+        "ember_strike",
         "penitent_cut",
         "penitent_cut",
         "scar_guard",
@@ -157,7 +157,7 @@
       },
       "archetype_note": "高风险角色，利用灼伤、自伤和灼烧把负面状态转化为爆发节奏。",
       "design_note": "第三名可玩角色，验证状态牌污染、自伤资源和持续伤害构筑的完整角色管线。",
-      "balance_note": "70 生命配合苦修香炉和灰烬念珠抵消自伤构筑的基础损耗；不再额外高于教学角色，避免高质量起手、防护遗物与生命优势叠加成低风险路线。",
+      "balance_note": "70 生命保留自伤构筑容错；两张苦修斩与两张裂击降低起始牌的免费持续伤害密度，灰烬念珠只提供有限首回合缓冲。",
       "implementation_note": "复用 create_card、damage_self、burn、card_created 和角色专属奖励过滤，不新增战斗解释器语义。"
     }
   ]

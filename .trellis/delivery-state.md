@@ -8,10 +8,10 @@ stage_state:
   max_rounds: 6
   open_gaps: 8
   tasks_created: 1
-  tasks_completed: 0
+  tasks_completed: 1
   carry_over: 3
   critical_review_issues: 0
-  next_legal_action: implement delivery-batch-017-act1-opening-rebaseline in its isolated worktree
+  next_legal_action: commit, push, and merge the reviewed Batch 017 branch, then run a delta audit for Batch 018 full-page UI
   stop_conditions: none
 ---
 
@@ -36,16 +36,16 @@ carry_over: 3
 | --- | --- | --- | --- | --- | --- | --- |
 | REQ-001 | DONE | `scripts/combat/CombatState.gd` | `tests/test_combat_core.gd` | none | 3 | 0 |
 | REQ-002 | DONE | `scripts/main/Main.gd`, `scripts/map/MapGenerator.gd`, `data/config/level_tree.json` | `tests/test_run_flow.gd`, `tests/test_map_generator.gd`, `tests/test_map_view.gd` | none | 3 | 0 |
-| REQ-003 | PARTIAL | `data/cards/cards.json`, `data/enemies/enemies.json`, `data/config/monster_scaling.json`, `scripts/tools/NumericalTreeAuditor.gd`, `scripts/tools/NumericalPressureMetrics.gd`, `data/config/numerical_tree.json` | `tests/test_numerical_pressure_metrics.gd`, `tests/test_numerical_tree_auditor.gd`, `tests/test_balance_simulator.gd`, `tests/test_numerical_balance_matrix.gd` | Batch 017 已规划：正式重标定 opening、恢复、金币和第一章压力 | L3-new-2 | 0 |
-| REQ-004 | PARTIAL | `data/config/player.json`, `data/config/progression_systems.json`, `data/cards/cards.json`, `scripts/main/Main.gd` | `tests/test_progression_systems.gd`, `tests/test_combat_core.gd`, `tests/test_run_flow.gd`, `tests/test_balance_card_telemetry.gd` | Batch 017 已规划：三角色 opening package、金币和 Arc 行动密度重标定 | L3-new-2 | 1 |
-| REQ-005 | PARTIAL | `data/enemies/enemies.json`, `data/encounters/encounters.json`, `data/config/monster_scaling.json`, `scripts/combat/CombatState.gd`, `scripts/tools/NumericalTreeAuditor.gd` | `tests/test_combat_core.gd`, `tests/test_balance_simulator.gd`, `tests/test_numerical_tree_auditor.gd`, `tests/test_run_flow.gd` | Batch 017 已规划：7 遭遇行动密度、复合意图与 Boss/elite 层级正式调值 | L3-new-2 | 1 |
+| REQ-003 | PARTIAL | `data/cards/cards.json`, `data/enemies/enemies.json`, `data/config/monster_scaling.json`, `scripts/tools/NumericalTreeAuditor.gd`, `scripts/tools/NumericalPressureMetrics.gd`, `data/config/numerical_tree.json` | `tests/test_act1_rebaseline.gd`, `tests/test_numerical_pressure_metrics.gd`, `tests/test_numerical_tree_auditor.gd`, `tests/test_balance_simulator.gd`, `tests/test_numerical_balance_matrix.gd` | Batch 017 第一章与开局重标定已通过 22/22 和双阶段评审；二三章仍为后续数值缺口 | L3-new-2 | 0 |
+| REQ-004 | PARTIAL | `data/config/player.json`, `data/config/progression_systems.json`, `data/cards/cards.json`, `scripts/main/Main.gd` | `tests/test_act1_rebaseline.gd`, `tests/test_progression_systems.gd`, `tests/test_combat_core.gd`, `tests/test_run_flow.gd`, `tests/test_balance_card_telemetry.gd` | Batch 017 三角色 opening package、金币和 Arc 行动密度已交付；更深角色构筑继续保留后续扩展 | L3-new-2 | 1 |
+| REQ-005 | PARTIAL | `data/enemies/enemies.json`, `data/encounters/encounters.json`, `data/config/monster_scaling.json`, `scripts/combat/CombatState.gd`, `scripts/tools/NumericalTreeAuditor.gd`, `scripts/main/Main.gd` | `tests/test_act1_rebaseline.gd`, `tests/test_combat_core.gd`, `tests/test_balance_simulator.gd`, `tests/test_numerical_tree_auditor.gd`, `tests/test_run_flow.gd` | Batch 017 第一章七遭遇、复合意图与 Boss/elite 层级已交付；二三章仍待配对重标定 | L3-new-2 | 1 |
 | REQ-006 | PARTIAL | `data/cards/cards.json`, `data/relics/relics.json`, `data/events/events.json`, `data/config/art_assets.json`, `assets/art/generated/` | `tests/test_data_integrity.gd`, `tests/test_art_asset_auditor.gd` | batch-014 delivered 8 relic PNGs; next: replace remaining legacy event/enemy art | L3-5 | 0 |
 | REQ-007 | DONE | `scripts/core/SaveManager.gd`, `scripts/main/Main.gd`, `data/config/achievements.json` | v5 奖励事务、原子恢复、错节点/坏 ID/金币回滚和旧战斗 HP 隔离测试 | none | L3-post | 0 |
 | REQ-008 | PARTIAL | `assets/art/generated/`, `assets/fonts/NotoSansSC-Variable.ttf`, `data/config/art_assets.json`, `scripts/main/Main.gd`, `scripts/map/MapView.gd`, `assets/audio/` | `tests/test_visual_bounds.gd`, `tests/test_run_flow.gd`, `tests/test_art_asset_auditor.gd`, `tests/test_pc_combat_hotkeys.gd`, `tests/test_audio_manager.gd`, `tools/render_pc_gallery.gd` | batch-014 added six-relic HUD and full relic compendium evidence; next: remaining legacy effects/content art/Boss audio | L3-5 | 0 |
-| REQ-009 | PARTIAL | `scripts/core/PlaytestTelemetry.gd`, `scripts/core/PlaytestEvidenceGate.gd`, `tools/merge_playtest_reports.gd`, `scripts/tools/BalanceSimulator.gd`, `data/config/numerical_tree.json` | `tests/test_playtest_evidence_gate.gd`, `tests/test_balance_simulator.gd`, `tests/test_numerical_balance_matrix.gd` | Batch 017 已规划：single 默认技能书对齐并执行 64/256 paired evidence | L3-new-2 | 0 |
+| REQ-009 | PARTIAL | `scripts/core/PlaytestTelemetry.gd`, `scripts/core/PlaytestEvidenceGate.gd`, `tools/merge_playtest_reports.gd`, `scripts/tools/BalanceSimulator.gd`, `data/config/numerical_tree.json` | `tests/test_act1_rebaseline.gd`, `tests/test_playtest_evidence_gate.gd`, `tests/test_balance_simulator.gd`, `tests/test_numerical_balance_matrix.gd` | Batch 017 single 默认技能书已对齐，64/256 paired evidence 已交付；真人难度仍等待合格样本 | L3-new-2 | 0 |
 | REQ-010 | MISSING | none | none | proposed: build-grid-tactics-mode | 1 | 2 |
 | REQ-011 | PARTIAL | `export_presets.cfg`, `project.godot`, `packaging/PLAYTEST_README_ZH.txt` | alpha.8 Windows PE32+ x86_64 embedded-PCK、精确 PCK 启动、版本和压缩完整性通过 | next: native Windows matrix, commercial signing, installer and Steam integration | L3-post | 0 |
-| REQ-012 | DONE | `tests/`, `tools/render_pc_gallery.gd`, `scripts/tools/ArtAssetAuditor.gd` | 21-suite strict-log regression、153-slot art audit、720p 奖励页、资源排除与导出包启动验证通过 | Batch 017 将新增第 22 套重标定测试并保留严格日志门 | L3-new-2 | 0 |
+| REQ-012 | DONE | `tests/`, `tools/render_pc_gallery.gd`, `scripts/tools/ArtAssetAuditor.gd` | 22-suite strict-log regression、153-slot art audit、720p 奖励页、资源排除与导出包启动验证通过 | Batch 017 新增重标定测试并保持 22/22、错误日志 0 | L3-new-2 | 0 |
 
 ## 当前批次
 
@@ -101,5 +101,6 @@ carry_over: 3
 ## 下一轮建议
 
 - action: `continue-next-batch`
-- reason: `Batch 017 已规划并获授权；下一步在隔离 worktree 以 AC-001→AC-007 严格 TDD 实现并进入双阶段评审。`
+- reason: `Batch 017 AC-001→AC-007 已完成，256-seed 证据、第三轮 22/22 严格回归和双阶段评审 C0/M0/m0 全部通过；下一步合并后 delta audit 并创建 Batch 018 全页面 UI。`
+- next_batch: `delivery-batch-018-ui-ember-forge-cohesion`，覆盖欢迎、角色选择、地图、事件、商店、篝火、奖励、结算、设置和图鉴的完整 PC UI 重构。
 - next_audit_scope: `delta`

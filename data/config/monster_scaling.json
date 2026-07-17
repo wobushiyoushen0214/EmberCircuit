@@ -2,9 +2,9 @@
   "_comment": "敌人/遭遇数值预算。enemies.json 是实际数值，此文件定义章节、tier 和遭遇的验收边界。",
   "chapters": {
     "chapter_one": {
-      "normal": { "hp_min": 22, "hp_max": 46, "max_action_damage": 14, "max_block": 16, "expected_turns_min": 3, "expected_turns_max": 5 },
-      "elite": { "hp_min": 86, "hp_max": 104, "max_action_damage": 18, "max_block": 18, "expected_turns_min": 5, "expected_turns_max": 8 },
-      "boss": { "hp_min": 100, "hp_max": 108, "max_action_damage": 22, "max_block": 14, "expected_turns_min": 8, "expected_turns_max": 12 }
+      "normal": { "hp_min": 22, "hp_max": 46, "max_action_damage": 15, "max_block": 16, "expected_turns_min": 5, "expected_turns_max": 9 },
+      "elite": { "hp_min": 86, "hp_max": 104, "max_action_damage": 22, "max_block": 18, "expected_turns_min": 7, "expected_turns_max": 13 },
+      "boss": { "hp_min": 100, "hp_max": 116, "max_action_damage": 24, "max_block": 14, "expected_turns_min": 8, "expected_turns_max": 12 }
     },
     "chapter_two": {
       "normal": { "hp_min": 42, "hp_max": 56, "max_action_damage": 18, "max_block": 16, "expected_turns_min": 4, "expected_turns_max": 6 },

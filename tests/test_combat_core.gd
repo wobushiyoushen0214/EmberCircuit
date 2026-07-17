@@ -262,7 +262,7 @@ func _init() -> void:
 	var upgraded_card: Dictionary = upgraded_combat.hand[0]
 	_check(bool(upgraded_card.get("upgraded", false)), "upgraded deck entry marks card upgraded")
 	_check(str(upgraded_card.get("name", "")).ends_with("+"), "upgraded card name has plus suffix")
-	_check(str(upgraded_card.get("description", "")).contains("9"), "upgraded card uses upgraded description")
+	_check(str(upgraded_card.get("description", "")).contains("8"), "upgraded card uses the rebaselined upgraded description")
 
 	var potions_by_id: Dictionary = DataLoaderScript.index_by_id(potion_data.get("potions", []))
 	var potion_combat = CombatStateScript.new()
@@ -299,6 +299,15 @@ func _init() -> void:
 	var canteen_hand_before_second: int = canteen_combat.hand.size()
 	_check(canteen_combat.use_potion(potions_by_id.get("guard_tonic", {}), 0), "pressure canteen test can use a second potion")
 	_check(canteen_combat.hand.size() == canteen_hand_before_second, "pressure canteen only triggers once per combat")
+
+	var cracked_charm_combat = CombatStateScript.new()
+	cracked_charm_combat.setup(card_data, enemy_data, relic_data, encounter_data, player_data, "intro_patrol", ["ash_guard", "ash_guard", "ash_guard", "ash_guard", "ash_guard", "ember_strike", "ember_strike"], ["cracked_charm"], 72)
+	cracked_charm_combat.consume_feedback_events()
+	var cracked_hand_before: int = cracked_charm_combat.hand.size()
+	cracked_charm_combat._lose_player_hp(1, "裂纹护符测试")
+	_check(cracked_charm_combat.hand.size() == cracked_hand_before + 1, "cracked charm draws after the first actual HP loss")
+	cracked_charm_combat._lose_player_hp(1, "裂纹护符测试")
+	_check(cracked_charm_combat.hand.size() == cracked_hand_before + 1, "cracked charm triggers only once per combat")
 
 	var blood_clamp_combat = CombatStateScript.new()
 	blood_clamp_combat.setup(card_data, enemy_data, relic_data, encounter_data, player_data, "intro_patrol", ["ash_guard"], ["blood_rust_clamp"], 72)
@@ -384,7 +393,7 @@ func _init() -> void:
 	weak_combat._add_status(weak_combat.player["statuses"], "weak", 1)
 	var weak_enemy_hp_before: int = int(weak_enemy.get("hp", 0))
 	_check(weak_combat.play_card(0, 0), "weak test can play an attack")
-	_check(weak_enemy_hp_before - int(weak_enemy.get("hp", 0)) == 5, "weak reduces the next player damage effect")
+	_check(weak_enemy_hp_before - int(weak_enemy.get("hp", 0)) == 4, "weak reduces the rebaselined starter attack")
 	_check(weak_combat._status_amount(weak_combat.player.get("statuses", {}), "weak") == 0, "player weak is consumed after attacking")
 
 	var frail_combat = CombatStateScript.new()

@@ -67,6 +67,43 @@ func _run() -> void:
 	_check(aggregate.get("risk_flags", []) == ["normal_too_easy", "encounter_too_slow"], "aggregate preserves all risks in stable priority order")
 	_check(str(aggregate.get("risk_flag", "")) == "normal_too_easy", "legacy risk flag exposes the highest-priority risk")
 
+	var attrition_contract := {
+		"tier": "normal",
+		"minimum_samples": 64,
+		"win_rate_min": 0.70,
+		"win_rate_max": 0.95,
+		"perfect_win_rate_max": 0.55,
+		"hp_loss_p50_min": 7,
+		"hp_loss_p90_min": 10,
+		"expected_turns_min": 5,
+		"expected_turns_max": 9,
+	}
+	var high_attrition_runs: Array = []
+	for index in range(64):
+		high_attrition_runs.append({
+			"won": true,
+			"timeout": false,
+			"player_hp_lost": 24 if index < 48 else 36,
+			"turns": 7,
+			"cards_played": 14,
+		})
+	var high_attrition: Dictionary = NumericalPressureMetricsScript.aggregate_runs(high_attrition_runs, attrition_contract)
+	_check(is_equal_approx(float(high_attrition.get("win_rate", 0.0)), 1.0) and float(high_attrition.get("hp_loss_p50", 0.0)) == 24.0 and float(high_attrition.get("hp_loss_p90", 0.0)) == 36.0, "high-win fixture retains substantial median and tail attrition")
+	_check((high_attrition.get("risk_flags", []) as Array).is_empty(), "high-win high-attrition combat is not misreported as too easy")
+
+	var low_attrition_runs: Array = []
+	for index in range(64):
+		low_attrition_runs.append({
+			"won": true,
+			"timeout": false,
+			"player_hp_lost": 1,
+			"turns": 7,
+			"cards_played": 14,
+		})
+	var low_attrition: Dictionary = NumericalPressureMetricsScript.aggregate_runs(low_attrition_runs, attrition_contract)
+	_check(float(low_attrition.get("hp_loss_p50", 0.0)) == 1.0 and float(low_attrition.get("hp_loss_p90", 0.0)) == 1.0, "low-attrition fixture remains below both attrition floors")
+	_check(low_attrition.get("risk_flags", []) == ["normal_too_easy"], "high-win low-attrition combat reports normal_too_easy")
+
 	var small_sample: Dictionary = NumericalPressureMetricsScript.aggregate_runs(runs.slice(0, 63), {
 		"tier": "normal",
 		"minimum_samples": 64,

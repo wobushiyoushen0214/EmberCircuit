@@ -81,7 +81,11 @@ static func risk_flags(metrics: Dictionary, contract: Dictionary) -> Array:
 		flags.append("timeout_check")
 	if win_rate < float(contract.get("win_rate_min", 0.0)):
 		flags.append("%s_too_lethal" % tier)
-	if bool(metrics.get("pressure_gate_eligible", false)) and (win_rate > float(contract.get("win_rate_max", 1.0)) or perfect_win_rate > float(contract.get("perfect_win_rate_max", 1.0))):
+	var low_attrition: bool = (
+		float(metrics.get("hp_loss_p50", 0.0)) < float(contract.get("hp_loss_p50_min", 0.0))
+		and float(metrics.get("hp_loss_p90", 0.0)) < float(contract.get("hp_loss_p90_min", 0.0))
+	)
+	if bool(metrics.get("pressure_gate_eligible", false)) and (perfect_win_rate > float(contract.get("perfect_win_rate_max", 1.0)) or (win_rate > float(contract.get("win_rate_max", 1.0)) and low_attrition)):
 		flags.append("%s_too_easy" % tier)
 	if int(metrics.get("turn_sample_count", 0)) > 0:
 		if turns_p50 < expected_turns_min:
