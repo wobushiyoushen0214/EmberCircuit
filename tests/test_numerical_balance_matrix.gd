@@ -20,7 +20,8 @@ func _run() -> void:
 	var economy: Dictionary = DataLoaderScript.load_json("res://data/config/economy.json")
 	var audit_report: Dictionary = NumericalTreeAuditorScript.new().build_report()
 
-	_check(int(tree.get("version", 0)) >= 2, "numerical tree exposes the expanded schema")
+	_check(int(tree.get("version", 0)) == 3, "numerical tree exposes pressure contract schema version three")
+	_check_pressure_contract(tree.get("pressure_contract", {}))
 	_check_human_playtest_targets(tree.get("human_playtest_targets", {}))
 	_check_inventory(tree.get("audit_inventory", {}), cards, enemies, encounters, progression, challenges, economy, audit_report)
 	_check_matrix(tree, players, cards, progression, challenges, audit_report)
@@ -42,6 +43,17 @@ func _check_human_playtest_targets(targets: Dictionary) -> void:
 	_check(float(targets.get("single_failure_encounter_share_max", 0.0)) <= 0.5, "human failure concentration has an explicit ceiling")
 	_check(float(targets.get("max_abandon_rate", 0.0)) <= 0.35, "human abandon rate has an explicit ceiling outside the win-rate denominator")
 	_check(int(targets.get("minimum_card_comparison_runs", 0)) >= 20, "human card comparisons require enough acquired or played runs")
+
+func _check_pressure_contract(contract: Dictionary) -> void:
+	_check(int(contract.get("schema_version", 0)) == 1, "pressure contract exposes schema version one")
+	_check(int(contract.get("minimum_iterations", 0)) == 64, "single encounter pressure hard gate requires 64 iterations")
+	var tier_targets: Dictionary = contract.get("single_encounter_tier_targets", {})
+	_check(tier_targets.keys().size() == 3, "pressure contract freezes exactly three encounter tiers")
+	for tier in ["normal", "elite", "boss"]:
+		var target: Dictionary = tier_targets.get(tier, {})
+		_check(target.has("win_rate_min") and target.has("win_rate_max") and target.has("perfect_win_rate_max"), "pressure target is complete: %s" % tier)
+		_check(float(target.get("win_rate_min", 1.0)) < float(target.get("win_rate_max", 0.0)), "pressure target win-rate range is ordered: %s" % tier)
+		_check(float(target.get("perfect_win_rate_max", -1.0)) >= 0.0 and float(target.get("perfect_win_rate_max", 2.0)) <= 1.0, "pressure target perfect-win ceiling is normalized: %s" % tier)
 
 func _check_inventory(inventory: Dictionary, cards: Dictionary, enemies: Dictionary, encounters: Dictionary, progression: Dictionary, challenges: Dictionary, economy: Dictionary, audit_report: Dictionary) -> void:
 	var card_inventory: Dictionary = inventory.get("cards", {})
@@ -82,6 +94,27 @@ func _check_inventory(inventory: Dictionary, cards: Dictionary, enemies: Diction
 	_check(_count_dictionaries_equal(_count_by_key(encounters.get("encounters", []), "tier"), monster_inventory.get("encounter_tier_counts", {})), "inventory tracks encounter tiers")
 	_check(int(summary.get("monster_encounter_count", -1)) == int(monster_inventory.get("audited_map_encounter_count", -2)), "static report encounter coverage matches inventory")
 	_check(int(summary.get("monster_warning_count", -1)) == 0, "every map encounter stays inside its numerical budget")
+	var pressure_inventory: Dictionary = inventory.get("pressure_contract", {})
+	var opening_warning_ids: Array = []
+	for row_value in audit_report.get("players", []):
+		var row: Dictionary = row_value
+		if str(row.get("opening_package_severity", "")) == "warning":
+			opening_warning_ids.append(str(row.get("id", "")))
+	opening_warning_ids.sort()
+	var expected_opening_warning_ids: Array = pressure_inventory.get("opening_package_warning_ids", []).duplicate()
+	expected_opening_warning_ids.sort()
+	_check(opening_warning_ids == expected_opening_warning_ids, "inventory freezes every opening package warning")
+	var monster_pressure_warning_ids: Array = []
+	for row_value in audit_report.get("monsters", []):
+		var row: Dictionary = row_value
+		if str(row.get("pressure_severity", "")) == "warning":
+			monster_pressure_warning_ids.append(str(row.get("id", "")))
+	monster_pressure_warning_ids.sort()
+	var expected_monster_pressure_warning_ids: Array = pressure_inventory.get("monster_pressure_warning_ids", []).duplicate()
+	expected_monster_pressure_warning_ids.sort()
+	_check(monster_pressure_warning_ids == expected_monster_pressure_warning_ids, "inventory freezes every monster pressure warning")
+	_check(int(summary.get("opening_package_warning_count", 0)) == 3, "static summary records all three opening package warnings")
+	_check(int(summary.get("monster_pressure_warning_count", 0)) == 16, "static summary records all sixteen monster pressure warnings")
 
 	var progression_inventory: Dictionary = inventory.get("progression", {})
 	var trees: Array = progression.get("character_trees", [])
@@ -106,6 +139,7 @@ func _check_matrix(tree: Dictionary, players: Dictionary, cards: Dictionary, pro
 	var challenge_levels: Array = matrix.get("challenge_levels", [])
 	var rows: Array = matrix.get("rows", [])
 	_check(str(matrix.get("seed_model", "")) == "paired_by_iteration", "matrix declares paired iteration seeds")
+	_check(str(matrix.get("strategy_profile", "")) == "current-greedy", "campaign matrix declares the current greedy strategy baseline")
 	_check(int(matrix.get("iterations_per_cell", 0)) >= int(tree.get("campaign_targets", {}).get("minimum_iterations_for_hard_gate", 0)), "matrix baseline meets the hard-gate sample floor")
 	_check(rows.size() == character_ids.size() * challenge_levels.size(), "matrix contains the full character by challenge product")
 	_check(character_ids == (players.get("characters", []) as Array).map(func(player: Dictionary) -> String: return str(player.get("id", ""))), "matrix character axis matches playable characters")

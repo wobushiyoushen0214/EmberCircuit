@@ -4,6 +4,7 @@ extends RefCounted
 const CombatStateScript = preload("res://scripts/combat/CombatState.gd")
 const DataLoaderScript = preload("res://scripts/core/DataLoader.gd")
 const MapGeneratorScript = preload("res://scripts/map/MapGenerator.gd")
+const NumericalPressureMetricsScript = preload("res://scripts/tools/NumericalPressureMetrics.gd")
 
 const DEFAULT_MAX_TURNS := 60
 const DEFAULT_ITERATIONS := 8
@@ -51,6 +52,7 @@ func run_suite(options: Dictionary = {}) -> Dictionary:
 	var report := {
 		"version": 1,
 		"simulation_model": "single_encounter_heuristic_ai",
+		"strategy_profile": "current-greedy",
 		"iterations_per_case": iterations,
 		"max_turns": max_turns,
 		"case_count": character_ids.size() * challenge_levels.size() * encounter_ids.size(),
@@ -80,6 +82,7 @@ func run_campaign_suite(options: Dictionary = {}) -> Dictionary:
 	var report := {
 		"version": 1,
 		"simulation_model": "campaign_route_heuristic_ai",
+		"strategy_profile": "current-greedy",
 		"seed_model": "paired_by_iteration",
 		"iterations_per_case": iterations,
 		"max_turns_per_combat": max_turns,
@@ -1914,7 +1917,24 @@ func _aggregate_case(character: Dictionary, challenge: Dictionary, encounter: Di
 		"avg_enemy_hp_removed": _rounded_rate(float(total_enemy_hp_removed) / float(count)),
 		"avg_cards_played": _rounded_rate(float(total_cards_played) / float(count))
 	}
-	case["risk_flag"] = _risk_flag(case)
+	var chapter_id: String = _chapter_id_for_encounter(str(encounter.get("id", "")))
+	var pressure_contract: Dictionary = numerical_tree_data.get("pressure_contract", {})
+	var tier: String = str(encounter.get("tier", "normal"))
+	var tier_targets: Dictionary = pressure_contract.get("single_encounter_tier_targets", {}).get(tier, {}).duplicate(true)
+	var expected_turns: Array = numerical_tree_data.get("monsters", {}).get("chapter_targets", {}).get(chapter_id, {}).get(tier, {}).get("expected_turns", [0, 999])
+	tier_targets["tier"] = tier
+	tier_targets["minimum_samples"] = int(pressure_contract.get("minimum_iterations", 64))
+	tier_targets["expected_turns_min"] = float(expected_turns[0])
+	tier_targets["expected_turns_max"] = float(expected_turns[1])
+	var pressure_metrics: Dictionary = NumericalPressureMetricsScript.aggregate_runs(runs, tier_targets)
+	case["chapter_id"] = chapter_id
+	case["loadout_profile"] = "starter_deck_relics"
+	case["strategy_profile"] = "current-greedy"
+	case["pressure_contract_version"] = int(pressure_contract.get("schema_version", 0))
+	case["expected_turns_min"] = int(expected_turns[0])
+	case["expected_turns_max"] = int(expected_turns[1])
+	for key in ["pressure_gate_eligible", "zero_damage_win_count", "perfect_win_rate", "hp_loss_p50", "hp_loss_p90", "turn_sample_count", "turns_p50", "turns_p90", "cards_played_per_turn", "risk_flags", "risk_flag"]:
+		case[key] = pressure_metrics.get(key)
 	return case
 
 func _build_report_summary(cases: Array) -> Dictionary:
@@ -2392,6 +2412,15 @@ func _chapter_sequence() -> Array:
 	if sequence.is_empty():
 		return ["chapter_one"]
 	return sequence
+
+func _chapter_id_for_encounter(encounter_id: String) -> String:
+	for chapter_id_value in _chapter_sequence():
+		var chapter_id: String = str(chapter_id_value)
+		var encounter_by_type: Dictionary = map_generation_data.get(chapter_id, {}).get("encounter_by_type", {})
+		for encounter_ids_value in encounter_by_type.values():
+			if (encounter_ids_value as Array).has(encounter_id):
+				return chapter_id
+	return ""
 
 func _option_or_default(options: Dictionary, key: String, default_value: Array) -> Array:
 	var value = options.get(key, default_value)

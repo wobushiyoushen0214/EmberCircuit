@@ -221,6 +221,19 @@ review-fixed 正式矩阵规格为 `3 角色 x 4 挑战 x 256 次 = 3072` 场。
 
 `audit_inventory` 声明当前数据规模：71 张总卡牌、70 张可审计牌、25 个敌人、22 组遭遇、3 棵成长树、4 个挑战等级，以及关键经济快照。其中当前地图生成配置会抽取 21 组正式遭遇进入静态章节预算报告；全量计数与地图审计计数分别校验。新增卡牌、怪物、遭遇、成长节点或挑战后必须刷新该清单和矩阵，否则 headless 契约测试会失败，避免内容悄然绕过数值验收。
 
+### 开局与单战压力契约
+
+数值树 schema 已升级为 `version=3`，独立 `pressure_contract.schema_version=1`。本契约只测量当前错误基线，不修改卡牌、角色、遗物、敌人、经济、篝火、挑战或路线正式数值。
+
+- opening package 计算起始牌组、初始势能、无条件开场遗物、首回合固定额外抽牌和默认 `steel_manual`；条件触发只进入 exclusions。当前三角色分别为 `91.38 / 82.47 / 88.41`，均高于待重标定目标。
+- 单战 case 至少需要 64 次才可触发 `too_easy` 硬门；小样本仍输出诊断，但 `pressure_gate_eligible=false`。HP 损失分位数使用全部 runs，回合分位数只使用胜局，cards/turn 使用总出牌数除以总回合数。
+- 分位数使用 nearest-rank `ceil(p*n)-1`。复合风险优先级为 timeout、tier too-lethal、tier too-easy、encounter too-fast、encounter too-slow；旧 `risk_flag` 保留为 `risk_flags[0]`。
+- 静态遭遇压力统计基础循环攻击行动占比、首尾相连的最长零直接伤害空窗、从 action 0 开始的前三行动伤害，以及 C0 Boss/本章最高精英 EHP 比。phase 独立输出，不与基础循环平均。
+- 当前静态基线有 3 个 opening package warning 和 16 个 monster pressure warning，ID 由 `audit_inventory.pressure_contract` 冻结。第一章 Boss 基础压力为 `2/5` 攻击行动、空窗 `2`、前三伤害 `15`，C0 EHP `96` 对最高精英 `104`，比例 `0.9231`。
+- single 与 campaign 报告均声明 `strategy_profile=current-greedy`。该策略只用于确定性相对回归，不代表资深真人玩家水平，也不能用旧 campaign 通关率否定开局过易证据。
+
+Batch 017 才允许在同一组配对 seeds 下调整起始牌、起始遗物/资源、篝火和第一章敌人节奏；禁止用全局加血制造低威胁木桩。
+
 ## 10. 调参流程
 
 1. 修改实际 JSON 数值及 `balance_note`。

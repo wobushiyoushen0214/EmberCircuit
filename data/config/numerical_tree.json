@@ -1,6 +1,6 @@
 {
   "_comment": "统一数值树。这里把卡牌、敌人、经济和局外成长换算到同一套效果点，作为后续调平衡的机器可读基线。",
-  "version": 2,
+  "version": 3,
   "audit_inventory": {
     "_comment": "数值审计的覆盖契约。测试会把这些快照与实际数据及 NumericalTreeAuditor 报告交叉校验，防止新增内容未进入平衡审计。",
     "cards": {
@@ -22,6 +22,31 @@
       "audited_map_encounter_count": 21,
       "encounter_tier_counts": { "normal": 15, "elite": 4, "boss": 3 }
     },
+    "pressure_contract": {
+      "opening_package_warning_ids": [
+        "ember_exile",
+        "arc_tinker",
+        "pyre_ascetic"
+      ],
+      "monster_pressure_warning_ids": [
+        "polluted_lab",
+        "iron_checkpoint",
+        "cinder_kennels",
+        "chapter_one_boss",
+        "storm_patrol",
+        "null_workshop",
+        "glass_procession",
+        "storm_choir",
+        "prism_breakers",
+        "chapter_two_boss",
+        "void_archive",
+        "gravity_bridge",
+        "core_mirror",
+        "memory_vault",
+        "orbital_silo",
+        "chapter_three_boss"
+      ]
+    },
     "progression": {
       "tree_count": 3,
       "nodes_per_tree": 5,
@@ -42,6 +67,38 @@
       "potion_drop_chance_percent": 45,
       "combat_card_reward_accept_score": 8.2,
       "skip_reward_when_deck_at_least": 15
+    }
+  },
+  "pressure_contract": {
+    "schema_version": 1,
+    "minimum_iterations": 64,
+    "single_encounter_tier_targets": {
+      "normal": {
+        "win_rate_min": 0.70,
+        "win_rate_max": 0.95,
+        "perfect_win_rate_max": 0.55
+      },
+      "elite": {
+        "win_rate_min": 0.45,
+        "win_rate_max": 0.90,
+        "perfect_win_rate_max": 0.35
+      },
+      "boss": {
+        "win_rate_min": 0.25,
+        "win_rate_max": 0.85,
+        "perfect_win_rate_max": 0.15
+      }
+    },
+    "opening_package_targets": {
+      "ember_exile": [72.0, 80.0],
+      "arc_tinker": [70.0, 78.0],
+      "pyre_ascetic": [72.0, 80.0]
+    },
+    "encounter_structure": {
+      "minimum_attack_action_ratio": 0.60,
+      "maximum_zero_direct_damage_actions": 1,
+      "first_three_damage_to_peak_min_multiplier": 1.25,
+      "minimum_boss_to_highest_elite_ehp_ratio": 1.15
     }
   },
   "effect_points": {
@@ -237,6 +294,7 @@
     "_comment": "三角色乘四挑战的配对种子基线。observed_win_rate 来自 256 次/格完整跑团；契约测试会校验矩阵完备性、普通敌人与 Boss 挑战修正、角色起始资源、卡池覆盖、成长成本、目标区间和聚合门槛。",
     "schema_version": 2,
     "simulation_model": "campaign_route_heuristic_ai",
+    "strategy_profile": "current-greedy",
     "seed_model": "paired_by_iteration",
     "iterations_per_cell": 256,
     "max_turns": 80,

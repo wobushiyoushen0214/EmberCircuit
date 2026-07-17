@@ -898,3 +898,13 @@ jq empty data/cards/cards.json data/enemies/enemies.json data/relics/relics.json
 - 新增离线多报告合并器：同 `run_id` 同内容去重，内容冲突或嵌套字段损坏时拒绝合并；合并后保留完整期望矩阵，游戏内导出摘要显示方向格、硬门格和尚缺完成局。
 - 双阶段评审补齐同 cohort fixture 隔离：未批准样本不进入真人 summary、胜率、卡牌、失败点、coverage 或 raw runs，也不争用真人完成局留存配额；合并器拒绝非终局 outcome，并覆盖 40→41 与 4→5 cohort 硬边界。
 - 本轮不修改角色、卡牌、怪物、挑战、经济或路线数值，正式硬调参继续等待合格真人样本。
+
+## 2026-07-17：数值压力测量契约
+
+- 数值树升级到 version 3，并新增独立 pressure schema v1；本批只建立测量和异常冻结，不改正式玩法数值。
+- 新增纯计算 `NumericalPressureMetrics`，固定 nearest-rank p50/p90、全 runs HP loss、仅胜局 turns、完美胜率、cards/turn、64 样本硬门、复合风险顺序和循环行动压力算法。
+- 静态审计纳入完整 opening package：三角色当前为 `91.38 / 82.47 / 88.41`，均命中 `opening_package_high`；苦修香炉的条件伤害只进入 exclusions。
+- 遭遇审计新增攻击密度、首尾相连空窗、前三行动伤害、phase profile 和 C0 EHP 层级；第一章 Boss 的 `96/104=0.9231` 层级倒挂及低攻击密度被独立 pressure issues 捕获，旧 budget warning 仍为 0。
+- 单战模拟保留全部旧字段，同时输出 chapter/loadout/strategy、无伤率、HP 与回合分位数、cards/turn、expected turns 和复合风险。64 seeds 下 Ember 首战主风险为 `normal_too_easy`，三角色第一章 Boss 主风险均为 `boss_too_easy`。
+- single/campaign 报告与冻结 campaign matrix 均声明 `strategy_profile=current-greedy`；16 个当前 monster pressure warning 与 3 个 opening warning 已进入 audit inventory，供下一批单调消除。
+- Batch 017 才执行第一章与起始包实际重标定；禁止以全局 HP/伤害倍率替代攻击节奏、决策压力和 Boss 层级修复。

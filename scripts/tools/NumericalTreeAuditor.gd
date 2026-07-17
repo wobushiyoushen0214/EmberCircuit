@@ -2,11 +2,14 @@ class_name NumericalTreeAuditor
 extends RefCounted
 
 const DataLoaderScript = preload("res://scripts/core/DataLoader.gd")
+const NumericalPressureMetricsScript = preload("res://scripts/tools/NumericalPressureMetrics.gd")
 
 var card_data: Dictionary = {}
 var enemy_data: Dictionary = {}
 var encounter_data: Dictionary = {}
 var player_data: Dictionary = {}
+var relic_data: Dictionary = {}
+var challenge_data: Dictionary = {}
 var economy_data: Dictionary = {}
 var map_generation_data: Dictionary = {}
 var level_tree_data: Dictionary = {}
@@ -19,6 +22,8 @@ func load_default_data() -> void:
 	enemy_data = DataLoaderScript.load_json("res://data/enemies/enemies.json")
 	encounter_data = DataLoaderScript.load_json("res://data/encounters/encounters.json")
 	player_data = DataLoaderScript.load_json("res://data/config/player.json")
+	relic_data = DataLoaderScript.load_json("res://data/relics/relics.json")
+	challenge_data = DataLoaderScript.load_json("res://data/config/challenges.json")
 	economy_data = DataLoaderScript.load_json("res://data/config/economy.json")
 	map_generation_data = DataLoaderScript.load_json("res://data/config/map_generation.json")
 	level_tree_data = DataLoaderScript.load_json("res://data/config/level_tree.json")
@@ -105,9 +110,12 @@ func _audit_cards() -> Array:
 func _audit_players() -> Array:
 	var rows: Array = []
 	var cards_by_id: Dictionary = DataLoaderScript.index_by_id(card_data.get("cards", []))
+	var relics_by_id: Dictionary = DataLoaderScript.index_by_id(relic_data.get("relics", []))
 	var player_targets: Dictionary = numerical_tree_data.get("players", {})
 	var starter_targets: Dictionary = numerical_tree_data.get("cards", {}).get("starter_deck", {})
 	var character_targets: Dictionary = player_targets.get("character_targets", {})
+	var opening_targets: Dictionary = numerical_tree_data.get("pressure_contract", {}).get("opening_package_targets", {})
+	var default_skill_book: Dictionary = _default_skill_book()
 	var default_character_id: String = str(player_data.get("default_character_id", ""))
 	var legacy_player: Dictionary = player_data.get("player", {})
 	for character_value in player_data.get("characters", []):
@@ -170,6 +178,55 @@ func _audit_players() -> Array:
 		if character_id == default_character_id and not _legacy_player_matches_character(legacy_player, character):
 			issues.append("legacy_player_mismatch")
 
+		var opening_contributions: Array = [{
+			"category": "starter_deck",
+			"source_id": character_id,
+			"trigger": "loadout",
+			"effect_type": "starter_deck_score",
+			"raw_amount": _round_to(deck_score, 2),
+			"point_weight": 1.0,
+			"score": _round_to(deck_score, 2),
+		}]
+		var opening_exclusions: Array = []
+		var starting_momentum: int = max(0, int(character.get("starting_momentum", 0)))
+		if starting_momentum > 0:
+			opening_contributions.append(_opening_contribution("starting_momentum", character_id, {
+				"trigger": "combat_setup",
+				"type": "gain_momentum",
+				"amount": starting_momentum,
+			}))
+		for relic_id_value in character.get("starter_relic_ids", []):
+			var relic_id: String = str(relic_id_value)
+			var relic: Dictionary = relics_by_id.get(relic_id, {})
+			if relic.is_empty():
+				opening_exclusions.append({"category": "starter_relic", "source_id": relic_id, "reason": "missing_source"})
+				continue
+			for effect_value in relic.get("effects", []):
+				var effect: Dictionary = effect_value
+				var contribution: Dictionary = _opening_contribution("starter_relic", relic_id, effect)
+				if contribution.is_empty():
+					opening_exclusions.append(_opening_exclusion("starter_relic", relic_id, effect))
+				else:
+					opening_contributions.append(contribution)
+		if not default_skill_book.is_empty():
+			var skill_book_id: String = str(default_skill_book.get("id", ""))
+			for effect_value in default_skill_book.get("effects", []):
+				var effect: Dictionary = effect_value
+				var contribution: Dictionary = _opening_contribution("skill_book", skill_book_id, effect)
+				if contribution.is_empty():
+					opening_exclusions.append(_opening_exclusion("skill_book", skill_book_id, effect))
+				else:
+					opening_contributions.append(contribution)
+		var opening_score := 0.0
+		for contribution_value in opening_contributions:
+			opening_score += float((contribution_value as Dictionary).get("score", 0.0))
+		var opening_range: Array = opening_targets.get(character_id, [0.0, 9999.0])
+		var opening_issues: Array = []
+		if opening_score < float(opening_range[0]):
+			opening_issues.append("opening_package_low")
+		elif opening_score > float(opening_range[1]):
+			opening_issues.append("opening_package_high")
+
 		rows.append({
 			"id": character_id,
 			"name": str(character.get("name", character_id)),
@@ -186,11 +243,74 @@ func _audit_players() -> Array:
 			"starter_relic_count": (character.get("starter_relic_ids", []) as Array).size(),
 			"starter_deck_score": _round_to(deck_score, 2),
 			"starter_deck_score_target": deck_score_range,
+			"opening_package_score": _round_to(opening_score, 2),
+			"opening_package_target_min": float(opening_range[0]),
+			"opening_package_target_max": float(opening_range[1]),
+			"opening_package_contributions": opening_contributions,
+			"opening_package_exclusions": opening_exclusions,
+			"opening_package_severity": "warning" if not opening_issues.is_empty() else "ok",
+			"opening_package_issues": opening_issues,
 			"missing_card_ids": missing_card_ids,
 			"severity": "warning" if not issues.is_empty() else "ok",
 			"issues": issues
 		})
 	return rows
+
+func _default_skill_book() -> Dictionary:
+	for book_value in progression_data.get("skill_books", []):
+		var book: Dictionary = book_value
+		if str(book.get("unlock", {}).get("type", "")) == "default":
+			return book
+	return {}
+
+func _opening_contribution(category: String, source_id: String, effect: Dictionary) -> Dictionary:
+	if not _opening_effect_is_deterministic(effect):
+		return {}
+	var effect_type: String = str(effect.get("type", ""))
+	var points: Dictionary = numerical_tree_data.get("effect_points", {})
+	var point_weight := 0.0
+	match effect_type:
+		"gain_block", "block":
+			point_weight = float(points.get("block", 0.0))
+		"draw":
+			point_weight = float(points.get("draw", 0.0))
+		"gain_momentum":
+			point_weight = float(points.get("gain_momentum", 0.0))
+		"gain_energy":
+			point_weight = float(points.get("gain_energy", 0.0))
+		_:
+			return {}
+	var raw_amount: int = max(0, int(effect.get("amount", 0)))
+	return {
+		"category": category,
+		"source_id": source_id,
+		"trigger": str(effect.get("trigger", "")),
+		"effect_type": effect_type,
+		"raw_amount": raw_amount,
+		"point_weight": point_weight,
+		"score": _round_to(float(raw_amount) * point_weight, 2),
+	}
+
+func _opening_effect_is_deterministic(effect: Dictionary) -> bool:
+	for key_value in effect.keys():
+		var key: String = str(key_value)
+		if key.begins_with("requires_") or key in ["min_hp_lost", "min_card_cost", "card_cost_equals", "card_type", "card_id", "every_n_attack_cards"]:
+			return false
+	var trigger: String = str(effect.get("trigger", ""))
+	if trigger == "combat_setup":
+		return true
+	if trigger == "combat_start":
+		return true
+	return trigger == "turn_start" and bool(effect.get("first_turn_only", false))
+
+func _opening_exclusion(category: String, source_id: String, effect: Dictionary) -> Dictionary:
+	return {
+		"category": category,
+		"source_id": source_id,
+		"trigger": str(effect.get("trigger", "")),
+		"effect_type": str(effect.get("type", "")),
+		"reason": "conditional_trigger" if not _opening_effect_is_deterministic(effect) else "unsupported_effect",
+	}
 
 func _legacy_player_matches_character(legacy_player: Dictionary, character: Dictionary) -> bool:
 	for key in ["id", "max_hp", "starting_hp", "max_energy", "starting_momentum", "momentum_max", "starting_gold", "potion_slots"]:
@@ -336,6 +456,7 @@ func _audit_monsters() -> Array:
 	var rows: Array = []
 	var enemies_by_id: Dictionary = DataLoaderScript.index_by_id(enemy_data.get("enemies", []))
 	var encounters_by_id: Dictionary = DataLoaderScript.index_by_id(encounter_data.get("encounters", []))
+	var challenge_modifiers: Dictionary = _challenge_modifiers(0)
 	for chapter_id_value in map_generation_data.get("chapter_sequence", []):
 		var chapter_id: String = str(chapter_id_value)
 		var chapter_config: Dictionary = map_generation_data.get(chapter_id, {})
@@ -348,21 +469,35 @@ func _audit_monsters() -> Array:
 				var encounter: Dictionary = encounters_by_id.get(encounter_id, {})
 				if encounter.is_empty():
 					continue
-				rows.append(_audit_encounter(chapter_id, tier, encounter, enemies_by_id))
+				rows.append(_audit_encounter(chapter_id, tier, encounter, enemies_by_id, challenge_modifiers))
+	_apply_monster_pressure_hierarchy(rows)
 	return rows
 
-func _audit_encounter(chapter_id: String, tier: String, encounter: Dictionary, enemies_by_id: Dictionary) -> Dictionary:
+func _audit_encounter(chapter_id: String, tier: String, encounter: Dictionary, enemies_by_id: Dictionary, challenge_modifiers: Dictionary) -> Dictionary:
 	var total_hp := 0
+	var base_enemy_hps: Array = []
 	var peak_damage := 0
 	var peak_block := 0
 	var max_phase_entry_categories := 0
 	var phase_entry_category_rows: Array = []
+	var base_action_count := 0
+	var base_direct_damage_action_count := 0
+	var base_longest_zero_direct_damage_actions := 0
+	var base_first_three_action_damage_total := 0
+	var pressure_profiles: Array = []
 	var enemy_ids: Array = encounter.get("enemy_ids", [])
 	for enemy_id_value in enemy_ids:
 		var enemy: Dictionary = enemies_by_id.get(str(enemy_id_value), {})
-		total_hp += int(enemy.get("max_hp", 0))
+		var enemy_hp: int = int(enemy.get("max_hp", 0))
+		total_hp += enemy_hp
+		base_enemy_hps.append(enemy_hp)
 		peak_damage += _peak_enemy_action_damage(enemy)
 		peak_block = max(peak_block, _peak_enemy_block(enemy))
+		var base_metrics: Dictionary = NumericalPressureMetricsScript.action_cycle_metrics(enemy.get("actions", []))
+		base_action_count += int(base_metrics.get("action_count", 0))
+		base_direct_damage_action_count += int(base_metrics.get("direct_damage_action_count", 0))
+		base_longest_zero_direct_damage_actions = max(base_longest_zero_direct_damage_actions, int(base_metrics.get("longest_zero_direct_damage_actions", 0)))
+		base_first_three_action_damage_total += int(base_metrics.get("first_three_action_damage_total", 0))
 		for phase_value in enemy.get("phases", []):
 			var phase: Dictionary = phase_value
 			var categories := _phase_entry_effect_categories(phase.get("on_enter_effects", []))
@@ -372,6 +507,10 @@ func _audit_encounter(chapter_id: String, tier: String, encounter: Dictionary, e
 				"phase_id": str(phase.get("id", "")),
 				"categories": categories,
 			})
+			var phase_metrics: Dictionary = NumericalPressureMetricsScript.action_cycle_metrics(phase.get("actions", []))
+			phase_metrics["enemy_id"] = str(enemy.get("id", ""))
+			phase_metrics["phase_id"] = str(phase.get("id", ""))
+			pressure_profiles.append(phase_metrics)
 	var budget: Dictionary = numerical_tree_data.get("monsters", {}).get("chapter_targets", {}).get(chapter_id, {}).get(tier, {})
 	var encounter_constraints: Dictionary = monster_scaling_data.get("encounter_constraints", {})
 	var phase_entry_category_limit := int(encounter_constraints.get("boss_phase_enter_max_effect_categories", 1))
@@ -379,6 +518,18 @@ func _audit_encounter(chapter_id: String, tier: String, encounter: Dictionary, e
 	var hp_range: Array = budget.get("encounter_hp", [0, 9999])
 	var damage_range: Array = budget.get("peak_damage", [0, 9999])
 	var issues: Array = []
+	var pressure_issues: Array = []
+	var pressure_targets: Dictionary = numerical_tree_data.get("pressure_contract", {}).get("encounter_structure", {})
+	var base_attack_action_ratio := float(base_direct_damage_action_count) / float(max(1, base_action_count))
+	var minimum_attack_action_ratio: float = float(pressure_targets.get("minimum_attack_action_ratio", 0.0))
+	var maximum_zero_damage_actions: int = int(pressure_targets.get("maximum_zero_direct_damage_actions", 999))
+	var first_three_damage_minimum: float = float(damage_range[0]) * float(pressure_targets.get("first_three_damage_to_peak_min_multiplier", 0.0))
+	if base_attack_action_ratio < minimum_attack_action_ratio:
+		pressure_issues.append("attack_action_ratio_low")
+	if base_longest_zero_direct_damage_actions > maximum_zero_damage_actions:
+		pressure_issues.append("zero_damage_streak_high")
+	if float(base_first_three_action_damage_total) < first_three_damage_minimum:
+		pressure_issues.append("first_three_action_damage_low")
 	if total_hp < int(hp_range[0]):
 		issues.append("encounter_hp_low")
 	elif total_hp > int(hp_range[1]):
@@ -391,6 +542,9 @@ func _audit_encounter(chapter_id: String, tier: String, encounter: Dictionary, e
 		issues.append("boss_phase_entry_categories_high")
 	if tier == "boss" and phase_transition_mode != "highest_reached_only":
 		issues.append("boss_phase_transition_mode_unknown")
+	var enemy_hp_multiplier: float = float(challenge_modifiers.get("enemy_hp_multiplier", 1.0))
+	var boss_hp_multiplier: float = float(challenge_modifiers.get("boss_hp_multiplier", 1.0)) if tier == "boss" else 1.0
+	var effective_hp: int = NumericalPressureMetricsScript.effective_hp_for_enemies(base_enemy_hps, enemy_hp_multiplier, boss_hp_multiplier)
 	return {
 		"id": str(encounter.get("id", "")),
 		"name": str(encounter.get("name", "")),
@@ -408,9 +562,51 @@ func _audit_encounter(chapter_id: String, tier: String, encounter: Dictionary, e
 		"phase_entry_effect_category_limit": phase_entry_category_limit,
 		"phase_transition_mode": phase_transition_mode,
 		"phase_entry_categories": phase_entry_category_rows,
+		"base_action_count": base_action_count,
+		"base_direct_damage_action_count": base_direct_damage_action_count,
+		"base_attack_action_ratio": base_attack_action_ratio,
+		"base_longest_zero_direct_damage_actions": base_longest_zero_direct_damage_actions,
+		"base_first_three_action_damage_total": base_first_three_action_damage_total,
+		"pressure_profiles": pressure_profiles,
+		"effective_hp_challenge_level": 0,
+		"effective_hp": effective_hp,
+		"chapter_highest_elite_effective_hp": 0.0,
+		"boss_to_highest_elite_ehp_ratio": 0.0,
+		"pressure_severity": "warning" if not pressure_issues.is_empty() else "ok",
+		"pressure_issues": pressure_issues,
 		"severity": "warning" if not issues.is_empty() else "ok",
 		"issues": issues
 	}
+
+func _challenge_modifiers(level: int) -> Dictionary:
+	for level_value in challenge_data.get("levels", []):
+		var challenge_level: Dictionary = level_value
+		if int(challenge_level.get("level", -1)) == level:
+			return (challenge_level.get("modifiers", {}) as Dictionary).duplicate(true)
+	return {}
+
+func _apply_monster_pressure_hierarchy(rows: Array) -> void:
+	var highest_elite_by_chapter: Dictionary = {}
+	for row_value in rows:
+		var row: Dictionary = row_value
+		if str(row.get("tier", "")) != "elite":
+			continue
+		var chapter_id: String = str(row.get("chapter_id", ""))
+		highest_elite_by_chapter[chapter_id] = max(float(highest_elite_by_chapter.get(chapter_id, 0.0)), float(row.get("effective_hp", 0.0)))
+	var minimum_boss_elite_ratio: float = float(numerical_tree_data.get("pressure_contract", {}).get("encounter_structure", {}).get("minimum_boss_to_highest_elite_ehp_ratio", 0.0))
+	for index in range(rows.size()):
+		var row: Dictionary = rows[index]
+		var highest_elite_ehp: float = float(highest_elite_by_chapter.get(str(row.get("chapter_id", "")), 0.0))
+		row["chapter_highest_elite_effective_hp"] = _round_to(highest_elite_ehp, 2)
+		if str(row.get("tier", "")) == "boss" and highest_elite_ehp > 0.0:
+			var ratio: float = NumericalPressureMetricsScript.safe_ratio(float(row.get("effective_hp", 0.0)), highest_elite_ehp)
+			row["boss_to_highest_elite_ehp_ratio"] = _round_to(ratio, 4)
+			var pressure_issues: Array = row.get("pressure_issues", [])
+			if ratio < minimum_boss_elite_ratio:
+				pressure_issues.append("boss_elite_ehp_ratio_low")
+			row["pressure_issues"] = pressure_issues
+			row["pressure_severity"] = "warning" if not pressure_issues.is_empty() else "ok"
+		rows[index] = row
 
 func _phase_entry_effect_categories(effects: Array) -> Array:
 	var seen: Dictionary = {}
@@ -597,7 +793,9 @@ func _build_summary(card_rows: Array, player_rows: Array, monster_rows: Array, e
 	var card_advisories := 0
 	var card_issue_rows := 0
 	var player_warnings := 0
+	var opening_package_warnings := 0
 	var monster_warnings := 0
+	var monster_pressure_warnings := 0
 	for row_value in card_rows:
 		var row: Dictionary = row_value
 		if not (row.get("issues", []) as Array).is_empty():
@@ -610,10 +808,14 @@ func _build_summary(card_rows: Array, player_rows: Array, monster_rows: Array, e
 		var row: Dictionary = row_value
 		if str(row.get("severity", "ok")) != "ok":
 			player_warnings += 1
+		if str(row.get("opening_package_severity", "ok")) != "ok":
+			opening_package_warnings += 1
 	for row_value in monster_rows:
 		var row: Dictionary = row_value
 		if str(row.get("severity", "ok")) != "ok":
 			monster_warnings += 1
+		if str(row.get("pressure_severity", "ok")) != "ok":
+			monster_pressure_warnings += 1
 	return {
 		"card_count": card_rows.size(),
 		"card_issue_row_count": card_issue_rows,
@@ -621,8 +823,10 @@ func _build_summary(card_rows: Array, player_rows: Array, monster_rows: Array, e
 		"card_warning_count": card_warnings,
 		"player_count": player_rows.size(),
 		"player_warning_count": player_warnings,
+		"opening_package_warning_count": opening_package_warnings,
 		"monster_encounter_count": monster_rows.size(),
 		"monster_warning_count": monster_warnings,
+		"monster_pressure_warning_count": monster_pressure_warnings,
 		"economy_warning_count": (economy_report.get("issues", []) as Array).size(),
 		"progression_warning_count": (progression_report.get("issues", []) as Array).size(),
 		"total_advisory_count": card_advisories,
