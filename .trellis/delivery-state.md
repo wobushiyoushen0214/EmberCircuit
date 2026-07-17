@@ -8,27 +8,27 @@ stage_state:
   max_rounds: 6
   open_gaps: 8
   tasks_created: 3
-  tasks_completed: 1
+  tasks_completed: 2
   carry_over: 3
   critical_review_issues: 0
-  next_legal_action: implement delivery-batch-018a-ui-shell-menu-pages in an isolated worktree
+  next_legal_action: pause after merging Batch 018A; resume with delivery-batch-018b-run-pages when requested
   stop_conditions: none
 ---
 
 loop_mode: L3
-current_round: 2
-next_loop_recommendation: continue-next-batch
+current_round: 3
+next_loop_recommendation: await-user-resume
 carry_over: 3
 
 ## 基线
 
 - source_requirements: `docs/00_MASTER_PLAN.md`（由 `docs/01-08` 细化）
 - mvp_baseline_commit: `2e3e857`
-- last_audited_commit: `ef222ae`
+- last_audited_commit: `4032b8d`
 - loop_mode: `L3`
-- current_round: `2`
+- current_round: `3`
 - max_rounds: `6`
-- current_batch_id: `delivery-batch-017-act1-opening-rebaseline`
+- current_batch_id: `delivery-batch-018a-ui-shell-menu-pages`
 
 ## 需求状态
 
@@ -41,11 +41,11 @@ carry_over: 3
 | REQ-005 | PARTIAL | `data/enemies/enemies.json`, `data/encounters/encounters.json`, `data/config/monster_scaling.json`, `scripts/combat/CombatState.gd`, `scripts/tools/NumericalTreeAuditor.gd`, `scripts/main/Main.gd` | `tests/test_act1_rebaseline.gd`, `tests/test_combat_core.gd`, `tests/test_balance_simulator.gd`, `tests/test_numerical_tree_auditor.gd`, `tests/test_run_flow.gd` | Batch 017 第一章七遭遇、复合意图与 Boss/elite 层级已交付；二三章仍待配对重标定 | L3-new-2 | 1 |
 | REQ-006 | PARTIAL | `data/cards/cards.json`, `data/relics/relics.json`, `data/events/events.json`, `data/config/art_assets.json`, `assets/art/generated/` | `tests/test_data_integrity.gd`, `tests/test_art_asset_auditor.gd` | batch-014 delivered 8 relic PNGs; next: replace remaining legacy event/enemy art | L3-5 | 0 |
 | REQ-007 | DONE | `scripts/core/SaveManager.gd`, `scripts/main/Main.gd`, `data/config/achievements.json` | v5 奖励事务、原子恢复、错节点/坏 ID/金币回滚和旧战斗 HP 隔离测试 | none | L3-post | 0 |
-| REQ-008 | PARTIAL | `assets/art/generated/`, `assets/fonts/NotoSansSC-Variable.ttf`, `data/config/art_assets.json`, `scripts/main/Main.gd`, `scripts/map/MapView.gd`, `assets/audio/` | `tests/test_visual_bounds.gd`, `tests/test_run_flow.gd`, `tests/test_art_asset_auditor.gd`, `tests/test_pc_combat_hotkeys.gd`, `tests/test_audio_manager.gd`, `tools/render_pc_gallery.gd` | Batch 018 已规划 3 个任务：Shell/欢迎角色、跑团页、结算/设置/图鉴与视觉验收；当前只完成第一阶段规划，未开始实现 | L3-3 | 0 |
+| REQ-008 | PARTIAL | `scripts/ui/AppShell.gd`, `scripts/ui/ForgeTheme.gd`, `scripts/ui/ForgeMotion.gd`, `scripts/ui/components/`, `scripts/ui/pages/WelcomePage.gd`, `scripts/ui/pages/CharacterSelectPage.gd`, `scripts/main/Main.gd`, `assets/art/generated/`, `assets/fonts/NotoSansSC-Variable.ttf` | `tests/test_forge_ui_foundation.gd`, `tests/test_welcome_character_pages.gd`, `tests/test_visual_bounds.gd`, `tests/test_run_flow.gd`, `tools/render_pc_gallery.gd` | Batch 018A 已交付 Shell/Token/欢迎/角色页；地图/事件/商店/篝火/奖励与结算/设置/图鉴仍由 018B/018C 补齐 | L3-3 | 0 |
 | REQ-009 | PARTIAL | `scripts/core/PlaytestTelemetry.gd`, `scripts/core/PlaytestEvidenceGate.gd`, `tools/merge_playtest_reports.gd`, `scripts/tools/BalanceSimulator.gd`, `data/config/numerical_tree.json` | `tests/test_act1_rebaseline.gd`, `tests/test_playtest_evidence_gate.gd`, `tests/test_balance_simulator.gd`, `tests/test_numerical_balance_matrix.gd` | Batch 017 single 默认技能书已对齐，64/256 paired evidence 已交付；真人难度仍等待合格样本 | L3-new-2 | 0 |
 | REQ-010 | MISSING | none | none | proposed: build-grid-tactics-mode | 1 | 2 |
 | REQ-011 | PARTIAL | `export_presets.cfg`, `project.godot`, `packaging/PLAYTEST_README_ZH.txt` | alpha.8 Windows PE32+ x86_64 embedded-PCK、精确 PCK 启动、版本和压缩完整性通过 | next: native Windows matrix, commercial signing, installer and Steam integration | L3-post | 0 |
-| REQ-012 | PARTIAL | `tests/`, `tools/render_pc_gallery.gd`, `scripts/tools/ArtAssetAuditor.gd` | 22-suite strict-log regression、153-slot art audit、720p 奖励页通过；Batch 018 尚缺 11 页视觉契约、motion/accessibility/performance goldens | 018A/018B/018C | L3-3 | 0 |
+| REQ-012 | PARTIAL | `tests/`, `tools/render_pc_gallery.gd`, `scripts/tools/ArtAssetAuditor.gd`, `data/config/ui_motion_profiles.json`, `data/config/ui_theme_tokens.json` | 24-suite strict-log regression、foundation/page API、1280×720/1600×900 欢迎与角色页、motion clamp/reduced-motion/disabled focus 契约通过；其余页面 golden 仍待 018B/018C | 018B/018C | L3-3 | 0 |
 
 ## 当前批次
 
@@ -88,6 +88,8 @@ carry_over: 3
 - 2026-07-17: 用户在重基线 full audit 提交后明确回复“确认执行”，确认 `delivery-batch-016-numerical-pressure-contract`；允许创建任务、隔离 worktree，并按严格 TDD 自动推进到评审门。
 - 2026-07-17: Batch 016 以严格 TDD、21/21 回归和双阶段评审交付；最终 Stage 1 PASS，Stage 2 C0/M0/m2。256-seed opening 21/21 cases 均命中过易风险，正式调值转入 Batch 017。
 - 2026-07-17: 用户再次确认执行正式数值重标定；Batch 017 delta audit 冻结起始包、经济、第一章敌人和 single 默认技能书一致性。因候选含复合行动，最小扩展 intent schema 并要求完整预告，完整页面 UI 仍留 Batch 018。
+- 2026-07-18: 用户明确本作为 PC 游戏，正式视觉金标限定为 1280×720 与 1600×900；更小窗口只保留外层有界和关键动作可达的兼容烟测。
+- 2026-07-18: 用户授权浏览器/MCP/截图/只读审计和测试自动执行，不需要逐次确认；Batch 018A 完成提交、回写文档并合并后暂停。
 
 ## 预算快照
 
@@ -99,7 +101,7 @@ carry_over: 3
 
 ## 下一轮建议
 
-- action: `continue-next-batch`
-- reason: `Batch 017 已合并；Batch 018 delta audit 已完成并获用户确认，三个受控任务已创建。下一步在隔离 worktree 以 AC-018A-01→08 严格 TDD 实现 Shell/Token/欢迎/角色页。`
-- next_batch: `delivery-batch-018-ui-ember-forge-cohesion`，覆盖欢迎、角色选择、地图、事件、商店、篝火、奖励、结算、设置和图鉴的完整 PC UI 重构。
+- action: `await-user-resume`
+- reason: `Batch 018A 已以严格 TDD、24/24 回归、双阶段评审 C0/M0/m0 和 PC 实图验收交付；按用户要求合并后暂停。`
+- next_batch: `delivery-batch-018b-run-pages`，继续迁移地图、事件、商店、篝火与奖励页；恢复前不自动进入下一批。
 - next_audit_scope: `delta`
