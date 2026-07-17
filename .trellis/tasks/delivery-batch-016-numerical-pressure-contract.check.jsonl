@@ -1,0 +1,3 @@
+{"file":".trellis/tasks/delivery-batch-016-numerical-pressure-contract.prd.md","reason":"逐条核对 AC、File Manifest 和禁止事项"}
+{"file":".trellis/audits/2026-07-17-numerical-rebaseline-self-review.md","reason":"保护测量先于正式调值的审计结论"}
+{"file":"tests/test_combat_core.gd","reason":"证明本批未改变正式战斗行为"}
