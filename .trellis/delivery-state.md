@@ -24,7 +24,7 @@ carry_over: 3
 
 - source_requirements: `docs/00_MASTER_PLAN.md`（由 `docs/01-08` 细化）
 - mvp_baseline_commit: `2e3e857`
-- last_audited_commit: `cbc9470`
+- last_audited_commit: `ef222ae`
 - loop_mode: `L3`
 - current_round: `2`
 - max_rounds: `6`
