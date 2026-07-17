@@ -1,0 +1,4 @@
+{"file":".trellis/tasks/delivery-batch-018c-ui-outcome-accessibility-validation.prd.md","reason":"核对终局/settings/compendium AC、schema v2 和性能门"}
+{"file":"tests/test_save_manager.gd","reason":"保护 settings v1/v2、原子保存和旧字段"}
+{"file":"tests/test_playtest_run_integration.gd","reason":"保护终局存档/遥测失败恢复和幂等"}
+{"file":".trellis/audits/2026-07-17-ember-spire-ui-reference.md","reason":"保护截图/动效/可访问性门不漂移"}

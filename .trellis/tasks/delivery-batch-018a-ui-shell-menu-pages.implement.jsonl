@@ -1,0 +1,5 @@
+{"file":".trellis/audits/2026-07-17-ember-spire-ui-reference.md","reason":"固定暗炉视觉、动效、性能和可访问性决策"}
+{"file":"scripts/main/Main.gd","reason":"保留现有状态路由、回调、probe 和页面切换语义"}
+{"file":"tests/test_run_flow.gd","reason":"提供欢迎/角色/设置的回归断言风格"}
+{"file":"tests/test_visual_bounds.gd","reason":"提供 1280x720 与紧凑窗口边界契约"}
+{"file":"assets/fonts/NotoSansSC-Variable.ttf","reason":"禁止引入第三方字体，保证中文布局确定"}

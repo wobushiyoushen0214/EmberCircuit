@@ -1,0 +1,4 @@
+{"file":".trellis/tasks/delivery-batch-018a-ui-shell-menu-pages.prd.md","reason":"逐条核对 AC、文件清单、禁止事项和自检命令"}
+{"file":"tests/test_run_flow.gd","reason":"保护既有欢迎/角色确认/存档流程"}
+{"file":"tests/test_visual_bounds.gd","reason":"保护 PC 视口边界和旧节点 probe"}
+{"file":".trellis/audits/2026-07-17-ember-spire-ui-reference.md","reason":"保护 token/motion/性能边界不漂移"}

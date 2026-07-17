@@ -1,0 +1,5 @@
+{"file":".trellis/audits/2026-07-17-ember-spire-ui-reference.md","reason":"motion/reduced-motion/contrast/particle/frame budget契约"}
+{"file":"scripts/core/SaveManager.gd","reason":"现有 settings defaults/normalization/atomic save 语义"}
+{"file":"tests/test_save_manager.gd","reason":"旧 settings migration/save regression 风格"}
+{"file":"tests/test_playtest_run_integration.gd","reason":"终局 telemetry/save failure/retry 兼容契约"}
+{"file":"tools/render_pc_gallery.gd","reason":"现有 1280x720 gallery 入口和隔离 user namespace"}

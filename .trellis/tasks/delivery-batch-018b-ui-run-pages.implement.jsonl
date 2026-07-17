@@ -1,0 +1,5 @@
+{"file":".trellis/audits/2026-07-17-ember-spire-ui-reference.md","reason":"页面材质、状态层级、motion和性能边界"}
+{"file":".trellis/tasks/delivery-batch-018a-ui-shell-menu-pages.prd.md","reason":"共享 AppShell/ForgeTheme/组件 API 与兼容契约"}
+{"file":"scripts/map/MapView.gd","reason":"保留地图节点/预览信号和布局约束"}
+{"file":"tests/test_run_flow.gd","reason":"交易、事件、篝火、奖励和宝箱回归"}
+{"file":"tests/test_visual_bounds.gd","reason":"PC 视口、滚动末端和旧节点名证据"}

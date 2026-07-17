@@ -1,0 +1,4 @@
+{"file":".trellis/tasks/delivery-batch-018b-ui-run-pages.prd.md","reason":"核对五页 AC、边界、禁止事项和 File Manifest"}
+{"file":"tests/test_map_view.gd","reason":"保护地图节点状态/预览信号"}
+{"file":"tests/test_run_flow.gd","reason":"保护交易、事件、篝火、奖励、宝箱事务"}
+{"file":"tests/test_visual_bounds.gd","reason":"保护 1280x720 和紧凑窗口边界"}
