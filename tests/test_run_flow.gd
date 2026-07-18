@@ -564,7 +564,7 @@ func _run() -> void:
 	if not _check(main.last_combat_layout_overflow <= 0.0 and main.last_combat_layout_total_height <= main.last_combat_layout_available_height, "combat layout keeps the full page inside the viewport"):
 		return
 	if main._is_pc_layout():
-		if not _check(main.battle_board_panel.custom_minimum_size.y <= 430.0 and main.log_label.custom_minimum_size.y <= 40.0, "PC combat uses a large stage and compact log strip"):
+		if not _check(main.battle_board_panel.custom_minimum_size.y >= 430.0 and main.battle_board_panel.custom_minimum_size.y < main.last_combat_layout_available_height and main.log_label.custom_minimum_size.y <= 40.0, "PC combat expands the stage into spare height while keeping a compact log strip"):
 			return
 		if not _check(main.hand_frame.custom_minimum_size.y <= 230.0 and main.hand_row.custom_minimum_size.y <= 220.0, "PC combat keeps vertical hand cards inside the 720p budget"):
 			return
@@ -1665,8 +1665,8 @@ func _run() -> void:
 	var expected_defeat_route_step: int = int(defeat_main._current_node().get("layer", 0)) + 1
 	var expected_defeat_route_total: int = defeat_main.map_graph.get("layers", []).size()
 	defeat_main._refresh_combat()
-	var defeat_stage := defeat_main.reward_row.get_node_or_null("PcDefeatExperience") as PanelContainer
-	if not _check(defeat_stage != null and defeat_main.reward_row.get_child_count() == 1 and defeat_main.last_defeat_panel_visible, "PC defeat renders one dedicated run-outcome stage"):
+	var defeat_stage := defeat_main.app_shell.active_page as PanelContainer
+	if not _check(defeat_stage != null and defeat_main.app_shell.active_page_id == "outcome" and defeat_main.last_defeat_panel_visible, "PC defeat renders one dedicated full-screen run-outcome stage"):
 		return
 	var defeat_background := defeat_stage.find_child("DefeatBackground", true, false) as TextureRect
 	var defeated_player := defeat_stage.find_child("DefeatedPlayer", true, false) as TextureRect
@@ -1713,15 +1713,15 @@ func _run() -> void:
 	if not _check(defeat_main.deck_view_open, "defeat deck action opens the final deck"):
 		return
 	defeat_main._on_close_deck_view_pressed()
-	if not _check(not defeat_main.deck_view_open and defeat_main.reward_row.get_node_or_null("PcDefeatExperience") != null, "closing final deck returns to the defeat stage"):
+	if not _check(not defeat_main.deck_view_open and defeat_main.app_shell.active_page_id == "outcome", "closing final deck returns to the defeat stage"):
 		return
-	defeat_stage = defeat_main.reward_row.get_node_or_null("PcDefeatExperience") as PanelContainer
+	defeat_stage = defeat_main.app_shell.active_page as PanelContainer
 	defeat_profile_button = defeat_stage.find_child("DefeatProfileButton", true, false) as Button if defeat_stage != null else null
 	defeat_profile_button.pressed.emit()
 	if not _check(defeat_main.profile_open, "defeat profile action opens retained progression"):
 		return
 	defeat_main._on_close_profile_pressed()
-	defeat_stage = defeat_main.reward_row.get_node_or_null("PcDefeatExperience") as PanelContainer
+	defeat_stage = defeat_main.app_shell.active_page as PanelContainer
 	defeat_retry_button = defeat_stage.find_child("DefeatRetryButton", true, false) as Button if defeat_stage != null else null
 	defeat_retry_button.pressed.emit()
 	if not _check(defeat_main.character_select_open and defeat_main.combat == null, "defeat retry action returns to character selection"):

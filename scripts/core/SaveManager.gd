@@ -106,7 +106,7 @@ static func delete_run_for_run_id(expected_run_id: String) -> bool:
 
 static func default_settings() -> Dictionary:
 	return {
-		"version": 1,
+		"version": 2,
 		"audio_enabled": true,
 		"master_volume": 1.0,
 		"music_enabled": true,
@@ -115,7 +115,10 @@ static func default_settings() -> Dictionary:
 		"hit_stop_enabled": true,
 		"floating_text_enabled": true,
 		"tutorial_enabled": true,
-		"tutorial_completed_steps": []
+		"tutorial_completed_steps": [],
+		"reduced_motion": false,
+		"flash_intensity": 1.0,
+		"particle_density": 1.0
 	}
 
 static func normalized_settings(raw_settings: Dictionary) -> Dictionary:
@@ -128,6 +131,9 @@ static func normalized_settings(raw_settings: Dictionary) -> Dictionary:
 	settings["hit_stop_enabled"] = bool(raw_settings.get("hit_stop_enabled", settings.get("hit_stop_enabled", true)))
 	settings["floating_text_enabled"] = bool(raw_settings.get("floating_text_enabled", settings.get("floating_text_enabled", true)))
 	settings["tutorial_enabled"] = bool(raw_settings.get("tutorial_enabled", settings.get("tutorial_enabled", true)))
+	settings["reduced_motion"] = bool(raw_settings.get("reduced_motion", false))
+	settings["flash_intensity"] = snappedf(clampf(float(raw_settings.get("flash_intensity", 1.0)), 0.0, 1.0), 0.25)
+	settings["particle_density"] = snappedf(clampf(float(raw_settings.get("particle_density", 1.0)), 0.0, 1.0), 0.25)
 	var completed_steps: Array = []
 	for step_id in raw_settings.get("tutorial_completed_steps", []):
 		var normalized_id: String = str(step_id)

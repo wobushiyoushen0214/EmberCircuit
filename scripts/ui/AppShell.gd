@@ -11,6 +11,9 @@ var active_page_id: String = ""
 var context_title: String = ""
 var context_subtitle: String = ""
 var reduced_motion: bool = false
+var flash_intensity: float = 1.0
+var particle_density: float = 1.0
+var motion_policy: Dictionary = ForgeMotionScript.resolve_policy({})
 
 var _owns_page_host: bool = true
 var _motion := ForgeMotionScript.new()
@@ -36,6 +39,7 @@ func mount_page(page: Control, page_id: String) -> bool:
 		return false
 	if page == active_page:
 		active_page_id = page_id
+		_apply_policy_to_page(page)
 		_motion.page_enter(page, reduced_motion)
 		page_changed.emit(page_id)
 		return true
@@ -49,6 +53,7 @@ func mount_page(page: Control, page_id: String) -> bool:
 	page.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	if _owns_page_host:
 		page.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_apply_policy_to_page(page)
 	_motion.page_enter(page, reduced_motion)
 	page_changed.emit(page_id)
 	return true
@@ -65,10 +70,7 @@ func _release_active_page() -> void:
 	var parent := page.get_parent()
 	if parent != null:
 		parent.remove_child(page)
-	if is_inside_tree():
-		page.queue_free()
-	else:
-		page.free()
+	page.queue_free()
 
 func set_page_host(host: Control) -> void:
 	if host == null or host == page_host:
@@ -85,6 +87,19 @@ func set_page_host(host: Control) -> void:
 func set_context(title: String, subtitle: String = "") -> void:
 	context_title = title
 	context_subtitle = subtitle
+
+func configure_effect_policy(settings: Dictionary) -> void:
+	motion_policy = ForgeMotionScript.resolve_policy(settings)
+	reduced_motion = bool(motion_policy.get("reduced_motion", false))
+	flash_intensity = float(motion_policy.get("flash_intensity", 1.0))
+	particle_density = float(motion_policy.get("particle_density", 1.0))
+	if active_page != null and is_instance_valid(active_page):
+		_apply_policy_to_page(active_page)
+
+func _apply_policy_to_page(page: Control) -> void:
+	if page == null or not is_instance_valid(page):
+		return
+	page.set_meta("forge_motion_policy", motion_policy.duplicate(true))
 
 func request_back() -> void:
 	if not active_page_id.is_empty():

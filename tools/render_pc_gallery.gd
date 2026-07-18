@@ -26,9 +26,10 @@ func _run() -> void:
 	await _capture(scene, "00_welcome", Callable())
 	await _capture(scene, "00_welcome_720p", Callable(), DEFAULT_PC_SNAPSHOT_SIZE)
 	await _capture(scene, "01_character_select", func(main): main._on_new_run_pressed())
-	await _capture(scene, "01_character_select_720p", func(main): main._on_new_run_pressed(), DEFAULT_PC_SNAPSHOT_SIZE)
+	await _capture(scene, "01_character_720p", func(main): main._on_new_run_pressed(), DEFAULT_PC_SNAPSHOT_SIZE)
 	await _capture(scene, "01_character_select_wide", func(main): main._on_new_run_pressed(), WIDE_SNAPSHOT_SIZE)
 	await _capture(scene, "02_combat", func(main): main._on_character_selected("ember_exile"))
+	await _capture(scene, "02_combat_720p", func(main): main._on_character_selected("arc_tinker"), DEFAULT_PC_SNAPSHOT_SIZE)
 	await _capture(scene, "03_reward", func(main):
 		main._on_character_selected("ember_exile")
 		main.combat.phase = "won"
@@ -77,6 +78,10 @@ func _run() -> void:
 		main._on_character_selected("ember_exile")
 		_jump_to_node_type(main, "shop")
 	)
+	await _capture(scene, "06_shop_720p", func(main):
+		main._on_character_selected("ember_exile")
+		_jump_to_node_type(main, "shop")
+	, DEFAULT_PC_SNAPSHOT_SIZE)
 	await _capture(scene, "07_campfire", func(main):
 		main._on_character_selected("ember_exile")
 		_jump_to_node_type(main, "campfire")
@@ -97,12 +102,17 @@ func _run() -> void:
 	await _capture(scene, "09_compendium", func(main):
 		main._on_compendium_pressed()
 	)
+	await _capture(scene, "10_compendium_720p", func(main):
+		main._on_compendium_pressed()
+	, DEFAULT_PC_SNAPSHOT_SIZE)
 	await _capture(scene, "10_settings", func(main):
 		main._on_settings_pressed()
 	)
+	await _capture(scene, "09_settings_720p", func(main):
+		main._on_settings_pressed()
+	, DEFAULT_PC_SNAPSHOT_SIZE)
 	await _capture(scene, "11_combat_wide", func(main): main._on_character_selected("arc_tinker"), WIDE_SNAPSHOT_SIZE)
 	await _capture(scene, "12_combat_pyre", func(main): main._on_character_selected("pyre_ascetic"))
-	await _capture(scene, "13_combat_default_720p", func(main): main._on_character_selected("arc_tinker"), DEFAULT_PC_SNAPSHOT_SIZE)
 	await _capture(scene, "14_combat_action_720p", Callable(self, "_setup_combat_action_snapshot"), DEFAULT_PC_SNAPSHOT_SIZE, 0.16)
 	await _capture(scene, "15_treasure", func(main):
 		main._on_character_selected("ember_exile")
@@ -115,7 +125,7 @@ func _run() -> void:
 		main._on_shop_remove_card_pressed()
 	)
 	await _capture(scene, "17_run_complete", Callable(self, "_setup_run_complete_snapshot"))
-	await _capture(scene, "18_run_complete_720p", Callable(self, "_setup_run_complete_snapshot"), DEFAULT_PC_SNAPSHOT_SIZE)
+	await _capture(scene, "08_outcome_720p", Callable(self, "_setup_run_complete_snapshot"), DEFAULT_PC_SNAPSHOT_SIZE)
 	await _capture(scene, "29_defeat_720p", Callable(self, "_setup_defeat_snapshot"), DEFAULT_PC_SNAPSHOT_SIZE)
 	await _capture(scene, "19_chain_event_start", func(main):
 		main._on_character_selected("ember_exile")
@@ -155,6 +165,7 @@ func _run() -> void:
 	quit(0)
 
 func _capture(scene: PackedScene, name: String, setup: Callable, snapshot_size: Vector2i = SNAPSHOT_SIZE, settle_seconds: float = 0.55) -> void:
+	seed(0xEC018C)
 	var viewport := SubViewport.new()
 	viewport.size = snapshot_size
 	viewport.transparent_bg = false

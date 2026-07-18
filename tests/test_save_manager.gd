@@ -93,6 +93,7 @@ func _init() -> void:
 	_check(SaveManagerScript.delete_run(), "delete_run is idempotent when no run save exists")
 
 	var settings := {
+		"version": 1,
 		"audio_enabled": false,
 		"master_volume": 1.4,
 		"music_enabled": false,
@@ -101,7 +102,11 @@ func _init() -> void:
 		"hit_stop_enabled": true,
 		"floating_text_enabled": false,
 		"tutorial_enabled": false,
-		"tutorial_completed_steps": ["character_select", "combat_player", "character_select"]
+		"tutorial_completed_steps": ["character_select", "combat_player", "character_select"],
+		"reduced_motion": true,
+		"flash_intensity": 1.4,
+		"particle_density": -0.2,
+		"unknown_field": "must be removed"
 	}
 	_check(SaveManagerScript.save_settings(settings), "save_settings returns true")
 	var loaded_settings: Dictionary = SaveManagerScript.load_settings()
@@ -114,6 +119,13 @@ func _init() -> void:
 	_check(not bool(loaded_settings.get("floating_text_enabled", true)), "load_settings restores floating text toggle")
 	_check(not bool(loaded_settings.get("tutorial_enabled", true)), "load_settings restores tutorial toggle")
 	_check(loaded_settings.get("tutorial_completed_steps", []).size() == 2, "load_settings normalizes tutorial completed steps")
+	_check(int(loaded_settings.get("version", 0)) == 2, "load_settings migrates settings to schema v2")
+	_check(bool(loaded_settings.get("reduced_motion", false)), "load_settings restores reduced motion")
+	_check(is_equal_approx(float(loaded_settings.get("flash_intensity", 0.0)), 1.0), "load_settings clamps flash intensity")
+	_check(is_equal_approx(float(loaded_settings.get("particle_density", 0.0)), 0.0), "load_settings clamps particle density")
+	_check(not loaded_settings.has("unknown_field"), "load_settings drops unknown settings fields")
+	var snapped_settings: Dictionary = SaveManagerScript.normalized_settings({"flash_intensity": 0.62, "particle_density": 0.88})
+	_check(is_equal_approx(float(snapped_settings.get("flash_intensity", 0.0)), 0.5) and is_equal_approx(float(snapped_settings.get("particle_density", 0.0)), 1.0), "settings v2 snaps effect intensity to 0.25 steps")
 	_check(SaveManagerScript.save_settings(SaveManagerScript.default_settings()), "save_settings can restore defaults")
 
 	var profile := {

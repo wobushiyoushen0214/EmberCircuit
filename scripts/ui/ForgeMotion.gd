@@ -21,6 +21,20 @@ func scale(profile_id: String, fallback: float = 1.0) -> float:
 static func allows_continuous_motion(reduced_motion: bool) -> bool:
 	return not reduced_motion
 
+static func resolve_policy(settings: Dictionary) -> Dictionary:
+	var reduced_motion := bool(settings.get("reduced_motion", false))
+	var flash_intensity := snappedf(clampf(float(settings.get("flash_intensity", 1.0)), 0.0, 1.0), 0.25)
+	var particle_density := snappedf(clampf(float(settings.get("particle_density", 1.0)), 0.0, 1.0), 0.25)
+	return {
+		"reduced_motion": reduced_motion,
+		"flash_intensity": flash_intensity,
+		"particle_density": 0.0 if reduced_motion else particle_density,
+		"allows_translation": not reduced_motion,
+		"allows_scale": not reduced_motion,
+		"allows_opacity": true,
+		"allows_continuous_motion": not reduced_motion
+	}
+
 func page_enter(control: Control, reduced_motion: bool = false) -> void:
 	if control == null or not is_instance_valid(control):
 		return

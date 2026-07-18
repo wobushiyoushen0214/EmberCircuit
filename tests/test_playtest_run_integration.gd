@@ -270,12 +270,12 @@ func _run() -> void:
 	main.combat.phase = "lost"
 	main.combat.player["hp"] = 0
 	main._refresh_combat()
-	var failure_stage: Node = main.reward_row.find_child("PcDefeatExperience", true, false)
+	var failure_stage: Node = main.app_shell.active_page
 	var persistence_retry_button := failure_stage.find_child("DefeatCleanupRetryButton", true, false) as Button if failure_stage != null else null
 	var new_run_retry_button := failure_stage.find_child("DefeatRetryButton", true, false) as Button if failure_stage != null else null
 	_check(str(SaveManagerScript.load_run().get("run_id", "")) == retryable_run_id and not main._playtest_active_run().is_empty(), "failed defeat telemetry persistence preserves both the owned run save and retryable active telemetry")
 	_check(not main.last_terminal_persistence_error.is_empty() and persistence_retry_button != null and new_run_retry_button != null and new_run_retry_button.disabled, "defeat page exposes a visible persistence retry and blocks abandoning the recoverable save")
-	_check(main.last_combat_layout_overflow <= 0.0 and int(main.reward_scroll.get("vertical_scroll_mode")) == 0 and not main.reward_scroll.get_v_scroll_bar().visible, "retryable defeat storage error still fits the fixed 720p page without a system scrollbar")
+	_check(main.last_combat_layout_overflow <= 0.0 and main.app_shell.active_page_id == "outcome" and not main.page_scroll.visible, "retryable defeat storage error still uses the fixed 720p AppShell page")
 	_check(DirAccess.remove_absolute(ProjectSettings.globalize_path(blocked_telemetry_path)) == OK, "terminal telemetry failure fixture releases the telemetry target")
 	persistence_retry_button.pressed.emit()
 	_check(main.last_terminal_persistence_error.is_empty() and SaveManagerScript.load_run().is_empty() and main._playtest_active_run().is_empty(), "defeat persistence retry durably archives telemetry before deleting its owned save")
