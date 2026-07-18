@@ -935,3 +935,15 @@ jq empty data/cards/cards.json data/enemies/enemies.json data/relics/relics.json
 - 页面统一复用 `ForgeTheme`，保留 `EmberMapView`、`PcEventExperience`、`PcCampfireExperience`、`RewardActionColumn` 等旧节点名和 typed signal 表面。
 - 事件禁用原因、商店买不起/售罄/药水槽满、篝火 44px 热区、奖励金币收据与卡/遗物/药水阶段均有结构断言。
 - 严格 TDD 先红后绿；路由房间、地图、视觉边界、运行流程和全部 `tests/test_*.gd` 均通过。Main 旧编排暂不删除，挂载替换留在下一批以隔离事务风险。
+
+## 2026-07-18：018C 结算、设置、图鉴与全页面验收
+
+- 新增 `OutcomePage/OutcomeStage`、`SettingsPage` 和 `CompendiumPage` 并挂入真实 `AppShell`；`Main.gd` 只生成 VM、连接 signal 和保留终局状态写入，旧胜败/图鉴视觉构造代码已删除。
+- 胜利 receipt → telemetry → 所属 run save 清理顺序不变；战败持久化失败继续显示 `DefeatCleanupRetryButton`、禁用重新开始，恢复后不重复永久奖励或遥测。
+- settings schema 升级到 v2，加入 `reduced_motion`、`flash_intensity`、`particle_density`，覆盖 v1 迁移、默认、0..1 clamp、0.25 步长、未知字段清理和独立原子保存。
+- 图鉴提供六分类 rail、搜索、筛选、排序和三种内容模板；未发现条目从 Main VM 开始即不传真实名称、正文、数值、图像或 tooltip。
+- `AppShell/ForgeMotion` 全局接入降低动态效果、闪光和粒子策略；焦点、44px 热区、对比度、Escape 返回、粒子/tween/节点预算均有结构测试。
+- 战斗页按视口动态分配纵向空间：手牌尺寸保持稳定，战斗舞台吸收 1280x720 与 1600x900 的剩余高度，底部控制条贴底；背景改用 `EXPAND_IGNORE_SIZE + STRETCH_KEEP_ASPECT_COVERED`，消除舞台增高后的横向溢出。
+- 生成 11 页 1280x720 区域金标并固定 `seed(0xEC018C)`；最终视觉报告 11/11 通过，最大平均 RGB 差 `0.0000246187`，最大差异像素比 `0`。
+- 真实 `Main.tscn` 600 帧 macOS Apple M4 采样通过：p95 `14.201ms`、1% low `66.88 FPS`、输入反馈 `20.432ms`、20 轮页面切换节点增量 `0`、循环 Tween `2`、普通/Boss burst `10/20`。Windows release 仍需在目标机执行同一 profiler 复测。
+- Godot editor import 与 28/28 `tests/test_*.gd` 全绿；严格日志扫描未发现脚本错误、断言失败或节点泄漏。

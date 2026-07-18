@@ -171,6 +171,7 @@ func _run() -> void:
 	_check(desktop_main.character_summary_label.text.contains("生命") and desktop_main.character_summary_label.text.contains("势能"), "desktop combat player summary remains readable")
 	_check(not desktop_main.status_label.text.contains("□") and not desktop_main.log_label.text.contains("□"), "desktop combat text avoids missing-glyph boxes")
 	_check(_control_above(desktop_main.hand_frame, desktop_main.controls_scroll), "desktop combat hand stays above bottom controls")
+	_check(_viewport_bottom_gap(desktop_main.controls_scroll, desktop_size.y) <= 12.0, "desktop combat hand dock consumes the viewport instead of leaving dead space below cards")
 	_check(_hand_cards_fit_hand_tray(desktop_main), "desktop combat rotated hand cards stay inside hand tray")
 	_check(_hand_card_rotation_readable(desktop_main, 3.3), "desktop combat hand card rotation stays readable")
 	_check(_hand_cards_form_fan(desktop_main), "desktop combat hand forms a restrained bottom fan")
@@ -225,6 +226,7 @@ func _run() -> void:
 	_check(default_pc_main.last_combat_layout_overflow <= 0.0, "default PC combat fits 720p height budget")
 	_check(_control_above(default_pc_main.battle_board_panel, default_pc_main.hand_frame), "default PC battle stage stays above the hand tray")
 	_check(_control_above(default_pc_main.hand_frame, default_pc_main.controls_scroll), "default PC combat hand stays above bottom controls")
+	_check(_viewport_bottom_gap(default_pc_main.controls_scroll, default_pc_size.y) <= 12.0, "default PC combat hand dock stays anchored to the viewport bottom")
 	_check(_hand_cards_fit_hand_tray(default_pc_main), "default PC rotated hand cards stay inside hand tray")
 	_check(_hand_card_rotation_readable(default_pc_main, 3.3), "default PC hand card rotation stays readable")
 	_check(_hand_cards_form_fan(default_pc_main), "default PC hand forms a restrained bottom fan")
@@ -337,15 +339,14 @@ func _run() -> void:
 	defeat_pc_main._refresh_combat()
 	await process_frame
 	await process_frame
-	var defeat_stage := defeat_pc_main.reward_row.get_node_or_null("PcDefeatExperience") as PanelContainer
+	var defeat_stage := defeat_pc_main.app_shell.active_page as PanelContainer
 	var defeat_scene := defeat_stage.find_child("DefeatScene", true, false) as Control if defeat_stage != null else null
 	var defeat_summary := defeat_stage.find_child("DefeatSummary", true, false) as Control if defeat_stage != null else null
 	var defeat_actions := defeat_stage.find_child("DefeatActions", true, false) as Control if defeat_stage != null else null
-	_check(defeat_stage != null and defeat_pc_main.reward_row.get_child_count() == 1, "default PC defeat uses one complete outcome stage")
-	_check(int(defeat_pc_main.page_scroll.get("vertical_scroll_mode")) == 0 and int(defeat_pc_main.reward_scroll.get("vertical_scroll_mode")) == 0, "default PC defeat does not expose page or reward scrolling")
-	_check(not defeat_pc_main.page_scroll.get_v_scroll_bar().visible and not defeat_pc_main.reward_scroll.get_v_scroll_bar().visible, "default PC defeat hides system scrollbars")
+	_check(defeat_stage != null and defeat_pc_main.app_shell.active_page_id == "outcome", "default PC defeat uses one complete full-screen outcome stage")
+	_check(defeat_pc_main.app_shell.visible and not defeat_pc_main.page_scroll.visible, "default PC defeat replaces the legacy page with AppShell")
 	_check(not defeat_pc_main.controls_scroll.visible and not defeat_pc_main.title_label.visible and not defeat_pc_main.log_label.visible and not defeat_pc_main.character_frame.visible, "default PC defeat removes legacy chrome and duplicate bottom actions")
-	_check(_control_inside_viewport(defeat_pc_main.reward_scroll, default_pc_size) and _control_inside_vertical(defeat_stage, defeat_pc_main.reward_scroll), "default PC defeat stage stays inside the 720p reward viewport")
+	_check(_control_inside_viewport(defeat_stage, default_pc_size), "default PC defeat stage stays inside the 720p viewport")
 	_check(_control_inside_vertical(defeat_scene, defeat_stage) and _control_inside_horizontal(defeat_scene, defeat_stage), "default PC defeat battle scene stays inside its stage")
 	_check(_control_inside_vertical(defeat_summary, defeat_stage) and _control_inside_horizontal(defeat_summary, defeat_stage), "default PC defeat summary stays inside its stage")
 	_check(_control_inside_vertical(defeat_actions, defeat_stage) and _control_inside_horizontal(defeat_actions, defeat_stage), "default PC defeat actions stay inside its stage")
@@ -449,10 +450,11 @@ func _run() -> void:
 	_check(default_pc_main.last_run_completion_art_loaded, "default PC completion view loads ending art")
 	_check(default_pc_main.last_run_completion_action_count >= 3, "default PC completion view keeps ending actions visible")
 	_check(default_pc_main.last_combat_layout_overflow <= 0.0, "default PC completion view fits 720p height budget")
-	_check(_visible_children_fit_horizontally(default_pc_main.root_box, default_pc_size.x), "default PC completion visible sections fit width")
-	_check(_control_above(default_pc_main.reward_scroll, default_pc_main.controls_scroll), "default PC completion reward panel stays above bottom controls")
-	var completion_actions := default_pc_main.reward_row.get_node_or_null("RunCompletionPanel/RunCompletionActions") as Control
-	_check(_control_inside_vertical(completion_actions, default_pc_main.reward_scroll), "default PC completion actions stay inside reward viewport")
+	var completion_page := default_pc_main.app_shell.active_page as Control
+	_check(default_pc_main.app_shell.active_page_id == "outcome" and _control_inside_viewport(completion_page, default_pc_size), "default PC completion page fits the full-screen AppShell viewport")
+	_check(default_pc_main.app_shell.visible and not default_pc_main.page_scroll.visible, "default PC completion removes the legacy page chrome")
+	var completion_actions := completion_page.find_child("RunCompletionActions", true, false) as Control if completion_page != null else null
+	_check(_control_inside_vertical(completion_actions, completion_page), "default PC completion actions stay inside outcome page")
 
 	main.free()
 	host.free()
@@ -606,6 +608,11 @@ func _control_bottom_fits(control: Control, viewport_height: float) -> bool:
 		push_error("Vertical overflow: %s rect=%s viewport_height=%s" % [control.name, str(rect), str(viewport_height)])
 		return false
 	return true
+
+func _viewport_bottom_gap(control: Control, viewport_height: float) -> float:
+	if control == null or not control.visible:
+		return INF
+	return maxf(0.0, viewport_height - control.get_global_rect().end.y)
 
 func _control_inside_viewport(control: Control, viewport_size: Vector2) -> bool:
 	if control == null or not control.visible:
