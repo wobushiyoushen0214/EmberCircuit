@@ -1,0 +1,3 @@
+{"file":".trellis/tasks/delivery-batch-020-competent-campaign-strategy/02-competent-player-differential-verification/prd.md","reason":"验证 AC、gate、File Manifest 和禁止事项"}
+{"file":".trellis/tasks/delivery-batch-020-competent-campaign-strategy/01-strategy-contract-diagnostics/check.jsonl","reason":"确认前置策略契约已验证"}
+{"file":"tests/test_numerical_balance_matrix.gd","reason":"保护正式 256 rows 和 current-greedy 声明"}

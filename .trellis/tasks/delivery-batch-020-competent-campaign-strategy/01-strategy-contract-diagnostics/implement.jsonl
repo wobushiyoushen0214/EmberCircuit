@@ -1,0 +1,4 @@
+{"file":".trellis/audits/2026-07-19-post-019-strategy-rebaseline-delta-audit.md","reason":"固定 current-greedy 证据、策略差分边界和禁止改生产数值的范围"}
+{"file":"docs/09_NUMERICAL_TREE_AND_BALANCE.md","reason":"固定 paired seed、64/128/256 样本门和 AI/真人隔离"}
+{"file":"data/config/numerical_tree.json","reason":"只读取 campaign hard-gate 与正式矩阵，禁止写入"}
+{"file":"tests/test_balance_simulator.gd","reason":"复用 019 campaign schema、确定性与失败归因断言"}

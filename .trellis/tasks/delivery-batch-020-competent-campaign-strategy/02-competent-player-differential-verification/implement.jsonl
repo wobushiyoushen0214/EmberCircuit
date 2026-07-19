@@ -1,0 +1,5 @@
+{"file":".trellis/audits/2026-07-19-post-019-strategy-rebaseline-delta-audit.md","reason":"固定弱策略根因证据、差分 gate 和生产冻结边界"}
+{"file":".trellis/tasks/delivery-batch-020-competent-campaign-strategy/01-strategy-contract-diagnostics/prd.md","reason":"固定 strategy schema、遥测字段和默认兼容契约"}
+{"file":"docs/09_NUMERICAL_TREE_AND_BALANCE.md","reason":"固定正式矩阵、目标和 AI/真人隔离规则"}
+{"file":"tests/test_balance_simulator.gd","reason":"复用 existing route/reward/upgrade fixture 与 regression style"}
+{"file":"data/config/numerical_tree.json","reason":"读取 hard-gate 和正式 rows；禁止修改"}

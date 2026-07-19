@@ -1,0 +1,3 @@
+{"file":".trellis/tasks/delivery-batch-020-competent-campaign-strategy/01-strategy-contract-diagnostics/prd.md","reason":"核对 AC、File Manifest、禁止事项和自检命令"}
+{"file":"tests/test_numerical_balance_matrix.gd","reason":"确认正式 256 matrix 仍冻结且策略声明未被改写"}
+{"file":".trellis/delivery-state.md","reason":"确认 REQ 状态和本批范围一致"}

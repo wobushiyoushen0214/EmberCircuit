@@ -4,32 +4,32 @@ stage_state:
   state: S8_RUN_LOG
   loop_mode: L3
   audit_scope: delta
-  current_round: 6
+  current_round: 1
   max_rounds: 6
   open_gaps: 8
-  tasks_created: 6
-  tasks_completed: 4
-  carry_over: 3
+  tasks_created: 2
+  tasks_completed: 0
+  carry_over: 0
   critical_review_issues: 0
-  next_legal_action: request a new candidate-ladder rebaseline decision after merging the controlled-pause evidence
+  next_legal_action: implement 020-01 in an isolated worktree
   stop_conditions:
-    - Batch 019 frozen candidates exhausted without a selected step
+    - none
 ---
 
 loop_mode: L3
-current_round: 6
-next_loop_recommendation: rebaseline-required
-carry_over: 3
+current_round: 1
+next_loop_recommendation: continue-next-batch
+carry_over: 0
 
 ## 基线
 
 - source_requirements: `docs/00_MASTER_PLAN.md`（由 `docs/01-08` 细化）
 - mvp_baseline_commit: `2e3e857`
-- last_audited_commit: `df098ef`（018D 合并后数值快照修正）
+- last_audited_commit: `585cc34`（019 归因契约与候选停机证据合并后）
 - loop_mode: `L3`
-- current_round: `6`
+- current_round: `1`
 - max_rounds: `6`
-- current_batch_id: `delivery-batch-019-campaign-pressure-rebaseline`（019-01 完成；019-02 受控暂停；019-03 取消）
+- current_batch_id: `delivery-batch-020-competent-campaign-strategy`（策略重基线；生产数值冻结）
 
 ## 需求状态
 
@@ -37,26 +37,29 @@ carry_over: 3
 | --- | --- | --- | --- | --- | --- | --- |
 | REQ-001 | DONE | `scripts/combat/CombatState.gd` | `tests/test_combat_core.gd` | none | 3 | 0 |
 | REQ-002 | DONE | `scripts/main/Main.gd`, `scripts/map/MapGenerator.gd`, `data/config/level_tree.json` | `tests/test_run_flow.gd`, `tests/test_map_generator.gd`, `tests/test_map_view.gd` | none | 3 | 0 |
-| REQ-003 | PARTIAL | `data/cards/cards.json`, `data/enemies/enemies.json`, `data/config/monster_scaling.json`, `scripts/tools/NumericalTreeAuditor.gd`, `scripts/tools/NumericalPressureMetrics.gd`, `scripts/tools/BalanceSimulator.gd`, `data/config/numerical_tree.json` | `tests/test_act1_rebaseline.gd`, `tests/test_numerical_pressure_metrics.gd`, `tests/test_numerical_tree_auditor.gd`, `tests/test_balance_simulator.gd`, `tests/test_numerical_balance_matrix.gd`, `tests/test_act2_act3_rebaseline.gd` | 019-01 归因契约完成；019-02 的 R1/R2 方向门失败，R2-A/B 静态门失败，需重规划候选 | 6 | 0 |
-| REQ-004 | PARTIAL | `data/config/player.json`, `data/config/progression_systems.json`, `data/cards/cards.json`, `scripts/main/Main.gd`, `scripts/tools/BalanceSimulator.gd` | `tests/test_act1_rebaseline.gd`, `tests/test_progression_systems.gd`, `tests/test_combat_core.gd`, `tests/test_run_flow.gd`, `tests/test_balance_card_telemetry.gd`, `tests/test_balance_simulator.gd` | 已按角色/挑战/章节输出失败归因；无候选通过，角色基础数值仍冻结 | 6 | 1 |
-| REQ-005 | PARTIAL | `data/enemies/enemies.json`, `data/encounters/encounters.json`, `data/config/monster_scaling.json`, `scripts/combat/CombatState.gd`, `scripts/tools/NumericalTreeAuditor.gd`, `scripts/tools/BalanceSimulator.gd`, `scripts/main/Main.gd` | `tests/test_act1_rebaseline.gd`, `tests/test_combat_core.gd`, `tests/test_balance_simulator.gd`, `tests/test_numerical_tree_auditor.gd`, `tests/test_run_flow.gd`, `tests/test_act2_act3_rebaseline.gd` | 归因门完成；R2-A 暴露候选与 `null_workshop` HP 下限冲突，生产敌人数值已回滚 | 6 | 1 |
+| REQ-003 | PARTIAL | `data/cards/cards.json`, `data/enemies/enemies.json`, `data/config/monster_scaling.json`, `scripts/tools/NumericalTreeAuditor.gd`, `scripts/tools/NumericalPressureMetrics.gd`, `scripts/tools/BalanceSimulator.gd`, `data/config/numerical_tree.json` | `tests/test_act1_rebaseline.gd`, `tests/test_numerical_pressure_metrics.gd`, `tests/test_numerical_tree_auditor.gd`, `tests/test_balance_simulator.gd`, `tests/test_numerical_balance_matrix.gd`, `tests/test_act2_act3_rebaseline.gd` | 019 归因完成但候选停机；020 先建立 competent-player-v1 差分，生产数值和正式矩阵继续冻结 | 1 | 0 |
+| REQ-004 | PARTIAL | `data/config/player.json`, `data/config/progression_systems.json`, `data/cards/cards.json`, `scripts/main/Main.gd`, `scripts/tools/BalanceSimulator.gd` | `tests/test_act1_rebaseline.gd`, `tests/test_progression_systems.gd`, `tests/test_combat_core.gd`, `tests/test_run_flow.gd`, `tests/test_balance_card_telemetry.gd`, `tests/test_balance_simulator.gd` | 020 增加策略版本、决策遥测和角色/牌组感知 profile；角色基础数值仍冻结 | 1 | 0 |
+| REQ-005 | PARTIAL | `data/enemies/enemies.json`, `data/encounters/encounters.json`, `data/config/monster_scaling.json`, `scripts/combat/CombatState.gd`, `scripts/tools/NumericalTreeAuditor.gd`, `scripts/tools/BalanceSimulator.gd`, `scripts/main/Main.gd` | `tests/test_act1_rebaseline.gd`, `tests/test_combat_core.gd`, `tests/test_balance_simulator.gd`, `tests/test_numerical_tree_auditor.gd`, `tests/test_run_flow.gd`, `tests/test_act2_act3_rebaseline.gd` | 020 不改敌人；先用 competent profile 证明路线/奖励决策不是主因后才允许下一次数值候选 | 1 | 0 |
 | REQ-006 | PARTIAL | `data/cards/cards.json`, `data/relics/relics.json`, `data/events/events.json`, `data/config/art_assets.json`, `assets/art/generated/` | `tests/test_data_integrity.gd`, `tests/test_art_asset_auditor.gd` | batch-014 delivered 8 relic PNGs; next: replace remaining legacy event/enemy art | L3-5 | 0 |
 | REQ-007 | DONE | `scripts/core/SaveManager.gd`, `scripts/main/Main.gd`, `data/config/achievements.json` | v5 奖励事务、原子恢复、错节点/坏 ID/金币回滚和旧战斗 HP 隔离测试 | none | L3-post | 0 |
 | REQ-008 | PARTIAL | `scripts/ui/AppShell.gd`, `scripts/ui/ForgeTheme.gd`, `scripts/ui/ForgeMotion.gd`, `scripts/ui/components/`, `scripts/ui/pages/`, `scripts/main/Main.gd`, `assets/art/generated/`, `assets/fonts/NotoSansSC-Variable.ttf` | `tests/test_forge_ui_foundation.gd`, `tests/test_welcome_character_pages.gd`, `tests/test_ember_forge_route_rooms.gd`, `tests/test_ui_outcome_settings_compendium.gd`, `tests/test_visual_bounds.gd`, `tools/render_pc_gallery.gd`, `/tmp/ember018d-visual.json`, `/tmp/ember018d-performance.json` | 018D 已将 Map/Event/Shop/Campfire/Reward 真实挂入 Main→AppShell，并删除五页旧 PC 视觉树；仍保留生产内容美术与更深玩法扩展缺口 | L3-5 | 0 |
-| REQ-009 | PARTIAL | `scripts/core/PlaytestTelemetry.gd`, `scripts/core/PlaytestEvidenceGate.gd`, `tools/merge_playtest_reports.gd`, `scripts/tools/BalanceSimulator.gd`, `data/config/numerical_tree.json` | `tests/test_act1_rebaseline.gd`, `tests/test_playtest_evidence_gate.gd`, `tests/test_balance_simulator.gd`, `tests/test_numerical_balance_matrix.gd` | AI 归因 schema 与 128 eligibility 已完成；无 selected step，未生成 019 正式 256；真人难度仍等待合格样本 | 6 | 0 |
+| REQ-009 | PARTIAL | `scripts/core/PlaytestTelemetry.gd`, `scripts/core/PlaytestEvidenceGate.gd`, `tools/merge_playtest_reports.gd`, `scripts/tools/BalanceSimulator.gd`, `data/config/numerical_tree.json` | `tests/test_act1_rebaseline.gd`, `tests/test_playtest_evidence_gate.gd`, `tests/test_balance_simulator.gd`, `tests/test_numerical_balance_matrix.gd` | 020 增加 strategy differential report；128 仍只作 AI 诊断，真人 cohort 继续隔离 | 1 | 0 |
 | REQ-010 | MISSING | none | none | proposed: build-grid-tactics-mode | 1 | 2 |
 | REQ-011 | PARTIAL | `export_presets.cfg`, `project.godot`, `packaging/PLAYTEST_README_ZH.txt` | alpha.8 Windows PE32+ x86_64 embedded-PCK、精确 PCK 启动、版本和压缩完整性通过 | next: native Windows matrix, commercial signing, installer and Steam integration | L3-post | 0 |
 | REQ-012 | DONE | `tests/`, `tools/render_pc_gallery.gd`, `tools/verify_ui_visual_regression.gd`, `tools/profile_ui_performance.gd`, `tests/fixtures/ui_visual_contracts.json`, `tests/golden/ui_720p/` | 28/28 strict-log regression；11/11 1280x720 区域金标；真实 Main 600 帧 profiler；focus/motion/44px/节点增量门 | none；Windows release 目标机采样归入 REQ-011 发布门 | L3-5 | 0 |
 
 ## 当前批次
 
-- batch_id: `delivery-batch-019-campaign-pressure-rebaseline`（受控暂停：019-01 完成，019-02 stop condition，019-03 取消）
-- scope: `建立完整跑团失败归因与跨章压力门，并对二三章敌人、奖励和经济执行配对重标定`
+- batch_id: `delivery-batch-020-competent-campaign-strategy`（已确认；策略重基线，不改生产数值）
+- scope: `建立可切换的 competent-player-v1 跑团策略、决策遥测和 128 paired differential report`
 - selected_reqs:
   - `REQ-003`
   - `REQ-004`
   - `REQ-005`
   - `REQ-009`
+- tasks:
+  - `020-01-strategy-contract-diagnostics`
+  - `020-02-competent-player-differential-verification`
 - excluded_this_round:
   - `REQ-006/008`: 内容资产、正式音频和演出不与高风险数值批次混合
   - `REQ-012`: 仅回归，不重新设计测试基础设施
@@ -66,7 +69,7 @@ carry_over: 3
 
 | 条目 | 原因 | 需要人工提供什么 | 起始轮次 |
 | --- | --- | --- | --- |
-| `delivery-batch-019-campaign-pressure-rebaseline` | R1/R2 未达四档目标；R2-A 新增 `null_workshop:encounter_hp_low`，R2-B 继承同一静态失败；PRD 禁止自创 R3 | 确认下一轮重新设计候选阶梯及其 File Manifest | 6 |
+| none | 020 的策略差分尚未运行；若差分门失败，必须停机而不是改生产数值 | 无；用户已确认继续策略重基线 | 1 |
 
 ## 人工决策
 
@@ -97,6 +100,7 @@ carry_over: 3
 - 2026-07-19: 018D 后 delta audit 发现 current-greedy 三章矩阵仍 12 格低胜率，64-seed 失败集中于第一章 Boss、iron_checkpoint、cinder_kennels；修正 07 文档漂移，等待确认 019 数值批次。
 - 2026-07-19: 用户明确回复“确认执行”，确认 `delivery-batch-019-campaign-pressure-rebaseline`；允许创建任务、隔离 worktree，并按严格 TDD 串行推进归因契约、二三章冻结候选重标定和 128/256 正式验证。
 - 2026-07-19: Batch 019-01 归因契约完成；019-02 穷尽冻结候选并触发 stop condition，所有未通过数值已回滚；019-03 因无 selected step 取消，正式 256 rows 保持不变。用户此前要求本阶段提交合并后暂停。
+- 2026-07-19: 用户确认继续执行策略重基线 Batch 020；新 loop 从第 1 轮开始，先实现 `competent-player-v1` 与决策遥测，默认 `current-greedy`、生产 JSON、正式 256 rows 和真人 cohort 均冻结。
 
 ## 预算快照
 
@@ -108,7 +112,7 @@ carry_over: 3
 
 ## 下一轮建议
 
-- action: `rebaseline-required`
-- reason: `019-01 已完成，但冻结候选无一通过方向与静态硬门；必须先重新规划候选边界，禁止在当前批次发明 R3。`
-- next_batch: `none`（等待新的数值候选范围确认）。
+- action: `continue-next-batch`
+- reason: `020-01/020-02 已创建；先完成策略契约和 competent-player-v1 差分，再决定是否允许下一轮生产数值候选。`
+- next_batch: `delivery-batch-020-competent-campaign-strategy`。
 - next_audit_scope: `delta`
