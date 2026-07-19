@@ -71,6 +71,9 @@ func _run() -> void:
 	_check(main.combat.phase == "won" and reward_card_ids_after_load == reward_card_ids_before_save, "loading from the reward page restores the same unresolved card offers")
 	_check(reward_relic_ids_after_load == reward_relic_ids_before_save and reward_potion_ids_after_load == reward_potion_ids_before_save, "loading from the reward page restores the same item offers")
 	_check([main.card_reward_done, main.relic_reward_done, main.potion_reward_done] == reward_flags_before_save, "loading from the reward page restores all reward completion flags")
+	var restored_reward_page := main.app_shell.active_page as Control
+	var restored_continue := restored_reward_page.find_child("RewardContinueButton", true, false) as Button if restored_reward_page != null else null
+	_check(main.app_shell.active_page_id == "reward" and restored_reward_page != null and restored_continue != null and restored_continue.disabled, "loading an unresolved reward transaction remounts RewardPage with the continue gate closed")
 	_check(main.run_gold == reward_gold_before_save, "loading a reward transaction does not grant combat gold twice")
 	_check(bool(SaveManagerScript.load_run().get("combat_reward_state", {}).get("active", false)), "load migration writeback keeps the active reward transaction resumable")
 	var malformed_reward_save: Dictionary = reward_save.duplicate(true)
@@ -108,6 +111,11 @@ func _run() -> void:
 		_check(bool(SaveManagerScript.load_run().get("combat_reward_state", {}).get("card_reward_done", false)), "a partially processed reward transaction persists the completed card choice")
 		main._on_load_pressed()
 		_check(main.card_reward_done and main.run_deck_ids.count(reward_id) == reward_id_count_before + 1, "loading a partially processed reward does not duplicate the acquired card")
+		var partial_reward_page := main.app_shell.active_page as Control
+		var restored_card_button := partial_reward_page.find_child("RewardCard_%s" % reward_id, true, false) as Button if partial_reward_page != null else null
+		var partial_continue := partial_reward_page.find_child("RewardContinueButton", true, false) as Button if partial_reward_page != null else null
+		var expected_continue_disabled: bool = not main._combat_reward_can_continue()
+		_check(main.app_shell.active_page_id == "reward" and restored_card_button != null and restored_card_button.disabled and partial_continue != null and partial_continue.disabled == expected_continue_disabled, "partially restored RewardPage keeps the claimed card disabled and mirrors the exact continue gate")
 	var fixture_relic_id := "cinder_lens"
 	var fixture_potion_id := "guard_tonic"
 	var fixture_relic: Dictionary = main._relic_by_id(fixture_relic_id)

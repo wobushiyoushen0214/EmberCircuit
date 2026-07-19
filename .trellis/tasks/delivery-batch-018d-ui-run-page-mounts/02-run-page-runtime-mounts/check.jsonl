@@ -1,0 +1,5 @@
+{"file":".trellis/tasks/delivery-batch-018d-ui-run-page-mounts/02-run-page-runtime-mounts/prd.md","reason":"核对 AC-05 至 09、adapter 错误路径和禁止事项"}
+{"file":"tests/test_run_flow.gd","reason":"保护地图、事件、商店、篝火、奖励和宝箱完整事务"}
+{"file":"tests/test_playtest_run_integration.gd","reason":"保护 reward v5 部分领取、保存恢复、终局和遥测兼容"}
+{"file":"tests/test_map_view.gd","reason":"保护 MapView 选择/预览 signal 次数与详情状态"}
+{"file":"scripts/main/Main.gd","reason":"使用隔离 HOME 的 editor parse 防止 Godot 缓存掩盖未定义 helper 或跨 AC 预写调用"}

@@ -1,0 +1,4 @@
+{"file":".trellis/audits/2026-07-17-ember-spire-ui-reference.md","reason":"固定暗炉材质、动效、粒子、对比度和性能边界"}
+{"file":".trellis/audits/2026-07-18-018d-run-page-mount-evidence-pack.md","reason":"固定旧视觉删除点、回滚触发和五页验证范围"}
+{"file":"tests/fixtures/ui_visual_contracts.json","reason":"沿用 11 页区域合同和不放宽阈值规则"}
+{"file":".trellis/tasks/delivery-batch-018c-ui-outcome-accessibility-validation.prd.md","reason":"复用 fixed seed、golden、600-frame、node/tween/input 验收门"}

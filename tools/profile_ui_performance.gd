@@ -9,6 +9,8 @@ const PERSISTENT_PARTICLE_LIMIT := 60
 const NORMAL_BURST_PARTICLE_LIMIT := 18
 const BOSS_BURST_PARTICLE_LIMIT := 30
 const LOOPING_TWEEN_LIMIT := 2
+const REQUIRED_ROUTE_PAGE_IDS := ["map", "event", "shop", "campfire", "reward"]
+const REQUIRED_ROUTE_SWITCH_ROUNDS := 20
 
 func _init() -> void:
 	_profile.call_deferred()
@@ -43,6 +45,13 @@ static func evaluate_snapshot(snapshot: Dictionary) -> Dictionary:
 		issues.append("looping_tweens")
 	if int(snapshot.get("node_delta_after_20_switches", 0)) != 0:
 		issues.append("node_leak")
+	var route_page_ids: Array = snapshot.get("route_page_ids", [])
+	for required_page_id in REQUIRED_ROUTE_PAGE_IDS:
+		if not route_page_ids.has(required_page_id):
+			issues.append("route_page_coverage")
+			break
+	if int(snapshot.get("route_switch_rounds", 0)) != REQUIRED_ROUTE_SWITCH_ROUNDS:
+		issues.append("route_switch_rounds")
 	return {
 		"passed": issues.is_empty(),
 		"p95_ms": p95_ms,
@@ -54,7 +63,9 @@ static func evaluate_snapshot(snapshot: Dictionary) -> Dictionary:
 		"normal_burst_particles": normal_burst_particles,
 		"boss_burst_particles": boss_burst_particles,
 		"looping_tweens": int(snapshot.get("looping_tweens", 0)),
-		"node_delta_after_20_switches": int(snapshot.get("node_delta_after_20_switches", 0))
+		"node_delta_after_20_switches": int(snapshot.get("node_delta_after_20_switches", 0)),
+		"route_page_ids": route_page_ids.duplicate(),
+		"route_switch_rounds": int(snapshot.get("route_switch_rounds", 0))
 	}
 
 static func _percentile(sorted_values: Array[float], ratio: float) -> float:
@@ -83,28 +94,24 @@ func _profile() -> void:
 	viewport.add_child(main)
 	await process_frame
 	await process_frame
-	var baseline_node_count := _node_count(main)
 	var input_latency: Array[float] = []
-	var input_started := Time.get_ticks_usec()
-	main._on_settings_pressed()
-	await process_frame
-	input_latency.append(float(Time.get_ticks_usec() - input_started) / 1000.0)
-	main._on_close_settings_pressed()
+	main._start_new_run("arc_tinker")
 	await process_frame
 	await process_frame
-	for _switch_index in range(20):
-		main._on_settings_pressed()
-		await process_frame
-		main._on_close_settings_pressed()
-		await process_frame
-		main._on_compendium_pressed()
-		await process_frame
-		main._on_close_compendium_pressed()
-		await process_frame
+	var route_models := _route_page_models(main)
+	var visited_route_page_ids: Array[String] = []
+	await _mount_route_page_cycle(main, route_models, visited_route_page_ids, input_latency)
+	await create_timer(0.35).timeout
+	await process_frame
+	await process_frame
+	var baseline_node_count := _node_count(main)
+	for _switch_index in range(REQUIRED_ROUTE_SWITCH_ROUNDS):
+		await _mount_route_page_cycle(main, route_models, visited_route_page_ids, input_latency)
+	await create_timer(0.35).timeout
 	await process_frame
 	await process_frame
 	var node_delta_after_switches := _node_count(main) - baseline_node_count
-	main._on_character_selected("arc_tinker")
+	main._start_new_run("arc_tinker")
 	await process_frame
 	await process_frame
 	await create_timer(0.4).timeout
@@ -125,7 +132,9 @@ func _profile() -> void:
 		"normal_burst_particles": int(burst_budgets.get("normal", 0)),
 		"boss_burst_particles": int(burst_budgets.get("boss", 0)),
 		"looping_tweens": _active_tween_count(),
-		"node_delta_after_20_switches": node_delta_after_switches
+		"node_delta_after_20_switches": node_delta_after_switches,
+		"route_page_ids": visited_route_page_ids,
+		"route_switch_rounds": REQUIRED_ROUTE_SWITCH_ROUNDS
 	}
 	var report := evaluate_snapshot(snapshot)
 	report["platform"] = OS.get_name()
@@ -134,6 +143,8 @@ func _profile() -> void:
 	report["viewport"] = [width, height]
 	report["warmup_frames"] = warmup
 	report["page_switch_rounds"] = 20
+	report["route_page_ids"] = visited_route_page_ids
+	report["route_switch_rounds"] = REQUIRED_ROUTE_SWITCH_ROUNDS
 	report["scene_sampled"] = "res://scenes/main/Main.tscn"
 	var output_path := str(options.get("output", "/tmp/embercircuit-ui-performance.json"))
 	var file := FileAccess.open(output_path, FileAccess.WRITE)
@@ -168,6 +179,53 @@ func _parse_options(arguments: PackedStringArray) -> Dictionary:
 		elif value.begins_with("--output="):
 			options["output"] = value.trim_prefix("--output=")
 	return options
+
+func _route_page_models(main) -> Dictionary:
+	var event_node := _first_route_node(main, "event")
+	var event: Dictionary = main._event_by_id(str(event_node.get("event_id", "")))
+	var shop_cards: Array = main._generate_card_rewards(3, "profile_shop_card")
+	var shop_relics: Array = main._generate_relic_rewards(2, "profile_shop_relic")
+	var shop_potions: Array = main._generate_potion_rewards(2, "profile_shop_potion")
+	main.shop_card_options = shop_cards
+	main.shop_relic_options = shop_relics
+	main.shop_potion_options = shop_potions
+	var campfire_node := _first_route_node(main, "campfire")
+	var reward_cards: Array = main._generate_card_rewards(3, "profile_reward_card")
+	main.reward_options = reward_cards
+	main.card_reward_done = false
+	main.relic_reward_done = true
+	main.potion_reward_done = true
+	main.combat_reward_gold = 20
+	return {
+		"map_preview_id": str(main._default_map_preview_node_id()),
+		"event": main._event_page_model(event, event_node, event.get("choices", [])),
+		"shop": main._shop_page_model("store"),
+		"campfire": main._campfire_page_model(campfire_node),
+		"reward": main._combat_reward_page_model()
+	}
+
+func _mount_route_page_cycle(main, models: Dictionary, visited_page_ids: Array[String], input_latency: Array[float]) -> void:
+	var transitions := [
+		["map", Callable(main, "_mount_map_page").bind(str(models.get("map_preview_id", "")))],
+		["event", Callable(main, "_mount_event_page").bind(models.get("event", {}))],
+		["shop", Callable(main, "_mount_shop_page").bind(models.get("shop", {}))],
+		["campfire", Callable(main, "_mount_campfire_page").bind(models.get("campfire", {}))],
+		["reward", Callable(main, "_mount_reward_page").bind(models.get("reward", {}))]
+	]
+	for transition in transitions:
+		var page_id := str(transition[0])
+		var started := Time.get_ticks_usec()
+		(transition[1] as Callable).call()
+		await process_frame
+		input_latency.append(float(Time.get_ticks_usec() - started) / 1000.0)
+		if main.app_shell.active_page_id == page_id and not visited_page_ids.has(page_id):
+			visited_page_ids.append(page_id)
+
+func _first_route_node(main, node_type: String) -> Dictionary:
+	for raw_node in main.route_nodes:
+		if raw_node is Dictionary and str(raw_node.get("type", "")) == node_type:
+			return raw_node
+	return {}
 
 func _particle_count(node: Node) -> int:
 	var count := 1 if node is GPUParticles2D or node is CPUParticles2D else 0

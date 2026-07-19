@@ -1,0 +1,4 @@
+{"file":".trellis/tasks/delivery-batch-018d-ui-run-page-mounts/01-run-page-contract-completion/prd.md","reason":"核对 AC-018D-01 至 04、禁止事项和自检命令"}
+{"file":"tests/test_ember_forge_route_rooms.gd","reason":"保护五页公开结构、节点名、signal payload 和禁用边界"}
+{"file":"tests/test_ui_accessibility_motion.gd","reason":"保护 44px、focus、disabled 和 reduced-motion 契约"}
+{"file":"tests/test_ember_forge_route_rooms.gd","reason":"防御同帧重复 configure 时 queue_free 节点占名，保护动态按钮稳定节点名"}

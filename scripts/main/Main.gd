@@ -14,6 +14,11 @@ const CharacterSelectPageScript = preload("res://scripts/ui/pages/CharacterSelec
 const SettingsPageScript = preload("res://scripts/ui/pages/SettingsPage.gd")
 const CompendiumPageScript = preload("res://scripts/ui/pages/CompendiumPage.gd")
 const OutcomePageScript = preload("res://scripts/ui/pages/OutcomePage.gd")
+const MapPageScript = preload("res://scripts/ui/pages/MapPage.gd")
+const EventPageScript = preload("res://scripts/ui/pages/EventPage.gd")
+const CampfirePageScript = preload("res://scripts/ui/pages/CampfirePage.gd")
+const ShopExperienceScript = preload("res://scripts/ui/pages/ShopExperience.gd")
+const RewardPageScript = preload("res://scripts/ui/pages/RewardPage.gd")
 
 const ENEMY_ART_PATHS := {
 	"placeholder_soot_raider": "res://assets/art/generated/enemy_soot_raider_pc.png",
@@ -2587,7 +2592,14 @@ func _refresh() -> void:
 		status_label.visible = true
 	_refresh_screen_backdrop()
 	var terminal_outcome_open: bool = not deck_view_open and not profile_open and not tutorial_open and (run_completed or (combat != null and combat.phase == "lost"))
-	var menu_shell_active: bool = settings_open or compendium_open or terminal_outcome_open or ((welcome_open or character_select_open) and not profile_open and not tutorial_open)
+	var pc_run_page_shell_active: bool = false
+	if _is_pc_layout():
+		pc_run_page_shell_active = current_node_id.is_empty() and not available_node_ids.is_empty()
+		if not pc_run_page_shell_active and not current_node_id.is_empty():
+			pc_run_page_shell_active = ["event", "campfire", "shop", "treasure"].has(str(_current_node().get("type", "")))
+			if combat != null and combat.phase == "won":
+				pc_run_page_shell_active = true
+	var menu_shell_active: bool = settings_open or compendium_open or terminal_outcome_open or pc_run_page_shell_active or ((welcome_open or character_select_open) and not profile_open and not tutorial_open)
 	_set_menu_shell_active(menu_shell_active)
 	if profile_open:
 		_music_context("menu")
@@ -2903,7 +2915,7 @@ func _apply_pc_combat_chrome(reward_visible: bool) -> void:
 		if controls_row != null:
 			controls_row.visible = false
 		if reward_scroll != null:
-			reward_scroll.visible = true
+			reward_scroll.visible = app_shell == null or app_shell.active_page_id != "reward"
 			reward_scroll.set("vertical_scroll_mode", 0)
 		return
 	var immersive_combat: bool = _is_pc_layout() and not reward_visible
@@ -4115,7 +4127,8 @@ func _defeat_surviving_enemies() -> Array[Dictionary]:
 	return survivors
 
 func _refresh_map_choices() -> void:
-	_set_page_regions(true, false, true, false, false, true, false, false)
+	var use_map_page := _is_pc_layout()
+	_set_page_regions(true, false, not use_map_page, false, false, true, false, false)
 	_apply_map_layout_constraints()
 	_apply_pc_map_chrome()
 	run_label.text = "%s | %s | 挑战 %d | 地图选择 | 金币：%d | 生命：%d/%d | 牌组：%d 张 | 遗物：%s | 药水：%s" % [
@@ -4132,14 +4145,58 @@ func _refresh_map_choices() -> void:
 	status_label.text = "选择下一处节点。当前是分叉地图后端生成的路线；按钮只显示从当前节点可到达的下一层。"
 	feedback_label.visible = false
 	_hide_cinematic_prompt()
-	map_view.set_map_state(_map_graph_for_view(), available_node_ids, completed_node_ids, current_node_id)
+	if not use_map_page:
+		map_view.set_map_state(_map_graph_for_view(), available_node_ids, completed_node_ids, current_node_id)
 	_clear_container(potion_row)
 	_clear_container(enemy_row)
 	_clear_container(hand_row)
 	_clear_container(reward_row)
-	_update_map_preview(_default_map_preview_node_id())
+	var preview_node_id := _default_map_preview_node_id()
+	if use_map_page:
+		_mount_map_page(preview_node_id)
+	_update_map_preview(preview_node_id)
 	end_turn_button.disabled = true
 	_record_layout_metrics()
+
+func _map_page_model(preview_node_id: String) -> Dictionary:
+	var preview_node: Dictionary = _node_by_id(preview_node_id)
+	var successor_ids: Array[String] = _successor_node_ids(preview_node_id)
+	var successor_names: Array[String] = []
+	for successor_id in successor_ids:
+		var successor: Dictionary = _node_by_id(successor_id)
+		successor_names.append(
+			successor_id if successor.is_empty() else "%s [%s]" % [
+				successor.get("name", successor_id),
+				_node_type_display_name(str(successor.get("type", "")))
+			]
+		)
+	return {
+		"graph": _map_graph_for_view(),
+		"available_node_ids": available_node_ids.duplicate(),
+		"completed_node_ids": completed_node_ids.duplicate(true),
+		"current_node_id": current_node_id,
+		"preview_successor_ids": successor_ids,
+		"preview_title": "暂无可预览节点" if preview_node.is_empty() else "%s [%s]" % [preview_node.get("name", preview_node_id), _node_type_display_name(str(preview_node.get("type", "")))],
+		"preview_risk": "未知" if preview_node.is_empty() else _node_risk_summary(preview_node),
+		"preview_reward": "待确认" if preview_node.is_empty() else _node_reward_summary(preview_node),
+		"preview_description": "暂无节点说明。" if preview_node.is_empty() else _node_detail_text(preview_node),
+		"preview_successors": successor_names,
+		"risk_summary": "未知" if preview_node.is_empty() else _node_risk_summary(preview_node),
+		"available_width": _layout_viewport_size().x,
+		"available_height": _layout_viewport_size().y
+	}
+
+func _mount_map_page(preview_node_id: String) -> void:
+	var page = MapPageScript.new()
+	page.configure(_map_page_model(preview_node_id))
+	page.node_selected.connect(_on_map_node_pressed)
+	page.node_previewed.connect(_on_map_node_previewed)
+	var legacy_map_view := map_view
+	if legacy_map_view != null and legacy_map_view.get_parent() == map_scroll:
+		map_scroll.remove_child(legacy_map_view)
+		legacy_map_view.queue_free()
+	map_view = page.map_view
+	app_shell.mount_page(page, "map")
 
 func _refresh_deck_view() -> void:
 	_set_page_regions(true, false, false, false, false, true, false, true)
@@ -6141,6 +6198,8 @@ func _refresh_combat() -> void:
 		return
 	if combat.phase == "lost" and not deck_view_open and not profile_open and not settings_open and not compendium_open:
 		_set_menu_shell_active(true)
+	if combat.phase == "won" and _is_pc_layout() and not deck_view_open and not profile_open and not settings_open and not compendium_open:
+		_set_menu_shell_active(true)
 	_record_playtest_combat_terminal()
 	if save_button != null:
 		save_button.disabled = _run_save_blocked()
@@ -6157,7 +6216,8 @@ func _refresh_combat() -> void:
 		_music_context("combat")
 	var hand_visible: bool = not reward_visible
 	var board_visible: bool = not reward_visible
-	_set_page_regions(true, board_visible, false, board_visible, board_visible, true, hand_visible, reward_visible)
+	var legacy_reward_visible: bool = reward_visible and not (_is_pc_layout() and combat.phase == "won")
+	_set_page_regions(true, board_visible, false, board_visible, board_visible, true, hand_visible, legacy_reward_visible)
 	_apply_combat_layout_constraints(reward_visible)
 	status_label.text = "回合 %d | 阶段：%s | 资源见 HUD，下方显示对手行动。" % [
 		combat.turn,
@@ -6732,7 +6792,8 @@ func _refresh_campfire(node: Dictionary) -> void:
 	last_campfire_action_count = 0
 	last_campfire_upgrade_candidate_count = 0
 	last_campfire_reveal_animation_count = 0
-	_set_page_regions(true, false, false, false, false, true, false, true)
+	var use_campfire_page := _is_pc_layout()
+	_set_page_regions(true, false, false, false, false, true, false, not use_campfire_page)
 	_apply_reward_page_layout_constraints(156.0, 204.0)
 	_apply_pc_story_room_chrome()
 	status_label.text = "篝火：选择恢复生命或升级一张牌。升级后的牌会在名称后显示 +。"
@@ -6744,11 +6805,8 @@ func _refresh_campfire(node: Dictionary) -> void:
 	_clear_container(reward_row)
 	log_label.text = _route_preview()
 	end_turn_button.disabled = true
-	if _is_pc_layout():
-		if campfire_upgrade_selection_open:
-			_add_pc_campfire_forge_selection()
-		else:
-			_add_pc_campfire_experience(node)
+	if use_campfire_page:
+		_mount_campfire_page(_campfire_page_model(node))
 		_record_layout_metrics()
 		return
 
@@ -6792,6 +6850,53 @@ func _refresh_campfire(node: Dictionary) -> void:
 		reward_row.add_child(no_upgrade)
 	_record_layout_metrics()
 
+func _campfire_page_model(node: Dictionary) -> Dictionary:
+	last_campfire_art_path = _room_scene_art_path("campfire")
+	last_campfire_art_loaded = _asset_loaded(last_campfire_art_path)
+	var public_candidates: Array = []
+	for candidate in _campfire_upgrade_candidates():
+		var card: Dictionary = candidate.get("card", {})
+		public_candidates.append({
+			"deck_index": int(candidate.get("deck_index", -1)),
+			"id": str(candidate.get("entry_id", "")),
+			"name": str(card.get("name", candidate.get("entry_id", "卡牌"))),
+			"description": _upgrade_preview_text(card),
+			"art_path": _card_art_path(card)
+		})
+	var mode := "forge" if campfire_upgrade_selection_open else "arrival"
+	last_campfire_action_count = 2 if mode == "arrival" else 1
+	last_campfire_upgrade_candidate_count = public_candidates.size()
+	last_campfire_card_layout_count = public_candidates.size() if mode == "forge" else 0
+	last_campfire_card_art_node_count = last_campfire_card_layout_count
+	last_campfire_button_style_count = last_campfire_action_count + last_campfire_card_layout_count
+	last_campfire_reveal_animation_count = 1 + (last_campfire_action_count if mode == "arrival" else public_candidates.size())
+	return {
+		"mode": mode,
+		"node": {"id": str(node.get("id", "")), "name": str(node.get("name", "废墟锻炉"))},
+		"art_path": last_campfire_art_path,
+		"hp": run_hp,
+		"max_hp": run_max_hp,
+		"heal_percent": _campfire_heal_percent(),
+		"upgrade_candidates": public_candidates
+	}
+
+func _mount_campfire_page(model: Dictionary) -> void:
+	var page = CampfirePageScript.new()
+	page.configure(model)
+	page.rest_requested.connect(_on_campfire_heal_pressed)
+	page.forge_requested.connect(_on_campfire_forge_pressed)
+	page.upgrade_card_requested.connect(_on_campfire_page_upgrade_requested)
+	page.forge_back_requested.connect(_on_campfire_forge_back_pressed)
+	page.leave.connect(_advance_to_next_node)
+	app_shell.mount_page(page, "campfire")
+
+func _on_campfire_page_upgrade_requested(deck_index: int) -> void:
+	for candidate in _campfire_upgrade_candidates():
+		if int(candidate.get("deck_index", -1)) == deck_index:
+			_on_upgrade_card_pressed(deck_index)
+			return
+	push_warning("CampfirePage: invalid upgrade deck index %d" % deck_index)
+
 func _campfire_upgrade_candidates() -> Array[Dictionary]:
 	var candidates: Array[Dictionary] = []
 	for deck_index in range(run_deck_ids.size()):
@@ -6808,353 +6913,6 @@ func _campfire_upgrade_candidates() -> Array[Dictionary]:
 		})
 	return candidates
 
-func _add_pc_campfire_experience(node: Dictionary) -> void:
-	if reward_scroll != null:
-		reward_scroll.set("vertical_scroll_mode", 0)
-		reward_scroll.scroll_vertical = 0
-	var stage := PanelContainer.new()
-	stage.name = "PcCampfireExperience"
-	var stage_size := Vector2(_scroll_content_width(), max(520.0, last_reward_scroll_height - 2.0))
-	stage.custom_minimum_size = stage_size
-	stage.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	stage.clip_contents = true
-	stage.add_theme_stylebox_override("panel", _pc_campfire_stage_style())
-	reward_row.add_child(stage)
-
-	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 16)
-	margin.add_theme_constant_override("margin_right", 16)
-	margin.add_theme_constant_override("margin_top", 14)
-	margin.add_theme_constant_override("margin_bottom", 14)
-	stage.add_child(margin)
-
-	var split := HBoxContainer.new()
-	split.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	split.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	split.add_theme_constant_override("separation", 18)
-	margin.add_child(split)
-
-	var content_width: float = max(960.0, stage_size.x - 32.0)
-	var content_height: float = max(490.0, stage_size.y - 28.0)
-	var story_width: float = floor((content_width - 18.0) * 0.64)
-	var action_width: float = max(340.0, content_width - story_width - 18.0)
-	_add_pc_campfire_story(split, node, Vector2(story_width, content_height))
-	var action_buttons := _add_pc_campfire_actions(split, Vector2(action_width, content_height))
-	last_campfire_reveal_animation_count = 1 + action_buttons.get_child_count()
-	if DisplayServer.get_name() != "headless":
-		call_deferred("_play_pc_room_reveal", stage, action_buttons)
-
-func _add_pc_campfire_story(parent: Container, node: Dictionary, story_size: Vector2) -> void:
-	var story := VBoxContainer.new()
-	story.name = "CampfireStory"
-	story.custom_minimum_size = story_size
-	story.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	story.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	story.add_theme_constant_override("separation", 8)
-	parent.add_child(story)
-
-	last_campfire_art_path = _room_scene_art_path("campfire")
-	last_campfire_art_loaded = _asset_loaded(last_campfire_art_path)
-	var art_frame := PanelContainer.new()
-	art_frame.name = "CampfireArtFrame"
-	art_frame.custom_minimum_size = Vector2(story_size.x, max(350.0, story_size.y - 106.0))
-	art_frame.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	art_frame.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	art_frame.clip_contents = true
-	art_frame.add_theme_stylebox_override("panel", _pc_campfire_art_frame_style())
-	story.add_child(art_frame)
-
-	var art := TextureRect.new()
-	art.name = "CampfireRoomArt"
-	art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	art.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	art.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	art.texture = _load_texture(last_campfire_art_path)
-	art_frame.add_child(art)
-
-	var title := Label.new()
-	title.text = str(node.get("name", "废墟锻炉"))
-	title.clip_text = true
-	title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	title.add_theme_font_size_override("font_size", 24)
-	title.add_theme_color_override("font_color", Color(1.0, 0.89, 0.62))
-	story.add_child(title)
-
-	var body := Label.new()
-	body.text = "炉火仍有余温，铁砧也足够坚固。你只能在启程前完成一项整备。"
-	body.custom_minimum_size = Vector2(0, 42)
-	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	body.max_lines_visible = 2
-	body.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	body.add_theme_font_size_override("font_size", 14)
-	body.add_theme_color_override("font_color", Color(0.90, 0.92, 0.87))
-	story.add_child(body)
-
-func _add_pc_campfire_actions(parent: Container, action_size: Vector2) -> VBoxContainer:
-	var column := VBoxContainer.new()
-	column.name = "CampfireActionColumn"
-	column.custom_minimum_size = action_size
-	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	column.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	column.add_theme_constant_override("separation", 12)
-	parent.add_child(column)
-
-	var heading := Label.new()
-	heading.text = "选择整备方式"
-	heading.custom_minimum_size = Vector2(0, 34)
-	heading.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	heading.add_theme_font_size_override("font_size", 20)
-	heading.add_theme_color_override("font_color", Color(0.84, 0.92, 0.88))
-	column.add_child(heading)
-
-	var hp_note := Label.new()
-	hp_note.text = "当前生命  %d / %d" % [run_hp, run_max_hp]
-	hp_note.custom_minimum_size = Vector2(0, 24)
-	hp_note.add_theme_font_size_override("font_size", 13)
-	hp_note.add_theme_color_override("font_color", Color(0.68, 0.78, 0.74))
-	column.add_child(hp_note)
-
-	var buttons := VBoxContainer.new()
-	buttons.name = "CampfireActionButtons"
-	buttons.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	buttons.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	buttons.add_theme_constant_override("separation", 12)
-	column.add_child(buttons)
-
-	var action_height: float = max(150.0, floor((action_size.y - 94.0) * 0.5))
-	var rest_button := Button.new()
-	rest_button.name = "CampfireRestButton"
-	rest_button.custom_minimum_size = Vector2(action_size.x, action_height)
-	rest_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	rest_button.text = ""
-	rest_button.tooltip_text = "恢复 %d%% 最大生命，随后继续前进。" % _campfire_heal_percent()
-	_apply_button_skin(rest_button, "success", "campfire")
-	_add_pc_campfire_action_layout(
-		rest_button,
-		_hud_icon_path("生命"),
-		"休息",
-		"恢复 %d%% 最大生命" % _campfire_heal_percent(),
-		"%d / %d  →  %d / %d" % [run_hp, run_max_hp, min(run_max_hp, run_hp + max(1, int(ceil(float(run_max_hp) * float(_campfire_heal_percent()) / 100.0)))), run_max_hp]
-	)
-	rest_button.pressed.connect(_on_campfire_heal_pressed)
-	buttons.add_child(rest_button)
-
-	var forge_button := Button.new()
-	var upgrade_candidate_count: int = _campfire_upgrade_candidates().size()
-	forge_button.name = "CampfireForgeButton"
-	forge_button.custom_minimum_size = Vector2(action_size.x, action_height)
-	forge_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	forge_button.text = ""
-	forge_button.tooltip_text = "查看完整牌组并升级一张未升级卡牌。" if upgrade_candidate_count > 0 else "当前牌组没有可升级卡牌。"
-	forge_button.disabled = upgrade_candidate_count == 0
-	_apply_button_skin(forge_button, "relic", "campfire")
-	_add_pc_campfire_action_layout(
-		forge_button,
-		UI_DECK_ICON_PATH,
-		"锻造",
-		"升级 1 张卡牌" if upgrade_candidate_count > 0 else "无需锻造",
-		"%d 张卡牌可升级" % upgrade_candidate_count
-	)
-	forge_button.pressed.connect(_on_campfire_forge_pressed)
-	buttons.add_child(forge_button)
-	last_campfire_action_count = 2
-	return buttons
-
-func _add_pc_campfire_action_layout(button: Button, icon_path: String, title_text: String, subtitle_text: String, detail_text: String) -> void:
-	var margin := MarginContainer.new()
-	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
-	margin.offset_left = 18
-	margin.offset_top = 14
-	margin.offset_right = -18
-	margin.offset_bottom = -14
-	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	button.add_child(margin)
-
-	var row := HBoxContainer.new()
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_theme_constant_override("separation", 16)
-	margin.add_child(row)
-
-	var icon_frame := PanelContainer.new()
-	icon_frame.custom_minimum_size = Vector2(78, 78)
-	icon_frame.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	icon_frame.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	icon_frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	icon_frame.add_theme_stylebox_override("panel", _pc_campfire_action_icon_style())
-	row.add_child(icon_frame)
-
-	var icon := TextureRect.new()
-	icon.custom_minimum_size = Vector2(54, 54)
-	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	icon.texture = _load_texture(icon_path)
-	icon.modulate = Color(1.0, 0.92, 0.70)
-	icon_frame.add_child(icon)
-
-	var text_box := VBoxContainer.new()
-	text_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	text_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	text_box.alignment = BoxContainer.ALIGNMENT_CENTER
-	text_box.add_theme_constant_override("separation", 6)
-	row.add_child(text_box)
-
-	var title := Label.new()
-	title.text = title_text
-	title.add_theme_font_size_override("font_size", 22)
-	title.add_theme_color_override("font_color", Color(1.0, 0.96, 0.84))
-	text_box.add_child(title)
-
-	var subtitle := Label.new()
-	subtitle.text = subtitle_text
-	subtitle.add_theme_font_size_override("font_size", 15)
-	subtitle.add_theme_color_override("font_color", Color(0.82, 0.90, 0.82))
-	text_box.add_child(subtitle)
-
-	var detail := Label.new()
-	detail.text = detail_text
-	detail.add_theme_font_size_override("font_size", 12)
-	detail.add_theme_color_override("font_color", Color(0.62, 0.72, 0.68))
-	text_box.add_child(detail)
-
-	var route_icon := TextureRect.new()
-	route_icon.custom_minimum_size = Vector2(28, 28)
-	route_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	route_icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	route_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	route_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	route_icon.texture = _load_texture(UI_CONTINUE_ROUTE_ICON_PATH)
-	route_icon.modulate = Color(0.78, 0.88, 0.76)
-	row.add_child(route_icon)
-
-func _add_pc_campfire_forge_selection() -> void:
-	var candidates: Array[Dictionary] = _campfire_upgrade_candidates()
-	last_campfire_upgrade_candidate_count = candidates.size()
-	if reward_scroll != null:
-		reward_scroll.set("vertical_scroll_mode", 3)
-		reward_scroll.scroll_vertical = 0
-
-	var columns: int = 5
-	var card_size := Vector2(184, 226)
-	var row_count: int = max(1, int(ceil(float(max(1, candidates.size())) / float(columns))))
-	var grid_height: float = float(row_count) * card_size.y + float(max(0, row_count - 1)) * 10.0
-	var minimum_height: float = max(520.0, 76.0 + grid_height + 32.0)
-	var stage := PanelContainer.new()
-	stage.name = "PcCampfireForgeSelection"
-	stage.custom_minimum_size = Vector2(_scroll_content_width(), max(last_reward_scroll_height - 2.0, minimum_height))
-	stage.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	stage.clip_contents = true
-	stage.add_theme_stylebox_override("panel", _pc_campfire_stage_style())
-	reward_row.add_child(stage)
-
-	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 18)
-	margin.add_theme_constant_override("margin_right", 18)
-	margin.add_theme_constant_override("margin_top", 14)
-	margin.add_theme_constant_override("margin_bottom", 14)
-	stage.add_child(margin)
-
-	var content := VBoxContainer.new()
-	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	content.add_theme_constant_override("separation", 10)
-	margin.add_child(content)
-
-	var header := HBoxContainer.new()
-	header.custom_minimum_size = Vector2(0, 44)
-	header.add_theme_constant_override("separation", 10)
-	content.add_child(header)
-
-	var heading_box := VBoxContainer.new()
-	heading_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	heading_box.add_theme_constant_override("separation", 2)
-	header.add_child(heading_box)
-
-	var heading := Label.new()
-	heading.text = "锻造牌组"
-	heading.add_theme_font_size_override("font_size", 22)
-	heading.add_theme_color_override("font_color", Color(1.0, 0.89, 0.62))
-	heading_box.add_child(heading)
-
-	var note := Label.new()
-	note.text = "选择一张卡牌完成升级  ·  %d 张可升级" % candidates.size()
-	note.add_theme_font_size_override("font_size", 12)
-	note.add_theme_color_override("font_color", Color(0.66, 0.76, 0.72))
-	heading_box.add_child(note)
-
-	var back_button := Button.new()
-	back_button.name = "CampfireForgeBackButton"
-	back_button.custom_minimum_size = Vector2(118, 40)
-	back_button.text = "返回篝火"
-	back_button.icon = _load_texture(UI_CONTINUE_ROUTE_ICON_PATH)
-	back_button.expand_icon = true
-	_apply_button_skin(back_button, "neutral", "campfire")
-	back_button.pressed.connect(_on_campfire_forge_back_pressed)
-	header.add_child(back_button)
-
-	var grid_center := CenterContainer.new()
-	grid_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	grid_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	content.add_child(grid_center)
-
-	var grid := GridContainer.new()
-	grid.name = "CampfireUpgradeCards"
-	grid.columns = columns
-	grid.custom_minimum_size = Vector2(float(columns) * card_size.x + float(columns - 1) * 10.0, grid_height)
-	grid.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	grid.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	grid.add_theme_constant_override("h_separation", 10)
-	grid.add_theme_constant_override("v_separation", 10)
-	grid_center.add_child(grid)
-
-	for candidate in candidates:
-		var card: Dictionary = candidate.get("card", {})
-		var deck_index: int = int(candidate.get("deck_index", -1))
-		var button := Button.new()
-		button.name = "CampfireUpgradeCard_%d" % deck_index
-		button.custom_minimum_size = card_size
-		button.text = ""
-		button.tooltip_text = _upgrade_preview_text(card)
-		var art_path: String = _card_art_path(card)
-		var card_texture: Texture2D = _load_texture(art_path)
-		_apply_card_button_skin(button, str(card.get("type", "")), "campfire")
-		_add_structured_card_layout(button, card, card_texture, "campfire")
-		button.pressed.connect(_on_upgrade_card_pressed.bind(deck_index))
-		grid.add_child(button)
-
-	if candidates.is_empty():
-		var empty_label := Label.new()
-		empty_label.text = "当前牌组没有可升级卡牌。"
-		empty_label.custom_minimum_size = Vector2(grid.custom_minimum_size.x, card_size.y)
-		empty_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		empty_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		empty_label.add_theme_font_size_override("font_size", 18)
-		empty_label.add_theme_color_override("font_color", Color(0.74, 0.78, 0.74))
-		grid.add_child(empty_label)
-
-	last_campfire_reveal_animation_count = 1 + candidates.size()
-	if DisplayServer.get_name() != "headless":
-		call_deferred("_play_pc_room_reveal", stage, grid)
-
-func _pc_campfire_stage_style() -> StyleBoxFlat:
-	var style := _button_style(Color(0.040, 0.050, 0.050, 0.97), Color(0.58, 0.64, 0.52, 0.90), 1, 7)
-	style.shadow_color = Color(0, 0, 0, 0.64)
-	style.shadow_size = 8
-	return style
-
-func _pc_campfire_art_frame_style() -> StyleBoxFlat:
-	return _button_style(Color(0.025, 0.030, 0.032, 0.98), Color(0.80, 0.57, 0.25, 0.94), 2, 6)
-
-func _pc_campfire_action_icon_style() -> StyleBoxFlat:
-	var style := _button_style(Color(0.07, 0.085, 0.078, 0.90), Color(0.68, 0.56, 0.30, 0.86), 1, 6)
-	style.content_margin_left = 10
-	style.content_margin_right = 10
-	style.content_margin_top = 10
-	style.content_margin_bottom = 10
-	return style
-
 func _refresh_shop(node: Dictionary) -> void:
 	last_shop_button_style_count = 0
 	last_shop_card_layout_count = 0
@@ -7166,7 +6924,8 @@ func _refresh_shop(node: Dictionary) -> void:
 	last_shop_remove_card_art_node_count = 0
 	last_shop_potion_layout_count = 0
 	last_shop_potion_icon_node_count = 0
-	_set_page_regions(true, false, false, false, false, true, false, true)
+	var use_shop_page := _is_pc_layout()
+	_set_page_regions(true, false, false, false, false, true, false, not use_shop_page)
 	_apply_reward_page_layout_constraints(150.0, 204.0)
 	if shop_generated_for != current_node_index:
 		shop_card_options = _generate_card_rewards(3, "shop_card")
@@ -7190,7 +6949,14 @@ func _refresh_shop(node: Dictionary) -> void:
 	end_turn_button.disabled = true
 
 	if shop_remove_selection_open:
-		_refresh_shop_remove_selection()
+		if use_shop_page:
+			_mount_shop_page(_shop_page_model("remove"))
+		else:
+			_refresh_shop_remove_selection()
+		_record_layout_metrics()
+		return
+	if use_shop_page:
+		_mount_shop_page(_shop_page_model("store"))
 		_record_layout_metrics()
 		return
 
@@ -7286,6 +7052,128 @@ func _refresh_shop(node: Dictionary) -> void:
 	reward_row.add_child(leave_button)
 	_record_layout_metrics()
 
+func _shop_page_model(mode: String) -> Dictionary:
+	var cards: Array = []
+	for card_value in shop_card_options:
+		var card: Dictionary = card_value
+		var price := _card_price(card)
+		cards.append({
+			"id": str(card.get("id", "")),
+			"name": str(card.get("name", "卡牌")),
+			"price": price,
+			"description": str(card.get("description", "")),
+			"art_path": _card_art_path(card),
+			"disabled_reason": "金币不足" if run_gold < price else ""
+		})
+	var relics: Array = []
+	for relic_value in shop_relic_options:
+		var relic: Dictionary = relic_value
+		var price := _relic_price(relic)
+		relics.append({
+			"id": str(relic.get("id", "")),
+			"name": str(relic.get("name", "遗物")),
+			"price": price,
+			"description": str(relic.get("description", "")),
+			"art_path": _relic_icon_path(relic),
+			"disabled_reason": "已拥有" if run_relic_ids.has(str(relic.get("id", ""))) else ("金币不足" if run_gold < price else "")
+		})
+	var potions: Array = []
+	for potion_value in shop_potion_options:
+		var potion: Dictionary = potion_value
+		var price := _potion_price(potion)
+		var disabled_reason := "药水槽已满" if not _has_empty_potion_slot() else ("金币不足" if run_gold < price else "")
+		potions.append({
+			"id": str(potion.get("id", "")),
+			"name": str(potion.get("name", "药水")),
+			"price": price,
+			"description": str(potion.get("description", "")),
+			"art_path": _potion_icon_path(potion),
+			"slots_available": _has_empty_potion_slot(),
+			"disabled_reason": disabled_reason
+		})
+	var remove_candidates: Array = []
+	for deck_index in _shop_removable_card_indices():
+		var entry := str(run_deck_ids[deck_index])
+		var card := _deck_display_card(entry)
+		remove_candidates.append({
+			"deck_index": deck_index,
+			"id": entry,
+			"name": str(card.get("name", entry)),
+			"description": str(card.get("description", "")),
+			"art_path": _card_art_path(card)
+		})
+	var remove_reason := ""
+	if run_gold < _remove_card_price():
+		remove_reason = "金币不足"
+	elif remove_candidates.is_empty():
+		remove_reason = "没有可删卡牌"
+	last_shop_card_layout_count = cards.size()
+	last_shop_card_art_node_count = cards.size()
+	last_shop_relic_layout_count = relics.size()
+	last_shop_relic_icon_node_count = relics.size()
+	last_shop_potion_layout_count = potions.size()
+	last_shop_potion_icon_node_count = potions.size()
+	last_shop_remove_candidate_count = remove_candidates.size()
+	last_shop_remove_card_layout_count = remove_candidates.size()
+	last_shop_remove_card_art_node_count = remove_candidates.size()
+	last_shop_button_style_count = cards.size() + relics.size() + potions.size() + 2
+	return {
+		"mode": mode,
+		"gold": run_gold,
+		"remove_price": _remove_card_price(),
+		"remove_disabled_reason": remove_reason,
+		"cards": cards,
+		"relics": relics,
+		"potions": potions,
+		"remove_candidates": remove_candidates
+	}
+
+func _mount_shop_page(model: Dictionary) -> void:
+	var page = ShopExperienceScript.new()
+	page.configure(model)
+	page.buy_card.connect(_on_shop_page_buy_card)
+	page.buy_relic.connect(_on_shop_page_buy_relic)
+	page.buy_potion.connect(_on_shop_page_buy_potion)
+	page.open_remove.connect(_on_shop_remove_card_pressed)
+	page.remove_card.connect(_on_shop_page_remove_card_selected)
+	page.cancel_remove.connect(_on_shop_remove_cancel_pressed)
+	page.leave.connect(_advance_to_next_node)
+	app_shell.mount_page(page, "shop")
+
+func _shop_option_by_id(options: Array, item_id: String) -> Dictionary:
+	for option_value in options:
+		var option: Dictionary = option_value
+		if str(option.get("id", "")) == item_id:
+			return option
+	return {}
+
+func _on_shop_page_buy_card(item_id: String) -> void:
+	var option := _shop_option_by_id(shop_card_options, item_id)
+	if option.is_empty():
+		push_warning("ShopExperience: unknown card id '%s'" % item_id)
+		return
+	_on_shop_buy_card_pressed(item_id, _card_price(option))
+
+func _on_shop_page_buy_relic(item_id: String) -> void:
+	var option := _shop_option_by_id(shop_relic_options, item_id)
+	if option.is_empty():
+		push_warning("ShopExperience: unknown relic id '%s'" % item_id)
+		return
+	_on_shop_buy_relic_pressed(item_id, _relic_price(option))
+
+func _on_shop_page_buy_potion(item_id: String) -> void:
+	var option := _shop_option_by_id(shop_potion_options, item_id)
+	if option.is_empty():
+		push_warning("ShopExperience: unknown potion id '%s'" % item_id)
+		return
+	_on_shop_buy_potion_pressed(item_id, _potion_price(option))
+
+func _on_shop_page_remove_card_selected(deck_index: int) -> void:
+	if not _shop_removable_card_indices().has(deck_index):
+		push_warning("ShopExperience: invalid remove deck index %d" % deck_index)
+		return
+	_on_shop_remove_card_selected(deck_index)
+
 func _refresh_shop_remove_selection() -> void:
 	var remove_price: int = _remove_card_price()
 	status_label.text = "商店删卡：选择一张要移除的牌。删卡会立刻扣除 %d 金币，并使本局下次删卡更贵。" % remove_price
@@ -7347,7 +7235,8 @@ func _refresh_event(node: Dictionary) -> void:
 	last_event_panel_body = ""
 	last_event_panel_choice_count = 0
 	last_event_reveal_animation_count = 0
-	_set_page_regions(true, false, false, false, false, true, false, true)
+	var use_event_page := _is_pc_layout()
+	_set_page_regions(true, false, false, false, false, true, false, not use_event_page)
 	_apply_reward_page_layout_constraints(132.0, 204.0)
 	_apply_pc_story_room_chrome()
 	var event: Dictionary = _event_by_id(str(node.get("event_id", "")))
@@ -7362,8 +7251,8 @@ func _refresh_event(node: Dictionary) -> void:
 	end_turn_button.disabled = true
 
 	var event_choices: Array = event.get("choices", [])
-	if _is_pc_layout():
-		_add_pc_event_experience(event, node, event_choices)
+	if use_event_page:
+		_mount_event_page(_event_page_model(event, node, event_choices))
 		_record_layout_metrics()
 		return
 
@@ -7391,205 +7280,71 @@ func _refresh_event(node: Dictionary) -> void:
 		reward_row.add_child(continue_button)
 	_record_layout_metrics()
 
-func _add_pc_event_experience(event: Dictionary, node: Dictionary, event_choices: Array) -> void:
-	var stage := PanelContainer.new()
-	stage.name = "PcEventExperience"
-	var stage_size := Vector2(_scroll_content_width(), max(520.0, last_reward_scroll_height - 2.0))
-	stage.custom_minimum_size = stage_size
-	stage.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	stage.clip_contents = true
-	stage.add_theme_stylebox_override("panel", _pc_event_stage_style())
-	reward_row.add_child(stage)
-
-	var margin := MarginContainer.new()
-	margin.name = "EventMargin"
-	margin.add_theme_constant_override("margin_left", 16)
-	margin.add_theme_constant_override("margin_right", 16)
-	margin.add_theme_constant_override("margin_top", 14)
-	margin.add_theme_constant_override("margin_bottom", 14)
-	stage.add_child(margin)
-
-	var content_center := CenterContainer.new()
-	content_center.name = "EventContentCenter"
-	content_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	content_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	margin.add_child(content_center)
-
-	var content_width: float = min(1568.0, max(960.0, stage_size.x - 32.0))
-	var content_height: float = max(490.0, stage_size.y - 28.0)
-	var split := HBoxContainer.new()
-	split.name = "EventSplit"
-	split.custom_minimum_size = Vector2(content_width, content_height)
-	split.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	split.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	split.add_theme_constant_override("separation", 18)
-	content_center.add_child(split)
-
-	var story_width: float = floor((content_width - 18.0) * 0.59)
-	var decision_width: float = max(360.0, content_width - story_width - 18.0)
-	_add_pc_event_story(split, event, node, Vector2(story_width, content_height))
-	_add_pc_event_decisions(split, event_choices, Vector2(decision_width, content_height))
-	var choice_buttons := stage.find_child("EventChoiceButtons", true, false) as VBoxContainer
-	last_event_reveal_animation_count = 1 + (choice_buttons.get_child_count() if choice_buttons != null else 0)
-	if DisplayServer.get_name() != "headless":
-		call_deferred("_play_pc_room_reveal", stage, choice_buttons)
-
-func _play_pc_room_reveal(stage: PanelContainer, item_container: Container) -> void:
-	if not is_instance_valid(stage) or not stage.is_inside_tree():
-		return
-	stage.modulate = Color(1, 1, 1, 0)
-	stage.scale = Vector2(0.992, 0.992)
-	stage.pivot_offset = stage.size * 0.5
-	var stage_tween := stage.create_tween().set_parallel(true)
-	stage_tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	stage_tween.tween_property(stage, "modulate:a", 1.0, 0.18)
-	stage_tween.tween_property(stage, "scale", Vector2.ONE, 0.22)
-	if item_container == null:
-		return
-	for index in range(item_container.get_child_count()):
-		var control := item_container.get_child(index) as Control
-		if control == null:
-			continue
-		control.modulate = Color(1, 1, 1, 0)
-		var choice_tween := control.create_tween()
-		choice_tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-		choice_tween.tween_interval(0.05 + float(index) * 0.035)
-		choice_tween.tween_property(control, "modulate:a", 1.0, 0.14)
-
-func _add_pc_event_story(parent: Container, event: Dictionary, node: Dictionary, story_size: Vector2) -> void:
-	var story := VBoxContainer.new()
-	story.name = "EventStory"
-	story.custom_minimum_size = story_size
-	story.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	story.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	story.add_theme_constant_override("separation", 8)
-	parent.add_child(story)
-
-	var event_title := str(event.get("name", node.get("name", "事件")))
-	var event_body := str(event.get("body", "你遇到了一个未知事件。"))
-	last_event_panel_title = event_title
-	last_event_panel_body = event_body
+func _event_page_model(event: Dictionary, node: Dictionary, event_choices: Array) -> Dictionary:
+	last_event_panel_title = str(event.get("name", node.get("name", "事件")))
+	last_event_panel_body = str(event.get("body", "你遇到了一个未知事件。"))
 	last_event_art_path = _event_art_path(event)
 	last_event_art_loaded = _asset_loaded(last_event_art_path)
-
-	var art_frame := PanelContainer.new()
-	art_frame.name = "EventArtFrame"
-	art_frame.custom_minimum_size = Vector2(story_size.x, max(330.0, story_size.y - 112.0))
-	art_frame.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	art_frame.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	art_frame.clip_contents = true
-	art_frame.add_theme_stylebox_override("panel", _pc_event_art_frame_style())
-	story.add_child(art_frame)
-
-	var art := TextureRect.new()
-	art.name = "EventArt"
-	art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	art.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	art.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	art.texture = _load_texture(last_event_art_path)
-	art_frame.add_child(art)
-
-	var title := Label.new()
-	title.text = event_title
-	title.clip_text = true
-	title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	title.add_theme_font_size_override("font_size", 24)
-	title.add_theme_color_override("font_color", Color(1.0, 0.90, 0.62))
-	story.add_child(title)
-
-	var body := Label.new()
-	body.text = event_body
-	body.custom_minimum_size = Vector2(0, 54)
-	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	body.max_lines_visible = 3
-	body.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	body.add_theme_font_size_override("font_size", 14)
-	body.add_theme_color_override("font_color", Color(0.91, 0.93, 0.89))
-	story.add_child(body)
-
-func _add_pc_event_decisions(parent: Container, event_choices: Array, decision_size: Vector2) -> void:
-	var decision_column := VBoxContainer.new()
-	decision_column.name = "EventDecisionColumn"
-	decision_column.custom_minimum_size = decision_size
-	decision_column.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	decision_column.add_theme_constant_override("separation", 8)
-	parent.add_child(decision_column)
-
-	var heading_row := HBoxContainer.new()
-	heading_row.custom_minimum_size = Vector2(0, 34)
-	heading_row.add_theme_constant_override("separation", 8)
-	decision_column.add_child(heading_row)
-
-	var heading := Label.new()
-	heading.text = "作出抉择"
-	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	heading.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	heading.add_theme_font_size_override("font_size", 20)
-	heading.add_theme_color_override("font_color", Color(0.84, 0.92, 0.88))
-	heading_row.add_child(heading)
-
-	var count_label := Label.new()
-	count_label.text = "%d 项" % event_choices.size()
-	count_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	count_label.add_theme_font_size_override("font_size", 12)
-	count_label.add_theme_color_override("font_color", Color(0.60, 0.72, 0.70))
-	heading_row.add_child(count_label)
-
-	var choice_buttons := VBoxContainer.new()
-	choice_buttons.name = "EventChoiceButtons"
-	choice_buttons.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	choice_buttons.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	choice_buttons.add_theme_constant_override("separation", 8)
-	decision_column.add_child(choice_buttons)
-
-	if event_choices.is_empty():
-		var continue_button := Button.new()
-		continue_button.custom_minimum_size = Vector2(decision_size.x, 96)
-		continue_button.text = "继续"
-		_apply_button_skin(continue_button, "primary", "event")
-		continue_button.pressed.connect(_advance_to_next_node)
-		choice_buttons.add_child(continue_button)
-		return
-
-	var choice_count: int = max(1, event_choices.size())
-	var usable_height: float = max(360.0, decision_size.y - 42.0 - float(choice_count - 1) * 8.0)
-	var choice_height: float = clamp(floor(usable_height / float(choice_count)), 82.0, 120.0)
+	var public_choices: Array = []
 	for choice_value in event_choices:
+		if not choice_value is Dictionary:
+			continue
 		var choice: Dictionary = choice_value
-		var blocked_reason: String = _event_choice_blocked_reason(choice)
-		var button := Button.new()
-		button.custom_minimum_size = Vector2(decision_size.x, choice_height)
-		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		button.text = ""
-		button.clip_contents = true
-		button.tooltip_text = _event_choice_button_text(choice, blocked_reason)
-		_apply_pc_event_choice_skin(button, not blocked_reason.is_empty())
-		button.disabled = not blocked_reason.is_empty()
-		_add_event_choice_layout(button, choice, blocked_reason, last_event_panel_choice_count)
-		button.pressed.connect(_on_event_choice_pressed.bind(choice))
-		choice_buttons.add_child(button)
-		last_event_panel_choice_count += 1
+		var blocked_reason := _event_choice_blocked_reason(choice)
+		public_choices.append({
+			"id": str(choice.get("id", "")),
+			"label": str(choice.get("label", "回应")),
+			"description": str(choice.get("description", "")),
+			"blocked_reason": blocked_reason,
+			"disabled": not blocked_reason.is_empty()
+		})
+	last_event_panel_choice_count = public_choices.size()
+	last_event_choice_style_count = public_choices.size()
+	last_event_choice_layout_count = public_choices.size()
+	last_event_reveal_animation_count = 1 + public_choices.size()
+	return {
+		"event": {
+			"id": str(event.get("id", "")),
+			"name": last_event_panel_title,
+			"body": last_event_panel_body,
+			"art_path": last_event_art_path
+		},
+		"node": {"id": str(node.get("id", "")), "name": str(node.get("name", "事件"))},
+		"choices": public_choices
+	}
+
+func _mount_event_page(model: Dictionary) -> void:
+	var page = EventPageScript.new()
+	page.configure(model)
+	page.choice_selected.connect(_on_event_page_choice_selected)
+	page.continue_requested.connect(_advance_to_next_node)
+	app_shell.mount_page(page, "event")
+
+func _on_event_page_choice_selected(choice_id: String) -> void:
+	var event: Dictionary = _event_by_id(str(_current_node().get("event_id", "")))
+	for choice_value in event.get("choices", []):
+		if not choice_value is Dictionary:
+			continue
+		var choice: Dictionary = choice_value
+		if str(choice.get("id", "")) == choice_id:
+			_on_event_choice_pressed(choice)
+			return
+	push_warning("EventPage: unknown choice id '%s'" % choice_id)
 
 func _add_event_choice_layout(button: Button, choice: Dictionary, blocked_reason: String, choice_index: int = -1) -> void:
 	var margin := MarginContainer.new()
 	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
-	margin.offset_left = 14 if _is_pc_layout() else 12
-	margin.offset_top = 8 if _is_pc_layout() else 10
-	margin.offset_right = -14 if _is_pc_layout() else -12
-	margin.offset_bottom = -8 if _is_pc_layout() else -10
+	margin.offset_left = 12
+	margin.offset_top = 10
+	margin.offset_right = -12
+	margin.offset_bottom = -10
 	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	button.add_child(margin)
-
-	if _is_pc_layout():
-		_add_pc_event_choice_content(margin, choice, blocked_reason, choice_index)
-		last_event_choice_layout_count += 1
-		return
 
 	var box := VBoxContainer.new()
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.alignment = BoxContainer.ALIGNMENT_CENTER
-	box.add_theme_constant_override("separation", 7 if _is_pc_layout() else 5)
+	box.add_theme_constant_override("separation", 5)
 	margin.add_child(box)
 
 	var title := Label.new()
@@ -7597,7 +7352,7 @@ func _add_event_choice_layout(button: Button, choice: Dictionary, blocked_reason
 	title.text = str(choice.get("label", "选择"))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	title.add_theme_font_size_override("font_size", 16 if _is_pc_layout() else 14)
+	title.add_theme_font_size_override("font_size", 14)
 	title.add_theme_color_override("font_color", Color(0.97, 0.92, 0.82))
 	box.add_child(title)
 
@@ -7610,7 +7365,7 @@ func _add_event_choice_layout(button: Button, choice: Dictionary, blocked_reason
 	description.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	description.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
-	description.add_theme_font_size_override("font_size", 12 if _is_pc_layout() else 11)
+	description.add_theme_font_size_override("font_size", 11)
 	description.add_theme_color_override("font_color", Color(0.86, 0.86, 0.82))
 	box.add_child(description)
 
@@ -7632,123 +7387,12 @@ func _add_event_choice_layout(button: Button, choice: Dictionary, blocked_reason
 		box.add_child(footer)
 	last_event_choice_layout_count += 1
 
-func _add_pc_event_choice_content(parent: MarginContainer, choice: Dictionary, blocked_reason: String, choice_index: int) -> void:
-	var row := HBoxContainer.new()
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_theme_constant_override("separation", 12)
-	parent.add_child(row)
-
-	var badge := PanelContainer.new()
-	badge.custom_minimum_size = Vector2(36, 36)
-	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	badge.add_theme_stylebox_override("panel", _pc_event_choice_badge_style(not blocked_reason.is_empty()))
-	row.add_child(badge)
-
-	var number := Label.new()
-	number.text = "%02d" % max(1, choice_index + 1)
-	number.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	number.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	number.add_theme_font_size_override("font_size", 13)
-	number.add_theme_color_override("font_color", Color(0.98, 0.88, 0.60) if blocked_reason.is_empty() else Color(0.58, 0.54, 0.52))
-	badge.add_child(number)
-
-	var text_box := VBoxContainer.new()
-	text_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	text_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	text_box.add_theme_constant_override("separation", 3)
-	row.add_child(text_box)
-
-	var title := Label.new()
-	title.text = str(choice.get("label", "选择"))
-	title.clip_text = true
-	title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	title.add_theme_font_size_override("font_size", 17)
-	title.add_theme_color_override("font_color", Color(1.0, 0.97, 0.88))
-	text_box.add_child(title)
-
-	var description := Label.new()
-	description.text = str(choice.get("description", ""))
-	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	description.max_lines_visible = 2
-	description.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	description.add_theme_font_size_override("font_size", 13)
-	description.add_theme_color_override("font_color", Color(0.88, 0.90, 0.86))
-	text_box.add_child(description)
-
-	var footer_text := ""
-	var footer_color := Color(0.62, 0.82, 0.78)
-	if not blocked_reason.is_empty():
-		footer_text = "条件不足：%s" % blocked_reason
-		footer_color = Color(0.96, 0.56, 0.46)
-	elif choice.has("random_results"):
-		footer_text = "结果随机"
-	if not footer_text.is_empty():
-		var footer := Label.new()
-		footer.text = footer_text
-		footer.clip_text = true
-		footer.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-		footer.add_theme_font_size_override("font_size", 11)
-		footer.add_theme_color_override("font_color", footer_color)
-		text_box.add_child(footer)
-
-	var arrow := TextureRect.new()
-	arrow.name = "ChoiceRouteIcon"
-	arrow.custom_minimum_size = Vector2(24, 24)
-	arrow.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	arrow.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	arrow.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	arrow.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	arrow.texture = _load_texture(UI_CONTINUE_ROUTE_ICON_PATH)
-	arrow.modulate = Color(0.82, 0.92, 0.80) if blocked_reason.is_empty() else Color(0.42, 0.42, 0.38)
-	row.add_child(arrow)
-
-func _pc_event_stage_style() -> StyleBoxFlat:
-	var style := _button_style(Color(0.045, 0.052, 0.055, 0.95), Color(0.58, 0.68, 0.58, 0.88), 1, 7)
-	style.shadow_color = Color(0, 0, 0, 0.62)
-	style.shadow_size = 8
-	return style
-
-func _pc_event_art_frame_style() -> StyleBoxFlat:
-	return _button_style(Color(0.025, 0.030, 0.032, 0.98), Color(0.74, 0.55, 0.26, 0.92), 2, 6)
-
-func _pc_event_choice_badge_style(blocked: bool) -> StyleBoxFlat:
-	return _button_style(
-		Color(0.10, 0.12, 0.12, 0.88) if not blocked else Color(0.09, 0.08, 0.08, 0.72),
-		Color(0.82, 0.66, 0.32, 0.88) if not blocked else Color(0.35, 0.30, 0.28, 0.70),
-		1,
-		6
-	)
-
-func _apply_pc_event_choice_skin(button: Button, blocked: bool) -> void:
-	_configure_button_bounds(button)
-	var normal := _button_style(Color(0.070, 0.088, 0.080, 0.97), Color(0.58, 0.49, 0.27, 0.84), 1, 5)
-	var hover := _button_style(Color(0.092, 0.128, 0.108, 0.98), Color(0.86, 0.70, 0.34, 0.96), 2, 5)
-	var pressed := _button_style(Color(0.050, 0.072, 0.062, 0.99), Color(0.72, 0.58, 0.28, 0.94), 2, 5)
-	var disabled := _button_style(Color(0.070, 0.064, 0.062, 0.90), Color(0.30, 0.27, 0.23, 0.78), 1, 5)
-	var focus := _button_style(Color(0, 0, 0, 0), Color(0.96, 0.78, 0.38, 0.98), 2, 5)
-	for style in [normal, hover, pressed, disabled]:
-		style.border_width_left = 3
-		style.shadow_color = Color(0, 0, 0, 0.46)
-		style.shadow_size = 4
-	if blocked:
-		normal = disabled
-		hover = disabled
-	button.add_theme_stylebox_override("normal", normal)
-	button.add_theme_stylebox_override("hover", hover)
-	button.add_theme_stylebox_override("pressed", pressed)
-	button.add_theme_stylebox_override("hover_pressed", pressed)
-	button.add_theme_stylebox_override("disabled", disabled)
-	button.add_theme_stylebox_override("focus", focus)
-	button.add_theme_color_override("font_color", Color(0.95, 0.96, 0.91))
-	button.add_theme_color_override("font_disabled_color", Color(0.56, 0.55, 0.51))
-	button.add_theme_font_size_override("font_size", 14)
-	_record_button_skin("event")
-
 func _refresh_treasure(node: Dictionary) -> void:
 	last_treasure_gold_reward = 0
 	last_treasure_relic_layout_count = 0
 	last_treasure_relic_icon_node_count = 0
-	_set_page_regions(true, false, false, false, false, true, false, true)
+	var use_reward_page: bool = _is_pc_layout()
+	_set_page_regions(true, false, false, false, false, true, false, not use_reward_page)
 	_apply_reward_page_layout_constraints(132.0, 204.0)
 	var reward_key: String = "treasure:%s" % str(node.get("id", current_node_index))
 	if reward_generated_for != reward_key:
@@ -7776,6 +7420,10 @@ func _refresh_treasure(node: Dictionary) -> void:
 		relic_reward_options.size()
 	]
 	end_turn_button.disabled = true
+	if use_reward_page:
+		_mount_reward_page(_treasure_reward_page_model())
+		_record_layout_metrics()
+		return
 
 	_add_treasure_summary_panel(node)
 
@@ -9573,15 +9221,6 @@ func _add_reward_action_button(title: String, subtitle: String, description: Str
 	if callback.is_valid():
 		button.pressed.connect(callback)
 	return button
-
-func _create_reward_action_column() -> VBoxContainer:
-	var column := VBoxContainer.new()
-	column.name = "RewardActionColumn"
-	column.custom_minimum_size = Vector2(_reward_action_button_size(true).x, _large_card_button_size().y)
-	column.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	column.alignment = BoxContainer.ALIGNMENT_CENTER
-	column.add_theme_constant_override("separation", 6)
-	return column
 
 func _icon_item_frame(icon_texture: Texture2D, skin: String, min_size: Vector2) -> PanelContainer:
 	var frame := PanelContainer.new()
@@ -11656,8 +11295,14 @@ func _refresh_rewards() -> void:
 		card_reward_done = reward_options.is_empty()
 		reward_generated_for = reward_key
 	last_combat_gold_reward = combat_reward_gold
+	if _is_pc_layout():
+		reward_scroll.visible = false
+		reward_row.visible = false
+		_mount_reward_page(_combat_reward_page_model())
+		_record_layout_metrics()
+		return
 
-	var action_column: VBoxContainer = _create_reward_action_column() if _is_pc_layout() else null
+	var action_column: VBoxContainer = null
 	var action_target: Container = action_column if action_column != null else reward_row
 
 	if not _is_pc_layout():
@@ -11823,6 +11468,171 @@ func _refresh_rewards() -> void:
 	))
 	if action_column != null:
 		reward_row.add_child(action_column)
+
+func _reward_item_models(items: Array, kind: String) -> Array:
+	var models: Array = []
+	for item_value in items:
+		if not item_value is Dictionary:
+			continue
+		var item: Dictionary = item_value
+		var art_path := ""
+		if kind == "card":
+			art_path = _card_art_path(item)
+		elif kind == "relic":
+			art_path = _relic_icon_path(item)
+		elif kind == "potion":
+			art_path = _potion_icon_path(item)
+		elif kind == "mastery":
+			art_path = _mastery_icon_path(str(item.get("id", "")))
+		models.append({
+			"id": str(item.get("id", "")),
+			"name": str(item.get("name", item.get("id", "奖励"))),
+			"description": str(item.get("description", "")),
+			"art_path": art_path
+		})
+	return models
+
+func _combat_reward_page_model() -> Dictionary:
+	var standard_done := card_reward_done and relic_reward_done and potion_reward_done
+	var mastery_options: Array = _eligible_deck_masteries() if standard_done and _mastery_reward_is_available() else []
+	var can_continue := standard_done and mastery_options.is_empty()
+	last_reward_card_layout_count = reward_options.size()
+	last_reward_card_art_node_count = reward_options.size()
+	last_reward_potion_layout_count = potion_reward_options.size()
+	last_reward_potion_icon_node_count = potion_reward_options.size()
+	last_reward_relic_layout_count = relic_reward_options.size()
+	last_reward_relic_icon_node_count = relic_reward_options.size()
+	last_reward_gold_panel_count = 1 if combat_reward_gold > 0 else 0
+	last_mastery_reward_option_count = mastery_options.size()
+	last_mastery_reward_pending = not mastery_options.is_empty()
+	last_reward_action_button_count = (0 if card_reward_done else 1) + (0 if potion_reward_done else 1) + 2
+	last_reward_action_icon_node_count = last_reward_action_button_count
+	last_reward_button_style_count = last_reward_card_layout_count + last_reward_relic_layout_count + last_reward_potion_layout_count + last_reward_action_button_count
+	if not reward_options.is_empty():
+		last_reward_card_art_path = _card_art_path(reward_options[0])
+		last_reward_card_art_loaded = _asset_loaded(last_reward_card_art_path)
+	if not relic_reward_options.is_empty():
+		last_relic_icon_path = _relic_icon_path(relic_reward_options[0])
+		last_relic_icon_loaded = _asset_loaded(last_relic_icon_path)
+	if not potion_reward_options.is_empty():
+		last_potion_icon_path = _potion_icon_path(potion_reward_options[0])
+		last_potion_icon_loaded = _asset_loaded(last_potion_icon_path)
+	return {
+		"mode": "combat",
+		"gold": combat_reward_gold,
+		"cards": _reward_item_models(reward_options, "card"),
+		"relics": _reward_item_models(relic_reward_options, "relic"),
+		"potions": _reward_item_models(potion_reward_options, "potion"),
+		"card_done": card_reward_done,
+		"relic_done": relic_reward_done,
+		"potion_done": potion_reward_done,
+		"masteries": _reward_item_models(mastery_options, "mastery"),
+		"can_continue": can_continue,
+		"continue_reason": "选择一项卡组专精" if not mastery_options.is_empty() else ("等待奖励处理" if not standard_done else "进入下个节点")
+	}
+
+func _treasure_reward_page_model() -> Dictionary:
+	last_treasure_relic_layout_count = relic_reward_options.size()
+	last_treasure_relic_icon_node_count = relic_reward_options.size()
+	last_reward_card_layout_count = 0
+	last_reward_card_art_node_count = 0
+	last_reward_potion_layout_count = 0
+	last_reward_potion_icon_node_count = 0
+	last_reward_relic_layout_count = relic_reward_options.size()
+	last_reward_relic_icon_node_count = relic_reward_options.size()
+	last_reward_gold_panel_count = 1 if treasure_reward_gold > 0 else 0
+	last_reward_action_button_count = 1
+	last_reward_action_icon_node_count = 1
+	last_reward_button_style_count = relic_reward_options.size() + 1
+	if not relic_reward_options.is_empty():
+		last_relic_icon_path = _relic_icon_path(relic_reward_options[0])
+		last_relic_icon_loaded = _asset_loaded(last_relic_icon_path)
+	return {
+		"mode": "treasure",
+		"gold": treasure_reward_gold,
+		"cards": [],
+		"relics": _reward_item_models(relic_reward_options, "relic"),
+		"potions": [],
+		"relic_done": relic_reward_done,
+		"can_continue": true,
+		"continue_reason": "领取金币并继续"
+	}
+
+func _reward_option_by_id(options: Array, item_id: String) -> Dictionary:
+	for option_value in options:
+		var option: Dictionary = option_value
+		if str(option.get("id", "")) == item_id:
+			return option
+	return {}
+
+func _warn_rejected_reward_action(action: String, item_id: String = "") -> void:
+	var suffix := "" if item_id.is_empty() else " id '%s'" % item_id
+	push_warning("RewardPage: rejected %s%s" % [action, suffix])
+
+func _on_reward_page_claim_card(item_id: String) -> void:
+	if combat == null or combat.phase != "won" or card_reward_done or _reward_option_by_id(reward_options, item_id).is_empty():
+		_warn_rejected_reward_action("card", item_id)
+		return
+	_on_reward_card_pressed(item_id)
+
+func _on_reward_page_claim_relic(item_id: String) -> void:
+	if combat == null or combat.phase != "won" or relic_reward_done or run_relic_ids.has(item_id) or _reward_option_by_id(relic_reward_options, item_id).is_empty():
+		_warn_rejected_reward_action("relic", item_id)
+		return
+	_on_reward_relic_pressed(item_id)
+
+func _on_reward_page_claim_potion(item_id: String) -> void:
+	if combat == null or combat.phase != "won" or potion_reward_done or not _has_empty_potion_slot() or _reward_option_by_id(potion_reward_options, item_id).is_empty():
+		_warn_rejected_reward_action("potion", item_id)
+		return
+	_on_reward_potion_pressed(item_id)
+
+func _on_reward_page_claim_mastery(mastery_id: String) -> void:
+	var standard_done := card_reward_done and relic_reward_done and potion_reward_done
+	if combat == null or combat.phase != "won" or not standard_done or not run_deck_mastery_id.is_empty() or _reward_option_by_id(_eligible_deck_masteries(), mastery_id).is_empty():
+		_warn_rejected_reward_action("mastery", mastery_id)
+		return
+	_on_deck_mastery_pressed(mastery_id)
+
+func _combat_reward_can_continue() -> bool:
+	if combat == null or combat.phase != "won" or not (card_reward_done and relic_reward_done and potion_reward_done):
+		return false
+	return not (_mastery_reward_is_available() and not _eligible_deck_masteries().is_empty())
+
+func _on_reward_page_continue_requested() -> void:
+	if not _combat_reward_can_continue():
+		_warn_rejected_reward_action("continue")
+		return
+	_advance_to_next_node()
+
+func _on_reward_page_treasure_relic(item_id: String) -> void:
+	if current_node_id.is_empty() or str(_current_node().get("type", "")) != "treasure" or relic_reward_done or run_relic_ids.has(item_id) or _reward_option_by_id(relic_reward_options, item_id).is_empty():
+		_warn_rejected_reward_action("treasure relic", item_id)
+		return
+	_on_treasure_relic_pressed(item_id)
+
+func _on_reward_page_treasure_continue() -> void:
+	if current_node_id.is_empty() or str(_current_node().get("type", "")) != "treasure":
+		_warn_rejected_reward_action("treasure continue")
+		return
+	_on_treasure_continue_pressed()
+
+func _mount_reward_page(model: Dictionary) -> void:
+	var page = RewardPageScript.new()
+	page.configure(model)
+	var is_combat_reward := str(model.get("mode", "")) == "combat"
+	page.claim_card.connect(_on_reward_page_claim_card)
+	page.claim_relic.connect(_on_reward_page_claim_relic if is_combat_reward else _on_reward_page_treasure_relic)
+	page.claim_potion.connect(_on_reward_page_claim_potion)
+	page.skip_card_requested.connect(_on_skip_card_reward_pressed)
+	page.skip_potion_requested.connect(_on_skip_potion_reward_pressed)
+	page.save_requested.connect(_on_save_pressed)
+	page.claim_mastery.connect(_on_reward_page_claim_mastery)
+	if is_combat_reward:
+		page.continue_requested.connect(_on_reward_page_continue_requested)
+	else:
+		page.continue_requested.connect(_on_reward_page_treasure_continue)
+	app_shell.mount_page(page, "reward")
 
 func _mount_defeat_outcome_page() -> void:
 	var outcome: Dictionary = _defeat_outcome_data()

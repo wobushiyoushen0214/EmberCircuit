@@ -1,0 +1,4 @@
+{"file":".trellis/tasks/delivery-batch-018d-ui-run-page-mounts/03-run-page-visual-verification/prd.md","reason":"核对 AC-10 至 12、阈值、File Manifest 和禁止事项"}
+{"file":"tests/fixtures/ui_visual_contracts.json","reason":"保护 11 页区域合同与五页语义区域"}
+{"file":"tests/test_run_flow.gd","reason":"旧 helper 删除后保护完整跑团与全部旧 probe"}
+{"file":"tools/profile_ui_performance.gd","reason":"保护真实 Main、20 轮路由切换和 600 帧采样方法"}

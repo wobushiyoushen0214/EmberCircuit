@@ -947,3 +947,13 @@ jq empty data/cards/cards.json data/enemies/enemies.json data/relics/relics.json
 - 生成 11 页 1280x720 区域金标并固定 `seed(0xEC018C)`；最终视觉报告 11/11 通过，最大平均 RGB 差 `0.0000246187`，最大差异像素比 `0`。
 - 真实 `Main.tscn` 600 帧 macOS Apple M4 采样通过：p95 `14.201ms`、1% low `66.88 FPS`、输入反馈 `20.432ms`、20 轮页面切换节点增量 `0`、循环 Tween `2`、普通/Boss burst `10/20`。Windows release 仍需在目标机执行同一 profiler 复测。
 - Godot editor import 与 28/28 `tests/test_*.gd` 全绿；严格日志扫描未发现脚本错误、断言失败或节点泄漏。
+
+## 2026-07-18：018D 跑团五页真实挂载与视觉收敛
+
+- 补齐 Map/Event/Shop/Campfire/Reward 的 disabled、unknown、空状态、价格、真实 deck index、奖励恢复与继续门契约；Main 新增逐页 VM/mount/adapter，页面 signal 只进入原业务回调。
+- PC 地图、事件、商店、篝火、战斗奖励和宝箱已真实挂入唯一 AppShell；Compact 继续使用原兼容布局，`last_*` probes 和稳定节点名未删除。
+- 删除 Main 中无调用的 Campfire/Event/Reward PC 内联视觉构造，保留业务状态、素材查找、音频、存档和遥测；Main 相对本批实现前净减少代码。
+- 人工截图首次发现 Reward/Event/Shop/Campfire 大面积空洞后拒绝更新金标；页面改为三栏奖励、事件/篝火大幅场景图、等高商品货架，并复用现有卡牌/遗物/药水生产资源。
+- 1280x720 与 1600x900 五页人工构图复核通过；11/11 区域金标全绿，阈值仍为 mean RGB <=1%、changed pixels <=2%，未改的六页保持像素稳定。
+- 真实 Main 五页按 map->event->shop->campfire->reward 切换 20 轮，节点增量 `0`、循环 Tween `2`；Apple M4 600 帧 p95 `9.254ms`、1% low `105.85 FPS`、最大输入延迟 `57.468ms`、普通/Boss burst `10/20`。
+- editor import、28/28 `tests/test_*.gd`、视觉 verifier 和性能预算全绿；预期 warning 仅覆盖未知/过期页面请求与测试存储原子替换边界。

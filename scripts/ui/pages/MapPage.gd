@@ -35,7 +35,16 @@ func configure(model: Dictionary) -> void:
 	var successor_ids: Array[String] = []
 	for raw_id in model.get("preview_successor_ids", []):
 		successor_ids.append(str(raw_id))
-	map_view.set_preview_successors(successor_ids)
+	var preview_successors: Array[String] = []
+	for raw_successor in model.get("preview_successors", successor_ids):
+		preview_successors.append(str(raw_successor))
+	map_view.set_preview_details(
+		str(model.get("preview_title", "")),
+		str(model.get("preview_risk", "")),
+		str(model.get("preview_reward", "")),
+		str(model.get("preview_description", "")),
+		preview_successors
+	)
 	_risk_summary.text = "路线风险  ·  %s" % str(model.get("risk_summary", "前方节点状态可预览"))
 	_route_preview.text = "后继预览  ·  %s" % ", ".join(successor_ids)
 

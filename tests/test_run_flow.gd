@@ -1003,14 +1003,37 @@ func _run() -> void:
 	if not _check(main.last_reward_action_icon_node_count == main.last_reward_action_button_count, "combat reward action buttons load icon nodes"):
 		return
 	if main._is_pc_layout():
-		var reward_action_column := main.reward_row.get_node_or_null("RewardActionColumn") as VBoxContainer
-		if not _check(reward_action_column != null and reward_action_column.get_child_count() == main.last_reward_action_button_count, "PC combat reward actions share one dedicated command column"):
+		var reward_page := main.app_shell.active_page as Control
+		if not _check(main.app_shell.active_page_id == "reward" and reward_page != null and reward_page.name == "RewardPage", "PC combat reward mounts RewardPage as the only active reward surface"):
 			return
-		if not _check(main.title_label.visible and main.title_label.text == "战斗奖励" and not main.run_label.visible and not main.character_frame.visible and not main.log_label.visible and not main.controls_scroll.visible, "PC combat reward page uses a focused full-page chrome"):
+		if not _check(not main.page_scroll.visible and not main.reward_scroll.visible and reward_page.find_child("RewardActionColumn", true, false) != null, "PC combat reward hides legacy reward chrome"):
 			return
-	var first_reward_card_button := _first_structured_button(main.reward_row)
-	if not _check(first_reward_card_button != null and first_reward_card_button.get_child_count() >= 1 and first_reward_card_button.get_child(0) is MarginContainer, "combat reward card button contains a visual layout root"):
-		return
+		var reward_save_button := reward_page.find_child("RewardSaveButton", true, false) as Button
+		if not _check(reward_save_button != null and reward_save_button.custom_minimum_size.y >= 44.0, "PC combat reward exposes an in-page save command"):
+			return
+		var reward_deck_before_invalid: Array = main.run_deck_ids.duplicate()
+		var reward_relics_before_invalid: Array = main.run_relic_ids.duplicate()
+		var reward_potions_before_invalid: Array = main.run_potion_ids.duplicate()
+		var reward_mastery_before_invalid: String = main.run_deck_mastery_id
+		var reward_node_before_invalid: String = main.current_node_id
+		reward_page.claim_card.emit("missing_reward_card")
+		reward_page.claim_relic.emit("missing_reward_relic")
+		reward_page.claim_potion.emit("missing_reward_potion")
+		reward_page.claim_mastery.emit("missing_reward_mastery")
+		reward_page.continue_requested.emit()
+		if not _check(
+			main.run_deck_ids == reward_deck_before_invalid
+			and main.run_relic_ids == reward_relics_before_invalid
+			and main.run_potion_ids == reward_potions_before_invalid
+			and main.run_deck_mastery_id == reward_mastery_before_invalid
+			and main.current_node_id == reward_node_before_invalid,
+			"RewardPage adapters reject unknown reward ids and a premature continue signal"
+		):
+			return
+	else:
+		var first_reward_card_button := _first_structured_button(main.reward_row)
+		if not _check(first_reward_card_button != null and first_reward_card_button.get_child_count() >= 1 and first_reward_card_button.get_child(0) is MarginContainer, "combat reward card button contains a visual layout root"):
+			return
 	main._advance_to_next_node()
 	if not _check(main.current_node_id.is_empty(), "completed node opens map choice"):
 		return
@@ -1020,15 +1043,25 @@ func _run() -> void:
 		return
 	if not _check(main.map_view.visible, "map choice shows visual map view"):
 		return
-	if not _check(main.map_scroll != null and main.map_scroll.visible and main.map_view.get_parent() == main.map_scroll, "map choice constrains the visual map inside a scroll region"):
-		return
 	if main._is_pc_layout():
+		var mounted_map_page := main.app_shell.active_page as Control
+		if not _check(
+			main.app_shell.visible and not main.page_scroll.visible
+			and main.app_shell.active_page_id == "map"
+			and mounted_map_page != null and mounted_map_page.name == "MapPage"
+			and main.map_view.get_parent() == mounted_map_page
+			and not main.map_scroll.visible,
+			"PC map choice mounts MapPage as the only active map surface"
+		):
+			return
 		if not _check(main.last_combat_layout_overflow <= 0.0 and main.map_view.custom_minimum_size.y <= 760.0 and not main.log_label.visible, "PC map choice replaces the legacy log strip with the fixed map detail panel"):
 			return
 		var map_preview_panel := main.map_view.get_node_or_null("NodePreviewPanel") as Control
 		if not _check(map_preview_panel != null and map_preview_panel.visible, "PC map choice keeps its fixed node detail panel visible"):
 			return
 	else:
+		if not _check(main.map_scroll != null and main.map_scroll.visible and main.map_view.get_parent() == main.map_scroll, "compact map choice constrains the visual map inside a scroll region"):
+			return
 		if not _check(main.last_combat_layout_overflow <= 0.0 and main.map_view.custom_minimum_size.y <= 680.0 and main.log_label.custom_minimum_size.y <= 120.0, "compact map choice keeps map, log, and controls inside the viewport"):
 			return
 	if not _check(main.map_view.get_node_button_count() == main.route_nodes.size(), "map view renders every route node"):
@@ -1046,7 +1079,8 @@ func _run() -> void:
 	if not _check(not main.last_map_preview_node_id.is_empty(), "map choice records default preview node"):
 		return
 	var preview_node_id: String = str(main.available_node_ids[0])
-	main._on_map_node_previewed(preview_node_id)
+	main.last_map_preview_node_id = ""
+	main.map_view._on_node_button_previewed(preview_node_id)
 	if not _check(main.last_map_preview_node_id == preview_node_id and main.map_view.preview_title_label != null and not main.map_view.preview_title_label.text.is_empty(), "map node preview updates the fixed detail panel"):
 		return
 	if not _check(main.map_view.preview_risk_label.text.contains("风险") and main.map_view.preview_reward_label.text.contains("收益"), "map node preview keeps risk and reward visible in the fixed detail panel"):
@@ -1054,6 +1088,10 @@ func _run() -> void:
 	if not _check(main.map_view.previewed_node_id == preview_node_id, "map node preview highlights the active route in map view"):
 		return
 	if not _check(main.map_view.get_previewed_successor_count() == main._successor_node_ids(preview_node_id).size(), "map route preview stores successor count"):
+		return
+	var refresh_count_before_map_selection: int = main.refresh_call_count
+	main.map_view._on_node_button_pressed(preview_node_id)
+	if not _check(main.current_node_id == preview_node_id and main.refresh_call_count == refresh_count_before_map_selection + 1, "mounted map selection reaches the original callback exactly once"):
 		return
 
 	_jump_to_node_type(main, "campfire")
@@ -1067,8 +1105,13 @@ func _run() -> void:
 	var untouched_duplicate_deck_index: int = -1
 	var untouched_duplicate_before: String = ""
 	if main._is_pc_layout():
-		var campfire_stage := main.reward_row.get_node_or_null("PcCampfireExperience") as PanelContainer
-		if not _check(campfire_stage != null and main.reward_row.get_child_count() == 1, "PC campfire opens as one illustrated decision stage"):
+		var campfire_stage := main.app_shell.active_page as Control
+		if not _check(
+			main.app_shell.active_page_id == "campfire"
+			and campfire_stage != null and campfire_stage.name == "CampfirePage"
+			and campfire_stage.get_node_or_null("PcCampfireExperience") != null,
+			"PC campfire mounts one dedicated arrival page"
+		):
 			return
 		if not _check(main.last_campfire_art_loaded and main._asset_loaded(main.last_campfire_art_path), "PC campfire loads its room illustration from the manifest"):
 			return
@@ -1087,35 +1130,35 @@ func _run() -> void:
 			if not deck_entry.ends_with("+") and not deck_card.is_empty() and deck_card.has("upgrade"):
 				main.run_deck_ids[deck_index] = "%s+" % deck_entry
 		main._refresh()
-		campfire_stage = main.reward_row.get_node_or_null("PcCampfireExperience") as PanelContainer
+		campfire_stage = main.app_shell.active_page as Control
 		forge_button = campfire_stage.find_child("CampfireForgeButton", true, false) as Button if campfire_stage != null else null
 		if not _check(main._campfire_upgrade_candidates().is_empty() and forge_button != null and forge_button.disabled, "PC campfire disables forge when every card is already upgraded"):
 			return
 		main.run_deck_ids = original_campfire_deck
 		main._refresh()
-		campfire_stage = main.reward_row.get_node_or_null("PcCampfireExperience") as PanelContainer
+		campfire_stage = main.app_shell.active_page as Control
 		forge_button = campfire_stage.find_child("CampfireForgeButton", true, false) as Button if campfire_stage != null else null
 		forge_button.pressed.emit()
-		var forge_stage := main.reward_row.get_node_or_null("PcCampfireForgeSelection") as PanelContainer
-		var forge_grid := forge_stage.find_child("CampfireUpgradeCards", true, false) as GridContainer if forge_stage != null else null
+		var forge_stage := main.app_shell.active_page as Control
+		var forge_grid := forge_stage.find_child("CampfireForgeCandidates", true, false) as VBoxContainer if forge_stage != null else null
 		var candidates: Array = main._campfire_upgrade_candidates()
-		if not _check(main.campfire_upgrade_selection_open and forge_stage != null, "forge action opens a dedicated upgrade selection stage"):
+		if not _check(main.campfire_upgrade_selection_open and forge_stage != null and forge_stage.find_child("CampfireForgePanel", true, false).visible, "forge action opens a dedicated upgrade selection stage"):
 			return
 		if not _check(forge_grid != null and forge_grid.get_child_count() == candidates.size() and candidates.size() > 4, "forge selection exposes every upgradeable deck entry instead of only the first four"):
 			return
 		if not _check(main.last_campfire_card_layout_count == candidates.size() and main.last_campfire_card_art_node_count == candidates.size(), "all forge candidates use structured art-backed card layouts"):
 			return
-		var forge_back_button := forge_stage.find_child("CampfireForgeBackButton", true, false) as Button
+		var forge_back_button := forge_stage.find_child("CampfireForgeBack", true, false) as Button
 		if not _check(forge_back_button != null, "forge selection exposes a return action"):
 			return
 		forge_back_button.pressed.emit()
-		if not _check(not main.campfire_upgrade_selection_open and main.reward_row.get_node_or_null("PcCampfireExperience") != null, "forge return action restores the campfire arrival stage"):
+		if not _check(not main.campfire_upgrade_selection_open and main.app_shell.active_page.find_child("CampfireArrivalActions", true, false).visible, "forge return action restores the campfire arrival stage"):
 			return
-		campfire_stage = main.reward_row.get_node_or_null("PcCampfireExperience") as PanelContainer
+		campfire_stage = main.app_shell.active_page as Control
 		forge_button = campfire_stage.find_child("CampfireForgeButton", true, false) as Button if campfire_stage != null else null
 		forge_button.pressed.emit()
-		forge_stage = main.reward_row.get_node_or_null("PcCampfireForgeSelection") as PanelContainer
-		forge_grid = forge_stage.find_child("CampfireUpgradeCards", true, false) as GridContainer if forge_stage != null else null
+		forge_stage = main.app_shell.active_page as Control
+		forge_grid = forge_stage.find_child("CampfireForgeCandidates", true, false) as VBoxContainer if forge_stage != null else null
 		candidates = main._campfire_upgrade_candidates()
 		var selected_candidate_position: int = 0
 		for candidate_position in range(1, candidates.size()):
@@ -1127,8 +1170,12 @@ func _run() -> void:
 		untouched_duplicate_deck_index = int(candidates[0].get("deck_index", -1))
 		untouched_duplicate_before = str(main.run_deck_ids[untouched_duplicate_deck_index])
 		first_campfire_deck_index = int(candidates[selected_candidate_position].get("deck_index", -1))
-		first_campfire_card_button = forge_grid.get_child(selected_candidate_position) as Button
+		first_campfire_card_button = forge_stage.find_child("CampfireUpgrade_%d" % first_campfire_deck_index, true, false) as Button
 		first_card_before = str(main.run_deck_ids[first_campfire_deck_index])
+		var deck_before_invalid_campfire_index: Array = main.run_deck_ids.duplicate()
+		main._on_campfire_page_upgrade_requested(-1)
+		if not _check(main.run_deck_ids == deck_before_invalid_campfire_index, "campfire page rejects an invalid deck index without changing the deck"):
+			return
 	else:
 		if not _check(main.last_campfire_button_style_count > 0, "campfire actions use styled buttons"):
 			return
@@ -1136,8 +1183,12 @@ func _run() -> void:
 			return
 		first_campfire_card_button = main.reward_row.get_child(2) as Button
 		first_card_before = str(main.run_deck_ids[0])
-	if not _check(first_campfire_card_button != null and first_campfire_card_button.get_child_count() >= 1 and first_campfire_card_button.get_child(0) is MarginContainer, "campfire upgrade card button contains a visual layout root"):
-		return
+	if main._is_pc_layout():
+		if not _check(first_campfire_card_button != null and first_campfire_card_button.custom_minimum_size.y >= 44.0, "campfire upgrade card keeps a stable real-index action"):
+			return
+	else:
+		if not _check(first_campfire_card_button != null and first_campfire_card_button.get_child_count() >= 1 and first_campfire_card_button.get_child(0) is MarginContainer, "campfire upgrade card button contains a visual layout root"):
+			return
 	var first_card: Dictionary = main._card_by_id(first_card_before)
 	if not _check(main._upgrade_preview_text(first_card).contains("=>"), "upgrade preview shows before and after"):
 		return
@@ -1185,7 +1236,7 @@ func _run() -> void:
 	_jump_to_node_type(main, "campfire")
 	main.run_hp = 10
 	if main._is_pc_layout():
-		var heal_stage := main.reward_row.get_node_or_null("PcCampfireExperience") as PanelContainer
+		var heal_stage := main.app_shell.active_page as Control
 		var heal_button := heal_stage.find_child("CampfireRestButton", true, false) as Button if heal_stage != null else null
 		if not _check(heal_button != null, "PC campfire rest action remains available on a later visit"):
 			return
@@ -1205,8 +1256,14 @@ func _run() -> void:
 	var event: Dictionary = main._event_by_id("broken_reactor")
 	var event_choice_buttons: VBoxContainer
 	if main._is_pc_layout():
-		var event_stage := main.reward_row.get_node_or_null("PcEventExperience") as PanelContainer
-		if not _check(event_stage != null and main.reward_row.get_child_count() == 1, "PC event screen renders one complete illustrated decision stage"):
+		var event_stage := main.app_shell.active_page as Control
+		if not _check(
+			main.app_shell.visible and not main.page_scroll.visible
+			and main.app_shell.active_page_id == "event"
+			and event_stage != null and event_stage.name == "EventPage"
+			and event_stage.get_node_or_null("PcEventExperience") != null,
+			"PC event mounts EventPage as the only active decision surface"
+		):
 			return
 		event_choice_buttons = event_stage.find_child("EventChoiceButtons", true, false) as VBoxContainer
 		if not _check(event_choice_buttons != null and event_choice_buttons.get_child_count() == event.get("choices", []).size(), "PC event stage keeps every choice in one vertical decision column"):
@@ -1226,14 +1283,33 @@ func _run() -> void:
 		return
 	if not _check(main.last_event_choice_layout_count == event.get("choices", []).size(), "event choices use structured wrapping layouts"):
 		return
-	var first_event_choice_button := event_choice_buttons.get_child(0) as Button if event_choice_buttons != null else main.reward_row.get_child(1) as Button
-	if not _check(first_event_choice_button != null and first_event_choice_button.get_child_count() >= 1 and first_event_choice_button.get_child(0) is MarginContainer, "event choice button contains a structured text layout"):
-		return
+	var first_event_choice: Dictionary = event.get("choices", [])[0]
+	var first_event_choice_button := (
+		main.app_shell.active_page.find_child("EventChoice_%s" % str(first_event_choice.get("id", "")), true, false) as Button
+		if main._is_pc_layout()
+		else main.reward_row.get_child(1) as Button
+	)
+	if main._is_pc_layout():
+		if not _check(first_event_choice_button != null and first_event_choice_button.custom_minimum_size.y >= 44.0, "mounted event choice keeps a stable id and action minimum"):
+			return
+	else:
+		if not _check(first_event_choice_button != null and first_event_choice_button.get_child_count() >= 1 and first_event_choice_button.get_child(0) is MarginContainer, "event choice button contains a structured text layout"):
+			return
 	if main._is_pc_layout():
 		var event_choice_style := first_event_choice_button.get_theme_stylebox("normal") as StyleBoxFlat
 		if not _check(event_choice_style != null and event_choice_style.border_color.r > event_choice_style.border_color.b, "PC event choices use the dedicated brass-and-charcoal skin"):
 			return
 	var gold_before_event: int = main.run_gold
+	var event_refresh_before_unknown: int = main.refresh_call_count
+	if main._is_pc_layout():
+		main._on_event_page_choice_selected("missing_choice")
+		if not _check(
+			main.run_gold == gold_before_event
+			and str(main._current_node().get("event_id", "")) == "broken_reactor"
+			and main.refresh_call_count == event_refresh_before_unknown,
+			"unknown event page choice id is ignored without changing state"
+		):
+			return
 	first_event_choice_button.pressed.emit()
 	if not _check(main.run_gold == gold_before_event + 35, "event choice applies gold effect"):
 		return
@@ -1255,7 +1331,10 @@ func _run() -> void:
 	var blocked_reason: String = main._event_choice_blocked_reason(blocked_choice)
 	if not _check(blocked_reason.contains("药水槽"), "event choice condition detects full potion slots"):
 		return
-	main._on_event_choice_pressed(blocked_choice)
+	if main._is_pc_layout():
+		main._on_event_page_choice_selected(str(blocked_choice.get("id", "")))
+	else:
+		main._on_event_choice_pressed(blocked_choice)
 	if not _check(main.last_event_choice_blocked_reason.contains("药水槽"), "blocked event choice records blocked reason"):
 		return
 	if not _check(str(main._current_node().get("event_id", "")) == "coolant_cache", "blocked event choice does not advance node"):
@@ -1320,21 +1399,43 @@ func _run() -> void:
 		return
 	if not _check(main.last_treasure_gold_reward >= int(main.economy_data.get("treasure", {}).get("gold_min", 0)), "treasure generates configured gold reward"):
 		return
-	if not _check(main.reward_scroll.visible and main.reward_row is HFlowContainer and main.last_combat_layout_overflow <= 0.0, "treasure rewards stay inside a bounded wrapping reward area"):
-		return
+	if main._is_pc_layout():
+		var treasure_page := main.app_shell.active_page as Control
+		if not _check(main.app_shell.active_page_id == "reward" and treasure_page != null and treasure_page.name == "RewardPage" and not main.page_scroll.visible and not main.reward_scroll.visible, "PC treasure mounts RewardPage without combat reward chrome"):
+			return
+		var treasure_gold_before_invalid: int = main.run_gold
+		var treasure_relics_before_invalid: Array = main.run_relic_ids.duplicate()
+		var treasure_node_before_invalid: String = main.current_node_id
+		treasure_page.claim_relic.emit("missing_treasure_relic")
+		if not _check(main.run_gold == treasure_gold_before_invalid and main.run_relic_ids == treasure_relics_before_invalid and main.current_node_id == treasure_node_before_invalid, "RewardPage treasure adapter rejects an unknown relic id"):
+			return
+	else:
+		if not _check(main.reward_scroll.visible and main.reward_row is HFlowContainer and main.last_combat_layout_overflow <= 0.0, "treasure rewards stay inside a bounded wrapping reward area"):
+			return
 	if not _check(main.last_treasure_relic_layout_count == main.relic_reward_options.size() and main.last_treasure_relic_layout_count > 0, "treasure relic choices use structured item layout"):
 		return
 	if not _check(main.last_treasure_relic_icon_node_count == main.last_treasure_relic_layout_count and main.last_relic_icon_loaded, "treasure relic choices load icon nodes"):
 		return
-	var treasure_summary_panel := main.reward_row.get_child(0) as PanelContainer
-	var first_treasure_relic_button := main.reward_row.get_child(1) as Button
-	if not _check(treasure_summary_panel != null and first_treasure_relic_button != null and first_treasure_relic_button.get_child_count() >= 1, "treasure screen renders a summary panel before relic choices"):
-		return
+	var first_treasure_relic_button := (
+		main.app_shell.active_page.find_child("RewardRelic_%s" % str(main.relic_reward_options[0].get("id", "")), true, false) as Button
+		if main._is_pc_layout()
+		else main.reward_row.get_child(1) as Button
+	)
+	if main._is_pc_layout():
+		if not _check(first_treasure_relic_button != null and first_treasure_relic_button.custom_minimum_size.y >= 44.0 and main.app_shell.active_page.find_child("RewardSkipCard", true, false) == null, "PC treasure shows relic actions without combat-only skip controls"):
+			return
+	else:
+		var treasure_summary_panel := main.reward_row.get_child(0) as PanelContainer
+		if not _check(treasure_summary_panel != null and first_treasure_relic_button != null and first_treasure_relic_button.get_child_count() >= 1, "treasure screen renders a summary panel before relic choices"):
+			return
 	var gold_before_treasure: int = main.run_gold
 	var relic_count_before_treasure: int = main.run_relic_ids.size()
 	var treasure_gold: int = main.last_treasure_gold_reward
 	var treasure_relic_id: String = str(main.relic_reward_options[0].get("id", ""))
-	main._on_treasure_relic_pressed(treasure_relic_id)
+	if main._is_pc_layout():
+		first_treasure_relic_button.pressed.emit()
+	else:
+		main._on_treasure_relic_pressed(treasure_relic_id)
 	if not _check(main.run_gold == gold_before_treasure + treasure_gold, "treasure claim grants gold"):
 		return
 	if not _check(main.run_relic_ids.size() == relic_count_before_treasure + 1 and main.run_relic_ids.has(treasure_relic_id), "treasure claim grants selected relic"):
@@ -1347,45 +1448,82 @@ func _run() -> void:
 		return
 	if not _check(main.last_music_context == "shop", "shop node uses shop music context"):
 		return
+	if main._is_pc_layout():
+		var shop_page := main.app_shell.active_page as Control
+		if not _check(main.app_shell.active_page_id == "shop" and shop_page != null and shop_page.name == "ShopExperience", "PC shop mounts ShopExperience as the only active store surface"):
+			return
 	if not _check(main.last_shop_button_style_count >= 4, "shop actions use styled buttons"):
 		return
-	if not _check(main.reward_scroll.visible and main.reward_row is HFlowContainer and main.last_combat_layout_overflow <= 0.0, "shop offers stay inside a bounded wrapping reward area"):
-		return
+	if main._is_pc_layout():
+		if not _check(not main.page_scroll.visible and not main.reward_scroll.visible and main.last_combat_layout_overflow <= 0.0, "PC shop hides the legacy reward surface"):
+			return
+	else:
+		if not _check(main.reward_scroll.visible and main.reward_row is HFlowContainer and main.last_combat_layout_overflow <= 0.0, "shop offers stay inside a bounded wrapping reward area"):
+			return
 	if not _check(main.last_shop_card_layout_count == main.shop_card_options.size() and main.last_shop_card_layout_count > 0, "shop card offers use structured card layout"):
 		return
 	if not _check(main.last_generated_card_reward_rarities.size() == main.shop_card_options.size(), "shop card generation records rarity results"):
 		return
 	if not _check(main.last_shop_card_art_node_count == main.last_shop_card_layout_count, "shop card layouts load art nodes"):
 		return
-	var first_shop_card_button := main.reward_row.get_child(0) as Button
-	if not _check(first_shop_card_button != null and first_shop_card_button.get_child_count() >= 1 and first_shop_card_button.get_child(0) is MarginContainer, "shop card button contains a visual layout root"):
-		return
+	var first_shop_card_button := (
+		main.app_shell.active_page.find_child("ShopCard_%s" % str(main.shop_card_options[0].get("id", "")), true, false) as Button
+		if main._is_pc_layout()
+		else main.reward_row.get_child(0) as Button
+	)
+	if main._is_pc_layout():
+		if not _check(first_shop_card_button != null and first_shop_card_button.custom_minimum_size.y >= 44.0, "PC shop card button keeps a stable id and action minimum"):
+			return
+	else:
+		if not _check(first_shop_card_button != null and first_shop_card_button.get_child_count() >= 1 and first_shop_card_button.get_child(0) is MarginContainer, "shop card button contains a visual layout root"):
+			return
 	if not _check(main.last_shop_relic_layout_count == main.shop_relic_options.size() and main.last_shop_relic_layout_count > 0, "shop relic offers use structured item layout"):
 		return
 	if not _check(main.last_shop_relic_icon_node_count == main.last_shop_relic_layout_count and main.last_relic_icon_loaded, "shop relic offers load icon nodes"):
 		return
-	var first_shop_relic_button := main.reward_row.get_child(main.shop_card_options.size()) as Button
-	if not _check(first_shop_relic_button != null and first_shop_relic_button.get_child_count() >= 1 and first_shop_relic_button.get_child(0) is MarginContainer, "shop relic button contains a structured item layout root"):
-		return
+	var first_shop_relic_button := (
+		main.app_shell.active_page.find_child("ShopRelic_%s" % str(main.shop_relic_options[0].get("id", "")), true, false) as Button
+		if main._is_pc_layout()
+		else main.reward_row.get_child(main.shop_card_options.size()) as Button
+	)
+	if main._is_pc_layout():
+		if not _check(first_shop_relic_button != null and first_shop_relic_button.custom_minimum_size.y >= 44.0, "PC shop relic button keeps a stable id and action minimum"):
+			return
+	else:
+		if not _check(first_shop_relic_button != null and first_shop_relic_button.get_child_count() >= 1 and first_shop_relic_button.get_child(0) is MarginContainer, "shop relic button contains a structured item layout root"):
+			return
 	if not _check(main.last_shop_potion_layout_count == main.shop_potion_options.size() and main.last_shop_potion_layout_count > 0, "shop potion offers use structured item layout"):
 		return
 	if not _check(main.last_shop_potion_icon_node_count == main.last_shop_potion_layout_count, "shop potion layouts load icon nodes"):
 		return
-	var first_shop_potion_button := main.reward_row.get_child(main.shop_card_options.size() + main.shop_relic_options.size()) as Button
-	if not _check(first_shop_potion_button != null and first_shop_potion_button.get_child_count() >= 1 and first_shop_potion_button.get_child(0) is MarginContainer, "shop potion button contains a structured item layout root"):
-		return
-	if not _check(main.last_reward_card_art_loaded and main._asset_loaded(main.last_reward_card_art_path), "shop card buttons load art manifest assets"):
-		return
-	if not _check(main.last_relic_icon_loaded and main._asset_loaded(main.last_relic_icon_path), "shop relic buttons load art manifest assets"):
-		return
-	if not _check(main.last_potion_icon_loaded and main._asset_loaded(main.last_potion_icon_path), "shop potion buttons load art manifest assets"):
-		return
+	var first_shop_potion_button := (
+		main.app_shell.active_page.find_child("ShopPotion_%s" % str(main.shop_potion_options[0].get("id", "")), true, false) as Button
+		if main._is_pc_layout()
+		else main.reward_row.get_child(main.shop_card_options.size() + main.shop_relic_options.size()) as Button
+	)
+	if main._is_pc_layout():
+		if not _check(first_shop_potion_button != null and first_shop_potion_button.custom_minimum_size.y >= 44.0, "PC shop potion button keeps a stable id and action minimum"):
+			return
+	else:
+		if not _check(first_shop_potion_button != null and first_shop_potion_button.get_child_count() >= 1 and first_shop_potion_button.get_child(0) is MarginContainer, "shop potion button contains a structured item layout root"):
+			return
+	if not main._is_pc_layout():
+		if not _check(main.last_reward_card_art_loaded and main._asset_loaded(main.last_reward_card_art_path), "shop card buttons load art manifest assets"):
+			return
+		if not _check(main.last_relic_icon_loaded and main._asset_loaded(main.last_relic_icon_path), "shop relic buttons load art manifest assets"):
+			return
+		if not _check(main.last_potion_icon_loaded and main._asset_loaded(main.last_potion_icon_path), "shop potion buttons load art manifest assets"):
+			return
 	var relic_count_before_shop: int = main.run_relic_ids.size()
 	var gold_before_relic: int = main.run_gold
 	var shop_relic: Dictionary = main.shop_relic_options[0]
 	var relic_price: int = main._relic_price(shop_relic)
 	main.run_gold = max(main.run_gold, relic_price)
-	main._on_shop_buy_relic_pressed(str(shop_relic.get("id", "")), relic_price)
+	if main._is_pc_layout():
+		main._refresh()
+		(main.app_shell.active_page.find_child("ShopRelic_%s" % str(shop_relic.get("id", "")), true, false) as Button).pressed.emit()
+	else:
+		main._on_shop_buy_relic_pressed(str(shop_relic.get("id", "")), relic_price)
 	if not _check(main.run_relic_ids.size() == relic_count_before_shop + 1 and main.run_relic_ids.has(str(shop_relic.get("id", ""))), "shop purchase adds a relic"):
 		return
 	if not _check(main.run_gold == max(gold_before_relic, relic_price) - relic_price, "shop relic purchase spends gold"):
@@ -1394,10 +1532,14 @@ func _run() -> void:
 		return
 	var potion_count_before: int = main.run_potion_ids.size()
 	var gold_before_potion: int = main.run_gold
-	var shop_potion: Dictionary = main._generate_potion_rewards(1)[0]
+	var shop_potion: Dictionary = main.shop_potion_options[0] if main._is_pc_layout() else main._generate_potion_rewards(1)[0]
 	var potion_price: int = main._potion_price(shop_potion)
 	main.run_gold = max(main.run_gold, potion_price)
-	main._on_shop_buy_potion_pressed(str(shop_potion.get("id", "")), potion_price)
+	if main._is_pc_layout():
+		main._refresh()
+		(main.app_shell.active_page.find_child("ShopPotion_%s" % str(shop_potion.get("id", "")), true, false) as Button).pressed.emit()
+	else:
+		main._on_shop_buy_potion_pressed(str(shop_potion.get("id", "")), potion_price)
 	if not _check(main.run_potion_ids.size() == potion_count_before + 1, "shop purchase adds a potion"):
 		return
 	if not _check(main.run_gold == max(gold_before_potion, potion_price) - potion_price, "shop potion purchase spends gold"):
@@ -1405,10 +1547,14 @@ func _run() -> void:
 
 	var deck_size_before: int = main.run_deck_ids.size()
 	var gold_before: int = main.run_gold
-	var shop_card: Dictionary = main._generate_card_rewards(1)[0]
+	var shop_card: Dictionary = main.shop_card_options[0] if main._is_pc_layout() else main._generate_card_rewards(1)[0]
 	var price: int = main._card_price(shop_card)
 	main.run_gold = max(main.run_gold, price)
-	main._on_shop_buy_card_pressed(str(shop_card.get("id", "")), price)
+	if main._is_pc_layout():
+		main._refresh()
+		(main.app_shell.active_page.find_child("ShopCard_%s" % str(shop_card.get("id", "")), true, false) as Button).pressed.emit()
+	else:
+		main._on_shop_buy_card_pressed(str(shop_card.get("id", "")), price)
 	if not _check(main.run_deck_ids.size() == deck_size_before + 1, "shop purchase adds a card"):
 		return
 	if not _check(main.run_gold == max(gold_before, price) - price, "shop purchase spends gold"):
@@ -1427,9 +1573,19 @@ func _run() -> void:
 		return
 	if not _check(main.last_shop_remove_candidate_count == main.run_deck_ids.size() and main.last_shop_remove_card_layout_count == main.last_shop_remove_candidate_count, "shop removal renders selectable deck cards"):
 		return
-	if not _check(main.last_shop_remove_card_art_node_count == main.last_shop_remove_card_layout_count, "shop removal selectable cards load art nodes"):
+	if not main._is_pc_layout() and not _check(main.last_shop_remove_card_art_node_count == main.last_shop_remove_card_layout_count, "shop removal selectable cards load art nodes"):
 		return
-	main._on_shop_remove_card_selected(selected_remove_index)
+	if main._is_pc_layout():
+		var shop_remove_page := main.app_shell.active_page as Control
+		var cancel_shop_remove := shop_remove_page.find_child("ShopRemoveCancel", true, false) as Button
+		cancel_shop_remove.pressed.emit()
+		if not _check(not main.shop_remove_selection_open and main.app_shell.active_page_id == "shop", "shop remove cancel returns to store mode"):
+			return
+		main._on_shop_remove_card_pressed()
+		shop_remove_page = main.app_shell.active_page as Control
+		(shop_remove_page.find_child("ShopRemoveCard_%d" % selected_remove_index, true, false) as Button).pressed.emit()
+	else:
+		main._on_shop_remove_card_selected(selected_remove_index)
 	if not _check(main.run_deck_ids.size() == deck_size_before_remove - 1, "shop removal removes one card"):
 		return
 	if not _check(not main.run_deck_ids.has(selected_remove_entry), "shop removal removes the selected card"):
@@ -1496,10 +1652,17 @@ func _run() -> void:
 	main._refresh_combat()
 	if not _check(main.last_music_context == "reward", "won combat reward screen uses reward music context"):
 		return
-	if not _check(main.reward_row.visible and not main.battle_board_panel.visible, "victory reward screen hides the combat board to fit the viewport"):
-		return
-	if not _check(main.reward_scroll.visible and main.reward_row is HFlowContainer, "victory reward screen uses a bounded wrapping reward area"):
-		return
+	if main._is_pc_layout():
+		var boss_reward_page := main.app_shell.active_page as Control
+		if not _check(boss_reward_page != null and main.app_shell.active_page_id == "reward" and not main.reward_row.visible and not main.battle_board_panel.visible, "PC victory reward mounts RewardPage and hides the combat board"):
+			return
+		if not _check(not main.reward_scroll.visible and boss_reward_page.find_child("RewardActionColumn", true, false) != null, "PC victory reward hides the legacy wrapping reward area"):
+			return
+	else:
+		if not _check(main.reward_row.visible and not main.battle_board_panel.visible, "victory reward screen hides the combat board to fit the viewport"):
+			return
+		if not _check(main.reward_scroll.visible and main.reward_row is HFlowContainer, "victory reward screen uses a bounded wrapping reward area"):
+			return
 	if not _check(main.last_combat_layout_overflow <= 0.0 and main.last_combat_layout_total_height <= main.last_combat_layout_available_height, "victory reward screen keeps the full page inside the viewport"):
 		return
 	if not _check(main.last_combat_gold_reward > 0 and main.last_reward_gold_panel_count == 1, "boss reward screen grants and displays configured gold"):

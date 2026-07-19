@@ -8,6 +8,17 @@ func _init() -> void:
 	_run.call_deferred()
 
 func _run() -> void:
+	var main_source := FileAccess.get_file_as_string("res://scripts/main/Main.gd")
+	for legacy_helper in [
+		"func _add_pc_campfire_experience",
+		"func _add_pc_campfire_forge_selection",
+		"func _add_pc_event_experience",
+		"func _add_pc_event_story",
+		"func _add_pc_event_decisions",
+		"func _add_pc_event_choice_content",
+		"func _create_reward_action_column"
+	]:
+		_check(not main_source.contains(legacy_helper), "018D-10 legacy helper removed: %s" % legacy_helper.trim_prefix("func "))
 	SaveManagerScript.set_storage_namespace("test_visual_bounds")
 	SaveManagerScript.cleanup_storage_namespace()
 	SaveManagerScript.save_profile(SaveManagerScript.default_profile())
@@ -375,11 +386,16 @@ func _run() -> void:
 	default_pc_main._refresh_combat()
 	await process_frame
 	await process_frame
-	var reward_action_column := default_pc_main.reward_row.get_node_or_null("RewardActionColumn") as VBoxContainer
-	_check(reward_action_column != null, "default PC combat reward uses a dedicated action column")
-	_check(_children_share_row(default_pc_main.reward_row), "default PC combat rewards stay on one visual row")
-	_check(_visible_children_inside_vertical(default_pc_main.reward_row, default_pc_main.reward_scroll), "default PC combat reward items stay inside the reward viewport")
-	_check(_control_above(default_pc_main.reward_scroll, default_pc_main.controls_scroll), "default PC combat reward viewport stays above bottom controls")
+	var reward_page := default_pc_main.app_shell.active_page as Control
+	var reward_action_panel := reward_page.find_child("RewardActionColumn", true, false) as PanelContainer if reward_page != null else null
+	var reward_actions := reward_page.find_child("RewardActions", true, false) as VBoxContainer if reward_page != null else null
+	var reward_receipt_panel := reward_page.find_child("RewardReceiptPanel", true, false) as PanelContainer if reward_page != null else null
+	var reward_offer_flow := reward_page.find_child("RewardOfferFlow", true, false) as HFlowContainer if reward_page != null else null
+	_check(reward_page != null and default_pc_main.app_shell.active_page_id == "reward" and reward_action_panel != null and reward_actions != null, "default PC combat reward uses a dedicated RewardPage action column")
+	_check(reward_receipt_panel != null and reward_offer_flow != null and reward_offer_flow.get_child_count() >= 3, "default PC reward separates receipt, offers and commands into a dense three-zone layout")
+	_check(not default_pc_main.page_scroll.visible and not default_pc_main.reward_scroll.visible, "default PC combat reward hides legacy scroll surfaces")
+	_check(_control_inside_viewport(reward_page, default_pc_size), "default PC combat reward page stays inside the viewport")
+	_check(_control_inside_vertical(reward_action_panel, reward_page) and _control_inside_horizontal(reward_action_panel, reward_page) and _visible_children_fit_horizontally(reward_actions, default_pc_size.x), "default PC combat reward actions stay inside the page bounds")
 	default_pc_main.card_reward_done = true
 	default_pc_main.relic_reward_done = true
 	default_pc_main.potion_reward_done = true
@@ -391,23 +407,36 @@ func _run() -> void:
 	_check(not default_pc_main.log_label.visible, "default PC map removes the legacy RichTextLabel detail strip")
 	_check(int(default_pc_main.map_scroll.get("horizontal_scroll_mode")) == 0 and not default_pc_main.map_scroll.get_h_scroll_bar().visible, "default PC map fits without a horizontal scrollbar")
 	_check(default_pc_main.map_view.find_children("*", "ScrollContainer", true, false).is_empty(), "default PC map detail panel contains no nested scroll containers")
+	_jump_to_node_type(default_pc_main, "shop")
+	await process_frame
+	await process_frame
+	var shop_page := default_pc_main.app_shell.active_page as Control
+	var shop_shelves := shop_page.find_child("ShopShelves", true, false) as HBoxContainer if shop_page != null else null
+	var shop_item_art := shop_page.find_children("ShopItemArt*", "TextureRect", true, false) if shop_page != null else []
+	_check(shop_page != null and default_pc_main.app_shell.active_page_id == "shop" and shop_shelves != null, "default PC shop uses one bounded merchant floor")
+	_check(shop_item_art.size() >= 7, "default PC shop renders a visual identity for every offered card, relic and potion")
 	_jump_to_node_type(default_pc_main, "campfire")
 	await process_frame
 	await process_frame
-	var campfire_stage := default_pc_main.reward_row.get_node_or_null("PcCampfireExperience") as PanelContainer
+	var campfire_page := default_pc_main.app_shell.active_page as Control
+	var campfire_stage := campfire_page.get_node_or_null("PcCampfireExperience") as Control if campfire_page != null else null
 	var campfire_forge_button := campfire_stage.find_child("CampfireForgeButton", true, false) as Button if campfire_stage != null else null
-	_check(campfire_stage != null and default_pc_main.reward_row.get_child_count() == 1, "default PC campfire uses one illustrated decision stage")
-	_check(int(default_pc_main.reward_scroll.get("vertical_scroll_mode")) == 0 and not default_pc_main.reward_scroll.get_v_scroll_bar().visible, "default PC campfire arrival does not expose a page scrollbar")
-	_check(_control_inside_vertical(campfire_stage, default_pc_main.reward_scroll), "default PC campfire decision stage stays inside the reward viewport")
+	var campfire_art_frame := campfire_stage.find_child("CampfireArtFrame", true, false) as Control if campfire_stage != null else null
+	var campfire_art := campfire_stage.find_child("CampfireRoomArt", true, false) as TextureRect if campfire_stage != null else null
+	_check(campfire_stage != null and default_pc_main.app_shell.active_page_id == "campfire" and default_pc_main.app_shell.page_host.get_child_count() == 1, "default PC campfire uses one decision stage")
+	_check(not default_pc_main.page_scroll.visible and not default_pc_main.reward_scroll.visible, "default PC campfire arrival hides legacy page scrollbars")
+	_check(_control_inside_vertical(campfire_stage, default_pc_main.app_shell), "default PC campfire decision stage stays inside the app viewport")
 	_check(campfire_forge_button != null, "default PC campfire exposes the forge action")
+	_check(campfire_art_frame != null and campfire_art != null and campfire_art.texture != null and campfire_art_frame.size.y >= campfire_stage.size.y * 0.55, "default PC campfire uses room art to occupy the narrative stage")
 	if campfire_forge_button != null:
 		campfire_forge_button.pressed.emit()
 	await process_frame
 	await process_frame
-	var campfire_forge_stage := default_pc_main.reward_row.get_node_or_null("PcCampfireForgeSelection") as PanelContainer
-	var campfire_forge_grid := campfire_forge_stage.find_child("CampfireUpgradeCards", true, false) as GridContainer if campfire_forge_stage != null else null
+	var campfire_forge_stage := default_pc_main.app_shell.active_page as Control
+	var campfire_forge_grid := campfire_forge_stage.find_child("CampfireForgeCandidates", true, false) as VBoxContainer if campfire_forge_stage != null else null
+	var campfire_forge_scroll := campfire_forge_stage.find_children("*", "ScrollContainer", true, false)[0] as ScrollContainer if campfire_forge_stage != null and not campfire_forge_stage.find_children("*", "ScrollContainer", true, false).is_empty() else null
 	_check(campfire_forge_stage != null and campfire_forge_grid != null, "default PC forge action opens a complete card-selection stage")
-	_check(int(default_pc_main.reward_scroll.get("vertical_scroll_mode")) == 3 and not default_pc_main.reward_scroll.get_v_scroll_bar().visible, "default PC forge selection keeps wheel navigation without a visible scrollbar")
+	_check(campfire_forge_scroll != null and not default_pc_main.page_scroll.visible, "default PC forge selection owns bounded internal scrolling")
 	_check(campfire_forge_grid != null and campfire_forge_grid.get_child_count() == default_pc_main._campfire_upgrade_candidates().size(), "default PC forge grid includes every upgradeable card")
 	var original_campfire_deck: Array = default_pc_main.run_deck_ids.duplicate()
 	var initial_campfire_candidates: Array = default_pc_main._campfire_upgrade_candidates()
@@ -415,33 +444,59 @@ func _run() -> void:
 		var repeated_card_id: String = str(initial_campfire_candidates[0].get("entry_id", ""))
 		for extra_copy in range(6):
 			default_pc_main.run_deck_ids.append(repeated_card_id)
-		default_pc_main._refresh()
-		await process_frame
-		await process_frame
-		campfire_forge_stage = default_pc_main.reward_row.get_node_or_null("PcCampfireForgeSelection") as PanelContainer
-		campfire_forge_grid = campfire_forge_stage.find_child("CampfireUpgradeCards", true, false) as GridContainer if campfire_forge_stage != null else null
-		var long_deck_candidates: Array = default_pc_main._campfire_upgrade_candidates()
-		var campfire_scroll_bar: VScrollBar = default_pc_main.reward_scroll.get_v_scroll_bar()
-		_check(long_deck_candidates.size() > 10 and campfire_forge_grid != null and campfire_forge_grid.get_child_count() == long_deck_candidates.size(), "long PC deck renders every forge candidate across more than two rows")
-		_check(campfire_scroll_bar.max_value > campfire_scroll_bar.page and not campfire_scroll_bar.visible, "long PC forge grid is scrollable while the system scrollbar stays hidden")
-		default_pc_main.reward_scroll.scroll_vertical = int(campfire_scroll_bar.max_value)
-		await process_frame
-		await process_frame
-		var last_forge_card := campfire_forge_grid.get_child(campfire_forge_grid.get_child_count() - 1) as Control if campfire_forge_grid != null and campfire_forge_grid.get_child_count() > 0 else null
-		_check(_control_inside_vertical(last_forge_card, default_pc_main.reward_scroll), "long PC forge grid can scroll its final card fully into view")
+			default_pc_main._refresh()
+			await process_frame
+			await process_frame
+			campfire_forge_stage = default_pc_main.app_shell.active_page as Control
+			campfire_forge_grid = campfire_forge_stage.find_child("CampfireForgeCandidates", true, false) as VBoxContainer if campfire_forge_stage != null else null
+			campfire_forge_scroll = campfire_forge_stage.find_children("*", "ScrollContainer", true, false)[0] as ScrollContainer if campfire_forge_stage != null and not campfire_forge_stage.find_children("*", "ScrollContainer", true, false).is_empty() else null
+			var long_deck_candidates: Array = default_pc_main._campfire_upgrade_candidates()
+			var campfire_scroll_bar: VScrollBar = campfire_forge_scroll.get_v_scroll_bar() if campfire_forge_scroll != null else null
+			_check(long_deck_candidates.size() > 10 and campfire_forge_grid != null and campfire_forge_grid.get_child_count() == long_deck_candidates.size(), "long PC deck renders every forge candidate across more than two rows")
+			_check(campfire_scroll_bar != null and campfire_scroll_bar.max_value > campfire_scroll_bar.page, "long PC forge list remains internally scrollable")
+			campfire_forge_scroll.scroll_vertical = int(campfire_scroll_bar.max_value)
+			await process_frame
+			await process_frame
+			var last_forge_card := campfire_forge_grid.get_child(campfire_forge_grid.get_child_count() - 1) as Control if campfire_forge_grid != null and campfire_forge_grid.get_child_count() > 0 else null
+			_check(_control_inside_vertical(last_forge_card, campfire_forge_scroll), "long PC forge list can scroll its final card fully into view")
 	default_pc_main.run_deck_ids = original_campfire_deck
 	default_pc_main.campfire_upgrade_selection_open = false
 	_jump_to_event_id(default_pc_main, "broken_reactor")
 	await process_frame
 	await process_frame
 	_check(default_pc_main.last_event_choice_layout_count == 4, "default PC event renders all four structured choice layouts")
-	var event_stage := default_pc_main.reward_row.get_node_or_null("PcEventExperience") as PanelContainer
+	var event_page := default_pc_main.app_shell.active_page as Control
+	var event_stage := event_page.get_node_or_null("PcEventExperience") as Control if event_page != null else null
 	var event_choice_buttons := event_stage.find_child("EventChoiceButtons", true, false) as VBoxContainer if event_stage != null else null
-	_check(event_stage != null and default_pc_main.reward_row.get_child_count() == 1, "default PC event uses one complete decision stage")
+	var event_art_frame := event_stage.find_child("EventArtFrame", true, false) as Control if event_stage != null else null
+	var event_art := event_stage.find_child("EventArt", true, false) as TextureRect if event_stage != null else null
+	_check(event_stage != null and default_pc_main.app_shell.active_page_id == "event" and default_pc_main.app_shell.page_host.get_child_count() == 1, "default PC event uses one complete decision stage")
 	_check(event_choice_buttons != null and event_choice_buttons.get_child_count() == 4, "default PC event keeps four choices in one decision column")
-	_check(int(default_pc_main.reward_scroll.get("vertical_scroll_mode")) == 0 and not default_pc_main.reward_scroll.get_v_scroll_bar().visible, "default PC event does not expose a page scrollbar")
-	_check(_control_inside_vertical(event_stage, default_pc_main.reward_scroll), "default PC event stage stays inside the reward viewport")
-	_check(_visible_children_inside_vertical(event_choice_buttons, default_pc_main.reward_scroll), "default PC event choices stay inside the reward viewport")
+	_check(event_page != null and event_page.find_children("*", "ScrollContainer", true, false).is_empty(), "default PC event does not expose a page scrollbar")
+	_check(_control_inside_vertical(event_stage, default_pc_main.app_shell), "default PC event stage stays inside the app viewport")
+	_check(_visible_children_inside_vertical(event_choice_buttons, default_pc_main.app_shell), "default PC event choices stay inside the app viewport")
+	_check(event_art_frame != null and event_art != null and event_art.texture != null and event_art_frame.size.y >= event_stage.size.y * 0.55, "default PC event art occupies the narrative stage instead of leaving an empty panel")
+
+	desktop_main.combat.phase = "won"
+	desktop_main._refresh_combat()
+	await process_frame
+	await process_frame
+	_check(desktop_main.app_shell.active_page_id == "reward" and _control_inside_viewport(desktop_main.app_shell.active_page as Control, desktop_size), "900p reward page stays inside the AppShell viewport")
+	desktop_main.card_reward_done = true
+	desktop_main.relic_reward_done = true
+	desktop_main.potion_reward_done = true
+	desktop_main._advance_to_next_node()
+	await process_frame
+	await process_frame
+	for route_type in ["shop", "campfire"]:
+		_jump_to_node_type(desktop_main, route_type)
+		await process_frame
+		await process_frame
+		_check(_control_inside_viewport(desktop_main.app_shell.active_page as Control, desktop_size), "900p %s page stays inside the AppShell viewport" % route_type)
+	_jump_to_event_id(desktop_main, "broken_reactor")
+	await process_frame
+	await process_frame
+	_check(_control_inside_viewport(desktop_main.app_shell.active_page as Control, desktop_size), "900p event page stays inside the AppShell viewport")
 	_complete_run_by_boss_jumps(default_pc_main)
 	await process_frame
 	await process_frame

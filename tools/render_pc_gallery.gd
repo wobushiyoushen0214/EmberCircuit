@@ -23,6 +23,18 @@ func _run() -> void:
 	SaveManagerScript.save_profile(SaveManagerScript.default_profile())
 	_set_audio_stream_loading_suppressed(true)
 	var scene: PackedScene = load("res://scenes/main/Main.tscn")
+	if OS.get_cmdline_user_args().has("--run-pages-only"):
+		await _capture_run_page_set(scene)
+		_release_audio_streams()
+		SaveManagerScript.cleanup_storage_namespace()
+		SaveManagerScript.clear_storage_namespace()
+		if not capture_failures.is_empty():
+			push_error("PC gallery failed captures: %s" % ", ".join(capture_failures))
+			quit(1)
+			return
+		print("Saved PC run-page snapshots to %s" % OUT_DIR)
+		quit(0)
+		return
 	await _capture(scene, "00_welcome", Callable())
 	await _capture(scene, "00_welcome_720p", Callable(), DEFAULT_PC_SNAPSHOT_SIZE)
 	await _capture(scene, "01_character_select", func(main): main._on_new_run_pressed())
@@ -163,6 +175,32 @@ func _run() -> void:
 		return
 	print("Saved PC gallery snapshots to %s" % OUT_DIR)
 	quit(0)
+
+func _capture_run_page_set(scene: PackedScene) -> void:
+	for snapshot_size in [SNAPSHOT_SIZE, DEFAULT_PC_SNAPSHOT_SIZE]:
+		var suffix := "" if snapshot_size == SNAPSHOT_SIZE else "_720p"
+		await _capture(scene, "03_reward%s" % suffix, func(main):
+			main._on_character_selected("ember_exile")
+			main.combat.phase = "won"
+			main._refresh_combat()
+		, snapshot_size)
+		await _capture(scene, "04_map%s" % suffix, func(main):
+			main._on_character_selected("ember_exile")
+			main.combat.phase = "won"
+			main._advance_to_next_node()
+		, snapshot_size)
+		await _capture(scene, "05_event%s" % suffix, func(main):
+			main._on_character_selected("ember_exile")
+			_jump_to_event_id(main, "broken_reactor")
+		, snapshot_size)
+		await _capture(scene, "06_shop%s" % suffix, func(main):
+			main._on_character_selected("ember_exile")
+			_jump_to_node_type(main, "shop")
+		, snapshot_size)
+		await _capture(scene, "07_campfire%s" % suffix, func(main):
+			main._on_character_selected("ember_exile")
+			_jump_to_node_type(main, "campfire")
+		, snapshot_size)
 
 func _capture(scene: PackedScene, name: String, setup: Callable, snapshot_size: Vector2i = SNAPSHOT_SIZE, settle_seconds: float = 0.55) -> void:
 	seed(0xEC018C)
