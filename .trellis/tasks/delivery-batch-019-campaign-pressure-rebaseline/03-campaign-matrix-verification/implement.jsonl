@@ -1,0 +1,4 @@
+{"file":".trellis/tasks/delivery-batch-019-campaign-pressure-rebaseline/02-act2-act3-pressure-and-reward-rebaseline/prd.md","reason":"固定 selected step、冻结项和 128 方向门结果"}
+{"file":"data/config/numerical_tree.json","reason":"正式矩阵 schema、目标、observed 字段和 economy snapshot 来源"}
+{"file":"tests/test_numerical_balance_matrix.gd","reason":"复用现有 3×4 轴、risk flag 和经济范围验收"}
+{"file":"tests/test_playtest_evidence_gate.gd","reason":"保持 AI 与真人 cohort、schema 和分母隔离"}

@@ -1,0 +1,4 @@
+{"file":".trellis/tasks/delivery-batch-019-campaign-pressure-rebaseline/02-act2-act3-pressure-and-reward-rebaseline/prd.md","reason":"核对 exact candidate ladder、方向门和禁止事项"}
+{"file":"tests/test_act1_rebaseline.gd","reason":"保护开局、第一章敌人和 21 pressure 基线"}
+{"file":"tests/test_numerical_tree_auditor.gd","reason":"保护静态卡牌/怪物 hard warning 边界"}
+{"file":"tests/test_numerical_balance_matrix.gd","reason":"保护 target、snapshot、challenge 单调和 256 rows 冻结"}

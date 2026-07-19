@@ -1,0 +1,4 @@
+{"file":".trellis/tasks/delivery-batch-019-campaign-pressure-rebaseline/01-campaign-failure-attribution-contract/prd.md","reason":"核对 AC、字段表、File Manifest 和禁止事项"}
+{"file":"tests/test_numerical_pressure_metrics.gd","reason":"保护单战 pressure schema v2，不允许 campaign 归因改写其边界"}
+{"file":"tests/test_numerical_balance_matrix.gd","reason":"保护正式矩阵轴、样本门和旧 risk flag 消费者"}
+{"file":"scripts/tools/BalanceSimulator.gd","reason":"核对旧 campaign 字段和 seed/strategy 兼容性"}

@@ -1,0 +1,4 @@
+{"file":".trellis/audits/2026-07-19-post-018d-gameplay-balance-delta-audit.md","reason":"固定 64-seed 只能诊断、失败 encounter 集中点和禁止的全局调参方向"}
+{"file":"docs/09_NUMERICAL_TREE_AND_BALANCE.md","reason":"固定 campaign hard-gate、失败集中度阈值、paired seed 与 AI/真人隔离规则"}
+{"file":"data/config/numerical_tree.json","reason":"读取 minimum_iterations_for_hard_gate 和 single_failure_encounter_share_max，不修改生产配置"}
+{"file":"tests/test_balance_simulator.gd","reason":"复用现有 campaign fixture、报告保存和 deterministic seed 断言风格"}

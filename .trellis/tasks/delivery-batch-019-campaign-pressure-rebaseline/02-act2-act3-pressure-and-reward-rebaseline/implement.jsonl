@@ -1,0 +1,4 @@
+{"file":".trellis/tasks/delivery-batch-019-campaign-pressure-rebaseline/01-campaign-failure-attribution-contract/prd.md","reason":"固定 attribution schema、128 hard-gate 和旧 risk flag 兼容性"}
+{"file":".trellis/audits/2026-07-19-post-018d-gameplay-balance-delta-audit.md","reason":"固定当前 64/256 缺口、失败集中点和禁止全局倍率方向"}
+{"file":"docs/09_NUMERICAL_TREE_AND_BALANCE.md","reason":"固定调参顺序、目标区间、角色差、128/256 和 AI/真人隔离"}
+{"file":"data/config/monster_scaling.json","reason":"固定二三章 max_hp/action budget，不允许为候选放宽边界"}

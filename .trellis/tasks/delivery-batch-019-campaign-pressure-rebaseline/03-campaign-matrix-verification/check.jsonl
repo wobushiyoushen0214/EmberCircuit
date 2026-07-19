@@ -1,0 +1,4 @@
+{"file":".trellis/tasks/delivery-batch-019-campaign-pressure-rebaseline/03-campaign-matrix-verification/prd.md","reason":"核对 128/256 命令、observed 来源和禁止手写规则"}
+{"file":"docs/09_NUMERICAL_TREE_AND_BALANCE.md","reason":"核对报告命令、目标与调参说明已同步"}
+{"file":".trellis/delivery-state.md","reason":"核对 batch 状态、REQ 证据和下一轮建议"}
+{"file":"tests/test_balance_simulator.gd","reason":"campaign report 旧字段和 attribution regression"}
