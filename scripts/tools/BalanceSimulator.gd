@@ -9,6 +9,9 @@ const NumericalPressureMetricsScript = preload("res://scripts/tools/NumericalPre
 const DEFAULT_MAX_TURNS := 60
 const DEFAULT_ITERATIONS := 8
 const DEFAULT_CAMPAIGN_ITERATIONS := 4
+const CAMPAIGN_STRATEGY_SCHEMA_VERSION := 1
+const DEFAULT_CAMPAIGN_STRATEGY_PROFILE := "current-greedy"
+const COMPETENT_CAMPAIGN_STRATEGY_PROFILE := "competent-player-v1"
 
 var card_data: Dictionary = {}
 var enemy_data: Dictionary = {}
@@ -78,12 +81,17 @@ func run_campaign_suite(options: Dictionary = {}) -> Dictionary:
 	var max_turns: int = max(1, int(options.get("max_turns", DEFAULT_MAX_TURNS)))
 	var character_ids: Array = _option_or_default(options, "character_ids", _all_character_ids())
 	var challenge_levels: Array = _option_or_default(options, "challenge_levels", _all_challenge_levels())
+	var strategy_config: Dictionary = _campaign_strategy_config(options.get("strategy_profile", DEFAULT_CAMPAIGN_STRATEGY_PROFILE))
+	var strategy_profile: String = str(strategy_config.get("profile", DEFAULT_CAMPAIGN_STRATEGY_PROFILE))
+	var strategy_profile_fallback: bool = bool(strategy_config.get("fallback", false))
 
 	var report := {
 		"version": 1,
 		"campaign_attribution_schema_version": 1,
+		"campaign_strategy_schema_version": CAMPAIGN_STRATEGY_SCHEMA_VERSION,
 		"simulation_model": "campaign_route_heuristic_ai",
-		"strategy_profile": "current-greedy",
+		"strategy_profile": strategy_profile,
+		"strategy_profile_fallback": strategy_profile_fallback,
 		"seed_model": "paired_by_iteration",
 		"iterations_per_case": iterations,
 		"max_turns_per_combat": max_turns,
@@ -95,7 +103,7 @@ func run_campaign_suite(options: Dictionary = {}) -> Dictionary:
 		var character_id: String = str(character_id_value)
 		for challenge_level_value in challenge_levels:
 			var challenge_level: int = int(challenge_level_value)
-			report["cases"].append(_run_campaign_case(character_id, challenge_level, iterations, max_turns))
+			report["cases"].append(_run_campaign_case(character_id, challenge_level, iterations, max_turns, strategy_profile, strategy_profile_fallback))
 
 	report["summary"] = _build_campaign_report_summary(report["cases"])
 	return report
@@ -111,16 +119,22 @@ func _run_case(character_id: String, challenge_level: int, encounter_id: String,
 
 	return _aggregate_case(character, challenge, encounter, runs)
 
-func _run_campaign_case(character_id: String, challenge_level: int, iterations: int, max_turns: int) -> Dictionary:
+func _run_campaign_case(character_id: String, challenge_level: int, iterations: int, max_turns: int, strategy_profile: String = DEFAULT_CAMPAIGN_STRATEGY_PROFILE, strategy_profile_fallback: bool = false) -> Dictionary:
 	var character: Dictionary = _character_config(character_id)
 	var challenge: Dictionary = _challenge_config(challenge_level)
 	var runs: Array = []
 	for iteration in range(iterations):
 		var seed_text: String = "campaign|%d" % iteration
-		runs.append(_run_campaign_once(character_id, challenge_level, max_turns, _stable_text_seed(seed_text)))
-	return _aggregate_campaign_case(character, challenge, runs)
+		runs.append(_run_campaign_once(character_id, challenge_level, max_turns, _stable_text_seed(seed_text), strategy_profile, strategy_profile_fallback))
+	return _aggregate_campaign_case(character, challenge, runs, strategy_profile, strategy_profile_fallback)
 
-func _run_campaign_once(character_id: String, challenge_level: int, max_turns: int, seed_value: int) -> Dictionary:
+func _campaign_strategy_config(requested_profile) -> Dictionary:
+	var profile := str(requested_profile)
+	if profile == DEFAULT_CAMPAIGN_STRATEGY_PROFILE or profile == COMPETENT_CAMPAIGN_STRATEGY_PROFILE:
+		return {"profile": profile, "fallback": false}
+	return {"profile": DEFAULT_CAMPAIGN_STRATEGY_PROFILE, "fallback": true}
+
+func _run_campaign_once(character_id: String, challenge_level: int, max_turns: int, seed_value: int, strategy_profile: String = DEFAULT_CAMPAIGN_STRATEGY_PROFILE, strategy_profile_fallback: bool = false) -> Dictionary:
 	seed(seed_value)
 	var character: Dictionary = _character_config(character_id)
 	var challenge: Dictionary = _challenge_config(challenge_level)
@@ -128,6 +142,9 @@ func _run_campaign_once(character_id: String, challenge_level: int, max_turns: i
 	var state := {
 		"character_id": character_id,
 		"challenge_level": challenge_level,
+		"campaign_strategy_schema_version": CAMPAIGN_STRATEGY_SCHEMA_VERSION,
+		"strategy_profile": strategy_profile,
+		"strategy_profile_fallback": strategy_profile_fallback,
 		"hp": _starting_hp_for_character(character_id, modifiers),
 		"max_hp": int(character.get("max_hp", 72)),
 		"gold": int(character.get("starting_gold", 0)),
@@ -154,6 +171,14 @@ func _run_campaign_once(character_id: String, challenge_level: int, max_turns: i
 		"relics_added": 0,
 		"potions_gained": 0,
 		"potions_used": 0,
+		"campfire_heal_count": 0,
+		"campfire_upgrade_count": 0,
+		"card_reward_offer_count": 0,
+		"card_reward_accept_count": 0,
+		"card_reward_skip_count": 0,
+		"shop_card_purchase_count": 0,
+		"shop_potion_purchase_count": 0,
+		"potions_used_count": 0,
 		"cards_added_ids": [],
 		"cards_removed_ids": [],
 		"cards_upgraded_ids": [],
@@ -254,11 +279,14 @@ func _resolve_campaign_combat(state: Dictionary, node: Dictionary, chapter_id: S
 		state.get("relic_ids", []),
 		int(state.get("hp", 1)),
 		potion_ids,
-		_campaign_modifier_sources(state)
+		_campaign_modifier_sources(state),
+		str(state.get("strategy_profile", DEFAULT_CAMPAIGN_STRATEGY_PROFILE))
 	)
 	var used_potion_ids: Array = combat_result.get("potions_used_ids", [])
 	state["potion_ids"] = combat_result.get("potions_remaining", potion_ids)
-	state["potions_used"] = int(state.get("potions_used", 0)) + max(0, potions_before - (state.get("potion_ids", []) as Array).size())
+	var potions_used_count: int = max(0, potions_before - (state.get("potion_ids", []) as Array).size())
+	state["potions_used"] = int(state.get("potions_used", 0)) + potions_used_count
+	state["potions_used_count"] = int(state.get("potions_used_count", 0)) + potions_used_count
 	var campaign_used_potion_ids: Array = state.get("potions_used_ids", [])
 	campaign_used_potion_ids.append_array(used_potion_ids)
 	state["potions_used_ids"] = campaign_used_potion_ids
@@ -597,13 +625,15 @@ func _simulate_campaign_shop(state: Dictionary, chapter_id: String, seed_value: 
 
 	var card_options: Array = _generate_card_options(str(state.get("character_id", "")), 3, "shop_card|%s|%d" % [chapter_id, seed_value], "shop_card")
 	_record_card_offers(state, card_options)
-	var best_card: Dictionary = _best_card_option(card_options, str(state.get("character_id", "")))
+	var best_card: Dictionary = _best_campaign_card_option(state, card_options) if _is_competent_campaign_strategy(state) else _best_card_option(card_options, str(state.get("character_id", "")))
 	if not best_card.is_empty():
 		var card_price: int = _card_price(best_card)
 		var shop_accept_score: float = float(economy_data.get("reward_generation", {}).get("shop_card_accept_score", 7.0))
-		if int(state.get("gold", 0)) >= card_price and _card_reward_score(best_card, str(state.get("character_id", ""))) >= shop_accept_score:
+		var best_card_score: float = _campaign_card_reward_score(state, best_card) if _is_competent_campaign_strategy(state) else _card_reward_score(best_card, str(state.get("character_id", "")))
+		if int(state.get("gold", 0)) >= card_price and best_card_score >= shop_accept_score:
 			_add_campaign_card(state, str(best_card.get("id", "")), "shop")
 			state["gold"] = int(state.get("gold", 0)) - card_price
+			state["shop_card_purchase_count"] = int(state.get("shop_card_purchase_count", 0)) + 1
 
 	if not bought_potion:
 		_buy_best_shop_potion(state, chapter_id, seed_value)
@@ -635,6 +665,7 @@ func _buy_best_shop_potion(state: Dictionary, chapter_id: String, seed_value: in
 	potion_ids.append(str(best_potion.get("id", "")))
 	state["gold"] = int(state.get("gold", 0)) - potion_price
 	state["potions_gained"] = int(state.get("potions_gained", 0)) + 1
+	state["shop_potion_purchase_count"] = int(state.get("shop_potion_purchase_count", 0)) + 1
 	var gained_ids: Array = state.get("potions_gained_ids", [])
 	gained_ids.append(str(best_potion.get("id", "")))
 	state["potions_gained_ids"] = gained_ids
@@ -667,16 +698,19 @@ func _simulate_campaign_campfire(state: Dictionary) -> void:
 	state["campfires_seen"] = int(state.get("campfires_seen", 0)) + 1
 	var hp: int = int(state.get("hp", 0))
 	var max_hp: int = int(state.get("max_hp", 1))
-	if hp <= int(ceil(float(max_hp) * 0.72)):
+	var rest_hp_ratio := 0.80 if _is_competent_campaign_strategy(state) else 0.72
+	if hp <= int(ceil(float(max_hp) * rest_hp_ratio)):
 		var heal_percent: int = int(economy_data.get("campfire", {}).get("heal_percent_of_max_hp", 30))
 		state["hp"] = min(max_hp, hp + int(ceil(float(max_hp) * float(heal_percent) / 100.0)))
+		state["campfire_heal_count"] = int(state.get("campfire_heal_count", 0)) + 1
 		return
 	var deck_ids: Array = state.get("deck_ids", [])
-	var upgrade_index: int = _best_upgrade_index(deck_ids)
+	var upgrade_index: int = _best_upgrade_index(deck_ids, str(state.get("character_id", "")), str(state.get("strategy_profile", DEFAULT_CAMPAIGN_STRATEGY_PROFILE)))
 	if upgrade_index >= 0:
 		var upgraded_card_id: String = "%s+" % _base_card_id(str(deck_ids[upgrade_index]))
 		deck_ids[upgrade_index] = upgraded_card_id
 		state["cards_upgraded"] = int(state.get("cards_upgraded", 0)) + 1
+		state["campfire_upgrade_count"] = int(state.get("campfire_upgrade_count", 0)) + 1
 		var upgraded_ids: Array = state.get("cards_upgraded_ids", [])
 		upgraded_ids.append(upgraded_card_id)
 		state["cards_upgraded_ids"] = upgraded_ids
@@ -783,7 +817,8 @@ func _run_single_combat_with_loadout(
 	relic_ids: Array,
 	player_hp: int,
 	potion_ids: Array,
-	run_modifier_sources: Array = []
+	run_modifier_sources: Array = [],
+	strategy_profile: String = DEFAULT_CAMPAIGN_STRATEGY_PROFILE
 ) -> Dictionary:
 	seed(seed_value)
 	var challenge: Dictionary = _challenge_config(challenge_level)
@@ -823,7 +858,7 @@ func _run_single_combat_with_loadout(
 			break
 		var potion_uses_this_turn := 0
 		while potion_uses_this_turn < 2:
-			var used_potion_id: String = _try_use_potion(combat, potion_ids)
+			var used_potion_id: String = _try_use_potion(combat, potion_ids, strategy_profile)
 			if used_potion_id.is_empty():
 				break
 			used_potion_ids.append(used_potion_id)
@@ -1133,7 +1168,7 @@ func _effect_condition_failed_for_score(combat, effect: Dictionary) -> bool:
 		return true
 	return false
 
-func _try_use_potion(combat, potion_ids: Array) -> String:
+func _try_use_potion(combat, potion_ids: Array, strategy_profile: String = DEFAULT_CAMPAIGN_STRATEGY_PROFILE) -> String:
 	if potion_ids.is_empty() or combat.phase != "player":
 		return ""
 	var incoming_damage: int = _incoming_damage(combat)
@@ -1149,9 +1184,10 @@ func _try_use_potion(combat, potion_ids: Array) -> String:
 			var effect_dict: Dictionary = effect
 			match str(effect_dict.get("type", "")):
 				"heal":
-					should_use = hp <= int(ceil(float(max_hp) * 0.38))
+					var heal_threshold := 0.50 if strategy_profile == COMPETENT_CAMPAIGN_STRATEGY_PROFILE else 0.38
+					should_use = hp <= int(ceil(float(max_hp) * heal_threshold))
 				"block":
-					should_use = incoming_damage > current_block + 4
+					should_use = incoming_damage > current_block if strategy_profile == COMPETENT_CAMPAIGN_STRATEGY_PROFILE else incoming_damage > current_block + 4
 				"apply_status":
 					should_use = incoming_damage > current_block and str(effect_dict.get("status", "")) == "weak"
 				"damage":
@@ -1254,12 +1290,14 @@ func _choose_next_campaign_node(state: Dictionary, candidates: Array, graph: Dic
 	var best_id := ""
 	var best_score := -999999.0
 	var route_score_cache: Dictionary = {}
+	var competent_profile: bool = str(state.get("strategy_profile", DEFAULT_CAMPAIGN_STRATEGY_PROFILE)) == COMPETENT_CAMPAIGN_STRATEGY_PROFILE
 	for node in candidates:
 		var node_dict: Dictionary = node
 		var score: float = _campaign_route_preview_score(state, graph, str(node_dict.get("id", "")), 3, route_score_cache) if not graph.is_empty() else _campaign_node_score(state, node_dict)
-		if score > best_score:
+		var node_id: String = str(node_dict.get("id", ""))
+		if score > best_score or (competent_profile and is_equal_approx(score, best_score) and (best_id.is_empty() or node_id < best_id)):
 			best_score = score
-			best_id = str(node_dict.get("id", ""))
+			best_id = node_id
 	return best_id
 
 func _campaign_route_preview_score(state: Dictionary, graph: Dictionary, node_id: String, depth: int, cache: Dictionary) -> float:
@@ -1297,7 +1335,8 @@ func _campaign_preview_state_after_node(state: Dictionary, node: Dictionary) -> 
 	if node_type == "campfire":
 		var hp: int = int(preview.get("hp", 0))
 		var max_hp: int = max(1, int(preview.get("max_hp", 1)))
-		if hp <= int(ceil(float(max_hp) * 0.72)):
+		var rest_hp_ratio := 0.80 if _is_competent_campaign_strategy(preview) else 0.72
+		if hp <= int(ceil(float(max_hp) * rest_hp_ratio)):
 			var heal_percent: int = int(economy_data.get("campfire", {}).get("heal_percent_of_max_hp", 30))
 			preview["hp"] = min(max_hp, hp + int(ceil(float(max_hp) * float(heal_percent) / 100.0)))
 	if node_type == "treasure" or node_type == "elite":
@@ -1314,6 +1353,8 @@ func _campaign_preview_state_after_node(state: Dictionary, node: Dictionary) -> 
 func _campaign_node_score(state: Dictionary, node: Dictionary) -> float:
 	var node_type: String = str(node.get("type", ""))
 	var hp_ratio: float = float(state.get("hp", 0)) / max(1.0, float(state.get("max_hp", 1)))
+	if str(state.get("strategy_profile", DEFAULT_CAMPAIGN_STRATEGY_PROFILE)) == COMPETENT_CAMPAIGN_STRATEGY_PROFILE:
+		return _competent_campaign_node_score(state, node, hp_ratio)
 	var score := 0.0
 	match node_type:
 		"campfire":
@@ -1337,6 +1378,82 @@ func _campaign_node_score(state: Dictionary, node: Dictionary) -> float:
 		_:
 			score = 0.0
 	return score
+
+func _competent_campaign_node_score(state: Dictionary, node: Dictionary, hp_ratio: float) -> float:
+	var node_type: String = str(node.get("type", ""))
+	var relic_count: int = (state.get("relic_ids", []) as Array).size()
+	var build_maturity: float = clampf(_competent_deck_maturity(state) + float(max(0, relic_count - 2)) * 0.08, 0.0, 1.0)
+	var encounter_pressure: float = _campaign_encounter_static_pressure(node)
+	match node_type:
+		"campfire":
+			return 30.0 if hp_ratio <= 0.80 else 8.0
+		"event":
+			return 16.0 if hp_ratio <= 0.80 else 6.0
+		"shop":
+			return 14.0 if int(state.get("gold", 0)) >= 80 else 5.0
+		"elite":
+			if hp_ratio < 0.70:
+				return -20.0 - encounter_pressure
+			var elite_score: float = 14.0 + build_maturity * 10.0 if build_maturity >= 0.35 else -2.0 + build_maturity * 4.0
+			return elite_score - encounter_pressure * 0.5
+		"combat":
+			var combat_score: float = -8.0 if hp_ratio < 0.58 else 6.0 + build_maturity * 3.0
+			var pressure_weight := 1.5 if hp_ratio < 0.80 else 0.6
+			return combat_score - encounter_pressure * pressure_weight
+		"treasure":
+			return 14.0
+		"boss":
+			return 100.0
+		_:
+			return 0.0
+
+func _campaign_encounter_static_pressure(node: Dictionary) -> float:
+	var encounter_id: String = str(node.get("encounter_id", ""))
+	if encounter_id.is_empty():
+		return 0.0
+	var encounter: Dictionary = _encounter_config(encounter_id)
+	var tier_pressure := 0.0
+	match str(encounter.get("tier", "normal")):
+		"elite":
+			tier_pressure = 0.9
+		"boss":
+			tier_pressure = 1.8
+	var total_max_hp := 0
+	var combined_peak_damage := 0
+	var defensive_action_count := 0
+	for enemy_id_value in encounter.get("enemy_ids", []):
+		var enemy: Dictionary = _enemy_config(str(enemy_id_value))
+		total_max_hp += int(enemy.get("max_hp", 0))
+		var peak_damage := 0
+		for action_value in enemy.get("actions", []):
+			var action: Dictionary = action_value
+			var intent: Dictionary = action.get("intent", {})
+			if str(intent.get("type", "")).begins_with("attack"):
+				peak_damage = max(peak_damage, int(intent.get("amount", 0)) * max(1, int(intent.get("hits", 1))))
+			for effect_value in action.get("effects", []):
+				var effect: Dictionary = effect_value
+				if str(effect.get("target", "")) == "self" and str(effect.get("type", "")) in ["block", "apply_status"]:
+					defensive_action_count += 1
+					break
+		combined_peak_damage += peak_damage
+	return tier_pressure + float(total_max_hp) / 70.0 + float(combined_peak_damage) / 35.0 + float(defensive_action_count) * 0.15
+
+func _competent_deck_maturity(state: Dictionary) -> float:
+	var deck_ids: Array = state.get("deck_ids", [])
+	if deck_ids.is_empty():
+		return 0.0
+	var character_id: String = str(state.get("character_id", ""))
+	var high_value_count := 0
+	var upgraded_count := 0
+	for entry_value in deck_ids:
+		var entry: String = str(entry_value)
+		if entry.ends_with("+"):
+			upgraded_count += 1
+		if _deck_entry_card_score(entry, character_id) >= 7.0:
+			high_value_count += 1
+	var score: float = float(high_value_count) / float(max(1, deck_ids.size()))
+	score += float(upgraded_count) / float(max(1, deck_ids.size())) * 0.25
+	return clampf(score, 0.0, 1.0)
 
 func _append_path_entry(state: Dictionary, chapter_id: String, node: Dictionary, node_result: Dictionary) -> void:
 	var path: Array = state.get("path", [])
@@ -1459,6 +1576,9 @@ func _campaign_result(won: bool, state: Dictionary) -> Dictionary:
 	return {
 		"won": won,
 		"lost": not won,
+		"campaign_strategy_schema_version": int(state.get("campaign_strategy_schema_version", CAMPAIGN_STRATEGY_SCHEMA_VERSION)),
+		"strategy_profile": str(state.get("strategy_profile", DEFAULT_CAMPAIGN_STRATEGY_PROFILE)),
+		"strategy_profile_fallback": bool(state.get("strategy_profile_fallback", false)),
 		"chapters_completed": int(state.get("chapters_completed", 0)),
 		"nodes_completed": int(state.get("nodes_completed", 0)),
 		"combats_won": int(state.get("combats_won", 0)),
@@ -1473,6 +1593,14 @@ func _campaign_result(won: bool, state: Dictionary) -> Dictionary:
 		"relics_added": int(state.get("relics_added", 0)),
 		"potions_gained": int(state.get("potions_gained", 0)),
 		"potions_used": int(state.get("potions_used", 0)),
+		"campfire_heal_count": int(state.get("campfire_heal_count", 0)),
+		"campfire_upgrade_count": int(state.get("campfire_upgrade_count", 0)),
+		"card_reward_offer_count": int(state.get("card_reward_offer_count", 0)),
+		"card_reward_accept_count": int(state.get("card_reward_accept_count", 0)),
+		"card_reward_skip_count": int(state.get("card_reward_skip_count", 0)),
+		"shop_card_purchase_count": int(state.get("shop_card_purchase_count", 0)),
+		"shop_potion_purchase_count": int(state.get("shop_potion_purchase_count", 0)),
+		"potions_used_count": int(state.get("potions_used_count", 0)),
 		"chapter_snapshots": state.get("chapter_snapshots", []),
 		"chapter_transition_snapshots": state.get("chapter_transition_snapshots", []),
 		"turns": int(state.get("turns", 0)),
@@ -1560,16 +1688,21 @@ func _offer_card_reward(state: Dictionary, amount: int, seed_text: String) -> vo
 	if amount <= 0:
 		return
 	var options: Array = _generate_card_options(str(state.get("character_id", "")), amount, seed_text, "combat_card")
+	state["card_reward_offer_count"] = int(state.get("card_reward_offer_count", 0)) + options.size()
 	_record_card_offers(state, options)
-	var best_card: Dictionary = _best_card_option(options, str(state.get("character_id", "")))
+	var best_card: Dictionary = _best_campaign_card_option(state, options) if _is_competent_campaign_strategy(state) else _best_card_option(options, str(state.get("character_id", "")))
 	if best_card.is_empty():
+		state["card_reward_skip_count"] = int(state.get("card_reward_skip_count", 0)) + 1
 		return
 	var reward_config: Dictionary = economy_data.get("reward_generation", {})
 	var accept_score: float = float(reward_config.get("combat_card_accept_score", 5.0))
 	var skip_deck_size: int = int(reward_config.get("skip_reward_when_deck_at_least", 13))
-	if _card_reward_score(best_card, str(state.get("character_id", ""))) < accept_score and (state.get("deck_ids", []) as Array).size() >= skip_deck_size:
+	var best_card_score: float = _campaign_card_reward_score(state, best_card) if _is_competent_campaign_strategy(state) else _card_reward_score(best_card, str(state.get("character_id", "")))
+	if best_card_score < accept_score and (state.get("deck_ids", []) as Array).size() >= skip_deck_size:
+		state["card_reward_skip_count"] = int(state.get("card_reward_skip_count", 0)) + 1
 		return
 	_add_campaign_card(state, str(best_card.get("id", "")), "combat_reward")
+	state["card_reward_accept_count"] = int(state.get("card_reward_accept_count", 0)) + 1
 
 func _offer_relic_reward(state: Dictionary, seed_text: String) -> void:
 	var options: Array = _generate_relic_options(str(state.get("character_id", "")), state.get("relic_ids", []), 3, seed_text)
@@ -1714,6 +1847,56 @@ func _best_card_option(options: Array, character_id: String) -> Dictionary:
 			best_score = score
 			best = card
 	return best
+
+func _best_campaign_card_option(state: Dictionary, options: Array) -> Dictionary:
+	var best: Dictionary = {}
+	var best_score := -999999.0
+	for option in options:
+		var card: Dictionary = option
+		var score: float = _campaign_card_reward_score(state, card)
+		var card_id: String = str(card.get("id", ""))
+		var best_id: String = str(best.get("id", ""))
+		if score > best_score or (is_equal_approx(score, best_score) and (best_id.is_empty() or card_id < best_id)):
+			best_score = score
+			best = card
+	return best
+
+func _is_competent_campaign_strategy(state: Dictionary) -> bool:
+	return str(state.get("strategy_profile", DEFAULT_CAMPAIGN_STRATEGY_PROFILE)) == COMPETENT_CAMPAIGN_STRATEGY_PROFILE
+
+func _campaign_card_reward_score(state: Dictionary, card: Dictionary) -> float:
+	var character_id: String = str(state.get("character_id", ""))
+	var score: float = _card_reward_score(card, character_id)
+	var deck_ids: Array = state.get("deck_ids", [])
+	var card_id: String = _base_card_id(str(card.get("id", "")))
+	var duplicate_count := 0
+	var attack_count := 0
+	var skill_count := 0
+	for entry_value in deck_ids:
+		var entry_id: String = _base_card_id(str(entry_value))
+		if entry_id == card_id:
+			duplicate_count += 1
+		var owned_card: Dictionary = _card_by_id(entry_id)
+		match str(owned_card.get("type", "")):
+			"attack":
+				attack_count += 1
+			"skill":
+				skill_count += 1
+	score -= float(max(0, duplicate_count - 1)) * 1.5
+	if str(card.get("type", "")) == "attack" and attack_count <= skill_count:
+		score += 1.5
+	if str(card.get("type", "")) == "skill" and skill_count < attack_count:
+		score += 1.0
+	for effect_value in card.get("effects", []):
+		var effect: Dictionary = effect_value
+		var effect_type: String = str(effect.get("type", ""))
+		if character_id == "ember_exile" and (effect_type == "gain_momentum" or effect.has("bonus_per_momentum")):
+			score += 2.0
+		if character_id == "arc_tinker" and (int(card.get("cost", 0)) == 0 or effect_type == "gain_energy"):
+			score += 2.0
+		if character_id == "pyre_ascetic" and (effect_type == "damage_self" or str(effect.get("status", "")) == "burn"):
+			score += 2.0
+	return score
 
 func _card_reward_score(card: Dictionary, _character_id: String) -> float:
 	var score := 0.0
@@ -1922,21 +2105,26 @@ func _worst_deck_card_index(deck_ids: Array) -> int:
 			worst_index = i
 	return worst_index
 
-func _best_upgrade_index(deck_ids: Array) -> int:
+func _best_upgrade_index(deck_ids: Array, character_id: String = "", strategy_profile: String = DEFAULT_CAMPAIGN_STRATEGY_PROFILE) -> int:
 	var best_index := -1
 	var best_delta := -999999.0
 	for i in range(deck_ids.size()):
 		var entry: String = str(deck_ids[i])
 		if entry.ends_with("+"):
 			continue
-		var card: Dictionary = _card_by_id(entry)
+		var card: Dictionary = _card_by_id(_base_card_id(entry))
 		var upgrade: Dictionary = card.get("upgrade", {})
 		if card.is_empty() or upgrade.is_empty():
 			continue
 		var upgraded: Dictionary = card.duplicate(true)
 		for key in upgrade.keys():
 			upgraded[key] = upgrade[key]
-		var delta: float = _card_reward_score(upgraded, "") - _card_reward_score(card, "")
+		var delta: float
+		if strategy_profile == COMPETENT_CAMPAIGN_STRATEGY_PROFILE:
+			var upgrade_state := {"character_id": character_id, "deck_ids": deck_ids, "strategy_profile": strategy_profile}
+			delta = _campaign_card_reward_score(upgrade_state, upgraded) - _campaign_card_reward_score(upgrade_state, card)
+		else:
+			delta = _card_reward_score(upgraded, character_id) - _card_reward_score(card, character_id)
 		if delta > best_delta:
 			best_delta = delta
 			best_index = i
@@ -2068,7 +2256,7 @@ func _build_report_summary(cases: Array) -> Dictionary:
 		"ok_case_count": cases.size() - flagged
 	}
 
-func _aggregate_campaign_case(character: Dictionary, challenge: Dictionary, runs: Array) -> Dictionary:
+func _aggregate_campaign_case(character: Dictionary, challenge: Dictionary, runs: Array, strategy_profile: String = DEFAULT_CAMPAIGN_STRATEGY_PROFILE, strategy_profile_fallback: bool = false) -> Dictionary:
 	var wins := 0
 	var total_chapters := 0
 	var total_nodes := 0
@@ -2086,6 +2274,14 @@ func _aggregate_campaign_case(character: Dictionary, challenge: Dictionary, runs
 	var total_cards_upgraded := 0
 	var total_relics_added := 0
 	var total_potions_used := 0
+	var total_campfire_heals := 0
+	var total_campfire_upgrades := 0
+	var total_card_reward_offers := 0
+	var total_card_reward_accepts := 0
+	var total_card_reward_skips := 0
+	var total_shop_card_purchases := 0
+	var total_shop_potion_purchases := 0
+	var total_potions_used_count := 0
 	var failure_reasons: Dictionary = {}
 	var failure_points: Dictionary = {}
 	var failure_node_types: Dictionary = {}
@@ -2111,6 +2307,14 @@ func _aggregate_campaign_case(character: Dictionary, challenge: Dictionary, runs
 		total_cards_upgraded += int(run_dict.get("cards_upgraded", 0))
 		total_relics_added += int(run_dict.get("relics_added", 0))
 		total_potions_used += int(run_dict.get("potions_used", 0))
+		total_campfire_heals += int(run_dict.get("campfire_heal_count", 0))
+		total_campfire_upgrades += int(run_dict.get("campfire_upgrade_count", 0))
+		total_card_reward_offers += int(run_dict.get("card_reward_offer_count", 0))
+		total_card_reward_accepts += int(run_dict.get("card_reward_accept_count", 0))
+		total_card_reward_skips += int(run_dict.get("card_reward_skip_count", 0))
+		total_shop_card_purchases += int(run_dict.get("shop_card_purchase_count", 0))
+		total_shop_potion_purchases += int(run_dict.get("shop_potion_purchase_count", 0))
+		total_potions_used_count += int(run_dict.get("potions_used_count", 0))
 		if not bool(run_dict.get("won", false)):
 			_record_campaign_failure(run_dict, failure_reasons, failure_points, failure_node_types, failure_encounters)
 
@@ -2132,6 +2336,9 @@ func _aggregate_campaign_case(character: Dictionary, challenge: Dictionary, runs
 		attribution_flags.append("campaign_failure_concentration")
 	var case := {
 		"campaign_attribution_schema_version": 1,
+		"campaign_strategy_schema_version": CAMPAIGN_STRATEGY_SCHEMA_VERSION,
+		"strategy_profile": strategy_profile,
+		"strategy_profile_fallback": strategy_profile_fallback,
 		"attribution_gate_eligible": attribution_gate_eligible,
 		"character_id": str(character.get("id", "")),
 		"character_name": str(character.get("name", character.get("id", ""))),
@@ -2158,6 +2365,14 @@ func _aggregate_campaign_case(character: Dictionary, challenge: Dictionary, runs
 		"avg_cards_upgraded": _rounded_rate(float(total_cards_upgraded) / float(count)),
 		"avg_relics_added": _rounded_rate(float(total_relics_added) / float(count)),
 		"avg_potions_used": _rounded_rate(float(total_potions_used) / float(count)),
+		"campfire_heal_count": _rounded_rate(float(total_campfire_heals) / float(count)),
+		"campfire_upgrade_count": _rounded_rate(float(total_campfire_upgrades) / float(count)),
+		"card_reward_offer_count": _rounded_rate(float(total_card_reward_offers) / float(count)),
+		"card_reward_accept_count": _rounded_rate(float(total_card_reward_accepts) / float(count)),
+		"card_reward_skip_count": _rounded_rate(float(total_card_reward_skips) / float(count)),
+		"shop_card_purchase_count": _rounded_rate(float(total_shop_card_purchases) / float(count)),
+		"shop_potion_purchase_count": _rounded_rate(float(total_shop_potion_purchases) / float(count)),
+		"potions_used_count": _rounded_rate(float(total_potions_used_count) / float(count)),
 		"failure_reasons": failure_reasons,
 		"failure_points": failure_points,
 		"failure_node_types": failure_node_types,
@@ -2442,6 +2657,9 @@ func _sample_campaign_runs(runs: Array) -> Array:
 func _summarize_campaign_run(run: Dictionary) -> Dictionary:
 	return {
 		"won": bool(run.get("won", false)),
+		"campaign_strategy_schema_version": int(run.get("campaign_strategy_schema_version", CAMPAIGN_STRATEGY_SCHEMA_VERSION)),
+		"strategy_profile": str(run.get("strategy_profile", DEFAULT_CAMPAIGN_STRATEGY_PROFILE)),
+		"strategy_profile_fallback": bool(run.get("strategy_profile_fallback", false)),
 		"chapters_completed": int(run.get("chapters_completed", 0)),
 		"nodes_completed": int(run.get("nodes_completed", 0)),
 		"combats_won": int(run.get("combats_won", 0)),
@@ -2472,6 +2690,14 @@ func _summarize_campaign_run(run: Dictionary) -> Dictionary:
 		"relics_added_ids": run.get("relics_added_ids", []),
 		"potions_gained_ids": run.get("potions_gained_ids", []),
 		"potions_used_ids": run.get("potions_used_ids", []),
+		"campfire_heal_count": int(run.get("campfire_heal_count", 0)),
+		"campfire_upgrade_count": int(run.get("campfire_upgrade_count", 0)),
+		"card_reward_offer_count": int(run.get("card_reward_offer_count", 0)),
+		"card_reward_accept_count": int(run.get("card_reward_accept_count", 0)),
+		"card_reward_skip_count": int(run.get("card_reward_skip_count", 0)),
+		"shop_card_purchase_count": int(run.get("shop_card_purchase_count", 0)),
+		"shop_potion_purchase_count": int(run.get("shop_potion_purchase_count", 0)),
+		"potions_used_count": int(run.get("potions_used_count", 0)),
 		"chapter_snapshots": run.get("chapter_snapshots", []),
 		"chapter_transition_snapshots": run.get("chapter_transition_snapshots", []),
 		"path": run.get("path", [])
@@ -2740,6 +2966,13 @@ func _encounter_config(encounter_id: String) -> Dictionary:
 		if str(encounter_dict.get("id", "")) == encounter_id:
 			return encounter_dict
 	return {"id": encounter_id, "name": encounter_id, "tier": "normal"}
+
+func _enemy_config(enemy_id: String) -> Dictionary:
+	for enemy in enemy_data.get("enemies", []):
+		var enemy_dict: Dictionary = enemy
+		if str(enemy_dict.get("id", "")) == enemy_id:
+			return enemy_dict
+	return {}
 
 func _starting_hp_for_character(character_id: String, modifiers: Dictionary) -> int:
 	var character: Dictionary = _character_config(character_id)

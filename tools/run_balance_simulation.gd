@@ -8,7 +8,7 @@ func _init() -> void:
 	_run.call_deferred()
 
 func _run() -> void:
-	var options: Dictionary = _parse_options()
+	var options: Dictionary = parse_options_for_args(OS.get_cmdline_user_args())
 	var output_path: String = str(options.get("output_path", DEFAULT_OUTPUT_PATH))
 	var mode: String = str(options.get("mode", "single"))
 	options.erase("output_path")
@@ -41,17 +41,19 @@ func _run() -> void:
 		])
 	quit(0)
 
-func _parse_options() -> Dictionary:
+static func parse_options_for_args(arguments: Array) -> Dictionary:
 	var options := {
 		"iterations": BalanceSimulatorScript.DEFAULT_ITERATIONS,
 		"max_turns": BalanceSimulatorScript.DEFAULT_MAX_TURNS,
 		"output_path": DEFAULT_OUTPUT_PATH,
 		"mode": "single"
 	}
-	for argument in OS.get_cmdline_user_args():
+	for argument in arguments:
 		var arg: String = str(argument)
 		if arg.begins_with("--mode="):
 			options["mode"] = arg.get_slice("=", 1)
+		elif arg.begins_with("--strategy-profile="):
+			options["strategy_profile"] = arg.get_slice("=", 1)
 		elif arg.begins_with("--iterations="):
 			options["iterations"] = max(1, int(arg.get_slice("=", 1)))
 		elif arg.begins_with("--max-turns="):
@@ -66,7 +68,7 @@ func _parse_options() -> Dictionary:
 			options["encounter_ids"] = _split_csv(arg.get_slice("=", 1))
 	return options
 
-func _split_csv(value: String) -> Array:
+static func _split_csv(value: String) -> Array:
 	var result: Array = []
 	for part in value.split(",", false):
 		var trimmed := part.strip_edges()
@@ -74,7 +76,7 @@ func _split_csv(value: String) -> Array:
 			result.append(trimmed)
 	return result
 
-func _split_int_csv(value: String) -> Array:
+static func _split_int_csv(value: String) -> Array:
 	var result: Array = []
 	for part in value.split(",", false):
 		var trimmed := part.strip_edges()

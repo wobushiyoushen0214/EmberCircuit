@@ -26,6 +26,7 @@ func _run() -> void:
 	_check_campaign_rebaseline(tree.get("campaign_rebaseline", {}))
 	_check_inventory(tree.get("audit_inventory", {}), cards, enemies, encounters, progression, challenges, economy, audit_report)
 	_check_matrix(tree, players, cards, progression, challenges, audit_report)
+	_check_matrix_candidate_isolation(tree)
 	if failed:
 		quit(1)
 		return
@@ -67,6 +68,29 @@ func _check_campaign_rebaseline(rebaseline: Dictionary) -> void:
 		_check(str((results[1] as Dictionary).get("status", "")) == "rejected_direction_gate", "R2 remains rejected")
 		_check(str((results[2] as Dictionary).get("hard_warning", "")) == "null_workshop:encounter_hp_low", "R2-A records its static hard gate")
 		_check(str((results[3] as Dictionary).get("inherited_from", "")) == "R2-A", "R2-B records the inherited static failure")
+
+func _check_matrix_candidate_isolation(tree: Dictionary) -> void:
+	var matrix: Dictionary = tree.get("campaign_matrix", {})
+	_check(int(matrix.get("iterations_per_cell", 0)) == 256, "formal campaign matrix remains the 256-run baseline")
+	_check(str(matrix.get("strategy_profile", "")) == "current-greedy", "formal campaign matrix remains on current-greedy")
+	var serialized_tree := JSON.stringify(tree)
+	_check(not serialized_tree.contains("competent-player-v1"), "competent strategy evidence is not embedded into the formal numerical tree")
+	var candidate_reports := {
+		"/tmp/ember020-current-greedy-128.json": "current-greedy",
+		"/tmp/ember020-competent-player-v1-128.json": "competent-player-v1",
+	}
+	for path_value in candidate_reports.keys():
+		var path := str(path_value)
+		_check(not serialized_tree.contains(path), "formal numerical tree does not reference the 020 candidate report: %s" % path)
+		if not FileAccess.file_exists(path):
+			continue
+		var report = JSON.parse_string(FileAccess.get_file_as_string(path))
+		_check(report is Dictionary, "020 candidate report is valid JSON: %s" % path)
+		if report is not Dictionary:
+			continue
+		_check(int(report.get("iterations_per_case", 0)) == 128, "020 candidate report remains diagnostic-only: %s" % path)
+		_check(str(report.get("strategy_profile", "")) == str(candidate_reports[path_value]), "020 candidate report keeps its strategy identity: %s" % path)
+		_check(JSON.stringify(report.get("cases", [])) != JSON.stringify(matrix.get("rows", [])), "020 candidate cases do not replace formal matrix rows: %s" % path)
 
 func _check_inventory(inventory: Dictionary, cards: Dictionary, enemies: Dictionary, encounters: Dictionary, progression: Dictionary, challenges: Dictionary, economy: Dictionary, audit_report: Dictionary) -> void:
 	var card_inventory: Dictionary = inventory.get("cards", {})

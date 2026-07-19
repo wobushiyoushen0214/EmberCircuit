@@ -1,6 +1,7 @@
 extends SceneTree
 
 const BalanceSimulatorScript = preload("res://scripts/tools/BalanceSimulator.gd")
+const BalanceCliScript = preload("res://tools/run_balance_simulation.gd")
 
 const REPORT_PATH := "/tmp/embercircuit_balance_test_report.json"
 
@@ -10,6 +11,19 @@ func _init() -> void:
 	call_deferred("_run")
 
 func _run() -> void:
+	var competent_cli_options: Dictionary = BalanceCliScript.parse_options_for_args([
+		"--mode=campaign",
+		"--strategy-profile=competent-player-v1",
+		"--iterations=128",
+		"--max-turns=80",
+		"--challenges=0,1,2,3",
+		"--output=/tmp/ember020-competent-player-v1-128.json",
+	])
+	_check(str(competent_cli_options.get("strategy_profile", "")) == "competent-player-v1", "campaign CLI accepts the competent strategy profile")
+	_check(str(competent_cli_options.get("mode", "")) == "campaign", "campaign CLI preserves campaign mode")
+	_check(int(competent_cli_options.get("iterations", 0)) == 128 and int(competent_cli_options.get("max_turns", 0)) == 80, "campaign CLI parses paired run sizes")
+	_check(competent_cli_options.get("challenge_levels", []) == [0, 1, 2, 3], "campaign CLI parses challenge levels")
+	_check(str(competent_cli_options.get("output_path", "")) == "/tmp/ember020-competent-player-v1-128.json", "campaign CLI parses output path")
 	var simulator = BalanceSimulatorScript.new()
 	var pressure_card := {"target": "enemy", "type": "attack"}
 	var pressure_effect := {"type": "damage", "amount": 9, "bonus_if_momentum_at_least": 3, "bonus": 5}
@@ -128,6 +142,59 @@ func _run() -> void:
 	_check(simulator._choose_next_campaign_node(early_route_state, lookahead_graph.get("layers", [])[0], lookahead_graph) == "safe_path", "campaign route lookahead rejects a tempting reward that forces an immature elite fight")
 	_check(simulator._choose_next_campaign_node(transitional_route_state, lookahead_graph.get("layers", [])[0], lookahead_graph) == "treasure_path", "campaign route lookahead evaluates an elite after applying the treasure relic")
 	_check(simulator._choose_next_campaign_node(mature_route_state, lookahead_graph.get("layers", [])[0], lookahead_graph) == "treasure_path", "campaign route lookahead takes the elite reward line after the build matures")
+	var competent_mature_route_state := {
+		"hp": 68,
+		"max_hp": 70,
+		"gold": 70,
+		"character_id": "ember_exile",
+		"strategy_profile": "competent-player-v1",
+		"relic_ids": ["ember_bottle", "cracked_charm"],
+		"deck_ids": ["ember_strike+", "ember_strike+", "ash_guard+", "ash_guard+", "pressure_surge+", "furnace_prayer", "slag_bomb", "sealed_front", "equilibrium_core", "cooling_breath+"]
+	}
+	_check(simulator._campaign_node_score(competent_mature_route_state, {"type": "elite", "encounter_id": "executor_elite"}) > simulator._campaign_node_score(competent_mature_route_state, {"type": "combat", "encounter_id": "intro_patrol"}), "competent route profile can pursue an elite with a mature deck before four relics")
+	_check(simulator._campaign_node_score(competent_mature_route_state, {"type": "combat", "encounter_id": "intro_patrol"}) > simulator._campaign_node_score(competent_mature_route_state, {"type": "combat", "encounter_id": "iron_checkpoint"}), "competent route profile discounts a statically higher-pressure encounter")
+	var competent_relic_route_state: Dictionary = competent_mature_route_state.duplicate(true)
+	competent_relic_route_state["relic_ids"] = ["ember_bottle", "cracked_charm", "counter_spring", "iron_heart"]
+	_check(simulator._campaign_node_score(competent_relic_route_state, {"type": "elite", "encounter_id": "executor_elite"}) > simulator._campaign_node_score(competent_mature_route_state, {"type": "elite", "encounter_id": "executor_elite"}), "competent route profile includes relic maturity in elite risk tolerance")
+	var competent_campfire_preview := simulator._campaign_preview_state_after_node({"hp": 54, "max_hp": 70, "strategy_profile": "competent-player-v1"}, {"id": "preview_campfire", "type": "campfire"})
+	_check(int(competent_campfire_preview.get("hp", 0)) > 54, "competent route preview predicts the eighty-percent campfire rest decision")
+	var equal_route_candidates := [{"id": "zeta_path", "type": "combat"}, {"id": "alpha_path", "type": "combat"}]
+	_check(simulator._choose_next_campaign_node(competent_mature_route_state, equal_route_candidates) == "alpha_path", "competent route profile resolves equal scores by stable node id")
+	var competent_reward_state := {
+		"character_id": "ember_exile",
+		"strategy_profile": "competent-player-v1",
+		"deck_ids": ["ember_strike", "ember_strike", "ember_strike", "ash_guard", "ash_guard", "cooling_breath"]
+	}
+	var surge_card: Dictionary = simulator._card_by_id("pressure_surge")
+	var repeated_strike_card: Dictionary = simulator._card_by_id("ember_strike")
+	_check(simulator._campaign_card_reward_score(competent_reward_state, surge_card) > simulator._campaign_card_reward_score(competent_reward_state, repeated_strike_card), "competent reward score values an eligible momentum card above a repeated starter attack")
+	_check(simulator._best_upgrade_index(["ember_strike+", "ash_guard"], "ember_exile", "competent-player-v1") == 1, "competent upgrade scoring resolves upgraded ids before reading the next upgrade")
+	var competent_campfire_state := {
+		"hp": 54,
+		"max_hp": 70,
+		"character_id": "ember_exile",
+		"strategy_profile": "competent-player-v1",
+		"deck_ids": ["ember_strike", "ash_guard"],
+		"campfire_heal_count": 0,
+		"campfire_upgrade_count": 0
+	}
+	simulator._simulate_campaign_campfire(competent_campfire_state)
+	_check(int(competent_campfire_state.get("campfire_heal_count", 0)) == 1 and int(competent_campfire_state.get("campfire_upgrade_count", 0)) == 0, "competent campfire rests at or below eighty percent HP")
+	var competent_potion_ids: Array = ["coolant_phial"]
+	var competent_potion_result: Dictionary = simulator._run_single_combat_with_loadout(
+		"ember_exile",
+		0,
+		"intro_patrol",
+		5,
+		303,
+		["ember_strike", "ember_strike", "ember_strike", "ember_strike", "ember_strike", "ash_guard", "ash_guard", "ash_guard", "ash_guard", "cooling_breath"],
+		["ember_bottle", "cracked_charm"],
+		34,
+		competent_potion_ids,
+		simulator._campaign_modifier_sources({"skill_book_id": "steel_manual", "deck_mastery_id": ""}),
+		"competent-player-v1"
+	)
+	_check((competent_potion_result.get("potions_used_ids", []) as Array).has("coolant_phial"), "competent potion policy uses a healing potion below fifty percent HP")
 	_check(simulator._campaign_encounter_allows_potion_reward(simulator._encounter_config("intro_patrol")), "normal combat permits potion rewards")
 	_check(not simulator._campaign_encounter_allows_potion_reward(simulator._encounter_config("chapter_three_boss")), "final boss without card rewards cannot grant a campaign potion")
 	var mastery_deck: Array = ["ember_strike", "ember_strike", "ember_strike", "ember_strike", "ember_strike", "pressure_probe", "ash_guard", "ash_guard", "ash_guard", "ash_guard"]
@@ -154,6 +221,28 @@ func _run() -> void:
 	var campaign_cases: Array = campaign_report.get("cases", [])
 	_check(campaign_cases.size() == 1, "campaign simulator returns case rows")
 	var campaign_case: Dictionary = campaign_cases[0]
+	var explicit_current_report: Dictionary = simulator.run_campaign_suite({
+		"iterations": 2,
+		"max_turns": 35,
+		"character_ids": ["ember_exile"],
+		"challenge_levels": [0],
+		"strategy_profile": "current-greedy"
+	})
+	_check(JSON.stringify(campaign_report.get("cases", [])) == JSON.stringify(explicit_current_report.get("cases", [])), "explicit current-greedy profile preserves the default campaign behavior")
+	_check(int(campaign_report.get("campaign_strategy_schema_version", 0)) == 1, "campaign report declares strategy schema version one")
+	_check(int(campaign_case.get("campaign_strategy_schema_version", 0)) == 1, "campaign case declares strategy schema version one")
+	_check(not bool(campaign_case.get("strategy_profile_fallback", true)), "known current-greedy profile does not fall back")
+	var fallback_report: Dictionary = simulator.run_campaign_suite({
+		"iterations": 1,
+		"max_turns": 35,
+		"character_ids": ["ember_exile"],
+		"challenge_levels": [0],
+		"strategy_profile": "unknown-profile"
+	})
+	_check(str(fallback_report.get("strategy_profile", "")) == "current-greedy" and bool(fallback_report.get("strategy_profile_fallback", false)), "unknown campaign profile falls back to current-greedy explicitly")
+	_check(bool((fallback_report.get("cases", []) as Array)[0].get("strategy_profile_fallback", false)), "campaign case preserves an unknown-profile fallback marker")
+	for decision_field in ["campfire_heal_count", "campfire_upgrade_count", "card_reward_offer_count", "card_reward_accept_count", "card_reward_skip_count", "shop_card_purchase_count", "shop_potion_purchase_count", "potions_used_count"]:
+		_check(campaign_case.has(decision_field) and float(campaign_case.get(decision_field, -1.0)) >= 0.0, "campaign decision telemetry exposes non-negative %s" % decision_field)
 	_check(str(campaign_case.get("character_id", "")) == "ember_exile", "campaign case records character")
 	_check(int(campaign_case.get("runs", 0)) == 2, "campaign case records run count")
 	_check(float(campaign_case.get("win_rate", -1.0)) >= 0.0 and float(campaign_case.get("win_rate", -1.0)) <= 1.0, "campaign win rate is normalized")
@@ -193,6 +282,9 @@ func _run() -> void:
 	_check(int(challenge_attribution.get("challenge_level", -1)) == 0 and challenge_attribution.has("attribution_gate_eligible"), "challenge attribution identifies its challenge axis and sample gate")
 	var campaign_samples: Array = campaign_case.get("sample_runs", [])
 	_check(not campaign_samples.is_empty() and str(campaign_samples[0].get("skill_book_id", "")) == "steel_manual", "campaign reports the active default skill book")
+	_check(not campaign_samples.is_empty() and int(campaign_samples[0].get("campaign_strategy_schema_version", 0)) == 1, "campaign sample declares strategy schema version one")
+	_check(not campaign_samples.is_empty() and str(campaign_samples[0].get("strategy_profile", "")) == "current-greedy", "campaign sample declares its strategy profile")
+	_check(not campaign_samples.is_empty() and campaign_samples[0].has("campfire_heal_count") and campaign_samples[0].has("potions_used_count"), "campaign sample preserves decision telemetry")
 	_check(not campaign_samples.is_empty() and campaign_samples[0].has("chapter_snapshots") and campaign_samples[0].has("chapter_transition_snapshots"), "campaign sample run preserves raw attribution snapshots")
 	var repeated_campaign_report: Dictionary = simulator.run_campaign_suite({
 		"iterations": 2,
