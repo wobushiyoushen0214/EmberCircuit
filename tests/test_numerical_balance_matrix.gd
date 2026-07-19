@@ -23,6 +23,7 @@ func _run() -> void:
 	_check(int(tree.get("version", 0)) == 4, "numerical tree exposes formal baseline version four")
 	_check_pressure_contract(tree.get("pressure_contract", {}))
 	_check_human_playtest_targets(tree.get("human_playtest_targets", {}))
+	_check_campaign_rebaseline(tree.get("campaign_rebaseline", {}))
 	_check_inventory(tree.get("audit_inventory", {}), cards, enemies, encounters, progression, challenges, economy, audit_report)
 	_check_matrix(tree, players, cards, progression, challenges, audit_report)
 	if failed:
@@ -54,6 +55,18 @@ func _check_pressure_contract(contract: Dictionary) -> void:
 		_check(target.has("win_rate_min") and target.has("win_rate_max") and target.has("perfect_win_rate_max") and target.has("hp_loss_p50_min") and target.has("hp_loss_p90_min"), "pressure target is complete: %s" % tier)
 		_check(float(target.get("win_rate_min", 1.0)) < float(target.get("win_rate_max", 0.0)), "pressure target win-rate range is ordered: %s" % tier)
 		_check(float(target.get("perfect_win_rate_max", -1.0)) >= 0.0 and float(target.get("perfect_win_rate_max", 2.0)) <= 1.0, "pressure target perfect-win ceiling is normalized: %s" % tier)
+
+func _check_campaign_rebaseline(rebaseline: Dictionary) -> void:
+	_check(str(rebaseline.get("status", "")) == "paused_no_candidate_passed", "campaign rebaseline records the exhausted frozen ladder")
+	_check(str(rebaseline.get("selected_step", "")).is_empty() and str(rebaseline.get("direction_report_path", "")).is_empty(), "campaign rebaseline cannot select a failed direction report")
+	_check(rebaseline.get("candidate_order", []) == ["R1", "R2", "R2-A", "R2-B"], "campaign rebaseline preserves candidate order")
+	var results: Array = rebaseline.get("candidate_results", [])
+	_check(results.size() == 4, "campaign rebaseline records every candidate outcome")
+	if results.size() == 4:
+		_check(str((results[0] as Dictionary).get("status", "")) == "rejected_direction_gate", "R1 remains rejected")
+		_check(str((results[1] as Dictionary).get("status", "")) == "rejected_direction_gate", "R2 remains rejected")
+		_check(str((results[2] as Dictionary).get("hard_warning", "")) == "null_workshop:encounter_hp_low", "R2-A records its static hard gate")
+		_check(str((results[3] as Dictionary).get("inherited_from", "")) == "R2-A", "R2-B records the inherited static failure")
 
 func _check_inventory(inventory: Dictionary, cards: Dictionary, enemies: Dictionary, encounters: Dictionary, progression: Dictionary, challenges: Dictionary, economy: Dictionary, audit_report: Dictionary) -> void:
 	var card_inventory: Dictionary = inventory.get("cards", {})
@@ -138,6 +151,7 @@ func _check_matrix(tree: Dictionary, players: Dictionary, cards: Dictionary, pro
 	var character_ids: Array = matrix.get("character_ids", [])
 	var challenge_levels: Array = matrix.get("challenge_levels", [])
 	var rows: Array = matrix.get("rows", [])
+	_check_frozen_campaign_outcomes(rows)
 	_check(str(matrix.get("seed_model", "")) == "paired_by_iteration", "matrix declares paired iteration seeds")
 	_check(str(matrix.get("strategy_profile", "")) == "current-greedy", "campaign matrix declares the current greedy strategy baseline")
 	_check(int(matrix.get("iterations_per_cell", 0)) >= int(tree.get("campaign_targets", {}).get("minimum_iterations_for_hard_gate", 0)), "matrix baseline meets the hard-gate sample floor")
@@ -223,6 +237,33 @@ func _check_matrix(tree: Dictionary, players: Dictionary, cards: Dictionary, pro
 	_check(out_of_tolerance_cells == expected_out_of_tolerance, "matrix declares every individual win-rate exception")
 	_check(flagged_cells == expected_flagged, "matrix declares every simulator risk flag")
 	_check(target_issues == expected_target_issues, "matrix declares every aggregate target issue")
+
+func _check_frozen_campaign_outcomes(rows: Array) -> void:
+	var expected := {
+		"ember_exile:0": [0.059, 75.941, 15.0, "campaign_win_rate_low"],
+		"arc_tinker:0": [0.121, 81.094, 15.406, "campaign_win_rate_low"],
+		"pyre_ascetic:0": [0.016, 74.578, 14.063, "campaign_win_rate_low"],
+		"ember_exile:1": [0.031, 75.855, 14.109, "campaign_win_rate_low"],
+		"arc_tinker:1": [0.074, 79.922, 14.789, "campaign_win_rate_low"],
+		"pyre_ascetic:1": [0.008, 71.086, 13.227, "campaign_win_rate_low"],
+		"ember_exile:2": [0.008, 71.199, 12.699, "campaign_win_rate_low"],
+		"arc_tinker:2": [0.047, 72.633, 13.5, "campaign_win_rate_low"],
+		"pyre_ascetic:2": [0.004, 67.172, 12.324, "campaign_win_rate_low"],
+		"ember_exile:3": [0.008, 71.156, 12.273, "campaign_win_rate_low"],
+		"arc_tinker:3": [0.027, 68.328, 12.758, "campaign_win_rate_low"],
+		"pyre_ascetic:3": [0.0, 65.879, 11.879, "campaign_win_rate_low"],
+	}
+	_check(rows.size() == expected.size(), "paused rebaseline preserves all formal 256 rows")
+	for row_value in rows:
+		var row: Dictionary = row_value
+		var key := "%s:%d" % [str(row.get("character_id", "")), int(row.get("challenge_level", -1))]
+		var frozen: Array = expected.get(key, [])
+		_check(frozen.size() == 4, "formal 256 row remains on the frozen axis: %s" % key)
+		if frozen.size() == 4:
+			_check(is_equal_approx(float(row.get("observed_win_rate", -1.0)), float(frozen[0])), "formal observed win rate remains frozen: %s" % key)
+			_check(is_equal_approx(float(row.get("avg_final_gold", -1.0)), float(frozen[1])), "formal final gold remains frozen: %s" % key)
+			_check(is_equal_approx(float(row.get("avg_final_deck_size", -1.0)), float(frozen[2])), "formal final deck size remains frozen: %s" % key)
+			_check(str(row.get("risk_flag", "")) == str(frozen[3]), "formal risk flag remains frozen: %s" % key)
 
 func _check_economy_snapshot(snapshot: Dictionary, economy: Dictionary) -> void:
 	var rewards: Dictionary = economy.get("combat_gold_rewards", {}).get("by_tier", {})

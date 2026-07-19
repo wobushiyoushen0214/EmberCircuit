@@ -161,14 +161,69 @@ func _run() -> void:
 	_check(float(campaign_case.get("avg_nodes_completed", -1.0)) >= 0.0, "campaign records node progress")
 	_check(campaign_case.has("failure_reasons") and campaign_case.has("failure_points"), "campaign records failure breakdowns")
 	_check(campaign_case.has("failure_node_types") and campaign_case.has("failure_encounters"), "campaign records failure node types and encounter ids")
+	_check(int(campaign_report.get("campaign_attribution_schema_version", 0)) == 1, "campaign report declares attribution schema version one")
+	_check(int(campaign_case.get("campaign_attribution_schema_version", 0)) == 1, "campaign case declares attribution schema version one")
+	_check(campaign_case.has("chapter_attribution") and (campaign_case.get("chapter_attribution", []) as Array).size() == 3, "campaign case aggregates one attribution row per chapter")
+	_check(campaign_case.has("chapter_transition_attribution") and (campaign_case.get("chapter_transition_attribution", []) as Array).size() == 2, "campaign case aggregates one row per chapter transition")
+	for chapter_attribution_value in campaign_case.get("chapter_attribution", []):
+		var chapter_attribution: Dictionary = chapter_attribution_value
+		_check(chapter_attribution.has("entry_runs") and chapter_attribution.has("completed_runs") and chapter_attribution.has("failed_runs"), "chapter attribution records reach and outcome counts")
+		_check(float(chapter_attribution.get("entry_rate", -1.0)) >= 0.0 and float(chapter_attribution.get("entry_rate", -1.0)) <= 1.0, "chapter attribution entry rate is normalized")
+		_check(float(chapter_attribution.get("completion_rate", -1.0)) >= 0.0 and float(chapter_attribution.get("completion_rate", -1.0)) <= 1.0, "chapter attribution completion rate is normalized")
+		_check(float(chapter_attribution.get("conditional_completion_rate", -1.0)) >= 0.0 and float(chapter_attribution.get("conditional_completion_rate", -1.0)) <= 1.0, "chapter attribution conditional completion rate is normalized")
+		_check(chapter_attribution.has("avg_entry_hp") and chapter_attribution.has("avg_exit_hp") and chapter_attribution.has("avg_exit_deck_size"), "chapter attribution records resource maturity")
+	for transition_attribution_value in campaign_case.get("chapter_transition_attribution", []):
+		var transition_attribution: Dictionary = transition_attribution_value
+		_check(transition_attribution.has("from_chapter_id") and transition_attribution.has("to_chapter_id") and transition_attribution.has("transition_runs"), "chapter transition attribution identifies both chapters")
+		_check(transition_attribution.has("avg_post_transition_hp_ratio") and transition_attribution.has("avg_gold") and transition_attribution.has("avg_deck_size"), "chapter transition attribution records post-transition resources")
 	var campaign_modifiers: Dictionary = campaign_case.get("challenge_modifiers", {})
 	_check(is_equal_approx(float(campaign_modifiers.get("enemy_hp_multiplier", 0.0)), 1.0) and is_equal_approx(float(campaign_modifiers.get("boss_hp_multiplier", 0.0)), 0.96), "campaign report snapshots complete challenge modifiers")
 	_check(_valid_campaign_risk_flag(str(campaign_case.get("risk_flag", ""))), "campaign risk flag is recognized")
 	_check(str(campaign_case.get("risk_flag", "")) == "campaign_insufficient_samples", "small campaign samples are not treated as balance proof")
 	_check((campaign_report.get("summary", {}).get("target_issues", []) as Array).has("challenge_0:insufficient_samples"), "campaign summary reports an insufficient hard-gate sample")
 	_check(campaign_report.get("summary", {}).has("challenge_targets"), "campaign summary exposes configured challenge target rows")
+	var character_attribution_rows: Array = campaign_report.get("summary", {}).get("character_attribution", [])
+	var challenge_attribution_rows: Array = campaign_report.get("summary", {}).get("challenge_attribution", [])
+	_check(character_attribution_rows.size() == 1, "campaign summary exposes character attribution rows")
+	_check(challenge_attribution_rows.size() == 1, "campaign summary exposes challenge attribution rows")
+	var character_attribution: Dictionary = character_attribution_rows[0] if not character_attribution_rows.is_empty() else {}
+	_check(str(character_attribution.get("character_id", "")) == "ember_exile" and int(character_attribution.get("case_count", 0)) == 1, "character attribution identifies its case axis")
+	_check(character_attribution.has("average_win_rate") and character_attribution.has("average_chapters_completed") and character_attribution.has("attribution_gate_eligible"), "character attribution exposes aggregate progress and sample gate")
+	var challenge_attribution: Dictionary = challenge_attribution_rows[0] if not challenge_attribution_rows.is_empty() else {}
+	_check(int(challenge_attribution.get("challenge_level", -1)) == 0 and challenge_attribution.has("attribution_gate_eligible"), "challenge attribution identifies its challenge axis and sample gate")
 	var campaign_samples: Array = campaign_case.get("sample_runs", [])
 	_check(not campaign_samples.is_empty() and str(campaign_samples[0].get("skill_book_id", "")) == "steel_manual", "campaign reports the active default skill book")
+	_check(not campaign_samples.is_empty() and campaign_samples[0].has("chapter_snapshots") and campaign_samples[0].has("chapter_transition_snapshots"), "campaign sample run preserves raw attribution snapshots")
+	var repeated_campaign_report: Dictionary = simulator.run_campaign_suite({
+		"iterations": 2,
+		"max_turns": 35,
+		"character_ids": ["ember_exile"],
+		"challenge_levels": [0]
+	})
+	_check(JSON.stringify(campaign_report.get("cases", [])) == JSON.stringify(repeated_campaign_report.get("cases", [])), "campaign attribution is deterministic for the same options")
+
+	var attribution_report_64: Dictionary = simulator.run_campaign_suite({
+		"iterations": 64,
+		"max_turns": 35,
+		"character_ids": ["ember_exile"],
+		"challenge_levels": [0]
+	})
+	var attribution_case_64: Dictionary = attribution_report_64.get("cases", [])[0]
+	_check(not bool(attribution_case_64.get("attribution_gate_eligible", true)), "64-run campaign attribution remains below the hard gate")
+	_check(attribution_case_64.has("failure_concentration"), "64-run campaign exposes failure concentration diagnostics")
+	_check((attribution_case_64.get("failure_concentration", {}).get("attribution_flags", []) as Array).is_empty(), "64-run campaign does not emit hard attribution flags")
+
+	var attribution_report_128: Dictionary = simulator.run_campaign_suite({
+		"iterations": 128,
+		"max_turns": 35,
+		"character_ids": ["ember_exile"],
+		"challenge_levels": [0]
+	})
+	var attribution_case_128: Dictionary = attribution_report_128.get("cases", [])[0]
+	_check(bool(attribution_case_128.get("attribution_gate_eligible", false)), "128-run campaign attribution reaches the hard gate")
+	_check(float(attribution_case_128.get("failure_concentration", {}).get("top_encounter_share", -1.0)) >= 0.0, "128-run campaign reports failure encounter share")
+	_check(float(attribution_case_128.get("failure_concentration", {}).get("top_encounter_share", 2.0)) <= 1.0, "128-run failure encounter share is normalized")
+
 
 	if failed:
 		quit(1)

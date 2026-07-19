@@ -169,6 +169,21 @@ Boss 有效生命倍率为敌血与 Boss 额外倍率的乘积；普通和挑战
 
 模拟使用 `CombatState` 的真实出牌、敌人、状态、遗物、药水和回合结算。角色与挑战使用相同迭代种子，报告字段 `seed_model=paired_by_iteration`，确保比较不被不同地图和随机行动污染。
 
+### Batch 019 归因与受控暂停
+
+Batch 019 为 campaign report 增加 `campaign_attribution_schema_version=1`，按章记录进入/完成率、章首章末资源、跨章快照、角色/挑战聚合和失败遭遇集中度。64 runs 只用于诊断；每格达到 128 runs 后 `attribution_gate_eligible=true`，失败集中度才进入 hard gate。基线 128 报告显示主要瓶颈仍是第一章累计续航，而不是某个二章单点：C0 的第一章完成率约为 Ember `33.6%`、Arc `45.3%`、Pyre `28.9%`，单一失败 encounter 占比均未超过 50%。
+
+019-02 按冻结顺序验证奖励/经济候选，结果如下。胜率按 C0/C1/C2/C3 排列；金币与牌组为 12 格均值。
+
+| Step | 四档平均胜率 | 总胜率 / 平均完成章 | 最终金币 / 牌组 | 角色最大差 / 失败集中度 | 结论 |
+| --- | --- | --- | --- | --- | --- |
+| R1 | `5.0% / 3.4% / 0.5% / 0.8%` | `2.4% / 0.373` | `75.037 / 13.654` | `7.8% / 34.4%` | 四档均低于目标；拒绝。报告 `/tmp/ember019-step-R1-128.json`，SHA-256 `81011187edea19ff3071425c4ab1db7879bb59df0dcde18d8a3f75a8f5c1fdb4`。 |
+| R2 | `5.5% / 3.1% / 0.5% / 0.5%` | `2.4% / 0.395` | `76.932 / 13.763` | `7.8% / 34.1%` | 章节到达与经济仅小幅改善，四档仍低于目标；拒绝。报告 `/tmp/ember019-step-R2-128.json`，SHA-256 `a1b1ee36e16d4af7844b8ccc9d900d6169dfef03bd29d8ef3936798aa9da45aa`。 |
+| R2-A | 未运行 campaign | - | - | 静态 hard warning | `null_workshop` 由 `null_mender 42 + volt_cultist 44 = 86 HP`，低于冻结的二章普通遭遇下限 88，触发 `encounter_hp_low`；按回滚门拒绝。 |
+| R2-B | 未运行 | - | - | 继承 R2-A | 继承同一二章 HP 档和 hard warning，无需重复运行 1536 局。 |
+
+因此 `campaign_rebaseline.status=paused_no_candidate_passed`，`selected_step` 为空。`economy.json`、`enemies.json` 和 economy snapshot 已恢复到 019 起点，第一章、挑战目标、pressure contract 与正式 256 rows 均未改变。019-03 不运行 256 同步，避免把失败候选或 128 方向报告写入正式矩阵；下一轮必须先重新规划候选边界，不能在本批自行发明 R3。
+
 ### 正式矩阵结果
 
 Batch 017 在削弱免费开局资源并重标定第一章后，重新生成 `3 角色 x 4 挑战 x 256 次 = 3072` 局 current-greedy 完整跑团诊断。该弱启发式 AI 的结果用于暴露二三章奖励与敌人尚未随新开局基线重标定，不能作为资深真人玩家难度结论；逐格结果如下：

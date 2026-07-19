@@ -288,6 +288,19 @@
     "minimum_iterations_for_hard_gate": 128,
     "design_note": "挑战档整体均值严格使用目标区间；单角色允许 3% 样本容差，启发式 AI 的角色差距硬门槛为 9%，人工试玩继续以 5% 为目标。胜率必须和失败点分布一起看。"
   },
+  "campaign_rebaseline": {
+    "status": "paused_no_candidate_passed",
+    "selected_step": "",
+    "candidate_order": ["R1", "R2", "R2-A", "R2-B"],
+    "direction_report_path": "",
+    "candidate_results": [
+      { "step_id": "R1", "status": "rejected_direction_gate", "report_path": "/tmp/ember019-step-R1-128.json", "report_sha256": "81011187edea19ff3071425c4ab1db7879bb59df0dcde18d8a3f75a8f5c1fdb4", "challenge_average_win_rates": [0.05, 0.034, 0.005, 0.008] },
+      { "step_id": "R2", "status": "rejected_direction_gate", "report_path": "/tmp/ember019-step-R2-128.json", "report_sha256": "a1b1ee36e16d4af7844b8ccc9d900d6169dfef03bd29d8ef3936798aa9da45aa", "challenge_average_win_rates": [0.055, 0.031, 0.005, 0.005] },
+      { "step_id": "R2-A", "status": "rejected_static_gate", "static_report_path": "/tmp/ember019-r2a-static.json", "hard_warning": "null_workshop:encounter_hp_low", "effective_hp": 86, "target_hp_min": 88 },
+      { "step_id": "R2-B", "status": "not_run_inherits_static_gate", "inherited_from": "R2-A" }
+    ],
+    "balance_note": "019-02 按冻结阶梯完成 R1/R2 方向报告；R2-A 在静态预算门新增 null_workshop 硬 warning，R2-B 继承同一二章 HP 阶梯，因此无候选通过，保持 019 起点数值并暂停。"
+  },
   "campaign_matrix": {
     "_comment": "三角色乘四挑战的配对种子基线。observed_win_rate 来自 256 次/格完整跑团；契约测试会校验矩阵完备性、普通敌人与 Boss 挑战修正、角色起始资源、卡池覆盖、成长成本、目标区间和聚合门槛。",
     "schema_version": 2,

@@ -8,16 +8,17 @@ stage_state:
   max_rounds: 6
   open_gaps: 8
   tasks_created: 6
-  tasks_completed: 3
+  tasks_completed: 4
   carry_over: 3
   critical_review_issues: 0
-  next_legal_action: implement 019-01 in isolated worktree with strict TDD
-  stop_conditions: none
+  next_legal_action: request a new candidate-ladder rebaseline decision after merging the controlled-pause evidence
+  stop_conditions:
+    - Batch 019 frozen candidates exhausted without a selected step
 ---
 
 loop_mode: L3
 current_round: 6
-next_loop_recommendation: continue-next-batch
+next_loop_recommendation: rebaseline-required
 carry_over: 3
 
 ## 基线
@@ -28,7 +29,7 @@ carry_over: 3
 - loop_mode: `L3`
 - current_round: `6`
 - max_rounds: `6`
-- current_batch_id: `delivery-batch-019-campaign-pressure-rebaseline`（已确认并创建任务，待隔离 worktree 实现）
+- current_batch_id: `delivery-batch-019-campaign-pressure-rebaseline`（019-01 完成；019-02 受控暂停；019-03 取消）
 
 ## 需求状态
 
@@ -36,20 +37,20 @@ carry_over: 3
 | --- | --- | --- | --- | --- | --- | --- |
 | REQ-001 | DONE | `scripts/combat/CombatState.gd` | `tests/test_combat_core.gd` | none | 3 | 0 |
 | REQ-002 | DONE | `scripts/main/Main.gd`, `scripts/map/MapGenerator.gd`, `data/config/level_tree.json` | `tests/test_run_flow.gd`, `tests/test_map_generator.gd`, `tests/test_map_view.gd` | none | 3 | 0 |
-| REQ-003 | PARTIAL | `data/cards/cards.json`, `data/enemies/enemies.json`, `data/config/monster_scaling.json`, `scripts/tools/NumericalTreeAuditor.gd`, `scripts/tools/NumericalPressureMetrics.gd`, `data/config/numerical_tree.json` | `tests/test_act1_rebaseline.gd`, `tests/test_numerical_pressure_metrics.gd`, `tests/test_numerical_tree_auditor.gd`, `tests/test_balance_simulator.gd`, `tests/test_numerical_balance_matrix.gd` | Batch 019 已确认并拆分为归因契约→二三章重标定→128/256 正式验证；当前待 019-01 TDD | 6 | 0 |
-| REQ-004 | PARTIAL | `data/config/player.json`, `data/config/progression_systems.json`, `data/cards/cards.json`, `scripts/main/Main.gd` | `tests/test_act1_rebaseline.gd`, `tests/test_progression_systems.gd`, `tests/test_combat_core.gd`, `tests/test_run_flow.gd`, `tests/test_balance_card_telemetry.gd` | Batch 019-01 将按角色/挑战/章节拆分失败；019-02 禁止直接改角色基础数值 | 6 | 1 |
-| REQ-005 | PARTIAL | `data/enemies/enemies.json`, `data/encounters/encounters.json`, `data/config/monster_scaling.json`, `scripts/combat/CombatState.gd`, `scripts/tools/NumericalTreeAuditor.gd`, `scripts/main/Main.gd` | `tests/test_act1_rebaseline.gd`, `tests/test_combat_core.gd`, `tests/test_balance_simulator.gd`, `tests/test_numerical_tree_auditor.gd`, `tests/test_run_flow.gd` | Batch 019 先建立失败集中度与跨章续航门，再按冻结候选阶梯调整二三章 | 6 | 1 |
+| REQ-003 | PARTIAL | `data/cards/cards.json`, `data/enemies/enemies.json`, `data/config/monster_scaling.json`, `scripts/tools/NumericalTreeAuditor.gd`, `scripts/tools/NumericalPressureMetrics.gd`, `scripts/tools/BalanceSimulator.gd`, `data/config/numerical_tree.json` | `tests/test_act1_rebaseline.gd`, `tests/test_numerical_pressure_metrics.gd`, `tests/test_numerical_tree_auditor.gd`, `tests/test_balance_simulator.gd`, `tests/test_numerical_balance_matrix.gd`, `tests/test_act2_act3_rebaseline.gd` | 019-01 归因契约完成；019-02 的 R1/R2 方向门失败，R2-A/B 静态门失败，需重规划候选 | 6 | 0 |
+| REQ-004 | PARTIAL | `data/config/player.json`, `data/config/progression_systems.json`, `data/cards/cards.json`, `scripts/main/Main.gd`, `scripts/tools/BalanceSimulator.gd` | `tests/test_act1_rebaseline.gd`, `tests/test_progression_systems.gd`, `tests/test_combat_core.gd`, `tests/test_run_flow.gd`, `tests/test_balance_card_telemetry.gd`, `tests/test_balance_simulator.gd` | 已按角色/挑战/章节输出失败归因；无候选通过，角色基础数值仍冻结 | 6 | 1 |
+| REQ-005 | PARTIAL | `data/enemies/enemies.json`, `data/encounters/encounters.json`, `data/config/monster_scaling.json`, `scripts/combat/CombatState.gd`, `scripts/tools/NumericalTreeAuditor.gd`, `scripts/tools/BalanceSimulator.gd`, `scripts/main/Main.gd` | `tests/test_act1_rebaseline.gd`, `tests/test_combat_core.gd`, `tests/test_balance_simulator.gd`, `tests/test_numerical_tree_auditor.gd`, `tests/test_run_flow.gd`, `tests/test_act2_act3_rebaseline.gd` | 归因门完成；R2-A 暴露候选与 `null_workshop` HP 下限冲突，生产敌人数值已回滚 | 6 | 1 |
 | REQ-006 | PARTIAL | `data/cards/cards.json`, `data/relics/relics.json`, `data/events/events.json`, `data/config/art_assets.json`, `assets/art/generated/` | `tests/test_data_integrity.gd`, `tests/test_art_asset_auditor.gd` | batch-014 delivered 8 relic PNGs; next: replace remaining legacy event/enemy art | L3-5 | 0 |
 | REQ-007 | DONE | `scripts/core/SaveManager.gd`, `scripts/main/Main.gd`, `data/config/achievements.json` | v5 奖励事务、原子恢复、错节点/坏 ID/金币回滚和旧战斗 HP 隔离测试 | none | L3-post | 0 |
 | REQ-008 | PARTIAL | `scripts/ui/AppShell.gd`, `scripts/ui/ForgeTheme.gd`, `scripts/ui/ForgeMotion.gd`, `scripts/ui/components/`, `scripts/ui/pages/`, `scripts/main/Main.gd`, `assets/art/generated/`, `assets/fonts/NotoSansSC-Variable.ttf` | `tests/test_forge_ui_foundation.gd`, `tests/test_welcome_character_pages.gd`, `tests/test_ember_forge_route_rooms.gd`, `tests/test_ui_outcome_settings_compendium.gd`, `tests/test_visual_bounds.gd`, `tools/render_pc_gallery.gd`, `/tmp/ember018d-visual.json`, `/tmp/ember018d-performance.json` | 018D 已将 Map/Event/Shop/Campfire/Reward 真实挂入 Main→AppShell，并删除五页旧 PC 视觉树；仍保留生产内容美术与更深玩法扩展缺口 | L3-5 | 0 |
-| REQ-009 | PARTIAL | `scripts/core/PlaytestTelemetry.gd`, `scripts/core/PlaytestEvidenceGate.gd`, `tools/merge_playtest_reports.gd`, `scripts/tools/BalanceSimulator.gd`, `data/config/numerical_tree.json` | `tests/test_act1_rebaseline.gd`, `tests/test_playtest_evidence_gate.gd`, `tests/test_balance_simulator.gd`, `tests/test_numerical_balance_matrix.gd` | Batch 019 将补 AI 归因 schema 和 128/256 evidence；真人难度仍等待合格样本且禁止混入 AI | 6 | 0 |
+| REQ-009 | PARTIAL | `scripts/core/PlaytestTelemetry.gd`, `scripts/core/PlaytestEvidenceGate.gd`, `tools/merge_playtest_reports.gd`, `scripts/tools/BalanceSimulator.gd`, `data/config/numerical_tree.json` | `tests/test_act1_rebaseline.gd`, `tests/test_playtest_evidence_gate.gd`, `tests/test_balance_simulator.gd`, `tests/test_numerical_balance_matrix.gd` | AI 归因 schema 与 128 eligibility 已完成；无 selected step，未生成 019 正式 256；真人难度仍等待合格样本 | 6 | 0 |
 | REQ-010 | MISSING | none | none | proposed: build-grid-tactics-mode | 1 | 2 |
 | REQ-011 | PARTIAL | `export_presets.cfg`, `project.godot`, `packaging/PLAYTEST_README_ZH.txt` | alpha.8 Windows PE32+ x86_64 embedded-PCK、精确 PCK 启动、版本和压缩完整性通过 | next: native Windows matrix, commercial signing, installer and Steam integration | L3-post | 0 |
 | REQ-012 | DONE | `tests/`, `tools/render_pc_gallery.gd`, `tools/verify_ui_visual_regression.gd`, `tools/profile_ui_performance.gd`, `tests/fixtures/ui_visual_contracts.json`, `tests/golden/ui_720p/` | 28/28 strict-log regression；11/11 1280x720 区域金标；真实 Main 600 帧 profiler；focus/motion/44px/节点增量门 | none；Windows release 目标机采样归入 REQ-011 发布门 | L3-5 | 0 |
 
 ## 当前批次
 
-- batch_id: `delivery-batch-019-campaign-pressure-rebaseline`（已确认；3 个串行任务已创建）
+- batch_id: `delivery-batch-019-campaign-pressure-rebaseline`（受控暂停：019-01 完成，019-02 stop condition，019-03 取消）
 - scope: `建立完整跑团失败归因与跨章压力门，并对二三章敌人、奖励和经济执行配对重标定`
 - selected_reqs:
   - `REQ-003`
@@ -65,7 +66,7 @@ carry_over: 3
 
 | 条目 | 原因 | 需要人工提供什么 | 起始轮次 |
 | --- | --- | --- | --- |
-| none | 当前无阻塞项 | none | 2 |
+| `delivery-batch-019-campaign-pressure-rebaseline` | R1/R2 未达四档目标；R2-A 新增 `null_workshop:encounter_hp_low`，R2-B 继承同一静态失败；PRD 禁止自创 R3 | 确认下一轮重新设计候选阶梯及其 File Manifest | 6 |
 
 ## 人工决策
 
@@ -95,6 +96,7 @@ carry_over: 3
 - 2026-07-19: 018D-03 通过双阶段评审（无 critical；Main 偏胖列为 minor），28/28 测试、11/11 区域视觉、真实 600 帧性能和五页 20 轮路由均通过；已提交并合并 master。
 - 2026-07-19: 018D 后 delta audit 发现 current-greedy 三章矩阵仍 12 格低胜率，64-seed 失败集中于第一章 Boss、iron_checkpoint、cinder_kennels；修正 07 文档漂移，等待确认 019 数值批次。
 - 2026-07-19: 用户明确回复“确认执行”，确认 `delivery-batch-019-campaign-pressure-rebaseline`；允许创建任务、隔离 worktree，并按严格 TDD 串行推进归因契约、二三章冻结候选重标定和 128/256 正式验证。
+- 2026-07-19: Batch 019-01 归因契约完成；019-02 穷尽冻结候选并触发 stop condition，所有未通过数值已回滚；019-03 因无 selected step 取消，正式 256 rows 保持不变。用户此前要求本阶段提交合并后暂停。
 
 ## 预算快照
 
@@ -106,7 +108,7 @@ carry_over: 3
 
 ## 下一轮建议
 
-- action: `continue-next-batch`
-- reason: `019 已确认并创建 3 个串行任务；下一合法动作是在隔离 worktree 按 TDD 实现 019-01，数值配置保持冻结。`
-- next_batch: `delivery-batch-019-campaign-pressure-rebaseline`（进行中；下一任务 `01-campaign-failure-attribution-contract`）。
+- action: `rebaseline-required`
+- reason: `019-01 已完成，但冻结候选无一通过方向与静态硬门；必须先重新规划候选边界，禁止在当前批次发明 R3。`
+- next_batch: `none`（等待新的数值候选范围确认）。
 - next_audit_scope: `delta`

@@ -81,6 +81,7 @@ func run_campaign_suite(options: Dictionary = {}) -> Dictionary:
 
 	var report := {
 		"version": 1,
+		"campaign_attribution_schema_version": 1,
 		"simulation_model": "campaign_route_heuristic_ai",
 		"strategy_profile": "current-greedy",
 		"seed_model": "paired_by_iteration",
@@ -165,6 +166,8 @@ func _run_campaign_once(character_id: String, challenge_level: int, max_turns: i
 		"relics_added_ids": [],
 		"potions_gained_ids": [],
 		"potions_used_ids": [],
+		"chapter_snapshots": [],
+		"chapter_transition_snapshots": [],
 		"turns": 0,
 		"cards_played": 0,
 		"path": [],
@@ -177,6 +180,7 @@ func _run_campaign_once(character_id: String, challenge_level: int, max_turns: i
 	var chapter_ids: Array = _chapter_sequence()
 	for chapter_index in range(chapter_ids.size()):
 		var chapter_id: String = str(chapter_ids[chapter_index])
+		_begin_campaign_chapter_snapshot(state, chapter_id)
 		var graph: Dictionary = _generate_chapter_graph(chapter_id, seed_value, character_id, state)
 		var node_id: String = str(graph.get("start_node_id", ""))
 		var chapter_finished := false
@@ -207,8 +211,10 @@ func _run_campaign_once(character_id: String, challenge_level: int, max_turns: i
 			state["failed_reason"] = "chapter_route_incomplete"
 			return _campaign_result(false, state)
 		state["chapters_completed"] = int(state.get("chapters_completed", 0)) + 1
+		_complete_campaign_chapter_snapshot(state, chapter_id)
 		if chapter_index < chapter_ids.size() - 1:
 			_apply_campaign_chapter_transition_recovery(state)
+			_record_campaign_transition_snapshot(state, chapter_id, str(chapter_ids[chapter_index + 1]))
 
 	return _campaign_result(true, state)
 
@@ -1347,8 +1353,109 @@ func _append_path_entry(state: Dictionary, chapter_id: String, node: Dictionary,
 		"relic_count": (state.get("relic_ids", []) as Array).size()
 	})
 	state["path"] = path
+	_update_active_campaign_chapter_snapshot(state)
+
+func _campaign_snapshot_for_state(state: Dictionary, chapter_id: String, phase: String) -> Dictionary:
+	var max_hp: int = max(1, int(state.get("max_hp", 1)))
+	var hp: int = int(state.get("hp", 0))
+	return {
+		"chapter_id": chapter_id,
+		"phase": phase,
+		"hp": hp,
+		"max_hp": max_hp,
+		"hp_ratio": snappedf(clampf(float(hp) / float(max_hp), 0.0, 1.0), 0.0001),
+		"gold": int(state.get("gold", 0)),
+		"deck_size": (state.get("deck_ids", []) as Array).size(),
+		"relic_count": (state.get("relic_ids", []) as Array).size()
+	}
+
+func _begin_campaign_chapter_snapshot(state: Dictionary, chapter_id: String) -> void:
+	var snapshots: Array = state.get("chapter_snapshots", [])
+	var entry := _campaign_snapshot_for_state(state, chapter_id, "entry")
+	var row := {
+		"chapter_id": chapter_id,
+		"completed": false,
+		"entry": entry,
+		"exit": entry.duplicate(true)
+	}
+	snapshots.append(row)
+	state["chapter_snapshots"] = snapshots
+	state["active_chapter_snapshot_index"] = snapshots.size() - 1
+
+func _update_active_campaign_chapter_snapshot(state: Dictionary) -> void:
+	var snapshots: Array = state.get("chapter_snapshots", [])
+	var index: int = int(state.get("active_chapter_snapshot_index", -1))
+	if index < 0 or index >= snapshots.size():
+		return
+	var row: Dictionary = snapshots[index]
+	row["exit"] = _campaign_snapshot_for_state(state, str(row.get("chapter_id", "")), "exit")
+	snapshots[index] = row
+	state["chapter_snapshots"] = snapshots
+
+func _complete_campaign_chapter_snapshot(state: Dictionary, chapter_id: String) -> void:
+	var snapshots: Array = state.get("chapter_snapshots", [])
+	var index: int = int(state.get("active_chapter_snapshot_index", -1))
+	if index < 0 or index >= snapshots.size():
+		return
+	var row: Dictionary = snapshots[index]
+	row["completed"] = true
+	row["exit"] = _campaign_snapshot_for_state(state, chapter_id, "exit")
+	snapshots[index] = row
+	state["chapter_snapshots"] = snapshots
+
+func _record_campaign_transition_snapshot(state: Dictionary, from_chapter_id: String, to_chapter_id: String) -> void:
+	var transitions: Array = state.get("chapter_transition_snapshots", [])
+	var snapshots: Array = state.get("chapter_snapshots", [])
+	var from_snapshot: Dictionary = {}
+	if not snapshots.is_empty():
+		from_snapshot = (snapshots[snapshots.size() - 1] as Dictionary).get("exit", {})
+	transitions.append({
+		"from_chapter_id": from_chapter_id,
+		"to_chapter_id": to_chapter_id,
+		"pre_transition": from_snapshot.duplicate(true),
+		"post_transition": _campaign_snapshot_for_state(state, to_chapter_id, "transition")
+	})
+	state["chapter_transition_snapshots"] = transitions
+
+func _finalize_campaign_snapshots(state: Dictionary) -> void:
+	var chapter_ids: Array = _chapter_sequence()
+	var snapshots: Array = state.get("chapter_snapshots", [])
+	var seen: Dictionary = {}
+	for row_value in snapshots:
+		seen[str((row_value as Dictionary).get("chapter_id", ""))] = true
+	for chapter_id_value in chapter_ids:
+		var chapter_id := str(chapter_id_value)
+		if seen.has(chapter_id):
+			continue
+		snapshots.append({
+			"chapter_id": chapter_id,
+			"completed": false,
+			"entry": {},
+			"exit": {}
+		})
+	state["chapter_snapshots"] = snapshots
+	var transitions: Array = state.get("chapter_transition_snapshots", [])
+	for index in range(max(0, chapter_ids.size() - 1)):
+		var from_chapter := str(chapter_ids[index])
+		var to_chapter := str(chapter_ids[index + 1])
+		var exists := false
+		for transition_value in transitions:
+			var transition: Dictionary = transition_value
+			if str(transition.get("from_chapter_id", "")) == from_chapter and str(transition.get("to_chapter_id", "")) == to_chapter:
+				exists = true
+				break
+		if exists:
+			continue
+		transitions.append({
+			"from_chapter_id": from_chapter,
+			"to_chapter_id": to_chapter,
+			"pre_transition": {},
+			"post_transition": {}
+		})
+	state["chapter_transition_snapshots"] = transitions
 
 func _campaign_result(won: bool, state: Dictionary) -> Dictionary:
+	_finalize_campaign_snapshots(state)
 	return {
 		"won": won,
 		"lost": not won,
@@ -1366,6 +1473,8 @@ func _campaign_result(won: bool, state: Dictionary) -> Dictionary:
 		"relics_added": int(state.get("relics_added", 0)),
 		"potions_gained": int(state.get("potions_gained", 0)),
 		"potions_used": int(state.get("potions_used", 0)),
+		"chapter_snapshots": state.get("chapter_snapshots", []),
+		"chapter_transition_snapshots": state.get("chapter_transition_snapshots", []),
 		"turns": int(state.get("turns", 0)),
 		"cards_played": int(state.get("cards_played", 0)),
 		"final_hp": int(state.get("hp", 0)),
@@ -2003,18 +2112,27 @@ func _aggregate_campaign_case(character: Dictionary, challenge: Dictionary, runs
 		total_relics_added += int(run_dict.get("relics_added", 0))
 		total_potions_used += int(run_dict.get("potions_used", 0))
 		if not bool(run_dict.get("won", false)):
-			var reason: String = str(run_dict.get("failed_reason", "unknown"))
-			var point: String = str(run_dict.get("failed_at", "unknown"))
-			var node_type: String = str(run_dict.get("failed_node_type", "unknown"))
-			var encounter_id: String = str(run_dict.get("failed_encounter_id", ""))
-			failure_reasons[reason] = int(failure_reasons.get(reason, 0)) + 1
-			failure_points[point] = int(failure_points.get(point, 0)) + 1
-			failure_node_types[node_type] = int(failure_node_types.get(node_type, 0)) + 1
-			if not encounter_id.is_empty():
-				failure_encounters[encounter_id] = int(failure_encounters.get(encounter_id, 0)) + 1
+			_record_campaign_failure(run_dict, failure_reasons, failure_points, failure_node_types, failure_encounters)
 
 	var count: int = max(1, runs.size())
+	var attribution_gate_eligible: bool = count >= _campaign_attribution_minimum_iterations()
+	var losses: int = count - wins
+	var top_failure_encounter_id := ""
+	var top_failure_encounter_count := 0
+	for encounter_id_value in failure_encounters.keys():
+		var encounter_id := str(encounter_id_value)
+		var encounter_count := int(failure_encounters.get(encounter_id_value, 0))
+		if encounter_count > top_failure_encounter_count or (encounter_count == top_failure_encounter_count and encounter_id < top_failure_encounter_id):
+			top_failure_encounter_id = encounter_id
+			top_failure_encounter_count = encounter_count
+	var top_failure_encounter_share: float = float(top_failure_encounter_count) / float(losses) if losses > 0 else 0.0
+	var failure_share_threshold: float = float(numerical_tree_data.get("campaign_targets", {}).get("single_failure_encounter_share_max", 1.0))
+	var attribution_flags: Array = []
+	if attribution_gate_eligible and top_failure_encounter_count > 0 and top_failure_encounter_share > failure_share_threshold:
+		attribution_flags.append("campaign_failure_concentration")
 	var case := {
+		"campaign_attribution_schema_version": 1,
+		"attribution_gate_eligible": attribution_gate_eligible,
 		"character_id": str(character.get("id", "")),
 		"character_name": str(character.get("name", character.get("id", ""))),
 		"challenge_level": int(challenge.get("level", 0)),
@@ -2044,12 +2162,147 @@ func _aggregate_campaign_case(character: Dictionary, challenge: Dictionary, runs
 		"failure_points": failure_points,
 		"failure_node_types": failure_node_types,
 		"failure_encounters": failure_encounters,
+		"failure_concentration": {
+			"losses": losses,
+			"top_encounter_id": top_failure_encounter_id,
+			"top_encounter_failures": top_failure_encounter_count,
+			"top_encounter_share": _rounded_rate(top_failure_encounter_share),
+			"share_threshold": failure_share_threshold,
+			"gate_eligible": attribution_gate_eligible,
+			"attribution_flags": attribution_flags
+		},
+		"chapter_attribution": _aggregate_campaign_chapter_attribution(runs),
+		"chapter_transition_attribution": _aggregate_campaign_transition_attribution(runs),
 		"win_iteration_indices": _campaign_win_iteration_indices(runs),
 		"card_telemetry": _aggregate_campaign_card_telemetry(runs),
 		"sample_runs": _sample_campaign_runs(runs)
 	}
 	case["risk_flag"] = _campaign_risk_flag(case)
 	return case
+
+func _record_campaign_failure(run: Dictionary, reasons: Dictionary, points: Dictionary, node_types: Dictionary, encounters: Dictionary) -> void:
+	var reason: String = str(run.get("failed_reason", "unknown"))
+	var point: String = str(run.get("failed_at", "unknown"))
+	var node_type: String = str(run.get("failed_node_type", "unknown"))
+	var encounter_id: String = str(run.get("failed_encounter_id", ""))
+	reasons[reason] = int(reasons.get(reason, 0)) + 1
+	points[point] = int(points.get(point, 0)) + 1
+	node_types[node_type] = int(node_types.get(node_type, 0)) + 1
+	if not encounter_id.is_empty():
+		encounters[encounter_id] = int(encounters.get(encounter_id, 0)) + 1
+
+func _campaign_attribution_minimum_iterations() -> int:
+	return max(1, int(numerical_tree_data.get("campaign_targets", {}).get("minimum_iterations_for_hard_gate", 128)))
+
+func _campaign_snapshot_average(rows: Array, phase_key: String, metric: String) -> float:
+	var total := 0.0
+	var count := 0
+	for row_value in rows:
+		var row: Dictionary = row_value
+		var snapshot_value = row.get(phase_key, {})
+		if not snapshot_value is Dictionary:
+			continue
+		var snapshot: Dictionary = snapshot_value
+		if not snapshot.has(metric):
+			continue
+		total += float(snapshot.get(metric, 0.0))
+		count += 1
+	return _rounded_rate(total / float(max(1, count))) if count > 0 else 0.0
+
+func _aggregate_campaign_chapter_attribution(runs: Array) -> Array:
+	var chapter_ids: Array = _chapter_sequence()
+	var result: Array = []
+	var run_count: int = max(1, runs.size())
+	for chapter_id_value in chapter_ids:
+		var chapter_id := str(chapter_id_value)
+		var rows: Array = []
+		for run_value in runs:
+			var run: Dictionary = run_value
+			for row_value in run.get("chapter_snapshots", []):
+				var row: Dictionary = row_value
+				if str(row.get("chapter_id", "")) == chapter_id:
+					rows.append(row)
+					break
+		var entry_runs := 0
+		var completed_runs := 0
+		for row_value in rows:
+			var row: Dictionary = row_value
+			var entry: Dictionary = row.get("entry", {})
+			if not entry.is_empty():
+				entry_runs += 1
+			if entry_runs > 0 and bool(row.get("completed", false)):
+				completed_runs += 1
+		var failed_runs: int = entry_runs - completed_runs
+		var entry_rate := float(entry_runs) / float(run_count)
+		var completion_rate := float(completed_runs) / float(run_count)
+		var conditional_rate := float(completed_runs) / float(entry_runs) if entry_runs > 0 else 0.0
+		result.append({
+			"chapter_id": chapter_id,
+			"entry_runs": entry_runs,
+			"completed_runs": completed_runs,
+			"failed_runs": failed_runs,
+			"entry_rate": _rounded_rate(entry_rate),
+			"completion_rate": _rounded_rate(completion_rate),
+			"conditional_completion_rate": _rounded_rate(conditional_rate),
+			"avg_entry_hp": _campaign_snapshot_average(rows, "entry", "hp"),
+			"avg_entry_hp_ratio": _campaign_snapshot_average(rows, "entry", "hp_ratio"),
+			"avg_exit_hp": _campaign_snapshot_average(rows, "exit", "hp"),
+			"avg_exit_hp_ratio": _campaign_snapshot_average(rows, "exit", "hp_ratio"),
+			"avg_entry_gold": _campaign_snapshot_average(rows, "entry", "gold"),
+			"avg_exit_gold": _campaign_snapshot_average(rows, "exit", "gold"),
+			"avg_entry_deck_size": _campaign_snapshot_average(rows, "entry", "deck_size"),
+			"avg_exit_deck_size": _campaign_snapshot_average(rows, "exit", "deck_size"),
+			"avg_entry_relic_count": _campaign_snapshot_average(rows, "entry", "relic_count"),
+			"avg_exit_relic_count": _campaign_snapshot_average(rows, "exit", "relic_count")
+		})
+	return result
+
+func _aggregate_campaign_transition_attribution(runs: Array) -> Array:
+	var chapter_ids: Array = _chapter_sequence()
+	var result: Array = []
+	for index in range(max(0, chapter_ids.size() - 1)):
+		var from_chapter_id := str(chapter_ids[index])
+		var to_chapter_id := str(chapter_ids[index + 1])
+		var rows: Array = []
+		for run_value in runs:
+			var run: Dictionary = run_value
+			for row_value in run.get("chapter_transition_snapshots", []):
+				var row: Dictionary = row_value
+				if str(row.get("from_chapter_id", "")) == from_chapter_id and str(row.get("to_chapter_id", "")) == to_chapter_id:
+					var pre: Dictionary = row.get("pre_transition", {})
+					var post: Dictionary = row.get("post_transition", {})
+					if not pre.is_empty() and not post.is_empty():
+						rows.append({"pre_transition": pre, "post_transition": post})
+					break
+		var pre_hp_total := 0.0
+		var post_hp_total := 0.0
+		var post_hp_ratio_total := 0.0
+		var gold_total := 0.0
+		var deck_total := 0.0
+		var relic_total := 0.0
+		for row_value in rows:
+			var row: Dictionary = row_value
+			var pre: Dictionary = row.get("pre_transition", {})
+			var post: Dictionary = row.get("post_transition", {})
+			pre_hp_total += float(pre.get("hp", 0.0))
+			post_hp_total += float(post.get("hp", 0.0))
+			post_hp_ratio_total += float(post.get("hp_ratio", 0.0))
+			gold_total += float(post.get("gold", 0.0))
+			deck_total += float(post.get("deck_size", 0.0))
+			relic_total += float(post.get("relic_count", 0.0))
+		var count: int = rows.size()
+		result.append({
+			"from_chapter_id": from_chapter_id,
+			"to_chapter_id": to_chapter_id,
+			"transition_runs": count,
+			"avg_pre_transition_hp": _rounded_rate(pre_hp_total / float(max(1, count))) if count > 0 else 0.0,
+			"avg_post_transition_hp": _rounded_rate(post_hp_total / float(max(1, count))) if count > 0 else 0.0,
+			"avg_post_transition_hp_ratio": _rounded_rate(post_hp_ratio_total / float(max(1, count))) if count > 0 else 0.0,
+			"avg_gold": _rounded_rate(gold_total / float(max(1, count))) if count > 0 else 0.0,
+			"avg_deck_size": _rounded_rate(deck_total / float(max(1, count))) if count > 0 else 0.0,
+			"avg_relic_count": _rounded_rate(relic_total / float(max(1, count))) if count > 0 else 0.0
+		})
+	return result
 
 func _campaign_win_iteration_indices(runs: Array) -> Array:
 	var indices: Array = []
@@ -2219,6 +2472,8 @@ func _summarize_campaign_run(run: Dictionary) -> Dictionary:
 		"relics_added_ids": run.get("relics_added_ids", []),
 		"potions_gained_ids": run.get("potions_gained_ids", []),
 		"potions_used_ids": run.get("potions_used_ids", []),
+		"chapter_snapshots": run.get("chapter_snapshots", []),
+		"chapter_transition_snapshots": run.get("chapter_transition_snapshots", []),
 		"path": run.get("path", [])
 	}
 
@@ -2227,6 +2482,7 @@ func _build_campaign_report_summary(cases: Array) -> Dictionary:
 	var total_win_rate := 0.0
 	var total_chapters := 0.0
 	var cases_by_challenge: Dictionary = {}
+	var cases_by_character: Dictionary = {}
 	for case in cases:
 		var case_dict: Dictionary = case
 		total_win_rate += float(case_dict.get("win_rate", 0.0))
@@ -2237,11 +2493,15 @@ func _build_campaign_report_summary(cases: Array) -> Dictionary:
 		if not cases_by_challenge.has(challenge_level):
 			cases_by_challenge[challenge_level] = []
 		(cases_by_challenge[challenge_level] as Array).append(case_dict)
+		var character_id := str(case_dict.get("character_id", ""))
+		if not cases_by_character.has(character_id):
+			cases_by_character[character_id] = []
+		(cases_by_character[character_id] as Array).append(case_dict)
 	var count: int = max(1, cases.size())
 	var target_issues: Array = []
 	var challenge_rows: Array = []
 	var targets: Dictionary = numerical_tree_data.get("campaign_targets", {})
-	var minimum_iterations: int = int(targets.get("minimum_iterations_for_hard_gate", 64))
+	var minimum_iterations: int = _campaign_attribution_minimum_iterations()
 	var max_character_gap: float = float(targets.get("max_character_win_rate_gap", 1.0))
 	for challenge_level_value in cases_by_challenge.keys():
 		var challenge_level: int = int(challenge_level_value)
@@ -2282,6 +2542,7 @@ func _build_campaign_report_summary(cases: Array) -> Dictionary:
 			"max_character_win_rate_gap": max_character_gap,
 			"minimum_iterations_required": minimum_iterations,
 			"enough_samples": enough_samples,
+			"attribution_gate_eligible": enough_samples,
 			"issues": row_issues
 		})
 	challenge_rows.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a.get("challenge_level", 0)) < int(b.get("challenge_level", 0)))
@@ -2295,6 +2556,30 @@ func _build_campaign_report_summary(cases: Array) -> Dictionary:
 			var monotonic_issue := "challenge_%d:win_rate_not_monotonic" % int(current_row.get("challenge_level", 0))
 			target_issues.append(monotonic_issue)
 			(current_row.get("issues", []) as Array).append("win_rate_not_monotonic")
+	var character_rows: Array = []
+	for character_id_value in cases_by_character.keys():
+		var character_id := str(character_id_value)
+		var character_cases: Array = cases_by_character.get(character_id, [])
+		var character_win_rate := 0.0
+		var character_chapters := 0.0
+		var character_enough_samples := true
+		for case_value in character_cases:
+			var character_case: Dictionary = case_value
+			character_win_rate += float(character_case.get("win_rate", 0.0))
+			character_chapters += float(character_case.get("avg_chapters_completed", 0.0))
+			if int(character_case.get("runs", 0)) < minimum_iterations:
+				character_enough_samples = false
+		var character_count: int = max(1, character_cases.size())
+		character_rows.append({
+			"character_id": character_id,
+			"case_count": character_cases.size(),
+			"average_win_rate": _rounded_rate(character_win_rate / float(character_count)),
+			"average_chapters_completed": _rounded_rate(character_chapters / float(character_count)),
+			"minimum_iterations_required": minimum_iterations,
+			"enough_samples": character_enough_samples,
+			"attribution_gate_eligible": character_enough_samples
+		})
+	character_rows.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return str(a.get("character_id", "")) < str(b.get("character_id", "")))
 	return {
 		"average_campaign_win_rate": _rounded_rate(total_win_rate / float(count)),
 		"average_chapters_completed": _rounded_rate(total_chapters / float(count)),
@@ -2302,7 +2587,9 @@ func _build_campaign_report_summary(cases: Array) -> Dictionary:
 		"ok_case_count": cases.size() - flagged,
 		"target_pass": target_issues.is_empty(),
 		"target_issues": target_issues,
-		"challenge_targets": challenge_rows
+		"challenge_targets": challenge_rows,
+		"character_attribution": character_rows,
+		"challenge_attribution": challenge_rows.duplicate(true)
 	}
 
 func _campaign_risk_flag(case: Dictionary) -> String:
