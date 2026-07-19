@@ -1573,8 +1573,8 @@ func _on_character_selected(character_id: String) -> void:
 
 func _on_character_preview_selected(character_id: String) -> void:
 	selected_character_id = _valid_character_id(character_id)
+	last_character_selection_selected_id = selected_character_id
 	_audio_event("ui_click")
-	_refresh()
 
 func _on_character_confirm_pressed() -> void:
 	_start_new_run(selected_character_id)

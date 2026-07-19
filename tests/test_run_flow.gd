@@ -77,7 +77,13 @@ func _run() -> void:
 		return
 	if not _check(main.last_character_selection_confirm_visible and main.last_character_selection_selected_id == "ember_exile", "character selection shows explicit confirmation for the selected character"):
 		return
-	main._on_character_preview_selected("arc_tinker")
+	var arc_character_stage := character_page.find_child("CharacterStage_arc_tinker", true, false) as Control
+	var arc_character_button := arc_character_stage.find_child("CharacterSelectButton", true, false) as Button if arc_character_stage != null else null
+	if not _check(arc_character_stage != null and arc_character_button != null, "character selection exposes a clickable arc tinker card"):
+		return
+	arc_character_button.pressed.emit()
+	if not _check(main.app_shell.active_page == character_page, "character preview updates in place without remounting the page"):
+		return
 	if not _check(main.character_select_open and main.combat == null and main.selected_character_id == "arc_tinker" and main.last_character_selection_selected_id == "arc_tinker", "character click previews without starting the run"):
 		return
 	main._on_character_preview_selected("ember_exile")
