@@ -8,24 +8,24 @@ stage_state:
   max_rounds: 6
   open_gaps: 8
   tasks_created: 2
-  tasks_completed: 0
+  tasks_completed: 2
   carry_over: 0
   critical_review_issues: 0
-  next_legal_action: implement 020-01 in an isolated worktree
+  next_legal_action: pause until a new strategy-diagnostic batch is explicitly confirmed
   stop_conditions:
-    - none
+    - Batch 020 differential gate failed: C2/C3 win-rate regression and C0/C1 chapter-one regression
 ---
 
 loop_mode: L3
 current_round: 1
-next_loop_recommendation: continue-next-batch
+next_loop_recommendation: pause-human-needed
 carry_over: 0
 
 ## 基线
 
 - source_requirements: `docs/00_MASTER_PLAN.md`（由 `docs/01-08` 细化）
 - mvp_baseline_commit: `2e3e857`
-- last_audited_commit: `585cc34`（019 归因契约与候选停机证据合并后）
+- last_audited_commit: `d550003`（020 胜任玩家策略差分、确定性证据与停机裁决合并后）
 - loop_mode: `L3`
 - current_round: `1`
 - max_rounds: `6`
@@ -37,13 +37,13 @@ carry_over: 0
 | --- | --- | --- | --- | --- | --- | --- |
 | REQ-001 | DONE | `scripts/combat/CombatState.gd` | `tests/test_combat_core.gd` | none | 3 | 0 |
 | REQ-002 | DONE | `scripts/main/Main.gd`, `scripts/map/MapGenerator.gd`, `data/config/level_tree.json` | `tests/test_run_flow.gd`, `tests/test_map_generator.gd`, `tests/test_map_view.gd` | none | 3 | 0 |
-| REQ-003 | PARTIAL | `data/cards/cards.json`, `data/enemies/enemies.json`, `data/config/monster_scaling.json`, `scripts/tools/NumericalTreeAuditor.gd`, `scripts/tools/NumericalPressureMetrics.gd`, `scripts/tools/BalanceSimulator.gd`, `data/config/numerical_tree.json` | `tests/test_act1_rebaseline.gd`, `tests/test_numerical_pressure_metrics.gd`, `tests/test_numerical_tree_auditor.gd`, `tests/test_balance_simulator.gd`, `tests/test_numerical_balance_matrix.gd`, `tests/test_act2_act3_rebaseline.gd` | 019 归因完成但候选停机；020 先建立 competent-player-v1 差分，生产数值和正式矩阵继续冻结 | 1 | 0 |
-| REQ-004 | PARTIAL | `data/config/player.json`, `data/config/progression_systems.json`, `data/cards/cards.json`, `scripts/main/Main.gd`, `scripts/tools/BalanceSimulator.gd` | `tests/test_act1_rebaseline.gd`, `tests/test_progression_systems.gd`, `tests/test_combat_core.gd`, `tests/test_run_flow.gd`, `tests/test_balance_card_telemetry.gd`, `tests/test_balance_simulator.gd` | 020 增加策略版本、决策遥测和角色/牌组感知 profile；角色基础数值仍冻结 | 1 | 0 |
-| REQ-005 | PARTIAL | `data/enemies/enemies.json`, `data/encounters/encounters.json`, `data/config/monster_scaling.json`, `scripts/combat/CombatState.gd`, `scripts/tools/NumericalTreeAuditor.gd`, `scripts/tools/BalanceSimulator.gd`, `scripts/main/Main.gd` | `tests/test_act1_rebaseline.gd`, `tests/test_combat_core.gd`, `tests/test_balance_simulator.gd`, `tests/test_numerical_tree_auditor.gd`, `tests/test_run_flow.gd`, `tests/test_act2_act3_rebaseline.gd` | 020 不改敌人；先用 competent profile 证明路线/奖励决策不是主因后才允许下一次数值候选 | 1 | 0 |
+| REQ-003 | PARTIAL | `data/cards/cards.json`, `data/enemies/enemies.json`, `data/config/monster_scaling.json`, `scripts/tools/NumericalTreeAuditor.gd`, `scripts/tools/NumericalPressureMetrics.gd`, `scripts/tools/BalanceSimulator.gd`, `data/config/numerical_tree.json`, `docs/10_STRATEGY_DIFFERENTIAL_020.md` | `tests/test_act1_rebaseline.gd`, `tests/test_numerical_pressure_metrics.gd`, `tests/test_numerical_tree_auditor.gd`, `tests/test_balance_simulator.gd`, `tests/test_numerical_balance_matrix.gd`, `tests/test_act2_act3_rebaseline.gd` | 020 已完成 competent 差分；C2/C3 胜率回退且 C0/C1 第一章回退，状态 `paused_no_strategy_passed`，生产数值和正式矩阵继续冻结 | 1 | 0 |
+| REQ-004 | PARTIAL | `data/config/player.json`, `data/config/progression_systems.json`, `data/cards/cards.json`, `scripts/main/Main.gd`, `scripts/tools/BalanceSimulator.gd`, `docs/10_STRATEGY_DIFFERENTIAL_020.md` | `tests/test_act1_rebaseline.gd`, `tests/test_progression_systems.gd`, `tests/test_combat_core.gd`, `tests/test_run_flow.gd`, `tests/test_balance_card_telemetry.gd`, `tests/test_balance_simulator.gd` | 020 已交付策略版本、决策遥测和角色/牌组感知 profile，但差分门失败；角色基础数值仍冻结 | 1 | 0 |
+| REQ-005 | PARTIAL | `data/enemies/enemies.json`, `data/encounters/encounters.json`, `data/config/monster_scaling.json`, `scripts/combat/CombatState.gd`, `scripts/tools/NumericalTreeAuditor.gd`, `scripts/tools/BalanceSimulator.gd`, `scripts/main/Main.gd`, `docs/10_STRATEGY_DIFFERENTIAL_020.md` | `tests/test_act1_rebaseline.gd`, `tests/test_combat_core.gd`, `tests/test_balance_simulator.gd`, `tests/test_numerical_tree_auditor.gd`, `tests/test_run_flow.gd`, `tests/test_act2_act3_rebaseline.gd` | 020 未证明策略能跨难度稳定提升；不允许据此修改敌人，需新策略诊断批次后再讨论数值候选 | 1 | 0 |
 | REQ-006 | PARTIAL | `data/cards/cards.json`, `data/relics/relics.json`, `data/events/events.json`, `data/config/art_assets.json`, `assets/art/generated/` | `tests/test_data_integrity.gd`, `tests/test_art_asset_auditor.gd` | batch-014 delivered 8 relic PNGs; next: replace remaining legacy event/enemy art | L3-5 | 0 |
 | REQ-007 | DONE | `scripts/core/SaveManager.gd`, `scripts/main/Main.gd`, `data/config/achievements.json` | v5 奖励事务、原子恢复、错节点/坏 ID/金币回滚和旧战斗 HP 隔离测试 | none | L3-post | 0 |
 | REQ-008 | PARTIAL | `scripts/ui/AppShell.gd`, `scripts/ui/ForgeTheme.gd`, `scripts/ui/ForgeMotion.gd`, `scripts/ui/components/`, `scripts/ui/pages/`, `scripts/main/Main.gd`, `assets/art/generated/`, `assets/fonts/NotoSansSC-Variable.ttf` | `tests/test_forge_ui_foundation.gd`, `tests/test_welcome_character_pages.gd`, `tests/test_ember_forge_route_rooms.gd`, `tests/test_ui_outcome_settings_compendium.gd`, `tests/test_visual_bounds.gd`, `tools/render_pc_gallery.gd`, `/tmp/ember018d-visual.json`, `/tmp/ember018d-performance.json` | 018D 已将 Map/Event/Shop/Campfire/Reward 真实挂入 Main→AppShell，并删除五页旧 PC 视觉树；仍保留生产内容美术与更深玩法扩展缺口 | L3-5 | 0 |
-| REQ-009 | PARTIAL | `scripts/core/PlaytestTelemetry.gd`, `scripts/core/PlaytestEvidenceGate.gd`, `tools/merge_playtest_reports.gd`, `scripts/tools/BalanceSimulator.gd`, `data/config/numerical_tree.json` | `tests/test_act1_rebaseline.gd`, `tests/test_playtest_evidence_gate.gd`, `tests/test_balance_simulator.gd`, `tests/test_numerical_balance_matrix.gd` | 020 增加 strategy differential report；128 仍只作 AI 诊断，真人 cohort 继续隔离 | 1 | 0 |
+| REQ-009 | PARTIAL | `scripts/core/PlaytestTelemetry.gd`, `scripts/core/PlaytestEvidenceGate.gd`, `tools/merge_playtest_reports.gd`, `scripts/tools/BalanceSimulator.gd`, `data/config/numerical_tree.json`, `docs/10_STRATEGY_DIFFERENTIAL_020.md` | `tests/test_act1_rebaseline.gd`, `tests/test_playtest_evidence_gate.gd`, `tests/test_balance_simulator.gd`, `tests/test_numerical_balance_matrix.gd` | 020 已生成 deterministic 128 strategy differential report；结果只作 AI 诊断，正式 256 rows 与真人 cohort 继续隔离 | 1 | 0 |
 | REQ-010 | MISSING | none | none | proposed: build-grid-tactics-mode | 1 | 2 |
 | REQ-011 | PARTIAL | `export_presets.cfg`, `project.godot`, `packaging/PLAYTEST_README_ZH.txt` | alpha.8 Windows PE32+ x86_64 embedded-PCK、精确 PCK 启动、版本和压缩完整性通过 | next: native Windows matrix, commercial signing, installer and Steam integration | L3-post | 0 |
 | REQ-012 | DONE | `tests/`, `tools/render_pc_gallery.gd`, `tools/verify_ui_visual_regression.gd`, `tools/profile_ui_performance.gd`, `tests/fixtures/ui_visual_contracts.json`, `tests/golden/ui_720p/` | 28/28 strict-log regression；11/11 1280x720 区域金标；真实 Main 600 帧 profiler；focus/motion/44px/节点增量门 | none；Windows release 目标机采样归入 REQ-011 发布门 | L3-5 | 0 |
@@ -58,8 +58,10 @@ carry_over: 0
   - `REQ-005`
   - `REQ-009`
 - tasks:
-  - `020-01-strategy-contract-diagnostics`
-  - `020-02-competent-player-differential-verification`
+  - `020-01-strategy-contract-diagnostics`（完成；C0/M0/m1）
+  - `020-02-competent-player-differential-verification`（完成；C0/M0/m2；停机分支）
+- result: `paused_no_strategy_passed`
+- delivery_commit: `d550003`
 - excluded_this_round:
   - `REQ-006/008`: 内容资产、正式音频和演出不与高风险数值批次混合
   - `REQ-012`: 仅回归，不重新设计测试基础设施
@@ -69,7 +71,7 @@ carry_over: 0
 
 | 条目 | 原因 | 需要人工提供什么 | 起始轮次 |
 | --- | --- | --- | --- |
-| none | 020 的策略差分尚未运行；若差分门失败，必须停机而不是改生产数值 | 无；用户已确认继续策略重基线 | 1 |
+| Batch 020 strategy differential | `competent-player-v1` 在 C2/C3 胜率回退，且 C0/C1 第一章完成率下降超过 0.02；不能解锁生产数值候选 | 确认新的、独立策略诊断批次；不可直接修改生产数值 | 1 |
 
 ## 人工决策
 
@@ -101,6 +103,7 @@ carry_over: 0
 - 2026-07-19: 用户明确回复“确认执行”，确认 `delivery-batch-019-campaign-pressure-rebaseline`；允许创建任务、隔离 worktree，并按严格 TDD 串行推进归因契约、二三章冻结候选重标定和 128/256 正式验证。
 - 2026-07-19: Batch 019-01 归因契约完成；019-02 穷尽冻结候选并触发 stop condition，所有未通过数值已回滚；019-03 因无 selected step 取消，正式 256 rows 保持不变。用户此前要求本阶段提交合并后暂停。
 - 2026-07-19: 用户确认继续执行策略重基线 Batch 020；新 loop 从第 1 轮开始，先实现 `competent-player-v1` 与决策遥测，默认 `current-greedy`、生产 JSON、正式 256 rows 和真人 cohort 均冻结。
+- 2026-07-19: Batch 020 两任务以严格 TDD 和双阶段评审完成；current/competent 各 3×4×128 重复报告 byte-identical，但 competent 在 C2/C3 胜率与 C0/C1 第一章门回退，记录 `paused_no_strategy_passed`，不修改生产 JSON 或正式 256 rows。
 
 ## 预算快照
 
@@ -112,7 +115,7 @@ carry_over: 0
 
 ## 下一轮建议
 
-- action: `continue-next-batch`
-- reason: `020-01/020-02 已创建；先完成策略契约和 competent-player-v1 差分，再决定是否允许下一轮生产数值候选。`
-- next_batch: `delivery-batch-020-competent-campaign-strategy`。
+- action: `pause-human-needed`
+- reason: `020 的 competent-player-v1 未通过跨难度非回退门；生产数值候选继续锁定，等待确认新的策略诊断批次。`
+- next_batch: `none`。
 - next_audit_scope: `delta`
