@@ -1,22 +1,22 @@
 # EmberCircuit Delivery State
 
 stage_state:
-  state: S8_RUN_LOG
+  state: S6_CONFIRM
   loop_mode: L3
   audit_scope: delta
-  current_round: 5
+  current_round: 6
   max_rounds: 6
   open_gaps: 8
   tasks_created: 3
   tasks_completed: 3
   carry_over: 3
   critical_review_issues: 0
-  next_legal_action: delta-audit-next-batch after 018D merge
+  next_legal_action: request confirmation for delivery-batch-019-campaign-pressure-rebaseline
   stop_conditions: none
 ---
 
 loop_mode: L3
-current_round: 5
+current_round: 6
 next_loop_recommendation: continue-next-batch
 carry_over: 3
 
@@ -24,11 +24,11 @@ carry_over: 3
 
 - source_requirements: `docs/00_MASTER_PLAN.md`（由 `docs/01-08` 细化）
 - mvp_baseline_commit: `2e3e857`
-- last_audited_commit: `1f55cff`（018D 交付提交）
+- last_audited_commit: `df098ef`（018D 合并后数值快照修正）
 - loop_mode: `L3`
-- current_round: `5`
+- current_round: `6`
 - max_rounds: `6`
-- current_batch_id: `delivery-batch-018d-ui-run-page-mounts`（已确认）
+- current_batch_id: `none`（018D 已完成；019 待确认）
 
 ## 需求状态
 
@@ -49,14 +49,16 @@ carry_over: 3
 
 ## 当前批次
 
-- batch_id: `delivery-batch-018d-ui-run-page-mounts`（已完成，提交 `1f55cff`）
-- scope: `补齐地图、事件、商店、篝火、奖励/宝箱页面的真实 VM/signal 契约，接入 AppShell，删除对应旧视觉树并保持事务/信号/probe 兼容`
+- batch_id: `delivery-batch-019-campaign-pressure-rebaseline`（待确认）
+- scope: `建立完整跑团失败归因与跨章压力门，并对二三章敌人、奖励和经济执行配对重标定`
 - selected_reqs:
-  - `REQ-008`
-  - `REQ-012`
+  - `REQ-003`
+  - `REQ-004`
+  - `REQ-005`
+  - `REQ-009`
 - excluded_this_round:
-  - `REQ-003/004/005/009`: 数值/玩法冻结，UI 挂载不得触碰
-  - `REQ-006`: legacy 内容资产替换不纳入本批，只复用或新增原创 UI 装饰
+  - `REQ-006/008`: 内容资产、正式音频和演出不与高风险数值批次混合
+  - `REQ-012`: 仅回归，不重新设计测试基础设施
   - `REQ-010/011`: 网格战术模式、商业签名/Steam/安装器继续后续批次
 
 ## 阻塞项
@@ -90,7 +92,8 @@ carry_over: 3
 - 2026-07-18: 用户授权浏览器/MCP/截图/只读审计和测试自动执行，不需要逐次确认；Batch 018A 完成提交、回写文档并合并后暂停。
 - 2026-07-18: Batch 018C 已以 28/28 回归、11 页区域金标和真实 Main profiler 交付并合并；用户通过持续目标恢复 L3，要求继续严格 TDD 推进完整游戏。
 - 2026-07-18: 用户明确回复“确认执行 018D”；批次拆为契约补齐、运行时挂载、视觉验证三个任务，允许创建隔离 worktree 并按严格 TDD 推进到评审门。
-- 2026-07-19: 018D-03 通过双阶段评审（无 critical；Main 偏胖列为 minor），28/28 测试、11/11 区域视觉、真实 600 帧性能和五页 20 轮路由均通过；准备提交并合并 master。
+- 2026-07-19: 018D-03 通过双阶段评审（无 critical；Main 偏胖列为 minor），28/28 测试、11/11 区域视觉、真实 600 帧性能和五页 20 轮路由均通过；已提交并合并 master。
+- 2026-07-19: 018D 后 delta audit 发现 current-greedy 三章矩阵仍 12 格低胜率，64-seed 失败集中于第一章 Boss、iron_checkpoint、cinder_kennels；修正 07 文档漂移，等待确认 019 数值批次。
 
 ## 预算快照
 
@@ -103,6 +106,6 @@ carry_over: 3
 ## 下一轮建议
 
 - action: `continue-next-batch`
-- reason: `018D 三个串行任务已完成并通过双阶段评审；REQ-008 仍需后续生产内容美术/玩法深度批次，先做 delta audit 再选唯一下一批次。`
-- next_batch: `delta-audit-next-batch`，保留当前合并后的 commit 作为新审计基线。
+- reason: `delta audit 已定位 REQ-003/004/005/009 的三章 campaign pressure 缺口；按 S6 门等待用户确认 019 范围后创建任务。`
+- next_batch: `delivery-batch-019-campaign-pressure-rebaseline`（待确认）。
 - next_audit_scope: `delta`
