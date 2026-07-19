@@ -4,7 +4,7 @@
 | --- | --- | --- | --- | --- |
 | AC-018D-10 | 无调用旧视觉 helper 删除，业务/probe 回归绿 | run-flow + rg | done | 删除 Campfire/Event/Reward PC 内联树及专属样式 helper；compact 路径、业务回调、素材查找和 probes 保留；当前相对 HEAD 的 Main diff 净减少约 190 行。 |
 | AC-018D-11 | 五页新金标与 720p/900p bounds，11页区域 diff绿 | gallery/visual/bounds | done | 首轮旧金标 RED 暴露四页空洞；补齐三栏 Reward、事件/篝火场景图、等高 Shop 货架后人工复核 720p/900p，通过 11/11 区域 verifier，六页未改基线像素稳定。 |
-| AC-018D-12 | 五页20轮节点0增量、600帧预算、全量严格回归 | profiler/all tests | done | 真实 Main map->event->shop->campfire->reward 20 轮，节点增量 0、循环 Tween 2；600 帧 p95 9.254ms、1% low 105.85 FPS、输入 57.468ms、burst 10/20；28/28 tests 全绿。 |
+| AC-018D-12 | 五页20轮节点0增量、600帧预算、全量严格回归 | profiler/all tests | done | 真实 Main map->event->shop->campfire->reward 20 轮，节点增量 0、循环 Tween 2；600 帧 p95 14.42ms、1% low 66.35 FPS、输入 51.509ms、burst 10/20；28/28 tests 全绿。 |
 
 ## 最小实现收敛
 

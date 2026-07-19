@@ -955,5 +955,5 @@ jq empty data/cards/cards.json data/enemies/enemies.json data/relics/relics.json
 - 删除 Main 中无调用的 Campfire/Event/Reward PC 内联视觉构造，保留业务状态、素材查找、音频、存档和遥测；Main 相对本批实现前净减少代码。
 - 人工截图首次发现 Reward/Event/Shop/Campfire 大面积空洞后拒绝更新金标；页面改为三栏奖励、事件/篝火大幅场景图、等高商品货架，并复用现有卡牌/遗物/药水生产资源。
 - 1280x720 与 1600x900 五页人工构图复核通过；11/11 区域金标全绿，阈值仍为 mean RGB <=1%、changed pixels <=2%，未改的六页保持像素稳定。
-- 真实 Main 五页按 map->event->shop->campfire->reward 切换 20 轮，节点增量 `0`、循环 Tween `2`；Apple M4 600 帧 p95 `9.254ms`、1% low `105.85 FPS`、最大输入延迟 `57.468ms`、普通/Boss burst `10/20`。
+- 真实 Main 五页按 map->event->shop->campfire->reward 切换 20 轮，节点增量 `0`、循环 Tween `2`；Apple M4 600 帧 p95 `14.42ms`、1% low `66.35 FPS`、最大输入延迟 `51.509ms`、普通/Boss burst `10/20`。
 - editor import、28/28 `tests/test_*.gd`、视觉 verifier 和性能预算全绿；预期 warning 仅覆盖未知/过期页面请求与测试存储原子替换边界。

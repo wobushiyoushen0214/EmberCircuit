@@ -24,7 +24,7 @@ carry_over: 3
 
 - source_requirements: `docs/00_MASTER_PLAN.md`（由 `docs/01-08` 细化）
 - mvp_baseline_commit: `2e3e857`
-- last_audited_commit: `ae87384`（018D 验证基线；合并后的交付元数据在下一轮推进）
+- last_audited_commit: `1f55cff`（018D 交付提交）
 - loop_mode: `L3`
 - current_round: `5`
 - max_rounds: `6`
@@ -49,7 +49,7 @@ carry_over: 3
 
 ## 当前批次
 
-- batch_id: `delivery-batch-018d-ui-run-page-mounts`（已完成，待合并元数据落盘）
+- batch_id: `delivery-batch-018d-ui-run-page-mounts`（已完成，提交 `1f55cff`）
 - scope: `补齐地图、事件、商店、篝火、奖励/宝箱页面的真实 VM/signal 契约，接入 AppShell，删除对应旧视觉树并保持事务/信号/probe 兼容`
 - selected_reqs:
   - `REQ-008`

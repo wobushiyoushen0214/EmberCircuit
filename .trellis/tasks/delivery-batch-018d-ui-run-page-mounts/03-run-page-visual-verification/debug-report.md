@@ -20,7 +20,7 @@
 - Reproduction: GUI profiler first reported `node_delta_after_20_switches=-2`; p95/1% low/input/tween/particle budgets were already within limits.
 - Verification: the same route loop in headless mode reported node delta `0`; a node-path probe showed only auto-generated page instance IDs differed, not accumulated structure. The discrepancy was a transient GUI/audio/page-enter lifetime before the baseline settled.
 - Minimal fix: wait 350ms after the warm-up route cycle and after the 20-cycle route loop before taking counts, keeping the same settled timing at both ends. Removed the temporary path probe after confirmation.
-- Final re-run: Apple M4 report passed with route IDs `map,event,shop,campfire,reward`, 20 rounds, node delta `0`, looping tweens `2`, p95 `9.254ms`, 1% low `105.85 FPS`, input `57.468ms`, burst `10/20`.
+- Final re-run: Apple M4 report passed with route IDs `map,event,shop,campfire,reward`, 20 rounds, node delta `0`, looping tweens `2`, p95 `14.42ms`, 1% low `66.35 FPS`, input `51.509ms`, burst `10/20`.
 
 ## 防御性收尾
 
