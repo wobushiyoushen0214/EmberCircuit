@@ -1,0 +1,3 @@
+{"file":"docs/11_STRATEGY_COMPONENT_AUDIT_021.md","reason":"固定 64→128 gate、profile 范围和停机条件"}
+{"file":"docs/10_STRATEGY_DIFFERENTIAL_020.md","reason":"提供 current/v1 历史比较基线"}
+{"file":"data/config/numerical_tree.json","reason":"只读核对正式 256 rows/profile/hash 未被诊断覆盖"}

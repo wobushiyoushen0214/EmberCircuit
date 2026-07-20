@@ -1,24 +1,24 @@
 # EmberCircuit Delivery State
 
 stage_state:
-  state: S6_CONFIRM
+  state: S8_RUN_LOG
   loop_mode: L3
   audit_scope: delta
   current_round: 2
   max_rounds: 6
   open_gaps: 8
-  tasks_created: 0
+  tasks_created: 3
   tasks_completed: 0
   carry_over: 0
   critical_review_issues: 0
-  next_legal_action: confirm delivery-batch-021-strategy-component-ablation before creating tasks
+  next_legal_action: append the Batch 021 task-creation run log, then begin 021-01 RED
   stop_conditions:
-    - proposed Batch 021 contains one high-risk combat-strategy task and is not yet batch-confirmed
+    - none
 ---
 
 loop_mode: L3
 current_round: 2
-next_loop_recommendation: pause-human-needed
+next_loop_recommendation: continue-next-batch
 carry_over: 0
 
 ## 基线
@@ -29,7 +29,7 @@ carry_over: 0
 - loop_mode: `L3`
 - current_round: `2`
 - max_rounds: `6`
-- current_batch_id: `none`（已提出 `delivery-batch-021-strategy-component-ablation`，等待批次确认）
+- current_batch_id: `delivery-batch-021-strategy-component-ablation`（用户已于 2026-07-20 确认执行）
 
 ## 需求状态
 
@@ -50,7 +50,7 @@ carry_over: 0
 
 ## 当前批次
 
-- batch_id: `delivery-batch-021-strategy-component-ablation`（proposed，未创建任务）
+- batch_id: `delivery-batch-021-strategy-component-ablation`（confirmed，正在创建任务）
 - scope: `策略组件消融、胜任战斗 AI、精英生存预测与 64→128 paired gate；生产数值冻结`
 - selected_reqs:
   - `REQ-003`
@@ -61,7 +61,7 @@ carry_over: 0
   - `021-01-strategy-component-ablation-contract`（中风险；profile/opt-in telemetry）
   - `021-02-competent-combat-and-elite-safety`（高风险；本批唯一高风险任务）
   - `021-03-paired-component-verification`（中风险；64 方向门后才允许 128）
-- result: `awaiting_batch_confirmation`
+- result: `tasks_created_ready_021_01`
 - audit_evidence: `docs/11_STRATEGY_COMPONENT_AUDIT_021.md`、`/tmp/ember021-strategy-audit.json`
 - excluded_this_round:
   - `REQ-006/008`: 内容资产、正式音频和演出不与高风险数值批次混合
@@ -72,7 +72,7 @@ carry_over: 0
 
 | 条目 | 原因 | 需要人工提供什么 | 起始轮次 |
 | --- | --- | --- | --- |
-| Batch 021 strategy component ablation | 021 含新的 combat profile 与精英生存预测，属于高风险策略模拟变更；创建任务前需确认批次边界 | 确认 `delivery-batch-021-strategy-component-ablation`；生产数值继续冻结 | 2 |
+| none | 当前无人工阻塞；严格按已确认 File Manifest 串行实施，生产数值继续冻结 | none | 2 |
 
 ## 人工决策
 
@@ -106,6 +106,7 @@ carry_over: 0
 - 2026-07-19: 用户确认继续执行策略重基线 Batch 020；新 loop 从第 1 轮开始，先实现 `competent-player-v1` 与决策遥测，默认 `current-greedy`、生产 JSON、正式 256 rows 和真人 cohort 均冻结。
 - 2026-07-19: Batch 020 两任务以严格 TDD 和双阶段评审完成；current/competent 各 3×4×128 重复报告 byte-identical，但 competent 在 C2/C3 胜率与 C0/C1 第一章门回退，记录 `paused_no_strategy_passed`，不修改生产 JSON 或正式 256 rows。
 - 2026-07-19: 021 前置 delta audit 证明 `competent-player-v1` 仍使用旧战斗出牌 AI；精英访问 36→514、死亡 1→325，死亡成熟度均值约 0.209。提出组件消融、胜任战斗与精英生存预测批次，等待批次确认。
+- 2026-07-20: 用户明确回复“确认执行 021”；确认 `delivery-batch-021-strategy-component-ablation`，允许创建三项串行任务并按严格 TDD、verifier 与双阶段评审自动推进；生产数值、正式 256 rows、真人 cohort 与 `CombatState.gd` 继续冻结。
 
 ## 预算快照
 
@@ -117,7 +118,7 @@ carry_over: 0
 
 ## 下一轮建议
 
-- action: `pause-human-needed`
-- reason: `021 delta audit 已定死组件 profile、遥测、战斗 fixture、精英生存预测与差分门；等待确认后创建任务，不直接写业务代码。`
+- action: `continue-next-batch`
+- reason: `用户已确认 021；创建三项任务后，从 021-01 开始严格 RED→GREEN→回归→双阶段评审。`
 - next_batch: `delivery-batch-021-strategy-component-ablation`。
 - next_audit_scope: `delta`

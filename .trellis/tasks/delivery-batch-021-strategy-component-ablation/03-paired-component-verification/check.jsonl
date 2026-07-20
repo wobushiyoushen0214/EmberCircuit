@@ -1,0 +1,3 @@
+{"file":"docs/11_STRATEGY_COMPONENT_AUDIT_021.md","reason":"核对逐档门、精英死亡率和最终状态"}
+{"file":".trellis/tasks/delivery-batch-021-strategy-component-ablation/02-competent-combat-and-elite-safety/review-report.md","reason":"只有 021-02 双阶段评审无 critical 才允许运行正式诊断"}
+{"file":"docs/09_NUMERICAL_TREE_AND_BALANCE.md","reason":"保护正式 256 matrix 的证据边界"}
