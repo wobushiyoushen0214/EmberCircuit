@@ -4,6 +4,16 @@ const BalanceSimulatorScript = preload("res://scripts/tools/BalanceSimulator.gd"
 const BalanceCliScript = preload("res://tools/run_balance_simulation.gd")
 
 const REPORT_PATH := "/tmp/embercircuit_balance_test_report.json"
+const COMPONENT_DIAGNOSTIC_FIELDS := [
+	"strategy_components",
+	"node_visit_counts",
+	"elite_visits",
+	"elite_wins",
+	"elite_deaths",
+	"optional_elite_offer_count",
+	"optional_elite_accept_count",
+	"route_choice_reason_counts",
+]
 
 var failed := false
 
@@ -25,6 +35,26 @@ func _run() -> void:
 	_check(competent_cli_options.get("challenge_levels", []) == [0, 1, 2, 3], "campaign CLI parses challenge levels")
 	_check(str(competent_cli_options.get("output_path", "")) == "/tmp/ember020-competent-player-v1-128.json", "campaign CLI parses output path")
 	var simulator = BalanceSimulatorScript.new()
+	var combat_cli_options: Dictionary = BalanceCliScript.parse_options_for_args([
+		"--mode=campaign",
+		"--strategy-profile=competent-combat-v1",
+		"--strategy-diagnostics=component-v1",
+	])
+	_check(str(combat_cli_options.get("strategy_profile", "")) == "competent-combat-v1", "campaign CLI accepts the competent combat component profile")
+	_check(str(combat_cli_options.get("strategy_diagnostics", "")) == "component-v1", "campaign CLI accepts component strategy diagnostics")
+	for known_profile in ["current-greedy", "competent-player-v1", "competent-combat-v1", "competent-player-v2"]:
+		var known_config: Dictionary = simulator._campaign_strategy_config(known_profile)
+		_check(str(known_config.get("profile", "")) == known_profile and not bool(known_config.get("fallback", true)), "campaign API accepts strategy profile %s without fallback" % known_profile)
+	var component_mapping_expectations := {
+		"current-greedy": {"meta": "current", "combat": "current", "elite_safety": "off"},
+		"competent-player-v1": {"meta": "competent", "combat": "current", "elite_safety": "off"},
+		"competent-combat-v1": {"meta": "current", "combat": "competent", "elite_safety": "off"},
+		"competent-player-v2": {"meta": "competent", "combat": "competent", "elite_safety": "predictive-v1"},
+	}
+	for profile_value in component_mapping_expectations.keys():
+		_check(simulator._campaign_strategy_components(str(profile_value)) == component_mapping_expectations.get(profile_value, {}), "strategy profile %s maps to its exact components" % str(profile_value))
+	var unknown_component_config: Dictionary = simulator._campaign_strategy_config("unknown-component-profile")
+	_check(str(unknown_component_config.get("profile", "")) == "current-greedy" and bool(unknown_component_config.get("fallback", false)), "unknown component profile explicitly falls back to current-greedy")
 	var pressure_card := {"target": "enemy", "type": "attack"}
 	var pressure_effect := {"type": "damage", "amount": 9, "bonus_if_momentum_at_least": 3, "bonus": 5}
 	var low_pressure_combat := {"player": {"momentum": 2, "statuses": {}}}
@@ -221,6 +251,160 @@ func _run() -> void:
 	var campaign_cases: Array = campaign_report.get("cases", [])
 	_check(campaign_cases.size() == 1, "campaign simulator returns case rows")
 	var campaign_case: Dictionary = campaign_cases[0]
+	_check_component_diagnostics_absent(campaign_report, "default current-greedy diagnostics-off")
+	var unknown_diagnostics_report: Dictionary = simulator.run_campaign_suite({
+		"iterations": 1,
+		"max_turns": 35,
+		"character_ids": ["ember_exile"],
+		"challenge_levels": [0],
+		"strategy_diagnostics": "unknown-diagnostics"
+	})
+	_check_component_diagnostics_absent(unknown_diagnostics_report, "unknown diagnostics")
+	var v1_diagnostics_off_report: Dictionary = simulator.run_campaign_suite({
+		"iterations": 1,
+		"max_turns": 35,
+		"character_ids": ["ember_exile"],
+		"challenge_levels": [0],
+		"strategy_profile": "competent-player-v1"
+	})
+	_check_component_diagnostics_absent(v1_diagnostics_off_report, "competent-player-v1 diagnostics-off")
+	var component_report: Dictionary = simulator.run_campaign_suite({
+		"iterations": 1,
+		"max_turns": 35,
+		"character_ids": ["ember_exile"],
+		"challenge_levels": [0],
+		"strategy_profile": "competent-player-v2",
+		"strategy_diagnostics": "component-v1"
+	})
+	var component_case: Dictionary = (component_report.get("cases", []) as Array)[0]
+	var expected_components := {"meta": "competent", "combat": "competent", "elite_safety": "predictive-v1"}
+	_check(component_report.get("strategy_components", {}) == expected_components, "component diagnostics expose the v2 strategy component mapping at report level")
+	_check(component_case.get("strategy_components", {}) == expected_components, "component diagnostics expose the v2 strategy component mapping at case level")
+	var component_samples: Array = component_case.get("sample_runs", [])
+	_check(not component_samples.is_empty() and component_samples[0].get("strategy_components", {}) == expected_components, "component diagnostics expose the v2 strategy component mapping in samples")
+	var telemetry_report: Dictionary = simulator.run_campaign_suite({
+		"iterations": 1,
+		"max_turns": 35,
+		"character_ids": ["ember_exile"],
+		"challenge_levels": [0],
+		"strategy_profile": "competent-player-v1",
+		"strategy_diagnostics": "component-v1"
+	})
+	var telemetry_case: Dictionary = (telemetry_report.get("cases", []) as Array)[0]
+	var telemetry_samples: Array = telemetry_case.get("sample_runs", [])
+	var telemetry_sample: Dictionary = telemetry_samples[0] if not telemetry_samples.is_empty() else {}
+	for component_field in COMPONENT_DIAGNOSTIC_FIELDS.slice(1):
+		_check(telemetry_case.has(component_field), "component diagnostics expose %s" % component_field)
+		_check(telemetry_sample.has(component_field), "component diagnostic samples expose %s" % component_field)
+	_check(int(telemetry_case.get("elite_visits", -1)) == int(telemetry_case.get("elite_wins", -2)) + int(telemetry_case.get("elite_deaths", -2)), "component elite visits equal wins plus deaths")
+	_check(int(telemetry_case.get("optional_elite_accept_count", -1)) <= int(telemetry_case.get("optional_elite_offer_count", -1)), "component elite accepts cannot exceed offers")
+	var sampled_path: Array = telemetry_sample.get("path", [])
+	var sampled_node_visit_total := 0
+	for node_visit_count in (telemetry_sample.get("node_visit_counts", {}) as Dictionary).values():
+		sampled_node_visit_total += int(node_visit_count)
+	_check(sampled_node_visit_total == sampled_path.size() and sampled_node_visit_total > 0, "sample node visit counts match the actual visited path")
+	var sampled_elite_visits := 0
+	var sampled_elite_wins := 0
+	var sampled_elite_deaths := 0
+	for path_value in sampled_path:
+		var path_node: Dictionary = path_value
+		if str(path_node.get("node_type", "")) == "elite":
+			sampled_elite_visits += 1
+			if bool(path_node.get("completed", false)):
+				sampled_elite_wins += 1
+			else:
+				sampled_elite_deaths += 1
+	_check(sampled_elite_visits > 0, "component fixture reaches a real elite node")
+	_check(int(telemetry_sample.get("elite_visits", -1)) == sampled_elite_visits and int(telemetry_sample.get("elite_wins", -1)) == sampled_elite_wins and int(telemetry_sample.get("elite_deaths", -1)) == sampled_elite_deaths, "sample elite telemetry matches actual elite path outcomes")
+	_check(telemetry_case.get("node_visit_counts", {}) == telemetry_sample.get("node_visit_counts", {}) and telemetry_case.get("route_choice_reason_counts", {}) == telemetry_sample.get("route_choice_reason_counts", {}), "single-run case preserves sampled node and route telemetry")
+	_check(int(telemetry_case.get("elite_visits", -1)) == int(telemetry_sample.get("elite_visits", -2)) and int(telemetry_case.get("elite_wins", -1)) == int(telemetry_sample.get("elite_wins", -2)) and int(telemetry_case.get("elite_deaths", -1)) == int(telemetry_sample.get("elite_deaths", -2)), "single-run case preserves sampled elite outcomes")
+	_check(int(telemetry_sample.get("optional_elite_offer_count", 0)) > 0, "component fixture records a real optional elite offer")
+	_check(int(telemetry_case.get("optional_elite_offer_count", -1)) == int(telemetry_sample.get("optional_elite_offer_count", -2)) and int(telemetry_case.get("optional_elite_accept_count", -1)) == int(telemetry_sample.get("optional_elite_accept_count", -2)), "single-run case preserves sampled optional elite offer and accept counts")
+	var tied_diagnostic_state := {
+		"strategy_profile": "competent-player-v1",
+		"strategy_component_diagnostics": true,
+		"route_choice_reason_counts": {},
+		"optional_elite_offer_count": 0,
+		"optional_elite_accept_count": 0,
+	}
+	var tied_diagnostic_candidates := [{"id": "zeta_path", "type": "combat"}, {"id": "alpha_path", "type": "combat"}]
+	_check(simulator._choose_next_campaign_node(tied_diagnostic_state, tied_diagnostic_candidates) == "alpha_path", "diagnostic route keeps stable node-id tie breaking")
+	_check(int((tied_diagnostic_state.get("route_choice_reason_counts", {}) as Dictionary).get("stable_node_id_tiebreak", 0)) == 1, "diagnostic route records the stable tie-break reason code")
+	var current_tied_diagnostic_state := tied_diagnostic_state.duplicate(true)
+	current_tied_diagnostic_state["strategy_profile"] = "current-greedy"
+	current_tied_diagnostic_state["route_choice_reason_counts"] = {}
+	_check(simulator._choose_next_campaign_node(current_tied_diagnostic_state, tied_diagnostic_candidates) == "alpha_path", "diagnostic current profile resolves ties by stable node id without changing diagnostics-off history")
+	_check(int((current_tied_diagnostic_state.get("route_choice_reason_counts", {}) as Dictionary).get("stable_node_id_tiebreak", 0)) == 1, "diagnostic current profile records the stable tie-break reason")
+	for tied_profile in ["current-greedy", "competent-player-v1", "competent-combat-v1", "competent-player-v2"]:
+		var profile_tie_state := tied_diagnostic_state.duplicate(true)
+		profile_tie_state["strategy_profile"] = tied_profile
+		profile_tie_state["route_choice_reason_counts"] = {}
+		_check(simulator._choose_next_campaign_node(profile_tie_state, tied_diagnostic_candidates) == "alpha_path", "diagnostics stabilize ties for profile %s" % tied_profile)
+		_check(int((profile_tie_state.get("route_choice_reason_counts", {}) as Dictionary).get("stable_node_id_tiebreak", 0)) == 1, "diagnostics record tie-break for profile %s" % tied_profile)
+	var historical_current_tie_state := {"strategy_profile": "current-greedy"}
+	_check(simulator._choose_next_campaign_node(historical_current_tie_state, tied_diagnostic_candidates) == "zeta_path", "diagnostics-off current preserves its historical first-candidate tie behavior")
+	var scored_diagnostic_state := tied_diagnostic_state.duplicate(true)
+	scored_diagnostic_state["route_choice_reason_counts"] = {}
+	var scored_candidates := [{"id": "ordinary_combat", "type": "combat"}, {"id": "risk_free_treasure", "type": "treasure"}]
+	_check(simulator._choose_next_campaign_node(scored_diagnostic_state, scored_candidates) == "risk_free_treasure", "diagnostic route selects the strictly highest score")
+	_check(int((scored_diagnostic_state.get("route_choice_reason_counts", {}) as Dictionary).get("highest_score", 0)) == 1, "diagnostic route records the highest-score reason code")
+	var late_high_score_state := tied_diagnostic_state.duplicate(true)
+	late_high_score_state["route_choice_reason_counts"] = {}
+	var late_high_score_candidates := [{"id": "zeta_combat", "type": "combat"}, {"id": "alpha_combat", "type": "combat"}, {"id": "final_treasure", "type": "treasure"}]
+	_check(simulator._choose_next_campaign_node(late_high_score_state, late_high_score_candidates) == "final_treasure", "a later unique maximum supersedes an earlier tie")
+	_check(int((late_high_score_state.get("route_choice_reason_counts", {}) as Dictionary).get("highest_score", 0)) == 1, "route reason describes the final maximum rather than an earlier discarded tie")
+	var forced_elite_state := tied_diagnostic_state.duplicate(true)
+	forced_elite_state["optional_elite_offer_count"] = 0
+	forced_elite_state["optional_elite_accept_count"] = 0
+	simulator._choose_next_campaign_node(forced_elite_state, [{"id": "forced_elite", "type": "elite"}])
+	_check(int(forced_elite_state.get("optional_elite_offer_count", -1)) == 0 and int(forced_elite_state.get("optional_elite_accept_count", -1)) == 0, "a forced elite without a non-elite alternative is not counted as optional")
+	var optional_elite_state := tied_diagnostic_state.duplicate(true)
+	optional_elite_state["optional_elite_offer_count"] = 0
+	optional_elite_state["optional_elite_accept_count"] = 0
+	simulator._choose_next_campaign_node(optional_elite_state, [{"id": "optional_elite", "type": "elite"}, {"id": "safe_combat", "type": "combat"}])
+	_check(int(optional_elite_state.get("optional_elite_offer_count", 0)) == 1 and int(optional_elite_state.get("optional_elite_accept_count", -1)) == 0, "an offered but rejected elite records optional offer without accept")
+	var v1_meta_fixture := {
+		"hp": 68,
+		"max_hp": 70,
+		"gold": 70,
+		"character_id": "ember_exile",
+		"strategy_profile": "competent-player-v1",
+		"relic_ids": ["ember_bottle", "cracked_charm"],
+		"deck_ids": ["ember_strike+", "ash_guard+", "pressure_surge+", "furnace_prayer", "slag_bomb", "sealed_front"]
+	}
+	var v2_meta_fixture: Dictionary = v1_meta_fixture.duplicate(true)
+	v2_meta_fixture["strategy_profile"] = "competent-player-v2"
+	var accepted_optional_elite_state: Dictionary = v1_meta_fixture.duplicate(true)
+	accepted_optional_elite_state["strategy_component_diagnostics"] = true
+	accepted_optional_elite_state["route_choice_reason_counts"] = {}
+	accepted_optional_elite_state["optional_elite_offer_count"] = 0
+	accepted_optional_elite_state["optional_elite_accept_count"] = 0
+	_check(simulator._choose_next_campaign_node(accepted_optional_elite_state, [{"id": "accepted_elite", "type": "elite", "encounter_id": "executor_elite"}, {"id": "safe_combat", "type": "combat", "encounter_id": "intro_patrol"}]) == "accepted_elite", "mature competent meta fixture accepts the optional elite")
+	_check(int(accepted_optional_elite_state.get("optional_elite_offer_count", 0)) == 1 and int(accepted_optional_elite_state.get("optional_elite_accept_count", 0)) == 1, "accepted optional elite records one offer and one accept")
+	_check(is_equal_approx(simulator._campaign_node_score(v1_meta_fixture, {"type": "elite", "encounter_id": "executor_elite"}), simulator._campaign_node_score(v2_meta_fixture, {"type": "elite", "encounter_id": "executor_elite"})), "v2 uses the same competent meta route scoring as v1")
+	_check(simulator._best_upgrade_index(["ember_strike", "ash_guard", "pressure_surge"], "ember_exile", "competent-player-v2") == simulator._best_upgrade_index(["ember_strike", "ash_guard", "pressure_surge"], "ember_exile", "competent-player-v1"), "v2 uses the same competent meta upgrade scoring as v1")
+	var meta_reward_options := [simulator._card_by_id("pressure_surge"), simulator._card_by_id("ember_strike")]
+	_check(str(simulator._best_campaign_card_option(v1_meta_fixture, meta_reward_options).get("id", "")) == str(simulator._best_campaign_card_option(v2_meta_fixture, meta_reward_options).get("id", "")), "v2 uses the same competent meta reward choice as v1")
+	var v1_campfire_meta := {"hp": 54, "max_hp": 70, "character_id": "ember_exile", "strategy_profile": "competent-player-v1", "deck_ids": ["ember_strike", "ash_guard"], "campfire_heal_count": 0, "campfire_upgrade_count": 0}
+	var v2_campfire_meta: Dictionary = v1_campfire_meta.duplicate(true)
+	v2_campfire_meta["strategy_profile"] = "competent-player-v2"
+	simulator._simulate_campaign_campfire(v1_campfire_meta)
+	simulator._simulate_campaign_campfire(v2_campfire_meta)
+	_check(int(v1_campfire_meta.get("hp", 0)) == int(v2_campfire_meta.get("hp", -1)) and int(v2_campfire_meta.get("campfire_heal_count", 0)) == 1, "v2 uses the same competent meta campfire policy as v1")
+	var v1_meta_potions: Array = ["coolant_phial"]
+	var v2_meta_potions: Array = ["coolant_phial"]
+	var v1_meta_potion_result: Dictionary = simulator._run_single_combat_with_loadout("ember_exile", 0, "intro_patrol", 1, 411, ["ember_strike", "ash_guard"], ["ember_bottle", "cracked_charm"], 34, v1_meta_potions, simulator._campaign_modifier_sources({"skill_book_id": "steel_manual", "deck_mastery_id": ""}), "competent-player-v1")
+	var v2_meta_potion_result: Dictionary = simulator._run_single_combat_with_loadout("ember_exile", 0, "intro_patrol", 1, 411, ["ember_strike", "ash_guard"], ["ember_bottle", "cracked_charm"], 34, v2_meta_potions, simulator._campaign_modifier_sources({"skill_book_id": "steel_manual", "deck_mastery_id": ""}), "competent-player-v2")
+	_check((v1_meta_potion_result.get("potions_used_ids", []) as Array) == (v2_meta_potion_result.get("potions_used_ids", []) as Array) and (v2_meta_potion_result.get("potions_used_ids", []) as Array).has("coolant_phial"), "v2 uses the same competent meta potion threshold as v1")
+	var repeated_component_report: Dictionary = simulator.run_campaign_suite({
+		"iterations": 1,
+		"max_turns": 35,
+		"character_ids": ["ember_exile"],
+		"challenge_levels": [0],
+		"strategy_profile": "competent-player-v2",
+		"strategy_diagnostics": "component-v1"
+	})
+	_check(JSON.stringify(component_report) == JSON.stringify(repeated_component_report), "component diagnostics are deterministic for identical options")
 	var explicit_current_report: Dictionary = simulator.run_campaign_suite({
 		"iterations": 2,
 		"max_turns": 35,
@@ -363,6 +547,18 @@ func _valid_campaign_risk_flag(flag: String) -> bool:
 		"campaign_fails_chapter_one",
 		"campaign_fails_before_finale",
 	].has(flag)
+
+func _check_component_diagnostics_absent(report: Dictionary, context: String) -> void:
+	for field in COMPONENT_DIAGNOSTIC_FIELDS:
+		_check(not report.has(field), "%s report does not leak 021 field %s" % [context, field])
+	for case_value in report.get("cases", []):
+		var case_dict: Dictionary = case_value
+		for field in COMPONENT_DIAGNOSTIC_FIELDS:
+			_check(not case_dict.has(field), "%s case does not leak 021 field %s" % [context, field])
+		for sample_value in case_dict.get("sample_runs", []):
+			var sample: Dictionary = sample_value
+			for field in COMPONENT_DIAGNOSTIC_FIELDS:
+				_check(not sample.has(field), "%s sample does not leak 021 field %s" % [context, field])
 
 func _check(condition: bool, message: String) -> void:
 	if not condition:

@@ -145,4 +145,30 @@
 - B 完成度：通过；本轮没有把策略审计误写成完整数值交付。
 - C 批次拆分：通过；契约/遥测、唯一高风险行为、最终验证三任务串行，最多 3 个任务且仅 1 个高风险。
 - H 风险：通过；默认兼容、性能、递归预测、药水副作用、生产数值隔离和真人证据边界均已列明。
-- 当前安全门：等待确认后才能创建 Batch 021 Trellis tasks；确认前不写业务代码。
+- 当前安全门：用户已于 2026-07-20 确认 Batch 021；021-01 已进入严格 TDD，生产数值与正式矩阵仍冻结。
+
+## 9. 021-01 实施证据：组件契约与 opt-in 遥测
+
+- 四个 profile 已固定为：
+  - `current-greedy` → `current/current/off`
+  - `competent-player-v1` → `competent/current/off`
+  - `competent-combat-v1` → `current/competent/off`
+  - `competent-player-v2` → `competent/competent/predictive-v1`
+- CLI 与 API 均接受四个 profile；未知 profile 仍显式回退 `current-greedy`。
+- `--strategy-diagnostics=component-v1` 为严格 opt-in。默认、未知 diagnostics 和 020 v1 报告不增加 021 字段；默认/显式 current 的既有兼容断言保持通过。
+- 开启诊断时，report/case/sample 输出 `strategy_components`；case/sample 还输出节点访问、精英访问/胜/死、optional elite offer/accept 和路线 reason code。
+- 精英计数满足 `elite_visits = elite_wins + elite_deaths`，accept 不超过 offer；路线 reason 只使用 `highest_score` 与 `stable_node_id_tiebreak`。021-02 的 `elite_safety_rejected` 将在硬门实现后接入。
+- 同一 options 的完整 component report 重复 JSON 相等；早期候选同分但后续出现唯一更高分时，reason 正确记录最终 `highest_score`，不会误报已淘汰的 tie。
+- 第一轮独立评审发现并打回 1 critical / 2 major：四 profile 的 diagnostics tie-break 覆盖不足、v2 meta 旧分支不完整、强制精英误计为 optional。修复后，diagnostics-on 四 profile 均稳定排序，diagnostics-off current 保留历史首候选行为；v2 的路线/奖励/篝火/升级/药水统一走 competent meta；只有存在非精英替代时才累计 optional elite。
+- 后续独立复审继续补齐 current/未知/v1 关闭模式的八字段全层级隔离、sample 节点与精英 path 对账，以及 optional elite 拒绝 1/0、接受 1/1、case/sample 传播。最终强模型裁决为 `C0/M0/m0`。
+
+### 9.1 回归结果
+
+| 命令 | 结果 |
+| --- | --- |
+| Godot headless editor import/parse | PASS |
+| `tests/test_balance_simulator.gd` | PASS |
+| `tests/test_balance_card_telemetry.gd` | PASS |
+| `tests/test_numerical_balance_matrix.gd` | PASS |
+
+021-01 没有修改任何生产 JSON、`CombatState.gd`、地图、Main、真人报告或正式 256 rows；下一步只允许进入 021-02 的胜任战斗与精英安全门。

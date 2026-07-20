@@ -12,6 +12,9 @@ const DEFAULT_CAMPAIGN_ITERATIONS := 4
 const CAMPAIGN_STRATEGY_SCHEMA_VERSION := 1
 const DEFAULT_CAMPAIGN_STRATEGY_PROFILE := "current-greedy"
 const COMPETENT_CAMPAIGN_STRATEGY_PROFILE := "competent-player-v1"
+const COMPETENT_COMBAT_STRATEGY_PROFILE := "competent-combat-v1"
+const COMPETENT_PLAYER_V2_STRATEGY_PROFILE := "competent-player-v2"
+const COMPONENT_STRATEGY_DIAGNOSTICS := "component-v1"
 
 var card_data: Dictionary = {}
 var enemy_data: Dictionary = {}
@@ -84,6 +87,8 @@ func run_campaign_suite(options: Dictionary = {}) -> Dictionary:
 	var strategy_config: Dictionary = _campaign_strategy_config(options.get("strategy_profile", DEFAULT_CAMPAIGN_STRATEGY_PROFILE))
 	var strategy_profile: String = str(strategy_config.get("profile", DEFAULT_CAMPAIGN_STRATEGY_PROFILE))
 	var strategy_profile_fallback: bool = bool(strategy_config.get("fallback", false))
+	var component_diagnostics: bool = str(options.get("strategy_diagnostics", "")) == COMPONENT_STRATEGY_DIAGNOSTICS
+	var strategy_components: Dictionary = _campaign_strategy_components(strategy_profile)
 
 	var report := {
 		"version": 1,
@@ -98,12 +103,14 @@ func run_campaign_suite(options: Dictionary = {}) -> Dictionary:
 		"case_count": character_ids.size() * challenge_levels.size(),
 		"cases": []
 	}
+	if component_diagnostics:
+		report["strategy_components"] = strategy_components.duplicate(true)
 
 	for character_id_value in character_ids:
 		var character_id: String = str(character_id_value)
 		for challenge_level_value in challenge_levels:
 			var challenge_level: int = int(challenge_level_value)
-			report["cases"].append(_run_campaign_case(character_id, challenge_level, iterations, max_turns, strategy_profile, strategy_profile_fallback))
+			report["cases"].append(_run_campaign_case(character_id, challenge_level, iterations, max_turns, strategy_profile, strategy_profile_fallback, component_diagnostics))
 
 	report["summary"] = _build_campaign_report_summary(report["cases"])
 	return report
@@ -119,22 +126,41 @@ func _run_case(character_id: String, challenge_level: int, encounter_id: String,
 
 	return _aggregate_case(character, challenge, encounter, runs)
 
-func _run_campaign_case(character_id: String, challenge_level: int, iterations: int, max_turns: int, strategy_profile: String = DEFAULT_CAMPAIGN_STRATEGY_PROFILE, strategy_profile_fallback: bool = false) -> Dictionary:
+func _run_campaign_case(character_id: String, challenge_level: int, iterations: int, max_turns: int, strategy_profile: String = DEFAULT_CAMPAIGN_STRATEGY_PROFILE, strategy_profile_fallback: bool = false, component_diagnostics: bool = false) -> Dictionary:
 	var character: Dictionary = _character_config(character_id)
 	var challenge: Dictionary = _challenge_config(challenge_level)
 	var runs: Array = []
 	for iteration in range(iterations):
 		var seed_text: String = "campaign|%d" % iteration
-		runs.append(_run_campaign_once(character_id, challenge_level, max_turns, _stable_text_seed(seed_text), strategy_profile, strategy_profile_fallback))
-	return _aggregate_campaign_case(character, challenge, runs, strategy_profile, strategy_profile_fallback)
+		runs.append(_run_campaign_once(character_id, challenge_level, max_turns, _stable_text_seed(seed_text), strategy_profile, strategy_profile_fallback, component_diagnostics))
+	return _aggregate_campaign_case(character, challenge, runs, strategy_profile, strategy_profile_fallback, component_diagnostics)
 
 func _campaign_strategy_config(requested_profile) -> Dictionary:
 	var profile := str(requested_profile)
-	if profile == DEFAULT_CAMPAIGN_STRATEGY_PROFILE or profile == COMPETENT_CAMPAIGN_STRATEGY_PROFILE:
+	if profile in [
+		DEFAULT_CAMPAIGN_STRATEGY_PROFILE,
+		COMPETENT_CAMPAIGN_STRATEGY_PROFILE,
+		COMPETENT_COMBAT_STRATEGY_PROFILE,
+		COMPETENT_PLAYER_V2_STRATEGY_PROFILE,
+	]:
 		return {"profile": profile, "fallback": false}
 	return {"profile": DEFAULT_CAMPAIGN_STRATEGY_PROFILE, "fallback": true}
 
-func _run_campaign_once(character_id: String, challenge_level: int, max_turns: int, seed_value: int, strategy_profile: String = DEFAULT_CAMPAIGN_STRATEGY_PROFILE, strategy_profile_fallback: bool = false) -> Dictionary:
+func _campaign_strategy_components(strategy_profile: String) -> Dictionary:
+	match strategy_profile:
+		COMPETENT_CAMPAIGN_STRATEGY_PROFILE:
+			return {"meta": "competent", "combat": "current", "elite_safety": "off"}
+		COMPETENT_COMBAT_STRATEGY_PROFILE:
+			return {"meta": "current", "combat": "competent", "elite_safety": "off"}
+		COMPETENT_PLAYER_V2_STRATEGY_PROFILE:
+			return {"meta": "competent", "combat": "competent", "elite_safety": "predictive-v1"}
+		_:
+			return {"meta": "current", "combat": "current", "elite_safety": "off"}
+
+func _strategy_uses_competent_meta(strategy_profile: String) -> bool:
+	return strategy_profile in [COMPETENT_CAMPAIGN_STRATEGY_PROFILE, COMPETENT_PLAYER_V2_STRATEGY_PROFILE]
+
+func _run_campaign_once(character_id: String, challenge_level: int, max_turns: int, seed_value: int, strategy_profile: String = DEFAULT_CAMPAIGN_STRATEGY_PROFILE, strategy_profile_fallback: bool = false, component_diagnostics: bool = false) -> Dictionary:
 	seed(seed_value)
 	var character: Dictionary = _character_config(character_id)
 	var challenge: Dictionary = _challenge_config(challenge_level)
@@ -145,6 +171,15 @@ func _run_campaign_once(character_id: String, challenge_level: int, max_turns: i
 		"campaign_strategy_schema_version": CAMPAIGN_STRATEGY_SCHEMA_VERSION,
 		"strategy_profile": strategy_profile,
 		"strategy_profile_fallback": strategy_profile_fallback,
+		"strategy_component_diagnostics": component_diagnostics,
+		"strategy_components": _campaign_strategy_components(strategy_profile),
+		"node_visit_counts": {},
+		"elite_visits": 0,
+		"elite_wins": 0,
+		"elite_deaths": 0,
+		"optional_elite_offer_count": 0,
+		"optional_elite_accept_count": 0,
+		"route_choice_reason_counts": {},
 		"hp": _starting_hp_for_character(character_id, modifiers),
 		"max_hp": int(character.get("max_hp", 72)),
 		"gold": int(character.get("starting_gold", 0)),
@@ -215,6 +250,10 @@ func _run_campaign_once(character_id: String, challenge_level: int, max_turns: i
 				state["failed_at"] = "%s:%s" % [chapter_id, node_id]
 				state["failed_reason"] = "missing_node"
 				return _campaign_result(false, state)
+			if component_diagnostics:
+				var node_visit_counts: Dictionary = state.get("node_visit_counts", {})
+				_increment_count(node_visit_counts, str(node.get("type", "unknown")))
+				state["node_visit_counts"] = node_visit_counts
 			var node_result: Dictionary = _resolve_campaign_node(state, node, chapter_id, max_turns, seed_value)
 			_append_path_entry(state, chapter_id, node, node_result)
 			if not bool(node_result.get("completed", false)):
@@ -267,6 +306,9 @@ func _resolve_campaign_combat(state: Dictionary, node: Dictionary, chapter_id: S
 	var encounter_id: String = str(node.get("encounter_id", ""))
 	if encounter_id.is_empty():
 		return {"completed": false, "reason": "missing_encounter"}
+	var is_elite: bool = str(node.get("type", "")) == "elite"
+	if is_elite and bool(state.get("strategy_component_diagnostics", false)):
+		state["elite_visits"] = int(state.get("elite_visits", 0)) + 1
 	var potion_ids: Array = state.get("potion_ids", [])
 	var potions_before: int = potion_ids.size()
 	var combat_result: Dictionary = _run_single_combat_with_loadout(
@@ -295,12 +337,16 @@ func _resolve_campaign_combat(state: Dictionary, node: Dictionary, chapter_id: S
 	_merge_count_dictionary(state, "card_play_counts_by_id", combat_result.get("card_play_counts_by_id", {}))
 	if not bool(combat_result.get("won", false)):
 		state["hp"] = int(combat_result.get("player_hp_remaining", state.get("hp", 0)))
+		if is_elite and bool(state.get("strategy_component_diagnostics", false)):
+			state["elite_deaths"] = int(state.get("elite_deaths", 0)) + 1
 		return {"completed": false, "reason": str(combat_result.get("phase", "combat_failed")), "encounter_id": encounter_id}
 
 	state["hp"] = int(combat_result.get("player_hp_remaining", state.get("hp", 1)))
 	state["combats_won"] = int(state.get("combats_won", 0)) + 1
-	if str(node.get("type", "")) == "elite":
+	if is_elite:
 		state["elites_won"] = int(state.get("elites_won", 0)) + 1
+		if bool(state.get("strategy_component_diagnostics", false)):
+			state["elite_wins"] = int(state.get("elite_wins", 0)) + 1
 	if str(node.get("type", "")) == "boss":
 		state["bosses_won"] = int(state.get("bosses_won", 0)) + 1
 
@@ -1184,10 +1230,10 @@ func _try_use_potion(combat, potion_ids: Array, strategy_profile: String = DEFAU
 			var effect_dict: Dictionary = effect
 			match str(effect_dict.get("type", "")):
 				"heal":
-					var heal_threshold := 0.50 if strategy_profile == COMPETENT_CAMPAIGN_STRATEGY_PROFILE else 0.38
+					var heal_threshold := 0.50 if _strategy_uses_competent_meta(strategy_profile) else 0.38
 					should_use = hp <= int(ceil(float(max_hp) * heal_threshold))
 				"block":
-					should_use = incoming_damage > current_block if strategy_profile == COMPETENT_CAMPAIGN_STRATEGY_PROFILE else incoming_damage > current_block + 4
+					should_use = incoming_damage > current_block if _strategy_uses_competent_meta(strategy_profile) else incoming_damage > current_block + 4
 				"apply_status":
 					should_use = incoming_damage > current_block and str(effect_dict.get("status", "")) == "weak"
 				"damage":
@@ -1290,14 +1336,45 @@ func _choose_next_campaign_node(state: Dictionary, candidates: Array, graph: Dic
 	var best_id := ""
 	var best_score := -999999.0
 	var route_score_cache: Dictionary = {}
-	var competent_profile: bool = str(state.get("strategy_profile", DEFAULT_CAMPAIGN_STRATEGY_PROFILE)) == COMPETENT_CAMPAIGN_STRATEGY_PROFILE
+	var competent_profile: bool = _is_competent_campaign_strategy(state)
+	var had_best_tie := false
+	var diagnostic_enabled := bool(state.get("strategy_component_diagnostics", false))
+	var stable_tie_break := competent_profile or diagnostic_enabled
+	var has_non_elite_alternative := false
+	for candidate_value in candidates:
+		if str((candidate_value as Dictionary).get("type", "")) != "elite":
+			has_non_elite_alternative = true
+			break
+	if diagnostic_enabled:
+		var elite_offer_count := 0
+		for candidate_value in candidates:
+			if has_non_elite_alternative and str((candidate_value as Dictionary).get("type", "")) == "elite":
+				elite_offer_count += 1
+		state["optional_elite_offer_count"] = int(state.get("optional_elite_offer_count", 0)) + elite_offer_count
 	for node in candidates:
 		var node_dict: Dictionary = node
 		var score: float = _campaign_route_preview_score(state, graph, str(node_dict.get("id", "")), 3, route_score_cache) if not graph.is_empty() else _campaign_node_score(state, node_dict)
 		var node_id: String = str(node_dict.get("id", ""))
-		if score > best_score or (competent_profile and is_equal_approx(score, best_score) and (best_id.is_empty() or node_id < best_id)):
+		if score > best_score:
 			best_score = score
 			best_id = node_id
+			had_best_tie = false
+		elif is_equal_approx(score, best_score):
+			had_best_tie = true
+			if stable_tie_break and (best_id.is_empty() or node_id < best_id):
+				best_id = node_id
+	if diagnostic_enabled:
+		var chosen_node: Dictionary = {}
+		for candidate_value in candidates:
+			var candidate: Dictionary = candidate_value
+			if str(candidate.get("id", "")) == best_id:
+				chosen_node = candidate
+				break
+		if has_non_elite_alternative and str(chosen_node.get("type", "")) == "elite":
+			state["optional_elite_accept_count"] = int(state.get("optional_elite_accept_count", 0)) + 1
+		var reason_counts: Dictionary = state.get("route_choice_reason_counts", {})
+		_increment_count(reason_counts, "stable_node_id_tiebreak" if stable_tie_break and had_best_tie else "highest_score")
+		state["route_choice_reason_counts"] = reason_counts
 	return best_id
 
 func _campaign_route_preview_score(state: Dictionary, graph: Dictionary, node_id: String, depth: int, cache: Dictionary) -> float:
@@ -1353,7 +1430,7 @@ func _campaign_preview_state_after_node(state: Dictionary, node: Dictionary) -> 
 func _campaign_node_score(state: Dictionary, node: Dictionary) -> float:
 	var node_type: String = str(node.get("type", ""))
 	var hp_ratio: float = float(state.get("hp", 0)) / max(1.0, float(state.get("max_hp", 1)))
-	if str(state.get("strategy_profile", DEFAULT_CAMPAIGN_STRATEGY_PROFILE)) == COMPETENT_CAMPAIGN_STRATEGY_PROFILE:
+	if _is_competent_campaign_strategy(state):
 		return _competent_campaign_node_score(state, node, hp_ratio)
 	var score := 0.0
 	match node_type:
@@ -1573,7 +1650,7 @@ func _finalize_campaign_snapshots(state: Dictionary) -> void:
 
 func _campaign_result(won: bool, state: Dictionary) -> Dictionary:
 	_finalize_campaign_snapshots(state)
-	return {
+	var result := {
 		"won": won,
 		"lost": not won,
 		"campaign_strategy_schema_version": int(state.get("campaign_strategy_schema_version", CAMPAIGN_STRATEGY_SCHEMA_VERSION)),
@@ -1633,6 +1710,12 @@ func _campaign_result(won: bool, state: Dictionary) -> Dictionary:
 		"failed_encounter_id": str(state.get("failed_encounter_id", "")),
 		"path": state.get("path", [])
 	}
+	if bool(state.get("strategy_component_diagnostics", false)):
+		result["strategy_components"] = (state.get("strategy_components", {}) as Dictionary).duplicate(true)
+		for diagnostic_field in ["node_visit_counts", "elite_visits", "elite_wins", "elite_deaths", "optional_elite_offer_count", "optional_elite_accept_count", "route_choice_reason_counts"]:
+			var default_value = {} if diagnostic_field in ["node_visit_counts", "route_choice_reason_counts"] else 0
+			result[diagnostic_field] = state.get(diagnostic_field, default_value)
+	return result
 
 func _add_campaign_card(state: Dictionary, card_entry: String, source: String) -> void:
 	var card_id := _base_card_id(card_entry)
@@ -1862,7 +1945,7 @@ func _best_campaign_card_option(state: Dictionary, options: Array) -> Dictionary
 	return best
 
 func _is_competent_campaign_strategy(state: Dictionary) -> bool:
-	return str(state.get("strategy_profile", DEFAULT_CAMPAIGN_STRATEGY_PROFILE)) == COMPETENT_CAMPAIGN_STRATEGY_PROFILE
+	return _strategy_uses_competent_meta(str(state.get("strategy_profile", DEFAULT_CAMPAIGN_STRATEGY_PROFILE)))
 
 func _campaign_card_reward_score(state: Dictionary, card: Dictionary) -> float:
 	var character_id: String = str(state.get("character_id", ""))
@@ -2120,7 +2203,7 @@ func _best_upgrade_index(deck_ids: Array, character_id: String = "", strategy_pr
 		for key in upgrade.keys():
 			upgraded[key] = upgrade[key]
 		var delta: float
-		if strategy_profile == COMPETENT_CAMPAIGN_STRATEGY_PROFILE:
+		if _strategy_uses_competent_meta(strategy_profile):
 			var upgrade_state := {"character_id": character_id, "deck_ids": deck_ids, "strategy_profile": strategy_profile}
 			delta = _campaign_card_reward_score(upgrade_state, upgraded) - _campaign_card_reward_score(upgrade_state, card)
 		else:
@@ -2256,7 +2339,7 @@ func _build_report_summary(cases: Array) -> Dictionary:
 		"ok_case_count": cases.size() - flagged
 	}
 
-func _aggregate_campaign_case(character: Dictionary, challenge: Dictionary, runs: Array, strategy_profile: String = DEFAULT_CAMPAIGN_STRATEGY_PROFILE, strategy_profile_fallback: bool = false) -> Dictionary:
+func _aggregate_campaign_case(character: Dictionary, challenge: Dictionary, runs: Array, strategy_profile: String = DEFAULT_CAMPAIGN_STRATEGY_PROFILE, strategy_profile_fallback: bool = false, component_diagnostics: bool = false) -> Dictionary:
 	var wins := 0
 	var total_chapters := 0
 	var total_nodes := 0
@@ -2392,6 +2475,15 @@ func _aggregate_campaign_case(character: Dictionary, challenge: Dictionary, runs
 		"card_telemetry": _aggregate_campaign_card_telemetry(runs),
 		"sample_runs": _sample_campaign_runs(runs)
 	}
+	if component_diagnostics:
+		case["strategy_components"] = _campaign_strategy_components(strategy_profile)
+		case["node_visit_counts"] = _aggregate_campaign_count_dictionary(runs, "node_visit_counts")
+		case["elite_visits"] = _aggregate_campaign_integer(runs, "elite_visits")
+		case["elite_wins"] = _aggregate_campaign_integer(runs, "elite_wins")
+		case["elite_deaths"] = _aggregate_campaign_integer(runs, "elite_deaths")
+		case["optional_elite_offer_count"] = _aggregate_campaign_integer(runs, "optional_elite_offer_count")
+		case["optional_elite_accept_count"] = _aggregate_campaign_integer(runs, "optional_elite_accept_count")
+		case["route_choice_reason_counts"] = _aggregate_campaign_count_dictionary(runs, "route_choice_reason_counts")
 	case["risk_flag"] = _campaign_risk_flag(case)
 	return case
 
@@ -2405,6 +2497,20 @@ func _record_campaign_failure(run: Dictionary, reasons: Dictionary, points: Dict
 	node_types[node_type] = int(node_types.get(node_type, 0)) + 1
 	if not encounter_id.is_empty():
 		encounters[encounter_id] = int(encounters.get(encounter_id, 0)) + 1
+
+func _aggregate_campaign_integer(runs: Array, field_name: String) -> int:
+	var total := 0
+	for run_value in runs:
+		total += int((run_value as Dictionary).get(field_name, 0))
+	return total
+
+func _aggregate_campaign_count_dictionary(runs: Array, field_name: String) -> Dictionary:
+	var total: Dictionary = {}
+	for run_value in runs:
+		var counts: Dictionary = (run_value as Dictionary).get(field_name, {})
+		for key_value in counts.keys():
+			_increment_count(total, str(key_value), int(counts.get(key_value, 0)))
+	return total
 
 func _campaign_attribution_minimum_iterations() -> int:
 	return max(1, int(numerical_tree_data.get("campaign_targets", {}).get("minimum_iterations_for_hard_gate", 128)))
@@ -2655,7 +2761,7 @@ func _sample_campaign_runs(runs: Array) -> Array:
 	return samples
 
 func _summarize_campaign_run(run: Dictionary) -> Dictionary:
-	return {
+	var summary := {
 		"won": bool(run.get("won", false)),
 		"campaign_strategy_schema_version": int(run.get("campaign_strategy_schema_version", CAMPAIGN_STRATEGY_SCHEMA_VERSION)),
 		"strategy_profile": str(run.get("strategy_profile", DEFAULT_CAMPAIGN_STRATEGY_PROFILE)),
@@ -2702,6 +2808,12 @@ func _summarize_campaign_run(run: Dictionary) -> Dictionary:
 		"chapter_transition_snapshots": run.get("chapter_transition_snapshots", []),
 		"path": run.get("path", [])
 	}
+	if run.has("strategy_components"):
+		summary["strategy_components"] = (run.get("strategy_components", {}) as Dictionary).duplicate(true)
+		for diagnostic_field in ["node_visit_counts", "elite_visits", "elite_wins", "elite_deaths", "optional_elite_offer_count", "optional_elite_accept_count", "route_choice_reason_counts"]:
+			var default_value = {} if diagnostic_field in ["node_visit_counts", "route_choice_reason_counts"] else 0
+			summary[diagnostic_field] = run.get(diagnostic_field, default_value)
+	return summary
 
 func _build_campaign_report_summary(cases: Array) -> Dictionary:
 	var flagged := 0

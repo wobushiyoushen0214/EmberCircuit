@@ -54,6 +54,8 @@ static func parse_options_for_args(arguments: Array) -> Dictionary:
 			options["mode"] = arg.get_slice("=", 1)
 		elif arg.begins_with("--strategy-profile="):
 			options["strategy_profile"] = arg.get_slice("=", 1)
+		elif arg.begins_with("--strategy-diagnostics="):
+			options["strategy_diagnostics"] = arg.get_slice("=", 1)
 		elif arg.begins_with("--iterations="):
 			options["iterations"] = max(1, int(arg.get_slice("=", 1)))
 		elif arg.begins_with("--max-turns="):
