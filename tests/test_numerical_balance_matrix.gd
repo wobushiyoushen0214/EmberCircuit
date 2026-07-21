@@ -27,6 +27,7 @@ func _run() -> void:
 	_check_inventory(tree.get("audit_inventory", {}), cards, enemies, encounters, progression, challenges, economy, audit_report)
 	_check_matrix(tree, players, cards, progression, challenges, audit_report)
 	_check_matrix_candidate_isolation(tree)
+	_check_021_formal_matrix_freeze(tree)
 	if failed:
 		quit(1)
 		return
@@ -91,6 +92,25 @@ func _check_matrix_candidate_isolation(tree: Dictionary) -> void:
 		_check(int(report.get("iterations_per_case", 0)) == 128, "020 candidate report remains diagnostic-only: %s" % path)
 		_check(str(report.get("strategy_profile", "")) == str(candidate_reports[path_value]), "020 candidate report keeps its strategy identity: %s" % path)
 		_check(JSON.stringify(report.get("cases", [])) != JSON.stringify(matrix.get("rows", [])), "020 candidate cases do not replace formal matrix rows: %s" % path)
+
+func _check_021_formal_matrix_freeze(tree: Dictionary) -> void:
+	var matrix: Dictionary = tree.get("campaign_matrix", {})
+	_check(int(matrix.get("iterations_per_cell", 0)) == 256, "021 diagnostics cannot lower the formal matrix sample count")
+	_check(int(matrix.get("max_turns", 0)) == 80, "021 diagnostics preserve the formal matrix turn horizon")
+	_check(str(matrix.get("strategy_profile", "")) == "current-greedy", "021 diagnostics cannot replace the formal matrix strategy profile")
+	_check(str(matrix.get("seed_model", "")) == "paired_by_iteration", "021 diagnostics preserve the formal matrix seed model")
+	_check((matrix.get("rows", []) as Array).size() == 12, "021 diagnostics cannot change the formal 3x4 matrix row count")
+	var serialized_tree := JSON.stringify(tree)
+	for candidate_profile in ["competent-player-v1", "competent-combat-v1", "competent-player-v2"]:
+		_check(not serialized_tree.contains(candidate_profile), "formal matrix does not embed 021 strategy profile %s" % candidate_profile)
+	var bytes := FileAccess.get_file_as_bytes("res://data/config/numerical_tree.json")
+	var hashing_context := HashingContext.new()
+	var hash_error: Error = hashing_context.start(HashingContext.HASH_SHA256)
+	_check(hash_error == OK, "formal numerical tree hash context initializes")
+	if hash_error == OK:
+		hashing_context.update(bytes)
+		var digest := hashing_context.finish().hex_encode()
+		_check(digest == "1f0cc2cbf45739c8b82abb92380c91138673a716d0031be0b57c5c0eacd5845e", "formal numerical tree SHA-256 remains frozen")
 
 func _check_inventory(inventory: Dictionary, cards: Dictionary, enemies: Dictionary, encounters: Dictionary, progression: Dictionary, challenges: Dictionary, economy: Dictionary, audit_report: Dictionary) -> void:
 	var card_inventory: Dictionary = inventory.get("cards", {})
