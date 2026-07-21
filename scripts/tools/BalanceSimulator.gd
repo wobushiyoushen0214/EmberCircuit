@@ -15,6 +15,60 @@ const COMPETENT_CAMPAIGN_STRATEGY_PROFILE := "competent-player-v1"
 const COMPETENT_COMBAT_STRATEGY_PROFILE := "competent-combat-v1"
 const COMPETENT_PLAYER_V2_STRATEGY_PROFILE := "competent-player-v2"
 const COMPONENT_STRATEGY_DIAGNOSTICS := "component-v1"
+const CAMPAIGN_ROUTE_HARD_REJECT_SCORE := -1.0e20
+
+class PredictionCombatState:
+	extends "res://scripts/combat/CombatState.gd"
+
+	var prediction_rng := RandomNumberGenerator.new()
+
+	func set_prediction_seed(seed_value: int) -> void:
+		prediction_rng.seed = seed_value
+
+	func _shuffle_with_prediction_rng(values: Array) -> void:
+		for index in range(values.size() - 1, 0, -1):
+			var swap_index: int = prediction_rng.randi_range(0, index)
+			var temporary = values[index]
+			values[index] = values[swap_index]
+			values[swap_index] = temporary
+
+	func _build_starting_deck(card_ids: Array) -> void:
+		for card_entry in card_ids:
+			var card_key: String = str(card_entry)
+			var upgraded: bool = card_key.ends_with("+")
+			var card_id: String = card_key.substr(0, card_key.length() - 1) if upgraded else card_key
+			if cards_by_id.has(card_id):
+				var card: Dictionary = cards_by_id[card_id].duplicate(true)
+				if upgraded:
+					card = _apply_card_upgrade(card)
+				draw_pile.append(card)
+			else:
+				_log("缺失初始牌：%s" % card_id)
+		_shuffle_with_prediction_rng(draw_pile)
+
+	func draw_cards(amount: int) -> void:
+		for _i in range(amount):
+			if draw_pile.is_empty():
+				if discard_pile.is_empty():
+					_log("抽牌堆和弃牌堆都为空。")
+					return
+				draw_pile = discard_pile.duplicate(true)
+				discard_pile.clear()
+				_shuffle_with_prediction_rng(draw_pile)
+				_log("弃牌堆洗回抽牌堆。")
+			var card: Dictionary = draw_pile.pop_back()
+			hand.append(card)
+			_log("抽到：%s" % card.get("name", card.get("id", "未知卡牌")))
+
+	func _random_alive_enemy() -> Dictionary:
+		var alive_enemies: Array = []
+		for enemy_value in enemies:
+			var enemy: Dictionary = enemy_value
+			if int(enemy.get("hp", 0)) > 0:
+				alive_enemies.append(enemy)
+		if alive_enemies.is_empty():
+			return {}
+		return alive_enemies[prediction_rng.randi_range(0, alive_enemies.size() - 1)]
 
 var card_data: Dictionary = {}
 var enemy_data: Dictionary = {}
@@ -173,6 +227,7 @@ func _run_campaign_once(character_id: String, challenge_level: int, max_turns: i
 		"strategy_profile_fallback": strategy_profile_fallback,
 		"strategy_component_diagnostics": component_diagnostics,
 		"strategy_components": _campaign_strategy_components(strategy_profile),
+		"max_turns": max_turns,
 		"node_visit_counts": {},
 		"elite_visits": 0,
 		"elite_wins": 0,
@@ -864,9 +919,11 @@ func _run_single_combat_with_loadout(
 	player_hp: int,
 	potion_ids: Array,
 	run_modifier_sources: Array = [],
-	strategy_profile: String = DEFAULT_CAMPAIGN_STRATEGY_PROFILE
+	strategy_profile: String = DEFAULT_CAMPAIGN_STRATEGY_PROFILE,
+	isolated_rng: bool = false
 ) -> Dictionary:
-	seed(seed_value)
+	if not isolated_rng:
+		seed(seed_value)
 	var challenge: Dictionary = _challenge_config(challenge_level)
 	var modifiers: Dictionary = challenge.get("modifiers", {})
 	var combat_player_data: Dictionary = player_data.duplicate(true)
@@ -874,7 +931,9 @@ func _run_single_combat_with_loadout(
 	combat_player_data["challenge_modifiers"] = modifiers.duplicate(true)
 	combat_player_data["run_modifier_sources"] = run_modifier_sources.duplicate(true)
 
-	var combat = CombatStateScript.new()
+	var combat = PredictionCombatState.new() if isolated_rng else CombatStateScript.new()
+	if isolated_rng:
+		combat.set_prediction_seed(seed_value)
 	combat.setup(
 		card_data,
 		enemy_data,
@@ -915,7 +974,7 @@ func _run_single_combat_with_loadout(
 		combat.consume_feedback_events()
 		var plays_this_turn := 0
 		while combat.phase == "player" and plays_this_turn < 40:
-			var decision: Dictionary = _choose_card(combat)
+			var decision: Dictionary = _choose_card(combat, strategy_profile)
 			if decision.is_empty():
 				break
 			var hand_index: int = int(decision.get("hand_index", -1))
@@ -951,7 +1010,12 @@ func _run_single_combat_with_loadout(
 		"potions_used_ids": used_potion_ids
 	}
 
-func _choose_card(combat) -> Dictionary:
+func _choose_card(combat, strategy_profile: String = DEFAULT_CAMPAIGN_STRATEGY_PROFILE) -> Dictionary:
+	var competent_combat: bool = _strategy_uses_competent_combat(strategy_profile)
+	if competent_combat:
+		var lethal_decision: Dictionary = _competent_immediate_lethal_decision(combat)
+		if not lethal_decision.is_empty():
+			return lethal_decision
 	var incoming_damage: int = _incoming_damage(combat)
 	var best_score := -999999.0
 	var best_decision: Dictionary = {}
@@ -959,14 +1023,856 @@ func _choose_card(combat) -> Dictionary:
 		if not combat.can_play_card(hand_index):
 			continue
 		var card: Dictionary = combat.hand[hand_index]
-		for target_index in _target_indices_for_card(combat, card):
-			var score: float = _score_card(combat, card, int(target_index), incoming_damage)
+		var target_indices: Array = _target_indices_for_card(combat, card)
+		if competent_combat and _card_targets_single_enemy(card) and target_indices.size() > 1:
+			var best_target_index: int = int(target_indices[0])
+			for candidate_target_index_value in target_indices.slice(1):
+				var candidate_target_index: int = int(candidate_target_index_value)
+				if _competent_target_rank(combat, candidate_target_index) > _competent_target_rank(combat, best_target_index):
+					best_target_index = candidate_target_index
+			target_indices = [best_target_index]
+		for target_index in target_indices:
+			var score: float = _competent_card_score(combat, card, int(target_index), incoming_damage) if competent_combat else _score_card(combat, card, int(target_index), incoming_damage)
 			if score > best_score:
 				best_score = score
 				best_decision = {"hand_index": hand_index, "target_index": int(target_index), "score": score}
 	if best_score <= 0.15:
 		return {}
 	return best_decision
+
+func _strategy_uses_competent_combat(strategy_profile: String) -> bool:
+	return strategy_profile in [COMPETENT_COMBAT_STRATEGY_PROFILE, COMPETENT_PLAYER_V2_STRATEGY_PROFILE]
+
+func _competent_card_score(combat, card: Dictionary, target_index: int, incoming_damage: int) -> float:
+	if _card_player_hp_cost_is_fatal(combat, card, target_index):
+		return -1000000.0
+	var score: float = _score_card(combat, card, target_index, incoming_damage)
+	score -= _competent_legacy_enemy_status_score(combat, card, target_index, incoming_damage)
+	if int(card.get("cost", 0)) == 0 and _card_has_zero_cost_starter_effect(combat, card) and _combat_has_payable_followup(combat, card, "any"):
+		score += 50000.0
+	score += _competent_status_starter_priority(combat, card, target_index, incoming_damage)
+	score += _competent_resource_starter_priority(combat, card)
+	var survival_summary: Dictionary = _estimated_card_survival_summary(combat, card, target_index)
+	if bool(survival_summary.get("survives_enemy_actions", false)) and not bool(survival_summary.get("survives", false)):
+		return -1000000.0
+	var total_block_gain: int = int(survival_summary.get("block_gain", 0))
+	if total_block_gain <= 0:
+		return score
+	var spent_card_block: int = int(survival_summary.get("spent_card_block", 0))
+	var remaining_card_block: int = int(survival_summary.get("remaining_card_block", 0))
+	var current_block: int = int(combat.player.get("block", 0))
+	var legacy_defense_gap: int = max(0, incoming_damage - current_block)
+	var legacy_block_gain: int = _estimated_legacy_card_block_gain(combat, card)
+	score -= float(min(legacy_block_gain, legacy_defense_gap)) * 2.8 + float(max(0, legacy_block_gain - legacy_defense_gap)) * 0.45
+	var future_incoming: int = int(survival_summary.get("future_incoming", 0))
+	var remaining_initial_block: int = int(survival_summary.get("remaining_initial_block", 0))
+	var runtime_defense_gap: int = max(0, future_incoming - remaining_initial_block)
+	score += float(spent_card_block + min(remaining_card_block, runtime_defense_gap)) * 2.8
+	var player_hp: int = int(survival_summary.get("player_hp", 0))
+	var hp_without_spent_card_block: int = max(0, player_hp - spent_card_block)
+	var damage_without_card_block: int = max(0, future_incoming - remaining_initial_block)
+	if bool(survival_summary.get("survives", false)) and (hp_without_spent_card_block <= 0 or damage_without_card_block >= hp_without_spent_card_block):
+		score += 100000.0
+	return score
+
+func _shadow_card_resolution(combat, card: Dictionary, target_index: int) -> Dictionary:
+	var shadow: Dictionary = _new_shadow_player_state(combat)
+	var predicted_enemies: Array = combat.enemies.duplicate(true)
+	var killed_any := false
+	for effect_value in card.get("effects", []):
+		var effect: Dictionary = effect_value
+		if _shadow_effect_condition_failed(effect, int(shadow.get("momentum", 0))):
+			continue
+		match str(effect.get("type", "")):
+			"gain_momentum":
+				shadow["momentum"] = min(int(combat.player.get("momentum_max", 6)), int(shadow.get("momentum", 0)) + int(effect.get("amount", 0)))
+			"lose_momentum":
+				shadow["momentum"] = max(0, int(shadow.get("momentum", 0)) - int(effect.get("amount", 0)))
+			"damage_self":
+				_apply_shadow_player_hp_loss(combat, max(0, int(effect.get("amount", 0))), shadow)
+			"apply_status":
+				_apply_shadow_status_effect(predicted_enemies, shadow.get("statuses", {}), effect, target_index)
+			"damage":
+				if _apply_shadow_damage_effect(combat, card, effect, target_index, predicted_enemies, shadow):
+					killed_any = true
+			"create_card":
+				var card_id: String = str(effect.get("card_id", ""))
+				if combat.cards_by_id.has(card_id):
+					for _created_index in range(max(0, int(effect.get("amount", 1)))):
+						if _apply_shadow_relics_with_enemy_effects(combat, "card_created", {"card_id": card_id}, target_index, predicted_enemies, shadow):
+							killed_any = true
+			"block":
+				var block_gain: int = _estimate_runtime_block_gain_from_shadow(combat, card, effect, shadow)
+				shadow["block_gain"] = int(shadow.get("block_gain", 0)) + block_gain
+				shadow["block"] = int(shadow.get("block", 0)) + block_gain
+				_apply_shadow_relic_trigger(combat, "block_gained", {"amount": block_gain}, shadow, 0, target_index, predicted_enemies)
+				if _apply_shadow_counter_pressure_damage(combat, predicted_enemies, shadow):
+					killed_any = true
+				var statuses: Dictionary = shadow.get("statuses", {})
+				if _status_amount(statuses, "frail") > 0:
+					statuses["frail"] = _status_amount(statuses, "frail") - 1
+					if int(statuses.get("frail", 0)) <= 0:
+						statuses.erase("frail")
+	if _apply_shadow_relics_with_enemy_effects(combat, "card_played", {"card": card, "target_index": target_index}, target_index, predicted_enemies, shadow):
+		killed_any = true
+	if bool(shadow.get("killed_any", false)):
+		killed_any = true
+	return {"shadow": shadow, "predicted_enemies": predicted_enemies, "killed_any": killed_any}
+
+func _estimated_card_survival_summary(combat, card: Dictionary, target_index: int, resolution: Dictionary = {}) -> Dictionary:
+	if resolution.is_empty():
+		resolution = _shadow_card_resolution(combat, card, target_index)
+	var shadow: Dictionary = resolution.get("shadow", {})
+	var predicted_enemies: Array = resolution.get("predicted_enemies", [])
+	var initial_block: int = int(combat.player.get("block", 0))
+	var block_gain: int = int(shadow.get("block_gain", 0))
+	var block_spent: int = int(shadow.get("block_spent", 0))
+	var remaining_initial_block: int = max(0, initial_block - block_spent)
+	var spent_card_block: int = min(block_gain, max(0, block_spent - initial_block))
+	var remaining_card_block: int = max(0, block_gain - spent_card_block)
+	var remaining_block: int = int(shadow.get("block", remaining_initial_block + remaining_card_block))
+	var player_hp: int = int(shadow.get("hp", 0))
+	var future_result: Dictionary = _simulate_shadow_enemy_turn(combat, predicted_enemies, shadow)
+	return {
+		"player_hp": player_hp,
+		"block_gain": block_gain,
+		"block_spent": block_spent,
+		"spent_card_block": spent_card_block,
+		"remaining_initial_block": remaining_initial_block,
+		"remaining_card_block": remaining_card_block,
+		"remaining_block": remaining_block,
+		"future_incoming": int(future_result.get("incoming", 0)),
+		"survives_enemy_actions": bool(future_result.get("survives_enemy_actions", false)),
+		"survives": player_hp > 0 and bool(future_result.get("survives", false)),
+	}
+
+func _estimated_incoming_damage_after_card_statuses(combat, card: Dictionary, target_index: int) -> int:
+	return int(_estimated_card_survival_summary(combat, card, target_index).get("future_incoming", 0))
+
+func _competent_legacy_enemy_status_score(combat, card: Dictionary, target_index: int, incoming_damage: int) -> float:
+	var score := 0.0
+	var projected_block: int = int(combat.player.get("block", 0))
+	for effect_value in card.get("effects", []):
+		var effect: Dictionary = effect_value
+		if _effect_condition_failed_for_score(combat, effect):
+			continue
+		if str(effect.get("type", "")) == "block":
+			projected_block += _estimate_block(combat, card, effect)
+			continue
+		if str(effect.get("type", "")) != "apply_status":
+			continue
+		if str(effect.get("target", "enemy")) not in ["enemy", "all_enemies"]:
+			continue
+		if str(effect.get("status", "")) in ["vulnerable", "weak", "burn"]:
+			score += _status_effect_score(combat, effect, target_index, projected_block, incoming_damage)
+	return score
+
+func _card_has_zero_cost_starter_effect(combat, card: Dictionary) -> bool:
+	for effect_value in card.get("effects", []):
+		var effect: Dictionary = effect_value
+		if str(effect.get("type", "")) in ["draw", "gain_energy"] and int(effect.get("amount", 0)) > 0:
+			return true
+	var card_played_gains: Dictionary = _estimated_card_played_resource_gains(combat, card)
+	return int(card_played_gains.get("draw", 0)) > 0 or int(card_played_gains.get("energy", 0)) > 0
+
+func _competent_resource_starter_priority(combat, card: Dictionary) -> float:
+	var momentum_gain := 0
+	var energy_gain := 0
+	for effect_value in card.get("effects", []):
+		var effect: Dictionary = effect_value
+		if _effect_condition_failed_for_score(combat, effect):
+			continue
+		if str(effect.get("type", "")) == "gain_momentum":
+			momentum_gain += int(effect.get("amount", 0))
+		elif str(effect.get("type", "")) == "gain_energy":
+			energy_gain += int(effect.get("amount", 0))
+	var card_played_gains: Dictionary = _estimated_card_played_resource_gains(combat, card)
+	momentum_gain += int(card_played_gains.get("momentum", 0))
+	energy_gain += int(card_played_gains.get("energy", 0))
+	if momentum_gain > 0 and _combat_has_momentum_threshold_followup(combat, card, momentum_gain):
+		return 30000.0
+	if energy_gain > int(card.get("cost", 0)) and _combat_has_energy_enabled_followup(combat, card, energy_gain):
+		return 30000.0
+	return 0.0
+
+func _estimated_card_played_resource_gains(combat, card: Dictionary) -> Dictionary:
+	var shadow: Dictionary = _new_shadow_player_state(combat)
+	var result := {"draw": 0, "energy": 0, "momentum": 0}
+	var used_this_turn: Dictionary = shadow.get("used_this_turn", {})
+	var used_this_combat: Dictionary = shadow.get("used_this_combat", {})
+	for relic_id_value in combat.owned_relic_ids:
+		var relic_id: String = str(relic_id_value)
+		var relic: Dictionary = combat.relics_by_id.get(relic_id, {})
+		for effect_value in relic.get("effects", []):
+			var effect: Dictionary = effect_value
+			if str(effect.get("trigger", "")) != "card_played" or _shadow_relic_condition_failed(combat, relic_id, effect, {"card": card}, shadow):
+				continue
+			if bool(effect.get("once_per_turn", false)):
+				used_this_turn[relic_id] = true
+			if bool(effect.get("once_per_combat", false)):
+				used_this_combat[relic_id] = true
+			match str(effect.get("type", "")):
+				"draw":
+					result["draw"] = int(result.get("draw", 0)) + max(0, int(effect.get("amount", 0)))
+				"gain_energy":
+					result["energy"] = int(result.get("energy", 0)) + max(0, int(effect.get("amount", 0)))
+				"gain_momentum":
+					var gain: int = max(0, int(effect.get("amount", 0)))
+					result["momentum"] = int(result.get("momentum", 0)) + gain
+					shadow["momentum"] = min(int(combat.player.get("momentum_max", 6)), int(shadow.get("momentum", 0)) + gain)
+	return result
+
+func _combat_has_momentum_threshold_followup(combat, starter_card: Dictionary, momentum_gain: int) -> bool:
+	var current_momentum: int = int(combat.player.get("momentum", 0))
+	var future_momentum: int = min(int(combat.player.get("momentum_max", 6)), current_momentum + momentum_gain)
+	var remaining_energy: int = int(combat.player.get("energy", 0)) - int(starter_card.get("cost", 0))
+	for candidate_value in combat.hand:
+		var candidate: Dictionary = candidate_value
+		if candidate == starter_card or int(candidate.get("cost", 0)) > remaining_energy:
+			continue
+		var required_momentum := 0
+		for effect_value in candidate.get("effects", []):
+			var effect: Dictionary = effect_value
+			var threshold: int = int(effect.get("bonus_if_momentum_at_least", -1))
+			if threshold > current_momentum and threshold <= future_momentum:
+				return true
+			if str(effect.get("type", "")) == "lose_momentum":
+				required_momentum += max(0, int(effect.get("amount", 0)))
+		if required_momentum > current_momentum and required_momentum <= future_momentum:
+			return true
+	return false
+
+func _combat_has_energy_enabled_followup(combat, starter_card: Dictionary, energy_gain: int) -> bool:
+	var future_energy: int = int(combat.player.get("energy", 0)) - int(starter_card.get("cost", 0)) + energy_gain
+	for candidate_value in combat.hand:
+		var candidate: Dictionary = candidate_value
+		if candidate != starter_card and int(candidate.get("cost", 0)) <= future_energy:
+			return true
+	return false
+
+func _competent_status_starter_priority(combat, card: Dictionary, target_index: int, incoming_damage: int) -> float:
+	for effect_value in card.get("effects", []):
+		var effect: Dictionary = effect_value
+		if str(effect.get("type", "")) != "apply_status" or _effect_condition_failed_for_score(combat, effect):
+			continue
+		var target_mode: String = str(effect.get("target", "enemy"))
+		var status_id: String = str(effect.get("status", ""))
+		var status_cap: int = 3 if status_id == "burn" else 1
+		if target_mode not in ["enemy", "all_enemies"] or status_id not in ["vulnerable", "weak", "burn"] or _combat_target_status_amount(combat, effect, target_index, status_id) >= status_cap:
+			continue
+		if status_id == "vulnerable" and _combat_has_payable_followup(combat, card, "damage"):
+			return 40000.0
+		if status_id == "weak":
+			var survival_hp: int = int(combat.player.get("hp", 0)) + int(combat.player.get("block", 0))
+			var incoming_after_weak: int = _incoming_damage_after_weak_effect(combat, effect, target_index)
+			if incoming_damage >= survival_hp and incoming_after_weak < survival_hp:
+				return 100000.0
+			if incoming_after_weak < incoming_damage and incoming_damage > int(combat.player.get("block", 0)) and _combat_has_payable_followup(combat, card, "block"):
+				return 40000.0
+		if status_id == "burn" and _combat_has_payable_followup(combat, card, "damage"):
+			return 40000.0
+	return 0.0
+
+func _incoming_damage_after_weak_effect(combat, effect: Dictionary, target_index: int) -> int:
+	var target_mode: String = str(effect.get("target", "enemy"))
+	var player_vulnerable_charges: int = _status_amount(combat.player.get("statuses", {}), "vulnerable")
+	var total := 0
+	for enemy_index in range(combat.enemies.size()):
+		var enemy: Dictionary = (combat.enemies[enemy_index] as Dictionary).duplicate(true)
+		if int(enemy.get("hp", 0)) <= 0:
+			continue
+		if target_mode == "all_enemies" or (target_mode == "enemy" and enemy_index == target_index):
+			var statuses: Dictionary = enemy.get("statuses", {}).duplicate(true)
+			statuses["weak"] = _status_amount(statuses, "weak") + max(0, int(effect.get("amount", 0)))
+			enemy["statuses"] = statuses
+		var damage: int = _intent_damage_against_player(combat, enemy, player_vulnerable_charges > 0)
+		total += damage
+		if damage > 0 and player_vulnerable_charges > 0:
+			player_vulnerable_charges -= 1
+	return total
+
+func _combat_target_status_amount(combat, effect: Dictionary, target_index: int, status_id: String) -> int:
+	var target_mode: String = str(effect.get("target", "enemy"))
+	if target_mode == "self":
+		return _status_amount(combat.player.get("statuses", {}), status_id)
+	if target_mode == "all_enemies":
+		var minimum_amount := 2147483647
+		for enemy_value in combat.enemies:
+			var enemy: Dictionary = enemy_value
+			if int(enemy.get("hp", 0)) > 0:
+				minimum_amount = min(minimum_amount, _status_amount(enemy.get("statuses", {}), status_id))
+		return 0 if minimum_amount == 2147483647 else minimum_amount
+	if target_index < 0 or target_index >= combat.enemies.size():
+		return 0
+	return _status_amount((combat.enemies[target_index] as Dictionary).get("statuses", {}), status_id)
+
+func _combat_has_payable_followup(combat, starter_card: Dictionary, required_effect: String) -> bool:
+	var remaining_energy: int = int(combat.player.get("energy", 0)) - int(starter_card.get("cost", 0))
+	for hand_index in range(combat.hand.size()):
+		var candidate: Dictionary = combat.hand[hand_index]
+		if candidate == starter_card or int(candidate.get("cost", 0)) > remaining_energy or not combat.can_play_card(hand_index):
+			continue
+		if required_effect == "any" or _card_has_effect_type(candidate, required_effect):
+			return true
+	return false
+
+func _card_has_effect_type(card: Dictionary, effect_type: String) -> bool:
+	for effect_value in card.get("effects", []):
+		if str((effect_value as Dictionary).get("type", "")) == effect_type:
+			return true
+	return false
+
+func _card_targets_single_enemy(card: Dictionary) -> bool:
+	if str(card.get("target", "enemy")) == "enemy":
+		return true
+	for effect_value in card.get("effects", []):
+		if str((effect_value as Dictionary).get("target", "")) == "enemy":
+			return true
+	return false
+
+func _competent_target_rank(combat, target_index: int) -> int:
+	if target_index < 0 or target_index >= combat.enemies.size():
+		return -2147483648
+	var enemy: Dictionary = combat.enemies[target_index]
+	return _intent_damage(enemy) * 1000000 - int(enemy.get("hp", 0)) * 1000 - target_index
+
+func _estimated_card_block_gain(combat, card: Dictionary, target_index: int = -1) -> int:
+	if target_index < 0 or target_index >= combat.enemies.size():
+		target_index = _focus_target_index(combat)
+	return int(_estimated_card_survival_summary(combat, card, target_index).get("block_gain", 0))
+
+func _estimated_available_block_trigger_gain(combat, trigger_amount: int) -> int:
+	return _apply_shadow_relic_trigger(combat, "block_gained", {"amount": trigger_amount}, _new_shadow_player_state(combat))
+
+func _new_shadow_player_state(combat) -> Dictionary:
+	return {
+		"hp": int(combat.player.get("hp", 0)),
+		"momentum": int(combat.player.get("momentum", 0)),
+		"statuses": combat.player.get("statuses", {}).duplicate(true),
+		"used_this_turn": combat.relic_used_this_turn.duplicate(true),
+		"used_this_combat": combat.relic_used_this_combat.duplicate(true),
+		"attack_cards_played": int(combat.attack_cards_played_this_turn),
+		"block": int(combat.player.get("block", 0)),
+		"block_gain": 0,
+		"block_spent": 0,
+	}
+
+func _apply_shadow_player_hp_loss(combat, amount: int, shadow: Dictionary) -> void:
+	var before_hp: int = int(shadow.get("hp", 0))
+	var actual_loss: int = min(max(0, amount), before_hp)
+	if actual_loss <= 0:
+		return
+	shadow["hp"] = before_hp - actual_loss
+	if int(shadow.get("hp", 0)) > 0:
+		_apply_shadow_relic_trigger(combat, "player_hp_lost", {"amount": actual_loss}, shadow)
+
+func _apply_shadow_relic_trigger(combat, trigger: String, context: Dictionary, shadow: Dictionary, depth: int = 0, target_index: int = -1, predicted_enemies: Array = []) -> int:
+	if depth >= 32:
+		return 0
+	var total_block_gain := 0
+	var used_this_turn: Dictionary = shadow.get("used_this_turn", {})
+	var used_this_combat: Dictionary = shadow.get("used_this_combat", {})
+	for relic_id_value in combat.owned_relic_ids:
+		var relic_id: String = str(relic_id_value)
+		var relic: Dictionary = combat.relics_by_id.get(relic_id, {})
+		for effect_value in relic.get("effects", []):
+			var effect: Dictionary = effect_value
+			if str(effect.get("trigger", "")) != trigger:
+				continue
+			if bool(effect.get("first_turn_only", false)) and int(combat.turn) != 1:
+				continue
+			if bool(effect.get("once_per_turn", false)) and bool(used_this_turn.get(relic_id, false)):
+				continue
+			if bool(effect.get("once_per_combat", false)) and bool(used_this_combat.get(relic_id, false)):
+				continue
+			if effect.has("requires_momentum_at_least") and int(shadow.get("momentum", 0)) < int(effect.get("requires_momentum_at_least", 0)):
+				continue
+			if effect.has("min_hp_lost") and int(context.get("amount", 0)) < int(effect.get("min_hp_lost", 0)):
+				continue
+			var context_card: Dictionary = context.get("card", {})
+			if effect.has("min_card_cost") and int(context_card.get("cost", 0)) < int(effect.get("min_card_cost", 0)):
+				continue
+			if effect.has("card_cost_equals") and int(context_card.get("cost", -99)) != int(effect.get("card_cost_equals", 0)):
+				continue
+			if effect.has("card_type") and str(context_card.get("type", "")) != str(effect.get("card_type", "")):
+				continue
+			if effect.has("every_n_attack_cards"):
+				var attack_count: int = int(shadow.get("attack_cards_played", 0))
+				if str(context_card.get("type", "")) == "attack":
+					attack_count += 1
+					shadow["attack_cards_played"] = attack_count
+				if attack_count <= 0 or attack_count % max(1, int(effect.get("every_n_attack_cards", 1))) != 0:
+					continue
+			if bool(effect.get("once_per_turn", false)):
+				used_this_turn[relic_id] = true
+			if bool(effect.get("once_per_combat", false)):
+				used_this_combat[relic_id] = true
+			match str(effect.get("type", "")):
+				"gain_momentum":
+					shadow["momentum"] = min(int(combat.player.get("momentum_max", 6)), int(shadow.get("momentum", 0)) + int(effect.get("amount", 0)))
+				"gain_block":
+					var block_gain: int = max(0, int(effect.get("amount", 0))) + _status_amount(shadow.get("statuses", {}), "plating")
+					total_block_gain += block_gain
+					shadow["block_gain"] = int(shadow.get("block_gain", 0)) + block_gain
+					shadow["block"] = int(shadow.get("block", 0)) + block_gain
+					total_block_gain += _apply_shadow_relic_trigger(combat, "block_gained", {"amount": block_gain}, shadow, depth + 1, target_index, predicted_enemies)
+					if not predicted_enemies.is_empty() and _apply_shadow_counter_pressure_damage(combat, predicted_enemies, shadow):
+						shadow["killed_any"] = true
+	return total_block_gain
+
+func _apply_shadow_counter_pressure_damage(combat, predicted_enemies: Array, shadow: Dictionary) -> bool:
+	var counter_damage: int = _status_amount(shadow.get("statuses", {}), "counter_pressure") * 2 + _status_amount(shadow.get("statuses", {}), "counter_pressure_plus") * 3
+	if counter_damage <= 0:
+		return false
+	var alive_indices: Array = []
+	for enemy_index in range(predicted_enemies.size()):
+		if int((predicted_enemies[enemy_index] as Dictionary).get("hp", 0)) > 0:
+			alive_indices.append(enemy_index)
+	if alive_indices.size() != 1:
+		return false
+	var target_index: int = int(alive_indices[0])
+	var enemy: Dictionary = predicted_enemies[target_index]
+	counter_damage += _status_amount(shadow.get("statuses", {}), "strength")
+	if _status_amount(shadow.get("statuses", {}), "weak") > 0:
+		counter_damage = int(floor(float(counter_damage) * 0.75))
+	if _status_amount(enemy.get("statuses", {}), "vulnerable") > 0:
+		counter_damage = int(ceil(float(counter_damage) * 1.5))
+	counter_damage = max(0, counter_damage)
+	var before_block: int = int(enemy.get("block", 0))
+	var absorbed: int = min(before_block, counter_damage)
+	enemy["block"] = before_block - absorbed
+	enemy["hp"] = max(0, int(enemy.get("hp", 0)) - max(0, counter_damage - absorbed))
+	if before_block > 0 and int(enemy.get("block", 0)) == 0:
+		if _apply_shadow_relics_with_enemy_effects(combat, "enemy_block_broken", {"enemy": enemy}, target_index, predicted_enemies, shadow):
+			return true
+	if int(enemy.get("hp", 0)) <= 0:
+		return true
+	return _apply_shadow_phase_effects_after_hit(combat, target_index, predicted_enemies, shadow)
+
+func _apply_shadow_damage_effect(combat, card: Dictionary, effect: Dictionary, target_index: int, predicted_enemies: Array, shadow: Dictionary) -> bool:
+	var target_mode: String = str(effect.get("target", card.get("target", "enemy")))
+	if target_mode not in ["enemy", "all_enemies"]:
+		if bool(effect.get("consume_momentum", false)):
+			shadow["momentum"] = 0
+		return false
+	var effect_momentum: int = int(shadow.get("momentum", 0))
+	var hits: int = _estimate_shadow_hits(effect, effect_momentum)
+	var consumed_player_weak: bool = not bool(card.get("ignore_player_modifiers", false)) and _status_amount(shadow.get("statuses", {}), "weak") > 0
+	var target_indices: Array = range(predicted_enemies.size()) if target_mode == "all_enemies" else [target_index]
+	var killed_any := false
+	for predicted_target_index_value in target_indices:
+		var predicted_target_index: int = int(predicted_target_index_value)
+		if predicted_target_index < 0 or predicted_target_index >= predicted_enemies.size():
+			continue
+		var enemy: Dictionary = predicted_enemies[predicted_target_index]
+		if int(enemy.get("hp", 0)) <= 0:
+			continue
+		var enemy_statuses: Dictionary = enemy.get("statuses", {})
+		var consumed_vulnerable: bool = _status_amount(enemy_statuses, "vulnerable") > 0
+		for _hit in range(hits):
+			if int(enemy.get("hp", 0)) <= 0:
+				break
+			var adjusted_amount: int = _estimate_shadow_damage_amount(combat, card, effect, effect_momentum, shadow.get("statuses", {}))
+			if _status_amount(enemy.get("statuses", {}), "vulnerable") > 0:
+				adjusted_amount = int(ceil(float(adjusted_amount) * 1.5))
+			var before_block: int = int(enemy.get("block", 0))
+			var absorbed: int = min(before_block, adjusted_amount)
+			enemy["block"] = before_block - absorbed
+			enemy["hp"] = max(0, int(enemy.get("hp", 0)) - max(0, adjusted_amount - absorbed))
+			if before_block > 0 and int(enemy.get("block", 0)) == 0:
+				if _apply_shadow_relics_with_enemy_effects(combat, "enemy_block_broken", {"enemy": enemy}, predicted_target_index, predicted_enemies, shadow):
+					killed_any = true
+			if str(card.get("type", "")) == "attack" and not bool(card.get("ignore_thorn", false)):
+				_apply_shadow_player_hp_loss(combat, _status_amount(enemy.get("statuses", {}), "thorn"), shadow)
+			if int(enemy.get("hp", 0)) <= 0:
+				killed_any = true
+			elif _apply_shadow_phase_effects_after_hit(combat, predicted_target_index, predicted_enemies, shadow):
+				killed_any = true
+		if consumed_vulnerable:
+			enemy_statuses["vulnerable"] = max(0, _status_amount(enemy_statuses, "vulnerable") - 1)
+	if consumed_player_weak:
+		var player_statuses: Dictionary = shadow.get("statuses", {})
+		player_statuses["weak"] = max(0, _status_amount(player_statuses, "weak") - 1)
+	if bool(effect.get("consume_momentum", false)):
+		shadow["momentum"] = 0
+	return killed_any
+
+func _apply_shadow_relics_with_enemy_effects(combat, trigger: String, context: Dictionary, target_index: int, predicted_enemies: Array, shadow: Dictionary) -> bool:
+	var killed_any := false
+	var used_this_turn: Dictionary = shadow.get("used_this_turn", {})
+	var used_this_combat: Dictionary = shadow.get("used_this_combat", {})
+	for relic_id_value in combat.owned_relic_ids:
+		var relic_id: String = str(relic_id_value)
+		var relic: Dictionary = combat.relics_by_id.get(relic_id, {})
+		for effect_value in relic.get("effects", []):
+			var effect: Dictionary = effect_value
+			if str(effect.get("trigger", "")) != trigger or _shadow_relic_condition_failed(combat, relic_id, effect, context, shadow):
+				continue
+			if bool(effect.get("once_per_turn", false)):
+				used_this_turn[relic_id] = true
+			if bool(effect.get("once_per_combat", false)):
+				used_this_combat[relic_id] = true
+			match str(effect.get("type", "")):
+				"gain_momentum":
+					shadow["momentum"] = min(int(combat.player.get("momentum_max", 6)), int(shadow.get("momentum", 0)) + int(effect.get("amount", 0)))
+				"gain_block":
+					var block_gain: int = max(0, int(effect.get("amount", 0))) + _status_amount(shadow.get("statuses", {}), "plating")
+					shadow["block_gain"] = int(shadow.get("block_gain", 0)) + block_gain
+					shadow["block"] = int(shadow.get("block", 0)) + block_gain
+					_apply_shadow_relic_trigger(combat, "block_gained", {"amount": block_gain}, shadow, 0, target_index, predicted_enemies)
+					if _apply_shadow_counter_pressure_damage(combat, predicted_enemies, shadow):
+						killed_any = true
+				"bonus_damage":
+					if _apply_shadow_bonus_damage(combat, max(0, int(effect.get("amount", 0))), target_index, predicted_enemies, shadow):
+						killed_any = true
+				"damage_all_enemies":
+					if _apply_shadow_all_enemy_direct_damage(combat, max(0, int(effect.get("amount", 0))), predicted_enemies, shadow):
+						killed_any = true
+				"damage_broken_enemy":
+					var broken_enemy: Dictionary = context.get("enemy", {})
+					if not broken_enemy.is_empty() and int(broken_enemy.get("hp", 0)) > 0:
+						broken_enemy["hp"] = max(0, int(broken_enemy.get("hp", 0)) - max(0, int(effect.get("amount", 0))))
+						if int(broken_enemy.get("hp", 0)) <= 0:
+							killed_any = true
+	return killed_any
+
+func _shadow_relic_condition_failed(combat, relic_id: String, effect: Dictionary, context: Dictionary, shadow: Dictionary) -> bool:
+	if bool(effect.get("first_turn_only", false)) and int(combat.turn) != 1:
+		return true
+	if bool(effect.get("once_per_turn", false)) and bool((shadow.get("used_this_turn", {}) as Dictionary).get(relic_id, false)):
+		return true
+	if bool(effect.get("once_per_combat", false)) and bool((shadow.get("used_this_combat", {}) as Dictionary).get(relic_id, false)):
+		return true
+	if effect.has("requires_momentum_at_least") and int(shadow.get("momentum", 0)) < int(effect.get("requires_momentum_at_least", 0)):
+		return true
+	if effect.has("min_hp_lost") and int(context.get("amount", 0)) < int(effect.get("min_hp_lost", 0)):
+		return true
+	var context_card: Dictionary = context.get("card", {})
+	if effect.has("min_card_cost") and int(context_card.get("cost", 0)) < int(effect.get("min_card_cost", 0)):
+		return true
+	if effect.has("card_cost_equals") and int(context_card.get("cost", -99)) != int(effect.get("card_cost_equals", 0)):
+		return true
+	if effect.has("card_type") and str(context_card.get("type", "")) != str(effect.get("card_type", "")):
+		return true
+	if effect.has("card_id") and context.has("card_id") and str(context.get("card_id", "")) != str(effect.get("card_id", "")):
+		return true
+	if effect.has("every_n_attack_cards"):
+		var attack_count: int = int(shadow.get("attack_cards_played", 0))
+		if str(context_card.get("type", "")) == "attack":
+			attack_count += 1
+			shadow["attack_cards_played"] = attack_count
+		if attack_count <= 0 or attack_count % max(1, int(effect.get("every_n_attack_cards", 1))) != 0:
+			return true
+	return false
+
+func _apply_shadow_bonus_damage(combat, amount: int, target_index: int, predicted_enemies: Array, shadow: Dictionary) -> bool:
+	var bonus_target_index: int = target_index
+	if bonus_target_index < 0 or bonus_target_index >= predicted_enemies.size() or int((predicted_enemies[bonus_target_index] as Dictionary).get("hp", 0)) <= 0:
+		bonus_target_index = -1
+		for enemy_index in range(predicted_enemies.size()):
+			if int((predicted_enemies[enemy_index] as Dictionary).get("hp", 0)) > 0:
+				bonus_target_index = enemy_index
+				break
+	if bonus_target_index < 0:
+		return false
+	var enemy: Dictionary = predicted_enemies[bonus_target_index]
+	if _status_amount(enemy.get("statuses", {}), "vulnerable") > 0:
+		amount = int(ceil(float(amount) * 1.5))
+	var before_block: int = int(enemy.get("block", 0))
+	var absorbed: int = min(before_block, amount)
+	enemy["block"] = before_block - absorbed
+	enemy["hp"] = max(0, int(enemy.get("hp", 0)) - max(0, amount - absorbed))
+	var killed_by_block_break_trigger := false
+	if before_block > 0 and int(enemy.get("block", 0)) == 0:
+		killed_by_block_break_trigger = _apply_shadow_relics_with_enemy_effects(combat, "enemy_block_broken", {"enemy": enemy}, bonus_target_index, predicted_enemies, shadow)
+	_apply_shadow_player_hp_loss(combat, _status_amount(enemy.get("statuses", {}), "thorn"), shadow)
+	if int(enemy.get("hp", 0)) <= 0 or killed_by_block_break_trigger:
+		return true
+	if _apply_shadow_phase_effects_after_hit(combat, bonus_target_index, predicted_enemies, shadow):
+		return true
+	return false
+
+func _apply_shadow_all_enemy_direct_damage(combat, amount: int, predicted_enemies: Array, shadow: Dictionary) -> bool:
+	var killed_any := false
+	for enemy_index in range(predicted_enemies.size()):
+		var enemy: Dictionary = predicted_enemies[enemy_index]
+		if int(enemy.get("hp", 0)) <= 0:
+			continue
+		enemy["hp"] = max(0, int(enemy.get("hp", 0)) - amount)
+		if int(enemy.get("hp", 0)) <= 0:
+			killed_any = true
+		elif _apply_shadow_phase_effects_after_hit(combat, enemy_index, predicted_enemies, shadow):
+			killed_any = true
+	return killed_any
+
+func _estimated_legacy_card_block_gain(combat, card: Dictionary) -> int:
+	var total := 0
+	for effect_value in card.get("effects", []):
+		var effect: Dictionary = effect_value
+		if str(effect.get("type", "")) == "block" and not _effect_condition_failed_for_score(combat, effect):
+			total += _estimate_block(combat, card, effect)
+	return total
+
+func _estimate_runtime_block_gain(combat, card: Dictionary, effect: Dictionary) -> int:
+	return _estimate_runtime_block_gain_from_shadow(combat, card, effect, _new_shadow_player_state(combat))
+
+func _estimate_runtime_block_gain_from_shadow(combat, card: Dictionary, effect: Dictionary, shadow: Dictionary) -> int:
+	var amount: int = int(effect.get("amount", 0))
+	if int(effect.get("bonus_if_momentum_at_least", -1)) >= 0 and int(shadow.get("momentum", 0)) >= int(effect.get("bonus_if_momentum_at_least", 0)):
+		amount += int(effect.get("bonus", 0))
+	if str(card.get("type", "")) == "skill" and int(combat.skill_block_bonus_percent) > 0:
+		amount = int(ceil(float(amount) * (100.0 + float(combat.skill_block_bonus_percent)) / 100.0))
+	if _status_amount(shadow.get("statuses", {}), "frail") > 0:
+		amount = int(floor(float(amount) * 0.75))
+	amount += _status_amount(shadow.get("statuses", {}), "plating")
+	return max(0, amount)
+
+func _competent_immediate_lethal_decision(combat) -> Dictionary:
+	var best_decision: Dictionary = {}
+	var best_target_rank := -2147483648
+	for hand_index in range(combat.hand.size()):
+		if not combat.can_play_card(hand_index):
+			continue
+		var card: Dictionary = combat.hand[hand_index]
+		for target_index in _target_indices_for_card(combat, card):
+			var resolution: Dictionary = _shadow_card_resolution(combat, card, int(target_index))
+			if int((resolution.get("shadow", {}) as Dictionary).get("hp", 0)) <= 0:
+				continue
+			if bool(resolution.get("killed_any", false)):
+				if not bool(_estimated_card_survival_summary(combat, card, int(target_index), resolution).get("survives", false)):
+					continue
+				var target_rank: int = _competent_target_rank(combat, int(target_index))
+				if best_decision.is_empty() or target_rank > best_target_rank:
+					best_target_rank = target_rank
+					best_decision = {"hand_index": hand_index, "target_index": int(target_index), "score": 1000000.0}
+	return best_decision
+
+func _card_player_hp_cost_is_fatal(combat, card: Dictionary, target_index: int) -> bool:
+	var resolution: Dictionary = _shadow_card_resolution(combat, card, target_index)
+	var shadow: Dictionary = resolution.get("shadow", {})
+	return int(shadow.get("hp", 0)) <= 0
+
+func _card_has_immediate_lethal(combat, card: Dictionary, target_index: int) -> bool:
+	if combat.enemies.is_empty():
+		return false
+	if target_index < 0 or target_index >= combat.enemies.size():
+		return false
+	return bool(_shadow_card_resolution(combat, card, target_index).get("killed_any", false))
+
+func _estimate_shadow_damage_amount(combat, card: Dictionary, effect: Dictionary, player_momentum: int, player_statuses: Dictionary) -> int:
+	var amount: int = int(effect.get("amount", 0))
+	amount += player_momentum * int(effect.get("bonus_per_momentum", 0))
+	var bonus_threshold: int = int(effect.get("bonus_if_momentum_at_least", -1))
+	if bonus_threshold >= 0 and player_momentum >= bonus_threshold:
+		amount += int(effect.get("bonus", 0))
+	if not bool(card.get("ignore_player_modifiers", false)):
+		amount += _status_amount(player_statuses, "strength")
+		if _status_amount(player_statuses, "weak") > 0:
+			amount = int(floor(float(amount) * 0.75))
+	return max(0, amount)
+
+func _estimate_shadow_hits(effect: Dictionary, player_momentum: int) -> int:
+	var hits: int = int(effect.get("hits", 1))
+	var extra_per_momentum: int = int(effect.get("extra_hit_per_momentum", 0))
+	if extra_per_momentum > 0:
+		hits += int(floor(float(player_momentum) / float(extra_per_momentum)))
+	return max(1, hits)
+
+func _shadow_effect_condition_failed(effect: Dictionary, player_momentum: int) -> bool:
+	return effect.has("requires_momentum_at_least") and player_momentum < int(effect.get("requires_momentum_at_least", 0))
+
+func _apply_shadow_status_effect(predicted_enemies: Array, player_statuses: Dictionary, effect: Dictionary, target_index: int) -> void:
+	var status_id: String = str(effect.get("status", ""))
+	var amount: int = int(effect.get("amount", 0))
+	var target_mode: String = str(effect.get("target", "enemy"))
+	if target_mode == "self":
+		player_statuses[status_id] = _status_amount(player_statuses, status_id) + amount
+		return
+	var target_indices: Array = range(predicted_enemies.size()) if target_mode == "all_enemies" else [target_index]
+	for target_index_value in target_indices:
+		var predicted_target_index: int = int(target_index_value)
+		if predicted_target_index < 0 or predicted_target_index >= predicted_enemies.size():
+			continue
+		var enemy: Dictionary = predicted_enemies[predicted_target_index]
+		if int(enemy.get("hp", 0)) <= 0:
+			continue
+		var statuses: Dictionary = enemy.get("statuses", {})
+		statuses[status_id] = _status_amount(statuses, status_id) + amount
+
+func _apply_shadow_enemy_damage_effect(combat, enemy_index: int, effect: Dictionary, predicted_enemies: Array, shadow: Dictionary) -> Dictionary:
+	if enemy_index < 0 or enemy_index >= predicted_enemies.size():
+		return {"incoming": 0, "killed_any": false}
+	var enemy: Dictionary = predicted_enemies[enemy_index]
+	var consumed_enemy_weak: bool = _status_amount(enemy.get("statuses", {}), "weak") > 0
+	var consumed_player_vulnerable: bool = _status_amount(shadow.get("statuses", {}), "vulnerable") > 0
+	var base_damage: int = int(ceil(float(int(effect.get("amount", 0))) * max(0.1, float(combat.challenge_modifiers.get("enemy_damage_multiplier", 1.0)))))
+	var incoming := 0
+	var killed_any := false
+	for _hit in range(max(1, int(effect.get("hits", 1)))):
+		var damage_amount: int = base_damage + _status_amount(enemy.get("statuses", {}), "strength")
+		if _status_amount(enemy.get("statuses", {}), "weak") > 0:
+			damage_amount = int(floor(float(damage_amount) * 0.75))
+		if _status_amount(shadow.get("statuses", {}), "vulnerable") > 0:
+			damage_amount = int(ceil(float(damage_amount) * 1.5))
+		damage_amount = max(0, damage_amount)
+		incoming += damage_amount
+		var available_block: int = max(0, int(shadow.get("block", 0)))
+		var blocked: int = min(available_block, damage_amount)
+		shadow["block"] = available_block - blocked
+		shadow["block_spent"] = int(shadow.get("block_spent", 0)) + blocked
+		_apply_shadow_player_hp_loss(combat, damage_amount - blocked, shadow)
+		var player_thorn: int = _status_amount(shadow.get("statuses", {}), "thorn")
+		if player_thorn > 0 and int(enemy.get("hp", 0)) > 0:
+			enemy["hp"] = max(0, int(enemy.get("hp", 0)) - player_thorn)
+			if int(enemy.get("hp", 0)) <= 0:
+				killed_any = true
+			elif _apply_shadow_phase_effects_after_hit(combat, enemy_index, predicted_enemies, shadow):
+				killed_any = true
+		if int(enemy.get("hp", 0)) <= 0 or int(shadow.get("hp", 0)) <= 0:
+			break
+	if consumed_enemy_weak:
+		var enemy_statuses: Dictionary = enemy.get("statuses", {})
+		enemy_statuses["weak"] = max(0, _status_amount(enemy_statuses, "weak") - 1)
+	if consumed_player_vulnerable:
+		var player_statuses: Dictionary = shadow.get("statuses", {})
+		player_statuses["vulnerable"] = max(0, _status_amount(player_statuses, "vulnerable") - 1)
+	return {"incoming": incoming, "killed_any": killed_any}
+
+func _simulate_shadow_enemy_turn(combat, predicted_enemies: Array, shadow: Dictionary) -> Dictionary:
+	var future_enemies: Array = predicted_enemies.duplicate(true)
+	var future_shadow: Dictionary = shadow.duplicate(true)
+	future_shadow["phase_incoming"] = 0
+	var incoming := 0
+	for enemy_index in range(future_enemies.size()):
+		var enemy: Dictionary = future_enemies[enemy_index]
+		if int(enemy.get("hp", 0)) <= 0:
+			continue
+		enemy["block"] = 0
+		var burn: int = _status_amount(enemy.get("statuses", {}), "burn")
+		if burn > 0:
+			enemy["hp"] = max(0, int(enemy.get("hp", 0)) - burn)
+			var enemy_statuses: Dictionary = enemy.get("statuses", {})
+			enemy_statuses["burn"] = max(0, burn - 1)
+			if int(enemy.get("hp", 0)) <= 0:
+				continue
+			_apply_shadow_phase_effects_after_hit(combat, enemy_index, future_enemies, future_shadow)
+			if int(enemy.get("hp", 0)) <= 0:
+				continue
+			if int(future_shadow.get("hp", 0)) <= 0:
+				break
+	for enemy_index in range(future_enemies.size()):
+		if int(future_shadow.get("hp", 0)) <= 0:
+			break
+		var enemy: Dictionary = future_enemies[enemy_index]
+		if int(enemy.get("hp", 0)) <= 0:
+			continue
+		var action: Dictionary = enemy.get("current_action", {})
+		var action_effects: Array = action.get("effects", [])
+		if action_effects.is_empty():
+			var intent: Dictionary = action.get("intent", {})
+			if _is_attack_intent_type(str(intent.get("type", ""))):
+				action_effects = [{"type": "damage", "amount": int(intent.get("amount", 0)), "hits": int(intent.get("hits", 1)), "target": "player"}]
+		for effect_value in action_effects:
+			var effect: Dictionary = effect_value
+			match str(effect.get("type", "")):
+				"damage":
+					var damage_result: Dictionary = _apply_shadow_enemy_damage_effect(combat, enemy_index, effect, future_enemies, future_shadow)
+					incoming += int(damage_result.get("incoming", 0))
+				"block":
+					enemy["block"] = int(enemy.get("block", 0)) + int(effect.get("amount", 0))
+				"apply_status":
+					var status_id: String = str(effect.get("status", ""))
+					if str(effect.get("target", "player")) == "self":
+						var enemy_statuses: Dictionary = enemy.get("statuses", {})
+						enemy_statuses[status_id] = _status_amount(enemy_statuses, status_id) + int(effect.get("amount", 0))
+					else:
+						var player_statuses: Dictionary = future_shadow.get("statuses", {})
+						player_statuses[status_id] = _status_amount(player_statuses, status_id) + int(effect.get("amount", 0))
+				"create_card":
+					var card_id: String = str(effect.get("card_id", ""))
+					if combat.cards_by_id.has(card_id):
+						for _created_index in range(max(0, int(effect.get("amount", 1)))):
+							_apply_shadow_relics_with_enemy_effects(combat, "card_created", {"card_id": card_id}, enemy_index, future_enemies, future_shadow)
+			if int(future_shadow.get("hp", 0)) <= 0:
+				break
+		if int(future_shadow.get("hp", 0)) <= 0:
+			break
+	var survives_enemy_actions: bool = int(future_shadow.get("hp", 0)) > 0
+	var has_alive_enemy := false
+	for enemy_value in future_enemies:
+		if int((enemy_value as Dictionary).get("hp", 0)) > 0:
+			has_alive_enemy = true
+			break
+	if int(future_shadow.get("hp", 0)) > 0 and has_alive_enemy:
+		future_shadow["block"] = 0
+		var next_turn_statuses: Dictionary = future_shadow.get("statuses", {})
+		var player_burn: int = _status_amount(next_turn_statuses, "burn")
+		if player_burn > 0:
+			_apply_shadow_player_hp_loss(combat, player_burn, future_shadow)
+			next_turn_statuses["burn"] = max(0, player_burn - 1)
+	return {
+		"incoming": incoming + int(future_shadow.get("phase_incoming", 0)),
+		"survives_enemy_actions": survives_enemy_actions,
+		"survives": int(future_shadow.get("hp", 0)) > 0,
+		"player_hp": int(future_shadow.get("hp", 0)),
+		"remaining_block": int(future_shadow.get("block", 0)),
+	}
+
+func _apply_shadow_phase_effects_after_hit(combat, enemy_index: int, predicted_enemies: Array, shadow: Dictionary) -> bool:
+	if enemy_index < 0 or enemy_index >= predicted_enemies.size():
+		return false
+	var enemy: Dictionary = predicted_enemies[enemy_index]
+	var phases: Array = enemy.get("data", {}).get("phases", [])
+	var current_phase_index: int = int(enemy.get("phase_index", -1))
+	var target_phase_index := -1
+	for phase_index in range(phases.size()):
+		if phase_index <= current_phase_index:
+			continue
+		var phase: Dictionary = phases[phase_index]
+		var threshold_met: bool = int(enemy.get("hp", 0)) <= int(phase.get("hp_below", -1)) if phase.has("hp_below") else int(enemy.get("hp", 0)) * 100 <= max(1, int(enemy.get("max_hp", 1))) * int(phase.get("hp_percent_below", -1))
+		if threshold_met:
+			target_phase_index = phase_index
+	if target_phase_index <= current_phase_index:
+		return false
+	var phase_data: Dictionary = phases[target_phase_index]
+	enemy["phase_index"] = target_phase_index
+	enemy["phase_id"] = str(phase_data.get("id", "phase_%d" % target_phase_index))
+	enemy["phase_name"] = str(phase_data.get("name", enemy.get("phase_id", "")))
+	enemy["phase_data"] = phase_data
+	enemy["intent_index"] = 0
+	var killed_any := false
+	for effect_value in phase_data.get("on_enter_effects", []):
+		var effect: Dictionary = effect_value
+		match str(effect.get("type", "")):
+			"block":
+				if str(effect.get("target", "self")) == "self":
+					enemy["block"] = int(enemy.get("block", 0)) + max(0, int(effect.get("amount", 0)))
+			"apply_status":
+				if str(effect.get("target", "player")) == "self":
+					var statuses: Dictionary = enemy.get("statuses", {})
+					var status_id: String = str(effect.get("status", ""))
+					statuses[status_id] = _status_amount(statuses, status_id) + int(effect.get("amount", 0))
+				else:
+					var player_statuses: Dictionary = shadow.get("statuses", {})
+					var player_status_id: String = str(effect.get("status", ""))
+					player_statuses[player_status_id] = _status_amount(player_statuses, player_status_id) + int(effect.get("amount", 0))
+			"damage":
+				var damage_result: Dictionary = _apply_shadow_enemy_damage_effect(combat, enemy_index, effect, predicted_enemies, shadow)
+				shadow["phase_incoming"] = int(shadow.get("phase_incoming", 0)) + int(damage_result.get("incoming", 0))
+				if bool(damage_result.get("killed_any", false)):
+					killed_any = true
+			"create_card":
+				var card_id: String = str(effect.get("card_id", ""))
+				if str(effect.get("target", "player")) == "player" and combat.cards_by_id.has(card_id):
+					for _created_index in range(max(0, int(effect.get("amount", 1)))):
+						if _apply_shadow_relics_with_enemy_effects(combat, "card_created", {"card_id": card_id}, enemy_index, predicted_enemies, shadow):
+							killed_any = true
+	var active_phase_data: Dictionary = enemy.get("phase_data", phase_data)
+	var actions: Array = active_phase_data.get("actions", [])
+	if actions.is_empty():
+		actions = enemy.get("data", {}).get("actions", [])
+	enemy["current_action"] = actions[0] if not actions.is_empty() else {}
+	return killed_any
 
 func _target_indices_for_card(combat, card: Dictionary) -> Array:
 	var target_mode: String = str(card.get("target", "enemy"))
@@ -1332,12 +2238,105 @@ func _successor_nodes(graph: Dictionary, node_id: String) -> Array:
 				result.append(node)
 	return result
 
+func _elite_survival_prediction(state: Dictionary, encounter_id: String, combat_profile: String) -> Dictionary:
+	var cache_key: String = _elite_prediction_cache_key(state, encounter_id, combat_profile)
+	var cache_value = state.get("elite_prediction_cache", {})
+	if cache_value is Dictionary and (cache_value as Dictionary).has(cache_key):
+		var cached_prediction: Dictionary = ((cache_value as Dictionary).get(cache_key, {}) as Dictionary).duplicate(true)
+		cached_prediction["cache_key"] = cache_key
+		cached_prediction["cache_hit"] = true
+		return cached_prediction
+	var seed_values: Array = []
+	var outcomes: Array = []
+	var prediction_strategy_profile := COMPETENT_PLAYER_V2_STRATEGY_PROFILE if combat_profile == COMPETENT_PLAYER_V2_STRATEGY_PROFILE else (COMPETENT_COMBAT_STRATEGY_PROFILE if combat_profile == "competent" else DEFAULT_CAMPAIGN_STRATEGY_PROFILE)
+	var modifier_sources: Array = _campaign_modifier_sources(state)
+	for seed_index in range(3):
+		var seed_value: int = _stable_text_seed("%s|%d" % [cache_key, seed_index])
+		seed_values.append(seed_value)
+		outcomes.append(_run_single_combat_with_loadout(
+			str(state.get("character_id", "")),
+			int(state.get("challenge_level", 0)),
+			encounter_id,
+			max(1, int(state.get("max_turns", DEFAULT_MAX_TURNS))),
+			seed_value,
+			(state.get("deck_ids", []) as Array).duplicate(true),
+			(state.get("relic_ids", []) as Array).duplicate(true),
+			int(state.get("hp", 0)),
+			(state.get("potion_ids", []) as Array).duplicate(true),
+			modifier_sources.duplicate(true),
+				prediction_strategy_profile,
+				true
+			))
+	var summary: Dictionary = _elite_prediction_summary(int(state.get("max_hp", 1)), outcomes)
+	summary["cache_key"] = cache_key
+	summary["cache_hit"] = false
+	summary["seed_values"] = seed_values
+	summary["outcomes"] = outcomes
+	return summary
+
+func _elite_prediction_cache_key(state: Dictionary, encounter_id: String, combat_profile: String) -> String:
+	return JSON.stringify([
+		str(state.get("character_id", "")),
+		int(state.get("challenge_level", 0)),
+		encounter_id,
+		int(state.get("hp", 0)),
+		int(state.get("max_hp", 0)),
+		max(1, int(state.get("max_turns", DEFAULT_MAX_TURNS))),
+		(state.get("deck_ids", []) as Array).duplicate(true),
+		(state.get("relic_ids", []) as Array).duplicate(true),
+		(state.get("potion_ids", []) as Array).duplicate(true),
+		str(state.get("skill_book_id", "")),
+		str(state.get("deck_mastery_id", "")),
+		_campaign_modifier_sources(state),
+		combat_profile,
+	])
+
+func _elite_prediction_summary(max_hp: int, outcomes: Array) -> Dictionary:
+	var winning_hp: Array = []
+	for outcome_value in outcomes:
+		var outcome: Dictionary = outcome_value
+		if bool(outcome.get("won", false)):
+			winning_hp.append(max(0, int(outcome.get("player_hp_remaining", 0))))
+	winning_hp.sort()
+	var median_winning_hp := 0
+	if not winning_hp.is_empty():
+		var middle_index: int = int(winning_hp.size() / 2)
+		if winning_hp.size() % 2 == 1:
+			median_winning_hp = int(winning_hp[middle_index])
+		else:
+			median_winning_hp = int(floor(float(int(winning_hp[middle_index - 1]) + int(winning_hp[middle_index])) / 2.0))
+	var minimum_safe_hp: int = int(ceil(float(max(1, max_hp)) * 0.20))
+	return {
+		"wins": winning_hp.size(),
+		"winning_hp": winning_hp,
+		"median_winning_hp": median_winning_hp,
+		"minimum_safe_hp": minimum_safe_hp,
+		"safe": winning_hp.size() >= 2 and median_winning_hp >= minimum_safe_hp,
+	}
+
+func _campaign_uses_predictive_elite_safety(state: Dictionary) -> bool:
+	return str(state.get("strategy_profile", DEFAULT_CAMPAIGN_STRATEGY_PROFILE)) == COMPETENT_PLAYER_V2_STRATEGY_PROFILE
+
+func _campaign_elite_is_safe(state: Dictionary, node: Dictionary) -> bool:
+	if not _campaign_uses_predictive_elite_safety(state) or str(node.get("type", "")) != "elite":
+		return true
+	var encounter_id: String = str(node.get("encounter_id", ""))
+	if encounter_id.is_empty():
+		return true
+	var prediction: Dictionary = _elite_survival_prediction(state, encounter_id, COMPETENT_PLAYER_V2_STRATEGY_PROFILE)
+	if not bool(prediction.get("cache_hit", false)):
+		var prediction_cache: Dictionary = state.get("elite_prediction_cache", {})
+		prediction_cache[str(prediction.get("cache_key", ""))] = prediction.duplicate(true)
+		state["elite_prediction_cache"] = prediction_cache
+	return bool(prediction.get("safe", false))
+
 func _choose_next_campaign_node(state: Dictionary, candidates: Array, graph: Dictionary = {}) -> String:
 	var best_id := ""
-	var best_score := -999999.0
+	var best_score := -INF
 	var route_score_cache: Dictionary = {}
 	var competent_profile: bool = _is_competent_campaign_strategy(state)
 	var had_best_tie := false
+	var rejected_unsafe_elite := false
 	var diagnostic_enabled := bool(state.get("strategy_component_diagnostics", false))
 	var stable_tie_break := competent_profile or diagnostic_enabled
 	var has_non_elite_alternative := false
@@ -1345,6 +2344,8 @@ func _choose_next_campaign_node(state: Dictionary, candidates: Array, graph: Dic
 		if str((candidate_value as Dictionary).get("type", "")) != "elite":
 			has_non_elite_alternative = true
 			break
+	if _campaign_uses_predictive_elite_safety(state) and (not state.has("elite_prediction_cache") or not state["elite_prediction_cache"] is Dictionary):
+		state["elite_prediction_cache"] = {}
 	if diagnostic_enabled:
 		var elite_offer_count := 0
 		for candidate_value in candidates:
@@ -1353,7 +2354,13 @@ func _choose_next_campaign_node(state: Dictionary, candidates: Array, graph: Dic
 		state["optional_elite_offer_count"] = int(state.get("optional_elite_offer_count", 0)) + elite_offer_count
 	for node in candidates:
 		var node_dict: Dictionary = node
-		var score: float = _campaign_route_preview_score(state, graph, str(node_dict.get("id", "")), 3, route_score_cache) if not graph.is_empty() else _campaign_node_score(state, node_dict)
+		if has_non_elite_alternative and not _campaign_elite_is_safe(state, node_dict):
+			rejected_unsafe_elite = true
+			continue
+		var allow_unsafe_current_elite: bool = not has_non_elite_alternative and str(node_dict.get("type", "")) == "elite"
+		var score: float = _campaign_route_preview_score(state, graph, str(node_dict.get("id", "")), 3, route_score_cache, allow_unsafe_current_elite) if not graph.is_empty() else _campaign_node_score(state, node_dict)
+		if score <= CAMPAIGN_ROUTE_HARD_REJECT_SCORE:
+			rejected_unsafe_elite = true
 		var node_id: String = str(node_dict.get("id", ""))
 		if score > best_score:
 			best_score = score
@@ -1373,41 +2380,58 @@ func _choose_next_campaign_node(state: Dictionary, candidates: Array, graph: Dic
 		if has_non_elite_alternative and str(chosen_node.get("type", "")) == "elite":
 			state["optional_elite_accept_count"] = int(state.get("optional_elite_accept_count", 0)) + 1
 		var reason_counts: Dictionary = state.get("route_choice_reason_counts", {})
-		_increment_count(reason_counts, "stable_node_id_tiebreak" if stable_tie_break and had_best_tie else "highest_score")
+		_increment_count(reason_counts, "elite_safety_rejected" if rejected_unsafe_elite and str(chosen_node.get("type", "")) != "elite" else ("stable_node_id_tiebreak" if stable_tie_break and had_best_tie else "highest_score"))
 		state["route_choice_reason_counts"] = reason_counts
 	return best_id
 
-func _campaign_route_preview_score(state: Dictionary, graph: Dictionary, node_id: String, depth: int, cache: Dictionary) -> float:
+func _campaign_route_preview_score(state: Dictionary, graph: Dictionary, node_id: String, depth: int, cache: Dictionary, allow_unsafe_current_elite: bool = false) -> float:
 	if node_id.is_empty():
 		return -999999.0
-	var cache_key := "%s|%d|%s" % [node_id, depth, _campaign_preview_state_key(state)]
+	var cache_key := "%s|%d|%s|%s" % [node_id, depth, _campaign_preview_state_key(state), str(allow_unsafe_current_elite)]
 	if cache.has(cache_key):
 		return float(cache[cache_key])
 	var node: Dictionary = _graph_node_by_id(graph, node_id)
 	if node.is_empty():
 		return -999999.0
+	if not allow_unsafe_current_elite and not _campaign_elite_is_safe(state, node):
+		cache[cache_key] = CAMPAIGN_ROUTE_HARD_REJECT_SCORE
+		return CAMPAIGN_ROUTE_HARD_REJECT_SCORE
 	var score: float = _campaign_node_score(state, node)
 	var next_state: Dictionary = _campaign_preview_state_after_node(state, node)
 	if depth > 1 and str(node.get("type", "")) != "boss":
-		var best_future_score := -999999.0
-		for successor_value in _successor_nodes(graph, node_id):
+		var successors: Array = _successor_nodes(graph, node_id)
+		var best_future_score := CAMPAIGN_ROUTE_HARD_REJECT_SCORE
+		for successor_value in successors:
 			var successor: Dictionary = successor_value
 			best_future_score = max(best_future_score, _campaign_route_preview_score(next_state, graph, str(successor.get("id", "")), depth - 1, cache))
-		if best_future_score > -999998.0:
+		if not successors.is_empty() and best_future_score <= CAMPAIGN_ROUTE_HARD_REJECT_SCORE:
+			score = CAMPAIGN_ROUTE_HARD_REJECT_SCORE
+		elif not successors.is_empty():
 			score += best_future_score
 	cache[cache_key] = score
 	return score
 
 func _campaign_preview_state_key(state: Dictionary) -> String:
-	return "%d|%d|%d|%d" % [
+	return JSON.stringify([
+		str(state.get("character_id", "")),
+		int(state.get("challenge_level", 0)),
 		int(state.get("hp", 0)),
 		int(state.get("max_hp", 1)),
 		int(state.get("gold", 0)),
-		(state.get("relic_ids", []) as Array).size(),
-	]
+		max(1, int(state.get("max_turns", DEFAULT_MAX_TURNS))),
+		(state.get("deck_ids", []) as Array).duplicate(true),
+		(state.get("relic_ids", []) as Array).duplicate(true),
+		(state.get("potion_ids", []) as Array).duplicate(true),
+		str(state.get("skill_book_id", "")),
+		str(state.get("deck_mastery_id", "")),
+		_campaign_modifier_sources(state),
+		str(state.get("strategy_profile", DEFAULT_CAMPAIGN_STRATEGY_PROFILE)),
+	])
 
 func _campaign_preview_state_after_node(state: Dictionary, node: Dictionary) -> Dictionary:
 	var preview: Dictionary = state.duplicate(true)
+	if state.get("elite_prediction_cache", {}) is Dictionary:
+		preview["elite_prediction_cache"] = state.get("elite_prediction_cache", {})
 	var node_type: String = str(node.get("type", ""))
 	if node_type == "campfire":
 		var hp: int = int(preview.get("hp", 0))
