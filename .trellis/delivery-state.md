@@ -8,17 +8,17 @@ stage_state:
   max_rounds: 6
   open_gaps: 8
   tasks_created: 3
-  tasks_completed: 0
+  tasks_completed: 3
   carry_over: 0
   critical_review_issues: 0
-  next_legal_action: append the Batch 021 task-creation run log, then begin 021-01 RED
+  next_legal_action: pause-human-needed after Batch 021-03 64 gate failed; do not run 128 or change production values
   stop_conditions:
-    - none
+    - paused_no_strategy_component_passed: v2 C0/C1 chapter-one completion and elite death-rate gates failed
 ---
 
 loop_mode: L3
 current_round: 2
-next_loop_recommendation: continue-next-batch
+next_loop_recommendation: pause-human-needed
 carry_over: 0
 
 ## 基线
@@ -50,7 +50,7 @@ carry_over: 0
 
 ## 当前批次
 
-- batch_id: `delivery-batch-021-strategy-component-ablation`（confirmed，正在创建任务）
+- batch_id: `delivery-batch-021-strategy-component-ablation`（confirmed，021-03 已按 64 gate 停机）
 - scope: `策略组件消融、胜任战斗 AI、精英生存预测与 64→128 paired gate；生产数值冻结`
 - selected_reqs:
   - `REQ-003`
@@ -61,8 +61,8 @@ carry_over: 0
   - `021-01-strategy-component-ablation-contract`（中风险；profile/opt-in telemetry）
   - `021-02-competent-combat-and-elite-safety`（高风险；本批唯一高风险任务）
   - `021-03-paired-component-verification`（中风险；64 方向门后才允许 128）
-- result: `tasks_created_ready_021_01`
-- audit_evidence: `docs/11_STRATEGY_COMPONENT_AUDIT_021.md`、`/tmp/ember021-strategy-audit.json`
+- result: `paused_no_strategy_component_passed`
+- audit_evidence: `docs/11_STRATEGY_COMPONENT_AUDIT_021.md`、`.trellis/tasks/delivery-batch-021-strategy-component-ablation/03-paired-component-verification/verification-report.md`、`/tmp/ember021-*-64.json`
 - excluded_this_round:
   - `REQ-006/008`: 内容资产、正式音频和演出不与高风险数值批次混合
   - `REQ-012`: 仅回归，不重新设计测试基础设施
@@ -72,7 +72,7 @@ carry_over: 0
 
 | 条目 | 原因 | 需要人工提供什么 | 起始轮次 |
 | --- | --- | --- | --- |
-| none | 当前无人工阻塞；严格按已确认 File Manifest 串行实施，生产数值继续冻结 | none | 2 |
+| `paused_no_strategy_component_passed` | 021-03 的 v2 C0/C1 第一章与精英死亡率硬门失败，禁止运行 128 或修改生产数值 | 复核证据后确认下一轮 meta/elite-safety 重新审计方向 | 2 |
 
 ## 人工决策
 
@@ -107,6 +107,7 @@ carry_over: 0
 - 2026-07-19: Batch 020 两任务以严格 TDD 和双阶段评审完成；current/competent 各 3×4×128 重复报告 byte-identical，但 competent 在 C2/C3 胜率与 C0/C1 第一章门回退，记录 `paused_no_strategy_passed`，不修改生产 JSON 或正式 256 rows。
 - 2026-07-19: 021 前置 delta audit 证明 `competent-player-v1` 仍使用旧战斗出牌 AI；精英访问 36→514、死亡 1→325，死亡成熟度均值约 0.209。提出组件消融、胜任战斗与精英生存预测批次，等待批次确认。
 - 2026-07-20: 用户明确回复“确认执行 021”；确认 `delivery-batch-021-strategy-component-ablation`，允许创建三项串行任务并按严格 TDD、verifier 与双阶段评审自动推进；生产数值、正式 256 rows、真人 cohort 与 `CombatState.gd` 继续冻结。
+- 2026-07-21: 021-03 完成四 profile `3×4×64` paired verification；v2 C0/C1 第一章完成率与 elite deaths/visits=159/256 未过硬门，未生成 128，唯一状态为 `paused_no_strategy_component_passed`；生产数值、正式 256 rows 和真人 cohort 未修改，等待重新审计方向。
 
 ## 预算快照
 
@@ -118,7 +119,7 @@ carry_over: 0
 
 ## 下一轮建议
 
-- action: `continue-next-batch`
-- reason: `用户已确认 021；创建三项任务后，从 021-01 开始严格 RED→GREEN→回归→双阶段评审。`
-- next_batch: `delivery-batch-021-strategy-component-ablation`。
+- action: `pause-human-needed`
+- reason: `021-03 四 profile 64 paired gate 未全过：v2 C0/C1 第一章完成率下降超过 0.02，elite deaths/visits=159/256 超过 0.35；按规则禁止运行 128 和修改生产数值。`
+- next_batch: `待重新审计 competent meta 与 elite safety 组合后再规划`。
 - next_audit_scope: `delta`

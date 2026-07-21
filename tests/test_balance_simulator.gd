@@ -15,6 +15,9 @@ const COMPONENT_DIAGNOSTIC_FIELDS := [
 	"optional_elite_accept_count",
 	"route_choice_reason_counts",
 ]
+const COMPONENT_GATE_PROFILES := ["current-greedy", "competent-player-v1", "competent-combat-v1", "competent-player-v2"]
+const COMPONENT_GATE_CHARACTERS := ["ember_exile", "arc_tinker", "pyre_ascetic"]
+const COMPONENT_GATE_CHALLENGES := [0, 1, 2, 3]
 
 var failed := false
 
@@ -22,6 +25,7 @@ func _init() -> void:
 	call_deferred("_run")
 
 func _run() -> void:
+	var require_component_gate_artifacts := OS.get_cmdline_user_args().has("--require-component-gate-artifacts")
 	var competent_cli_options: Dictionary = BalanceCliScript.parse_options_for_args([
 		"--mode=campaign",
 		"--strategy-profile=competent-player-v1",
@@ -1534,6 +1538,64 @@ func _run() -> void:
 		"strategy_profile": "current-greedy"
 	})
 	_check(JSON.stringify(campaign_report.get("cases", [])) == JSON.stringify(explicit_current_report.get("cases", [])), "explicit current-greedy profile preserves the default campaign behavior")
+	var paired_component_fixture: Dictionary = _component_gate_fixture()
+	var paired_component_gate: Dictionary = _evaluate_strategy_component_gate(paired_component_fixture)
+	_check(bool(paired_component_gate.get("passed", false)), "component gate accepts a complete paired fixture")
+	_check(bool(paired_component_gate.get("paired_options_passed", false)), "component gate verifies identical paired options")
+	_check((paired_component_gate.get("challenge_gates", []) as Array).size() == 4, "component gate emits one comparison row per challenge")
+	_check(bool((paired_component_gate.get("challenge_gates", []) as Array)[0].get("win_rate_passed", false)), "component gate compares three-role average win rate at C0")
+	_check(bool((paired_component_gate.get("challenge_gates", []) as Array)[0].get("chapter_one_passed", false)), "component gate compares first-chapter completion at C0")
+	_check(bool(paired_component_gate.get("elite_gate_passed", false)), "component gate enforces v2 elite death-rate ceiling")
+	var failed_component_fixture: Dictionary = paired_component_fixture.duplicate(true)
+	var failed_v2: Dictionary = failed_component_fixture["competent-player-v2"]
+	(failed_v2["cases"] as Array)[0]["elite_deaths"] = 4
+	(failed_v2["cases"] as Array)[0]["elite_wins"] = 6
+	var failed_component_gate: Dictionary = _evaluate_strategy_component_gate(failed_component_fixture)
+	_check(not bool(failed_component_gate.get("passed", true)) and not bool(failed_component_gate.get("elite_gate_passed", true)), "component gate rejects an over-limit v2 elite death rate")
+	var invalid_count_fixture: Dictionary = paired_component_fixture.duplicate(true)
+	var invalid_count_case: Dictionary = (invalid_count_fixture["competent-player-v2"]["cases"] as Array)[0]
+	invalid_count_case["wins"] = 65
+	(invalid_count_case["chapter_attribution"] as Array)[0]["completed_runs"] = 65
+	invalid_count_case["elite_deaths"] = -1
+	var invalid_count_gate: Dictionary = _evaluate_strategy_component_gate(invalid_count_fixture)
+	_check(not bool(invalid_count_gate.get("paired_options_passed", true)) and not bool(invalid_count_gate.get("passed", true)), "component gate fails closed on impossible raw counts")
+	var elite_boundary_fixture: Dictionary = paired_component_fixture.duplicate(true)
+	var elite_boundary_case: Dictionary = (elite_boundary_fixture["competent-player-v2"]["cases"] as Array)[0]
+	elite_boundary_case["elite_visits"] = 20
+	elite_boundary_case["elite_wins"] = 13
+	elite_boundary_case["elite_deaths"] = 7
+	_check(bool(_evaluate_strategy_component_gate(elite_boundary_fixture).get("elite_gate_passed", false)), "component gate includes the exact seven-in-twenty elite boundary")
+	var no_rounding_fixture: Dictionary = paired_component_fixture.duplicate(true)
+	for case_value in (no_rounding_fixture["competent-player-v2"]["cases"] as Array):
+		var no_rounding_case: Dictionary = case_value
+		if int(no_rounding_case.get("challenge_level", -1)) != 2:
+			continue
+		var no_rounding_row: Dictionary = (no_rounding_case["chapter_attribution"] as Array)[0]
+		no_rounding_row["completed_runs"] = int(no_rounding_row.get("completed_runs", 0)) - 1
+		no_rounding_row["completion_rate"] = float(no_rounding_row.get("completion_rate", 0.0)) + 0.011
+	var no_rounding_gate: Dictionary = _evaluate_strategy_component_gate(no_rounding_fixture)
+	var no_rounding_challenge: Dictionary = (no_rounding_gate.get("challenge_gates", []) as Array)[2]
+	_check(not bool(no_rounding_challenge.get("chapter_one_passed", true)) and float(no_rounding_challenge.get("chapter_one_delta", 0.0)) < -0.02, "component gate uses raw completion counts instead of hand-rounded chapter rates")
+	var actual_component_reports := _load_component_gate_reports()
+	if require_component_gate_artifacts:
+		_check(actual_component_reports.size() == COMPONENT_GATE_PROFILES.size(), "required component gate verifier loads all four 64 reports")
+	if actual_component_reports.size() == COMPONENT_GATE_PROFILES.size():
+		var actual_component_gate: Dictionary = _evaluate_strategy_component_gate(actual_component_reports)
+		_check(bool(actual_component_gate.get("paired_options_passed", false)), "real 64 component reports share the paired options")
+		_check(not bool(actual_component_gate.get("passed", true)), "real 64 component reports stop when the strategy component gate fails")
+		_check(not bool((actual_component_gate.get("challenge_gates", []) as Array)[0].get("chapter_one_passed", true)) and not bool((actual_component_gate.get("challenge_gates", []) as Array)[1].get("chapter_one_passed", true)), "real v2 report fails the C0/C1 first-chapter completion gates")
+		_check(not bool(actual_component_gate.get("elite_gate_passed", true)), "real v2 report fails the elite death-rate gate")
+	var default_current_path := "/tmp/ember021-default-current-64.json"
+	var explicit_current_path := "/tmp/ember021-current-greedy-64.json"
+	if FileAccess.file_exists(default_current_path) and FileAccess.file_exists(explicit_current_path):
+		_check(FileAccess.get_file_as_bytes(default_current_path) == FileAccess.get_file_as_bytes(explicit_current_path), "real default and explicit current reports are byte-identical")
+	if require_component_gate_artifacts:
+		_check(FileAccess.file_exists(default_current_path) and FileAccess.file_exists(explicit_current_path), "required component gate verifier loads both current compatibility reports")
+		for profile_value in COMPONENT_GATE_PROFILES:
+			var profile := str(profile_value)
+			for repeat_suffix in ["", "-repeat"]:
+				var forbidden_128_path := "/tmp/ember021-%s-128%s.json" % [profile, repeat_suffix]
+				_check(not FileAccess.file_exists(forbidden_128_path), "failed 64 gate does not leave 128 report %s" % forbidden_128_path)
 	_check(int(campaign_report.get("campaign_strategy_schema_version", 0)) == 1, "campaign report declares strategy schema version one")
 	_check(int(campaign_case.get("campaign_strategy_schema_version", 0)) == 1, "campaign case declares strategy schema version one")
 	_check(not bool(campaign_case.get("strategy_profile_fallback", true)), "known current-greedy profile does not fall back")
@@ -1689,6 +1751,229 @@ func _check_component_diagnostics_absent(report: Dictionary, context: String) ->
 			var sample: Dictionary = sample_value
 			for field in COMPONENT_DIAGNOSTIC_FIELDS:
 				_check(not sample.has(field), "%s sample does not leak 021 field %s" % [context, field])
+
+func _component_gate_fixture() -> Dictionary:
+	var reports: Dictionary = {}
+	for profile_value in COMPONENT_GATE_PROFILES:
+		var profile := str(profile_value)
+		var cases: Array = []
+		for challenge_value in COMPONENT_GATE_CHALLENGES:
+			var challenge := int(challenge_value)
+			for character_value in COMPONENT_GATE_CHARACTERS:
+				var character_id := str(character_value)
+				var current_wins := 19 - challenge * 3
+				var current_completed_runs := 45 - challenge * 5
+				var profile_wins := current_wins
+				var profile_completed_runs := current_completed_runs
+				if profile == "competent-player-v2":
+					profile_wins += 1
+					profile_completed_runs -= 1
+				cases.append({
+					"character_id": character_id,
+					"challenge_level": challenge,
+					"runs": 64,
+					"wins": profile_wins,
+					"win_rate": float(profile_wins) / 64.0,
+					"chapter_attribution": [{"chapter_id": "chapter_one", "completed_runs": profile_completed_runs, "completion_rate": float(profile_completed_runs) / 64.0}],
+					"elite_visits": 10 if profile == "competent-player-v2" and cases.is_empty() else 0,
+					"elite_wins": 7 if profile == "competent-player-v2" and cases.is_empty() else 0,
+					"elite_deaths": 3 if profile == "competent-player-v2" and cases.is_empty() else 0,
+				})
+		reports[profile] = {
+			"strategy_profile": profile,
+			"seed_model": "paired_by_iteration",
+			"iterations_per_case": 64,
+			"max_turns_per_combat": 80,
+			"case_count": cases.size(),
+			"cases": cases,
+		}
+	return reports
+
+func _evaluate_strategy_component_gate(reports: Dictionary) -> Dictionary:
+	var failures: Array = []
+	var paired_options_passed := true
+	var current_report: Dictionary = reports.get("current-greedy", {})
+	var expected_iterations := int(current_report.get("iterations_per_case", 0))
+	var expected_max_turns := int(current_report.get("max_turns_per_combat", 0))
+	for profile_value in COMPONENT_GATE_PROFILES:
+		var profile := str(profile_value)
+		var report: Dictionary = reports.get(profile, {})
+		var axis: Array = []
+		for case_value in report.get("cases", []):
+			var case_dict: Dictionary = case_value
+			axis.append("%s:%d" % [str(case_dict.get("character_id", "")), int(case_dict.get("challenge_level", -1))])
+		var expected_axis: Array = []
+		for challenge_value in COMPONENT_GATE_CHALLENGES:
+			for character_value in COMPONENT_GATE_CHARACTERS:
+				expected_axis.append("%s:%d" % [str(character_value), int(challenge_value)])
+		axis.sort()
+		expected_axis.sort()
+		var profile_options_passed := (
+			str(report.get("strategy_profile", "")) == profile
+			and str(report.get("seed_model", "")) == "paired_by_iteration"
+			and int(report.get("iterations_per_case", 0)) == expected_iterations
+			and int(report.get("max_turns_per_combat", 0)) == expected_max_turns
+			and int(report.get("case_count", 0)) == expected_axis.size()
+			and axis == expected_axis
+		)
+		for case_value in report.get("cases", []):
+			var case_dict: Dictionary = case_value
+			var runs := int(case_dict.get("runs", 0))
+			var wins := int(case_dict.get("wins", -1))
+			var chapter_counts := _component_chapter_one_completion_counts(case_dict)
+			var elite_visits := int(case_dict.get("elite_visits", -1))
+			var elite_wins := int(case_dict.get("elite_wins", -1))
+			var elite_deaths := int(case_dict.get("elite_deaths", -1))
+			if runs != expected_iterations or not case_dict.has("wins") or wins < 0 or wins > runs:
+				profile_options_passed = false
+			if chapter_counts.size() != 2 or int(chapter_counts[0]) < 0 or int(chapter_counts[0]) > int(chapter_counts[1]):
+				profile_options_passed = false
+			if elite_visits < 0 or elite_wins < 0 or elite_deaths < 0 or elite_wins + elite_deaths != elite_visits:
+				profile_options_passed = false
+		if not profile_options_passed:
+			paired_options_passed = false
+			failures.append("%s:paired_options" % profile)
+	if not expected_iterations in [64, 128] or expected_max_turns != 80:
+		paired_options_passed = false
+		failures.append("reference:paired_options")
+
+	var current_cases := _component_cases_by_axis(current_report.get("cases", []))
+	var candidate_report: Dictionary = reports.get("competent-player-v2", {})
+	var candidate_cases := _component_cases_by_axis(candidate_report.get("cases", []))
+	var challenge_gates: Array = []
+	var challenge_gates_passed := true
+	for challenge_value in COMPONENT_GATE_CHALLENGES:
+		var challenge := int(challenge_value)
+		var current_win_total := 0.0
+		var candidate_win_total := 0.0
+		var current_chapter_total := 0.0
+		var candidate_chapter_total := 0.0
+		var current_wins := 0
+		var candidate_wins := 0
+		var current_win_runs := 0
+		var candidate_win_runs := 0
+		var current_chapter_completed := 0
+		var candidate_chapter_completed := 0
+		var current_chapter_runs := 0
+		var candidate_chapter_runs := 0
+		var challenge_inputs_valid := true
+		for character_value in COMPONENT_GATE_CHARACTERS:
+			var key := "%s:%d" % [str(character_value), challenge]
+			var current_case: Dictionary = current_cases.get(key, {})
+			var candidate_case: Dictionary = candidate_cases.get(key, {})
+			if current_case.is_empty() or candidate_case.is_empty():
+				challenge_inputs_valid = false
+				continue
+			var current_chapter_rate := _component_chapter_one_completion_rate(current_case)
+			var candidate_chapter_rate := _component_chapter_one_completion_rate(candidate_case)
+			var current_win_counts := _component_case_win_counts(current_case)
+			var candidate_win_counts := _component_case_win_counts(candidate_case)
+			var current_chapter_counts := _component_chapter_one_completion_counts(current_case)
+			var candidate_chapter_counts := _component_chapter_one_completion_counts(candidate_case)
+			if current_chapter_rate < 0.0 or candidate_chapter_rate < 0.0 or current_win_counts.size() != 2 or candidate_win_counts.size() != 2 or current_chapter_counts.size() != 2 or candidate_chapter_counts.size() != 2:
+				challenge_inputs_valid = false
+				continue
+			current_win_total += float(current_win_counts[0]) / float(current_win_counts[1])
+			candidate_win_total += float(candidate_win_counts[0]) / float(candidate_win_counts[1])
+			current_chapter_total += current_chapter_rate
+			candidate_chapter_total += candidate_chapter_rate
+			current_wins += int(current_win_counts[0])
+			candidate_wins += int(candidate_win_counts[0])
+			current_win_runs += int(current_win_counts[1])
+			candidate_win_runs += int(candidate_win_counts[1])
+			current_chapter_completed += int(current_chapter_counts[0])
+			candidate_chapter_completed += int(candidate_chapter_counts[0])
+			current_chapter_runs += int(current_chapter_counts[1])
+			candidate_chapter_runs += int(candidate_chapter_counts[1])
+		var divisor := float(COMPONENT_GATE_CHARACTERS.size())
+		var current_win_average := current_win_total / divisor
+		var candidate_win_average := candidate_win_total / divisor
+		var current_chapter_average := current_chapter_total / divisor
+		var candidate_chapter_average := candidate_chapter_total / divisor
+		var win_rate_passed := challenge_inputs_valid and candidate_wins * current_win_runs >= current_wins * candidate_win_runs
+		var chapter_one_delta := candidate_chapter_average - current_chapter_average
+		var chapter_drop_numerator := current_chapter_completed * candidate_chapter_runs - candidate_chapter_completed * current_chapter_runs
+		var chapter_drop_denominator := current_chapter_runs * candidate_chapter_runs
+		var chapter_one_passed := challenge_inputs_valid and 100 * chapter_drop_numerator <= 2 * chapter_drop_denominator
+		challenge_gates.append({
+			"challenge_level": challenge,
+			"current_average_win_rate": current_win_average,
+			"candidate_average_win_rate": candidate_win_average,
+			"win_rate_delta": candidate_win_average - current_win_average,
+			"win_rate_passed": win_rate_passed,
+			"current_average_chapter_one_completion": current_chapter_average,
+			"candidate_average_chapter_one_completion": candidate_chapter_average,
+			"chapter_one_delta": chapter_one_delta,
+			"chapter_one_passed": chapter_one_passed,
+		})
+		if not win_rate_passed:
+			challenge_gates_passed = false
+			failures.append("challenge_%d:win_rate" % challenge)
+		if not chapter_one_passed:
+			challenge_gates_passed = false
+			failures.append("challenge_%d:chapter_one_completion" % challenge)
+
+	var elite_visits := 0
+	var elite_deaths := 0
+	for case_value in candidate_report.get("cases", []):
+		var case_dict: Dictionary = case_value
+		elite_visits += int(case_dict.get("elite_visits", 0))
+		elite_deaths += int(case_dict.get("elite_deaths", 0))
+	var elite_death_rate := float(elite_deaths) / float(elite_visits) if elite_visits > 0 else 0.0
+	var elite_gate_passed := elite_visits > 0 and 20 * elite_deaths <= 7 * elite_visits
+	if not elite_gate_passed:
+		failures.append("competent-player-v2:elite_safety")
+	return {
+		"passed": paired_options_passed and challenge_gates_passed and elite_gate_passed,
+		"paired_options_passed": paired_options_passed,
+		"challenge_gates": challenge_gates,
+		"elite_visits": elite_visits,
+		"elite_deaths": elite_deaths,
+		"elite_death_rate": elite_death_rate,
+		"elite_gate_passed": elite_gate_passed,
+		"failures": failures,
+	}
+
+func _component_cases_by_axis(cases: Array) -> Dictionary:
+	var result: Dictionary = {}
+	for case_value in cases:
+		var case_dict: Dictionary = case_value
+		result["%s:%d" % [str(case_dict.get("character_id", "")), int(case_dict.get("challenge_level", -1))]] = case_dict
+	return result
+
+func _component_chapter_one_completion_rate(case_dict: Dictionary) -> float:
+	var counts := _component_chapter_one_completion_counts(case_dict)
+	if counts.size() == 2:
+		return float(counts[0]) / float(counts[1])
+	return -1.0
+
+func _component_chapter_one_completion_counts(case_dict: Dictionary) -> Array:
+	for row_value in case_dict.get("chapter_attribution", []):
+		var row: Dictionary = row_value
+		if str(row.get("chapter_id", "")) != "chapter_one":
+			continue
+		if row.has("completed_runs") and int(case_dict.get("runs", 0)) > 0:
+			return [int(row.get("completed_runs", 0)), int(case_dict.get("runs", 0))]
+	return []
+
+func _component_case_win_counts(case_dict: Dictionary) -> Array:
+	var runs := int(case_dict.get("runs", 0))
+	if case_dict.has("wins") and runs > 0:
+		return [int(case_dict.get("wins", 0)), runs]
+	return []
+
+func _load_component_gate_reports() -> Dictionary:
+	var reports: Dictionary = {}
+	for profile_value in COMPONENT_GATE_PROFILES:
+		var profile := str(profile_value)
+		var path := "/tmp/ember021-%s-64.json" % profile
+		if not FileAccess.file_exists(path):
+			return {}
+		var parsed = JSON.parse_string(FileAccess.get_file_as_string(path))
+		if not parsed is Dictionary:
+			return {}
+		reports[profile] = parsed
+	return reports
 
 func _check(condition: bool, message: String) -> void:
 	if not condition:

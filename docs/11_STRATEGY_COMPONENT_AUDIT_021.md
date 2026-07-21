@@ -231,4 +231,21 @@
 
 021-02 没有修改生产卡牌、敌人、遭遇、角色、经济或数值树 JSON，也没有修改 `CombatState.gd`、`MapGenerator.gd`、`Main.gd`、正式 256 matrix 或真人试玩证据。完整游戏交付状态仍保持原判定，本阶段只关闭策略实现与精英安全门缺口。
 
-021-02 最终独立双阶段复审裁决为 `C0/M0/m0`；本任务允许提交。021-03 的四 profile `3×4×64` paired verification 尚未开始，本提交不包含方向性数值结论、master 合并或试玩包。
+021-02 最终独立双阶段复审裁决为 `C0/M0/m0`；本任务允许进入 021-03。021-03 的四 profile `3×4×64` paired verification 已完成并按硬门停机；本批不包含方向性数值通过结论、master 合并或试玩包。
+
+## 11. 021-03 实施证据：四组件配对验证与停机裁决
+
+四 profile 已使用完全相同的三角色、四挑战、64 iterations、80 max turns、`paired_by_iteration` 和 `component-v1` diagnostics 生成 12-case 报告。测试层 gate 从合法域内的 `wins/runs` 与第一章 `completed_runs/runs` 计算，不依赖三位小数展示率，也不会手工舍入后改变 `0.02` 边界；elite 门以 `20×deaths <= 7×visits` 判定并覆盖等号边界。显式 artifact verifier 强制四份 64 报告存在且所有 128/重复输出不存在。
+
+| Profile | C0 胜率/第一章 | C1 胜率/第一章 | C2 胜率/第一章 | C3 胜率/第一章 | Elite 死亡/访问 |
+| --- | --- | --- | --- | --- | --- |
+| current | 4.69% / 40.10% | 2.08% / 27.08% | 0.52% / 11.46% | 0.52% / 5.73% | 1/15 |
+| v1 meta | 5.73% / 28.65% | 4.17% / 18.23% | 0.00% / 8.85% | 0.00% / 4.17% | 157/247 |
+| combat-v1 | 10.94% / 42.19% | 6.25% / 34.90% | 1.04% / 17.71% | 0.00% / 9.38% | 1/22 |
+| v2 | 7.81% / 28.65% | 2.60% / 21.88% | 2.08% / 14.06% | 1.04% / 7.81% | 159/256 |
+
+v2 的 C0-C3 胜率均不低于 current；但第一章完成率在 C0 下降 `22/192=0.11458`、C1 下降 `10/192=0.05208`，均超过 `0.02`。v2 虽有 256 次精英访问，死亡 159 次，`159/256=0.62109` 超过 `0.35`。因此 64 gate 未全过，按固定决策表写 `paused_no_strategy_component_passed`，未启动或生成 128 报告。
+
+默认 current 与显式 `current-greedy` 的完整 64 报告 byte-identical，SHA-256 均为 `05d28aab84cd28d2b789bafcbb55f358828c838f9ba70165022e40481c9f38d0`。四份 profile 报告和逐门结果见 `03-paired-component-verification/verification-report.md`。`data/config/numerical_tree.json` SHA-256 仍为 `1f0cc2cbf45739c8b82abb92380c91138673a716d0031be0b57c5c0eacd5845e`，正式 matrix 保持 3×4×256、`current-greedy`、80 turns。
+
+本轮只完成策略组件验证，没有证明游戏数值已经适合资深玩家，也没有解锁下一轮生产数值候选。下一步需重新审计 competent meta 与 elite safety 的组合：combat-v1 单独提高前两档进度且精英死亡率低，而 v2 仍继承 meta 的高精英暴露和死亡集中；不得通过降低门槛、扩大容差或把失败 64 报告写入正式矩阵来绕过问题。
