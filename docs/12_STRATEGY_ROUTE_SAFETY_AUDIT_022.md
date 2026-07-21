@@ -58,3 +58,14 @@ stage_state:
 - v3 保持 v2 历史身份，避免静默改写已审计报告。
 - 完整图搜索以 graph 的 Boss 终点为安全目标；无 Boss 或无可达安全路径时走旧确定性评分，不改变旧 fixture。
 
+## 022-01 实施证据
+
+- 新 profile `competent-player-v3` 已映射为 `competent/competent/predictive-v2`；current、v1、combat-v1 与 v2 的名称和分支不变。
+- v3 在每次路线选择时递归检查候选是否存在到 Boss 的安全路径。精英仍复用 021 的三稳定种子、`2/3` 胜利和胜局中位 HP `>=ceil(max_hp*0.20)` predictor，没有复制战斗结算。
+- safe candidate 集合非空时，所有无法安全到 Boss 的候选被硬过滤；集合为空时继续使用旧三层 route score 和稳定 node-id fallback，不返回空节点。
+- cache key 继续包含 node id 和完整 preview state；当前递归路径 active set 只使用 node id，因此宝箱不断改变 preview state 的 malformed cycle 也会终止。测试在修复前稳定产生 stack overflow，修复后无任何 SCRIPT ERROR。
+- fixture 覆盖五层以上不安全精英漏斗、v2 历史行为、安全精英路线、全不安全 fallback、不同 preview state cache、状态变化环和重复选择确定性。
+- 单格真实 campaign smoke：`ember_exile/C0/1 iteration/80 max turns` 用时 `real 0.35s`，报告 `/tmp/ember022-v3-performance-smoke.json`；component 映射准确，路线理由记录 `elite_safety_rejected=2`。
+- 生产 `data/config/numerical_tree.json` SHA-256 仍为 `1f0cc2cbf45739c8b82abb92380c91138673a716d0031be0b57c5c0eacd5845e`；未修改生产 JSON、CombatState、MapGenerator、Main、正式 256 rows 或真人 cohort。
+
+022-01 只关闭完整图路线安全实现缺口，不代表数值树已通过。Stage 1 通过，独立强模型 Stage 2 为 `C0/M0/m1`；唯一 minor 是 `BalanceSimulator.gd` 的长期结构债务，本冻结批次不扩大重构。下一步允许进入 022-02 的四 profile `3x4x64` paired gate。

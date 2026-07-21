@@ -33,7 +33,7 @@
 | 安全终点 | graph 中 `type=boss` | 任意 dead end |
 | 搜索 | 从候选递归完整 successors；elite 复用现有 3-seed predictor | 增大固定 depth、静态成熟度、单 seed |
 | 过滤 | safe candidate 集合非空才过滤；全 false 走旧评分 | 返回空节点或无解死循环 |
-| 环保护 | `node_id + preview state key` active set，环分支返回 false | 无界递归 |
+| 环保护 | cache 使用 `node_id + preview state key`；当前递归路径 active set 只使用 node id，环分支返回 false | 无界递归或让状态变化绕过回边检测 |
 | combat policy | v3 predictor 复用 v2 competent combat/potion policy | 新结算器或真实 state 副作用 |
 
 ## 文件清单

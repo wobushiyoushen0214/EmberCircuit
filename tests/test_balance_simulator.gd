@@ -48,7 +48,13 @@ func _run() -> void:
 	])
 	_check(str(combat_cli_options.get("strategy_profile", "")) == "competent-combat-v1", "campaign CLI accepts the competent combat component profile")
 	_check(str(combat_cli_options.get("strategy_diagnostics", "")) == "component-v1", "campaign CLI accepts component strategy diagnostics")
-	for known_profile in ["current-greedy", "competent-player-v1", "competent-combat-v1", "competent-player-v2"]:
+	var full_graph_cli_options: Dictionary = BalanceCliScript.parse_options_for_args([
+		"--mode=campaign",
+		"--strategy-profile=competent-player-v3",
+		"--strategy-diagnostics=component-v1",
+	])
+	_check(str(full_graph_cli_options.get("strategy_profile", "")) == "competent-player-v3", "campaign CLI preserves the full-graph route safety profile")
+	for known_profile in ["current-greedy", "competent-player-v1", "competent-combat-v1", "competent-player-v2", "competent-player-v3"]:
 		var known_config: Dictionary = simulator._campaign_strategy_config(known_profile)
 		_check(str(known_config.get("profile", "")) == known_profile and not bool(known_config.get("fallback", true)), "campaign API accepts strategy profile %s without fallback" % known_profile)
 	var component_mapping_expectations := {
@@ -56,6 +62,7 @@ func _run() -> void:
 		"competent-player-v1": {"meta": "competent", "combat": "current", "elite_safety": "off"},
 		"competent-combat-v1": {"meta": "current", "combat": "competent", "elite_safety": "off"},
 		"competent-player-v2": {"meta": "competent", "combat": "competent", "elite_safety": "predictive-v1"},
+		"competent-player-v3": {"meta": "competent", "combat": "competent", "elite_safety": "predictive-v2"},
 	}
 	for profile_value in component_mapping_expectations.keys():
 		_check(simulator._campaign_strategy_components(str(profile_value)) == component_mapping_expectations.get(profile_value, {}), "strategy profile %s maps to its exact components" % str(profile_value))
@@ -75,7 +82,7 @@ func _run() -> void:
 	for legacy_profile in ["current-greedy", "competent-player-v1"]:
 		var legacy_profile_decision: Dictionary = simulator._choose_card(lethal_fixture, legacy_profile)
 		_check(int(legacy_profile_decision.get("hand_index", -1)) == int(legacy_lethal_fixture_decision.get("hand_index", -2)), "%s preserves the legacy scorer choice" % legacy_profile)
-	for competent_combat_profile in ["competent-combat-v1", "competent-player-v2"]:
+	for competent_combat_profile in ["competent-combat-v1", "competent-player-v2", "competent-player-v3"]:
 		var competent_lethal_decision: Dictionary = simulator._choose_card(lethal_fixture, competent_combat_profile)
 		_check(int(competent_lethal_decision.get("hand_index", -1)) == 1 and int(competent_lethal_decision.get("target_index", -1)) == 0, "%s prioritizes an executable immediate lethal" % competent_combat_profile)
 	var phase_block_card := {"id": "fixture_phase_block_attack", "type": "attack", "target": "enemy", "cost": 1, "effects": [{"type": "damage", "amount": 37, "hits": 2}]}
@@ -1407,7 +1414,7 @@ func _run() -> void:
 	current_tied_diagnostic_state["route_choice_reason_counts"] = {}
 	_check(simulator._choose_next_campaign_node(current_tied_diagnostic_state, tied_diagnostic_candidates) == "alpha_path", "diagnostic current profile resolves ties by stable node id without changing diagnostics-off history")
 	_check(int((current_tied_diagnostic_state.get("route_choice_reason_counts", {}) as Dictionary).get("stable_node_id_tiebreak", 0)) == 1, "diagnostic current profile records the stable tie-break reason")
-	for tied_profile in ["current-greedy", "competent-player-v1", "competent-combat-v1", "competent-player-v2"]:
+	for tied_profile in ["current-greedy", "competent-player-v1", "competent-combat-v1", "competent-player-v2", "competent-player-v3"]:
 		var profile_tie_state := tied_diagnostic_state.duplicate(true)
 		profile_tie_state["strategy_profile"] = tied_profile
 		profile_tie_state["route_choice_reason_counts"] = {}
@@ -1499,6 +1506,105 @@ func _run() -> void:
 		],
 	}
 	_check(simulator._choose_next_campaign_node(unsafe_future_state, unsafe_future_graph.get("layers", [])[0], unsafe_future_graph) == "future_safe_path", "future treasure value cannot offset a cached unsafe elite hard rejection")
+	var deep_funnel_v3_state: Dictionary = unsafe_v2_route_state.duplicate(true)
+	deep_funnel_v3_state["strategy_profile"] = "competent-player-v3"
+	deep_funnel_v3_state["route_choice_reason_counts"] = {}
+	var deep_treasure_node := {"id": "deep_treasure_path", "type": "treasure"}
+	var deep_safe_node := {"id": "deep_safe_path", "type": "event"}
+	var deep_preview_state: Dictionary = simulator._campaign_preview_state_after_node(deep_funnel_v3_state, deep_treasure_node)
+	var deep_unsafe_key: String = simulator._elite_prediction_cache_key(deep_preview_state, "executor_elite", "competent-player-v2")
+	(deep_funnel_v3_state["elite_prediction_cache"] as Dictionary)[deep_unsafe_key] = unsafe_elite_prediction
+	var deep_funnel_graph := {
+		"layers": [
+			[deep_treasure_node, deep_safe_node],
+			[{"id": "deep_risky_1", "type": "event"}, {"id": "deep_safe_1", "type": "event"}],
+			[{"id": "deep_risky_2", "type": "event"}, {"id": "deep_safe_2", "type": "event"}],
+			[{"id": "deep_risky_3", "type": "event"}, {"id": "deep_safe_3", "type": "event"}],
+			[{"id": "deep_unsafe_elite", "type": "elite", "encounter_id": "executor_elite"}, {"id": "deep_safe_4", "type": "event"}],
+			[{"id": "deep_risky_boss", "type": "boss"}, {"id": "deep_safe_boss", "type": "boss"}],
+		],
+		"edges": [
+			{"from": "deep_treasure_path", "to": "deep_risky_1"},
+			{"from": "deep_risky_1", "to": "deep_risky_2"},
+			{"from": "deep_risky_2", "to": "deep_risky_3"},
+			{"from": "deep_risky_3", "to": "deep_unsafe_elite"},
+			{"from": "deep_unsafe_elite", "to": "deep_risky_boss"},
+			{"from": "deep_safe_path", "to": "deep_safe_1"},
+			{"from": "deep_safe_1", "to": "deep_safe_2"},
+			{"from": "deep_safe_2", "to": "deep_safe_3"},
+			{"from": "deep_safe_3", "to": "deep_safe_4"},
+			{"from": "deep_safe_4", "to": "deep_safe_boss"},
+		],
+	}
+	_check(simulator._choose_next_campaign_node(deep_funnel_v3_state, deep_funnel_graph.get("layers", [])[0], deep_funnel_graph) == "deep_safe_path", "v3 rejects an unsafe elite funnel beyond the legacy three-layer preview")
+	_check(int((deep_funnel_v3_state.get("route_choice_reason_counts", {}) as Dictionary).get("elite_safety_rejected", 0)) == 1, "v3 records a full-graph elite safety rejection")
+	var deep_funnel_v2_state: Dictionary = deep_funnel_v3_state.duplicate(true)
+	deep_funnel_v2_state["strategy_profile"] = "competent-player-v2"
+	deep_funnel_v2_state["route_choice_reason_counts"] = {}
+	_check(simulator._choose_next_campaign_node(deep_funnel_v2_state, deep_funnel_graph.get("layers", [])[0], deep_funnel_graph) == "deep_treasure_path", "v2 preserves its historical three-layer route safety behavior")
+	var safe_full_graph_state: Dictionary = deep_funnel_v3_state.duplicate(true)
+	var safe_full_graph_treasure := {"id": "safe_elite_treasure", "type": "treasure"}
+	var safe_full_graph_preview: Dictionary = simulator._campaign_preview_state_after_node(safe_full_graph_state, safe_full_graph_treasure)
+	var safe_full_graph_key: String = simulator._elite_prediction_cache_key(safe_full_graph_preview, "executor_elite", "competent-player-v2")
+	safe_full_graph_state["elite_prediction_cache"] = {safe_full_graph_key: safe_elite_prediction}
+	var safe_elite_graph := {
+		"layers": [
+			[safe_full_graph_treasure, {"id": "safe_elite_bypass", "type": "event"}],
+			[{"id": "predicted_safe_elite", "type": "elite", "encounter_id": "executor_elite"}, {"id": "safe_elite_bypass_2", "type": "event"}],
+			[{"id": "safe_elite_boss", "type": "boss"}, {"id": "safe_elite_bypass_boss", "type": "boss"}],
+		],
+		"edges": [
+			{"from": "safe_elite_treasure", "to": "predicted_safe_elite"},
+			{"from": "predicted_safe_elite", "to": "safe_elite_boss"},
+			{"from": "safe_elite_bypass", "to": "safe_elite_bypass_2"},
+			{"from": "safe_elite_bypass_2", "to": "safe_elite_bypass_boss"},
+		],
+	}
+	_check(simulator._campaign_has_safe_boss_route(safe_full_graph_state, safe_elite_graph, "safe_elite_treasure", {}) , "v3 treats a predicted-safe elite route as Boss-reachable")
+	_check(simulator._choose_next_campaign_node(safe_full_graph_state, safe_elite_graph.get("layers", [])[0], safe_elite_graph) == "safe_elite_treasure", "v3 may choose a higher-value route whose elite passes prediction")
+	var all_unsafe_graph := {
+		"layers": [
+			[{"id": "all_unsafe_treasure", "type": "treasure"}, {"id": "all_unsafe_event", "type": "event"}],
+			[{"id": "all_unsafe_elite_a", "type": "elite", "encounter_id": "executor_elite"}, {"id": "all_unsafe_elite_b", "type": "elite", "encounter_id": "executor_elite"}],
+			[{"id": "all_unsafe_boss_a", "type": "boss"}, {"id": "all_unsafe_boss_b", "type": "boss"}],
+		],
+		"edges": [
+			{"from": "all_unsafe_treasure", "to": "all_unsafe_elite_a"},
+			{"from": "all_unsafe_event", "to": "all_unsafe_elite_b"},
+			{"from": "all_unsafe_elite_a", "to": "all_unsafe_boss_a"},
+			{"from": "all_unsafe_elite_b", "to": "all_unsafe_boss_b"},
+		],
+	}
+	var all_unsafe_state: Dictionary = deep_funnel_v3_state.duplicate(true)
+	var all_unsafe_treasure_preview: Dictionary = simulator._campaign_preview_state_after_node(all_unsafe_state, all_unsafe_graph.get("layers", [])[0][0])
+	var all_unsafe_event_preview: Dictionary = simulator._campaign_preview_state_after_node(all_unsafe_state, all_unsafe_graph.get("layers", [])[0][1])
+	all_unsafe_state["elite_prediction_cache"] = {
+		simulator._elite_prediction_cache_key(all_unsafe_treasure_preview, "executor_elite", "competent-player-v2"): unsafe_elite_prediction,
+		simulator._elite_prediction_cache_key(all_unsafe_event_preview, "executor_elite", "competent-player-v2"): unsafe_elite_prediction,
+	}
+	var all_unsafe_choice: String = simulator._choose_next_campaign_node(all_unsafe_state, all_unsafe_graph.get("layers", [])[0], all_unsafe_graph)
+	_check(all_unsafe_choice == "all_unsafe_event", "v3 falls back to the deterministic legacy score when no safe Boss route exists")
+	_check(not all_unsafe_choice.is_empty(), "v3 never returns an empty route solely because every Boss path contains an unsafe elite")
+	var route_safety_cache: Dictionary = {}
+	var cache_graph := {
+		"layers": [[{"id": "cache_event", "type": "event"}], [{"id": "cache_boss", "type": "boss"}]],
+		"edges": [{"from": "cache_event", "to": "cache_boss"}],
+	}
+	var cache_state_a: Dictionary = deep_funnel_v3_state.duplicate(true)
+	var cache_state_b: Dictionary = cache_state_a.duplicate(true)
+	cache_state_b["relic_ids"] = (cache_state_a.get("relic_ids", []) as Array).duplicate(true)
+	(cache_state_b["relic_ids"] as Array).append("iron_heart")
+	_check(simulator._campaign_has_safe_boss_route(cache_state_a, cache_graph, "cache_event", route_safety_cache), "full-graph route safety reaches a Boss for cache state A")
+	_check(simulator._campaign_has_safe_boss_route(cache_state_b, cache_graph, "cache_event", route_safety_cache), "full-graph route safety reaches a Boss for cache state B")
+	_check(route_safety_cache.size() == 4, "full-graph route cache separates the same node under different preview states")
+	var state_changing_cycle_graph := {
+		"layers": [[{"id": "cycle_treasure", "type": "treasure"}], [{"id": "cycle_event", "type": "event"}]],
+		"edges": [{"from": "cycle_treasure", "to": "cycle_event"}, {"from": "cycle_event", "to": "cycle_treasure"}],
+	}
+	_check(not simulator._campaign_has_safe_boss_route(deep_funnel_v3_state, state_changing_cycle_graph, "cycle_treasure", {}), "full-graph route safety terminates a state-changing cycle without a Boss")
+	var repeated_deep_choice_a: String = simulator._choose_next_campaign_node(deep_funnel_v3_state, deep_funnel_graph.get("layers", [])[0], deep_funnel_graph)
+	var repeated_deep_choice_b: String = simulator._choose_next_campaign_node(deep_funnel_v3_state, deep_funnel_graph.get("layers", [])[0], deep_funnel_graph)
+	_check(repeated_deep_choice_a == repeated_deep_choice_b and repeated_deep_choice_a == "deep_safe_path", "full-graph route safety repeats the same choice for identical inputs")
 	var accepted_optional_elite_state: Dictionary = v1_meta_fixture.duplicate(true)
 	accepted_optional_elite_state["strategy_component_diagnostics"] = true
 	accepted_optional_elite_state["route_choice_reason_counts"] = {}

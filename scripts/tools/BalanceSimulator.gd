@@ -14,6 +14,7 @@ const DEFAULT_CAMPAIGN_STRATEGY_PROFILE := "current-greedy"
 const COMPETENT_CAMPAIGN_STRATEGY_PROFILE := "competent-player-v1"
 const COMPETENT_COMBAT_STRATEGY_PROFILE := "competent-combat-v1"
 const COMPETENT_PLAYER_V2_STRATEGY_PROFILE := "competent-player-v2"
+const COMPETENT_PLAYER_V3_STRATEGY_PROFILE := "competent-player-v3"
 const COMPONENT_STRATEGY_DIAGNOSTICS := "component-v1"
 const CAMPAIGN_ROUTE_HARD_REJECT_SCORE := -1.0e20
 
@@ -196,6 +197,7 @@ func _campaign_strategy_config(requested_profile) -> Dictionary:
 		COMPETENT_CAMPAIGN_STRATEGY_PROFILE,
 		COMPETENT_COMBAT_STRATEGY_PROFILE,
 		COMPETENT_PLAYER_V2_STRATEGY_PROFILE,
+		COMPETENT_PLAYER_V3_STRATEGY_PROFILE,
 	]:
 		return {"profile": profile, "fallback": false}
 	return {"profile": DEFAULT_CAMPAIGN_STRATEGY_PROFILE, "fallback": true}
@@ -208,11 +210,13 @@ func _campaign_strategy_components(strategy_profile: String) -> Dictionary:
 			return {"meta": "current", "combat": "competent", "elite_safety": "off"}
 		COMPETENT_PLAYER_V2_STRATEGY_PROFILE:
 			return {"meta": "competent", "combat": "competent", "elite_safety": "predictive-v1"}
+		COMPETENT_PLAYER_V3_STRATEGY_PROFILE:
+			return {"meta": "competent", "combat": "competent", "elite_safety": "predictive-v2"}
 		_:
 			return {"meta": "current", "combat": "current", "elite_safety": "off"}
 
 func _strategy_uses_competent_meta(strategy_profile: String) -> bool:
-	return strategy_profile in [COMPETENT_CAMPAIGN_STRATEGY_PROFILE, COMPETENT_PLAYER_V2_STRATEGY_PROFILE]
+	return strategy_profile in [COMPETENT_CAMPAIGN_STRATEGY_PROFILE, COMPETENT_PLAYER_V2_STRATEGY_PROFILE, COMPETENT_PLAYER_V3_STRATEGY_PROFILE]
 
 func _run_campaign_once(character_id: String, challenge_level: int, max_turns: int, seed_value: int, strategy_profile: String = DEFAULT_CAMPAIGN_STRATEGY_PROFILE, strategy_profile_fallback: bool = false, component_diagnostics: bool = false) -> Dictionary:
 	seed(seed_value)
@@ -1041,7 +1045,7 @@ func _choose_card(combat, strategy_profile: String = DEFAULT_CAMPAIGN_STRATEGY_P
 	return best_decision
 
 func _strategy_uses_competent_combat(strategy_profile: String) -> bool:
-	return strategy_profile in [COMPETENT_COMBAT_STRATEGY_PROFILE, COMPETENT_PLAYER_V2_STRATEGY_PROFILE]
+	return strategy_profile in [COMPETENT_COMBAT_STRATEGY_PROFILE, COMPETENT_PLAYER_V2_STRATEGY_PROFILE, COMPETENT_PLAYER_V3_STRATEGY_PROFILE]
 
 func _competent_card_score(combat, card: Dictionary, target_index: int, incoming_damage: int) -> float:
 	if _card_player_hp_cost_is_fatal(combat, card, target_index):
@@ -2315,7 +2319,10 @@ func _elite_prediction_summary(max_hp: int, outcomes: Array) -> Dictionary:
 	}
 
 func _campaign_uses_predictive_elite_safety(state: Dictionary) -> bool:
-	return str(state.get("strategy_profile", DEFAULT_CAMPAIGN_STRATEGY_PROFILE)) == COMPETENT_PLAYER_V2_STRATEGY_PROFILE
+	return str(state.get("strategy_profile", DEFAULT_CAMPAIGN_STRATEGY_PROFILE)) in [COMPETENT_PLAYER_V2_STRATEGY_PROFILE, COMPETENT_PLAYER_V3_STRATEGY_PROFILE]
+
+func _campaign_uses_full_graph_elite_safety(state: Dictionary) -> bool:
+	return str(state.get("strategy_profile", DEFAULT_CAMPAIGN_STRATEGY_PROFILE)) == COMPETENT_PLAYER_V3_STRATEGY_PROFILE
 
 func _campaign_elite_is_safe(state: Dictionary, node: Dictionary) -> bool:
 	if not _campaign_uses_predictive_elite_safety(state) or str(node.get("type", "")) != "elite":
@@ -2339,6 +2346,15 @@ func _choose_next_campaign_node(state: Dictionary, candidates: Array, graph: Dic
 	var rejected_unsafe_elite := false
 	var diagnostic_enabled := bool(state.get("strategy_component_diagnostics", false))
 	var stable_tie_break := competent_profile or diagnostic_enabled
+	var safe_boss_route_ids: Dictionary = {}
+	if _campaign_uses_full_graph_elite_safety(state) and not graph.is_empty():
+		var route_safety_cache: Dictionary = {}
+		for candidate_value in candidates:
+			var candidate: Dictionary = candidate_value
+			var candidate_id: String = str(candidate.get("id", ""))
+			if _campaign_has_safe_boss_route(state, graph, candidate_id, route_safety_cache):
+				safe_boss_route_ids[candidate_id] = true
+	var has_safe_boss_route := not safe_boss_route_ids.is_empty()
 	var has_non_elite_alternative := false
 	for candidate_value in candidates:
 		if str((candidate_value as Dictionary).get("type", "")) != "elite":
@@ -2354,6 +2370,9 @@ func _choose_next_campaign_node(state: Dictionary, candidates: Array, graph: Dic
 		state["optional_elite_offer_count"] = int(state.get("optional_elite_offer_count", 0)) + elite_offer_count
 	for node in candidates:
 		var node_dict: Dictionary = node
+		if has_safe_boss_route and not safe_boss_route_ids.has(str(node_dict.get("id", ""))):
+			rejected_unsafe_elite = true
+			continue
 		if has_non_elite_alternative and not _campaign_elite_is_safe(state, node_dict):
 			rejected_unsafe_elite = true
 			continue
@@ -2383,6 +2402,34 @@ func _choose_next_campaign_node(state: Dictionary, candidates: Array, graph: Dic
 		_increment_count(reason_counts, "elite_safety_rejected" if rejected_unsafe_elite and str(chosen_node.get("type", "")) != "elite" else ("stable_node_id_tiebreak" if stable_tie_break and had_best_tie else "highest_score"))
 		state["route_choice_reason_counts"] = reason_counts
 	return best_id
+
+func _campaign_has_safe_boss_route(state: Dictionary, graph: Dictionary, node_id: String, cache: Dictionary, active: Dictionary = {}) -> bool:
+	if node_id.is_empty():
+		return false
+	var cache_key := "%s|%s" % [node_id, _campaign_preview_state_key(state)]
+	if cache.has(cache_key):
+		return bool(cache[cache_key])
+	if active.has(node_id):
+		return false
+	var node: Dictionary = _graph_node_by_id(graph, node_id)
+	if node.is_empty():
+		cache[cache_key] = false
+		return false
+	active[node_id] = true
+	var safe := false
+	if _campaign_elite_is_safe(state, node):
+		if str(node.get("type", "")) == "boss":
+			safe = true
+		else:
+			var next_state: Dictionary = _campaign_preview_state_after_node(state, node)
+			for successor_value in _successor_nodes(graph, node_id):
+				var successor: Dictionary = successor_value
+				if _campaign_has_safe_boss_route(next_state, graph, str(successor.get("id", "")), cache, active):
+					safe = true
+					break
+	active.erase(node_id)
+	cache[cache_key] = safe
+	return safe
 
 func _campaign_route_preview_score(state: Dictionary, graph: Dictionary, node_id: String, depth: int, cache: Dictionary, allow_unsafe_current_elite: bool = false) -> float:
 	if node_id.is_empty():

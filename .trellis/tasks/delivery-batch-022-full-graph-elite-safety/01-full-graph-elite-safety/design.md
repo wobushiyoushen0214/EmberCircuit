@@ -10,7 +10,7 @@
 
 ## API 契约
 
-- `_campaign_has_safe_boss_route(state, graph, node_id, cache, active)` 返回 bool，不修改 `state` 的业务字段。
+- `_campaign_has_safe_boss_route(state, graph, node_id, cache, active)` 返回 bool；cache key 使用 node+preview state，active path 只使用 node id，从而让状态变化的回边也能终止；不修改 `state` 的业务字段。
 - v3 通过 `_campaign_strategy_components()` 暴露 `predictive-v2`；v2 继续 `predictive-v1`。
 - v3 的 predictor combat execution 使用 v2 的 competent policy，仅 safety component 名称与路线过滤不同。
 
@@ -34,4 +34,3 @@
 ## 结构健康度预检
 
 `BalanceSimulator.gd` 约 3800 行，超过 400 行阈值；本任务不拆平行 simulator，不做行为重构，只在 route helper 相邻区域加入一个纯递归 helper并复用已有 preview/predictor。
-
