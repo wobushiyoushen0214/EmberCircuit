@@ -1,0 +1,5 @@
+{"file":"docs/11_STRATEGY_COMPONENT_AUDIT_021.md","reason":"固定 v2 predictive-v1、3-seed predictor、forced elite 与停机证据"}
+{"file":"docs/12_STRATEGY_ROUTE_SAFETY_AUDIT_022.md","reason":"固定 v3 profile、完整图终点和无安全路径 fallback 决策"}
+{"file":"tests/test_balance_simulator.gd","reason":"提供现有 route preview、elite cache 与 compatibility fixture 范例"}
+{"file":"data/config/level_tree.json","reason":"固定实际地图 graph 的 Boss 终点与无精英安全路线契约"}
+

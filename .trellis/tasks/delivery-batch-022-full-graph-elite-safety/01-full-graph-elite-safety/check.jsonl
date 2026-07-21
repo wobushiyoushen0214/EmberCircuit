@@ -1,0 +1,4 @@
+{"file":"docs/11_STRATEGY_COMPONENT_AUDIT_021.md","reason":"验证 v2 历史行为和生产冻结边界"}
+{"file":"docs/12_STRATEGY_ROUTE_SAFETY_AUDIT_022.md","reason":"验证本任务 AC 和 64 gate 前置边界"}
+{"file":"tests/test_numerical_balance_matrix.gd","reason":"保护正式 256 matrix/profile/hash 不被诊断策略覆盖"}
+

@@ -1,35 +1,35 @@
 # EmberCircuit Delivery State
 
 stage_state:
-  state: S8_RUN_LOG
+  state: S7_CREATE_TASKS
   loop_mode: L3
   audit_scope: delta
-  current_round: 2
+  current_round: 3
   max_rounds: 6
   open_gaps: 8
-  tasks_created: 3
-  tasks_completed: 3
+  tasks_created: 2
+  tasks_completed: 0
   carry_over: 0
   critical_review_issues: 0
-  next_legal_action: pause-human-needed after Batch 021-03 64 gate failed; do not run 128 or change production values
+  next_legal_action: implement-022-01-full-graph-elite-safety
   stop_conditions:
-    - paused_no_strategy_component_passed: v2 C0/C1 chapter-one completion and elite death-rate gates failed
+    - none
 ---
 
 loop_mode: L3
-current_round: 2
-next_loop_recommendation: pause-human-needed
+current_round: 3
+next_loop_recommendation: continue-next-batch
 carry_over: 0
 
 ## 基线
 
 - source_requirements: `docs/00_MASTER_PLAN.md`（由 `docs/01-08` 细化）
 - mvp_baseline_commit: `2e3e857`
-- last_audited_commit: `0e45202`（021 前置组件审计的代码基线；之后未改策略、数值、地图或矩阵）
+- last_audited_commit: `f6df80d`（021 合并后的 delta audit 基线）
 - loop_mode: `L3`
-- current_round: `2`
+- current_round: `3`
 - max_rounds: `6`
-- current_batch_id: `delivery-batch-021-strategy-component-ablation`（用户已于 2026-07-20 确认执行）
+- current_batch_id: `delivery-batch-022-full-graph-elite-safety`（用户于 2026-07-21 继续授权后创建）
 
 ## 需求状态
 
@@ -37,32 +37,31 @@ carry_over: 0
 | --- | --- | --- | --- | --- | --- | --- |
 | REQ-001 | DONE | `scripts/combat/CombatState.gd` | `tests/test_combat_core.gd` | none | 3 | 0 |
 | REQ-002 | DONE | `scripts/main/Main.gd`, `scripts/map/MapGenerator.gd`, `data/config/level_tree.json` | `tests/test_run_flow.gd`, `tests/test_map_generator.gd`, `tests/test_map_view.gd` | none | 3 | 0 |
-| REQ-003 | PARTIAL | `data/cards/cards.json`, `data/enemies/enemies.json`, `data/config/monster_scaling.json`, `scripts/tools/NumericalTreeAuditor.gd`, `scripts/tools/NumericalPressureMetrics.gd`, `scripts/tools/BalanceSimulator.gd`, `data/config/numerical_tree.json`, `docs/10_STRATEGY_DIFFERENTIAL_020.md`, `docs/11_STRATEGY_COMPONENT_AUDIT_021.md` | `tests/test_act1_rebaseline.gd`, `tests/test_numerical_pressure_metrics.gd`, `tests/test_numerical_tree_auditor.gd`, `tests/test_balance_simulator.gd`, `tests/test_numerical_balance_matrix.gd`, `tests/test_act2_act3_rebaseline.gd` | 021 前置审计确认 020 未分离 meta/combat 组件；需先完成组件消融与胜任战斗 gate，生产数值和正式矩阵继续冻结 | 2 | 0 |
-| REQ-004 | PARTIAL | `data/config/player.json`, `data/config/progression_systems.json`, `data/cards/cards.json`, `scripts/main/Main.gd`, `scripts/tools/BalanceSimulator.gd`, `docs/10_STRATEGY_DIFFERENTIAL_020.md`, `docs/11_STRATEGY_COMPONENT_AUDIT_021.md` | `tests/test_act1_rebaseline.gd`, `tests/test_progression_systems.gd`, `tests/test_combat_core.gd`, `tests/test_run_flow.gd`, `tests/test_balance_card_telemetry.gd`, `tests/test_balance_simulator.gd` | `_choose_card/_score_card` 不读取 profile，缺 lethal、防御缺口、能量/状态顺序与角色资源战术 fixture；角色基础数值仍冻结 | 2 | 0 |
-| REQ-005 | PARTIAL | `data/enemies/enemies.json`, `data/encounters/encounters.json`, `data/config/monster_scaling.json`, `scripts/combat/CombatState.gd`, `scripts/tools/NumericalTreeAuditor.gd`, `scripts/tools/BalanceSimulator.gd`, `scripts/main/Main.gd`, `docs/10_STRATEGY_DIFFERENTIAL_020.md`, `docs/11_STRATEGY_COMPONENT_AUDIT_021.md` | `tests/test_act1_rebaseline.gd`, `tests/test_combat_core.gd`, `tests/test_balance_simulator.gd`, `tests/test_numerical_tree_auditor.gd`, `tests/test_run_flow.gd`, `tests/test_act2_act3_rebaseline.gd`, `tests/test_map_generator.gd` | competent 精英访问 36→514、死亡 1→325；现有静态 pressure 和软成熟度分数不能形成角色/挑战感知的生存准入 | 2 | 0 |
+| REQ-003 | PARTIAL | `data/cards/cards.json`, `data/enemies/enemies.json`, `data/config/monster_scaling.json`, `scripts/tools/NumericalTreeAuditor.gd`, `scripts/tools/NumericalPressureMetrics.gd`, `scripts/tools/BalanceSimulator.gd`, `data/config/numerical_tree.json`, `docs/10_STRATEGY_DIFFERENTIAL_020.md`, `docs/11_STRATEGY_COMPONENT_AUDIT_021.md`, `docs/12_STRATEGY_ROUTE_SAFETY_AUDIT_022.md` | `tests/test_act1_rebaseline.gd`, `tests/test_numerical_pressure_metrics.gd`, `tests/test_numerical_tree_auditor.gd`, `tests/test_balance_simulator.gd`, `tests/test_numerical_balance_matrix.gd`, `tests/test_act2_act3_rebaseline.gd` | 021 组件 gate 停机；022 需补完整图路线安全可达性后再判断策略是否解锁数值候选 | 3 | 0 |
+| REQ-004 | PARTIAL | `data/config/player.json`, `data/config/progression_systems.json`, `data/cards/cards.json`, `scripts/main/Main.gd`, `scripts/tools/BalanceSimulator.gd`, `docs/10_STRATEGY_DIFFERENTIAL_020.md`, `docs/11_STRATEGY_COMPONENT_AUDIT_021.md`, `docs/12_STRATEGY_ROUTE_SAFETY_AUDIT_022.md` | `tests/test_act1_rebaseline.gd`, `tests/test_progression_systems.gd`, `tests/test_combat_core.gd`, `tests/test_run_flow.gd`, `tests/test_balance_card_telemetry.gd`, `tests/test_balance_simulator.gd` | 021 战斗 fixture 通过但 v2 被未来精英漏斗放大；022 仅补路线安全，角色基础数值继续冻结 | 3 | 0 |
+| REQ-005 | PARTIAL | `data/enemies/enemies.json`, `data/encounters/encounters.json`, `data/config/monster_scaling.json`, `scripts/combat/CombatState.gd`, `scripts/tools/NumericalTreeAuditor.gd`, `scripts/tools/BalanceSimulator.gd`, `scripts/main/Main.gd`, `docs/10_STRATEGY_DIFFERENTIAL_020.md`, `docs/11_STRATEGY_COMPONENT_AUDIT_021.md`, `docs/12_STRATEGY_ROUTE_SAFETY_AUDIT_022.md` | `tests/test_act1_rebaseline.gd`, `tests/test_combat_core.gd`, `tests/test_balance_simulator.gd`, `tests/test_numerical_tree_auditor.gd`, `tests/test_run_flow.gd`, `tests/test_act2_act3_rebaseline.gd`, `tests/test_map_generator.gd` | v2 当前安全门无法向深层未来强制精英传播；022 新增 v3 全图 safe-to-Boss 过滤，精英战斗和地图数据不改 | 3 | 0 |
 | REQ-006 | PARTIAL | `data/cards/cards.json`, `data/relics/relics.json`, `data/events/events.json`, `data/config/art_assets.json`, `assets/art/generated/` | `tests/test_data_integrity.gd`, `tests/test_art_asset_auditor.gd` | batch-014 delivered 8 relic PNGs; next: replace remaining legacy event/enemy art | L3-5 | 0 |
 | REQ-007 | DONE | `scripts/core/SaveManager.gd`, `scripts/main/Main.gd`, `data/config/achievements.json` | v5 奖励事务、原子恢复、错节点/坏 ID/金币回滚和旧战斗 HP 隔离测试 | none | L3-post | 0 |
 | REQ-008 | PARTIAL | `scripts/ui/AppShell.gd`, `scripts/ui/ForgeTheme.gd`, `scripts/ui/ForgeMotion.gd`, `scripts/ui/components/`, `scripts/ui/pages/`, `scripts/main/Main.gd`, `assets/art/generated/`, `assets/fonts/NotoSansSC-Variable.ttf` | `tests/test_forge_ui_foundation.gd`, `tests/test_welcome_character_pages.gd`, `tests/test_ember_forge_route_rooms.gd`, `tests/test_ui_outcome_settings_compendium.gd`, `tests/test_visual_bounds.gd`, `tools/render_pc_gallery.gd`, `/tmp/ember018d-visual.json`, `/tmp/ember018d-performance.json` | 018D 已将 Map/Event/Shop/Campfire/Reward 真实挂入 Main→AppShell，并删除五页旧 PC 视觉树；仍保留生产内容美术与更深玩法扩展缺口 | L3-5 | 0 |
-| REQ-009 | PARTIAL | `scripts/core/PlaytestTelemetry.gd`, `scripts/core/PlaytestEvidenceGate.gd`, `tools/merge_playtest_reports.gd`, `scripts/tools/BalanceSimulator.gd`, `data/config/numerical_tree.json`, `docs/10_STRATEGY_DIFFERENTIAL_020.md`, `docs/11_STRATEGY_COMPONENT_AUDIT_021.md` | `tests/test_act1_rebaseline.gd`, `tests/test_playtest_evidence_gate.gd`, `tests/test_balance_simulator.gd`, `tests/test_numerical_balance_matrix.gd` | 020 报告缺 node visit、optional elite offer/accept、route reason 和 meta/combat component 聚合；需 opt-in 诊断 schema 后才能做组件消融 | 2 | 0 |
+| REQ-009 | PARTIAL | `scripts/core/PlaytestTelemetry.gd`, `scripts/core/PlaytestEvidenceGate.gd`, `tools/merge_playtest_reports.gd`, `scripts/tools/BalanceSimulator.gd`, `data/config/numerical_tree.json`, `docs/10_STRATEGY_DIFFERENTIAL_020.md`, `docs/11_STRATEGY_COMPONENT_AUDIT_021.md`, `docs/12_STRATEGY_ROUTE_SAFETY_AUDIT_022.md` | `tests/test_act1_rebaseline.gd`, `tests/test_playtest_evidence_gate.gd`, `tests/test_balance_simulator.gd`, `tests/test_numerical_balance_matrix.gd` | 021 诊断已能量化当前拒绝；022 需新增 v3 profile 并验证深层路线安全效果 | 3 | 0 |
 | REQ-010 | MISSING | none | none | proposed: build-grid-tactics-mode | 1 | 2 |
 | REQ-011 | PARTIAL | `export_presets.cfg`, `project.godot`, `packaging/PLAYTEST_README_ZH.txt` | alpha.8 Windows PE32+ x86_64 embedded-PCK、精确 PCK 启动、版本和压缩完整性通过 | next: native Windows matrix, commercial signing, installer and Steam integration | L3-post | 0 |
 | REQ-012 | DONE | `tests/`, `tools/render_pc_gallery.gd`, `tools/verify_ui_visual_regression.gd`, `tools/profile_ui_performance.gd`, `tests/fixtures/ui_visual_contracts.json`, `tests/golden/ui_720p/` | 28/28 strict-log regression；11/11 1280x720 区域金标；真实 Main 600 帧 profiler；focus/motion/44px/节点增量门 | none；Windows release 目标机采样归入 REQ-011 发布门 | L3-5 | 0 |
 
 ## 当前批次
 
-- batch_id: `delivery-batch-021-strategy-component-ablation`（confirmed，021-03 已按 64 gate 停机）
-- scope: `策略组件消融、胜任战斗 AI、精英生存预测与 64→128 paired gate；生产数值冻结`
+- batch_id: `delivery-batch-022-full-graph-elite-safety`（confirmed，用户继续授权后创建）
+- scope: `v3 完整地图精英安全可达性、历史 profile 兼容与 64→128 paired gate；生产数值冻结`
 - selected_reqs:
   - `REQ-003`
   - `REQ-004`
   - `REQ-005`
   - `REQ-009`
 - proposed_tasks:
-  - `021-01-strategy-component-ablation-contract`（中风险；profile/opt-in telemetry）
-  - `021-02-competent-combat-and-elite-safety`（高风险；本批唯一高风险任务）
-  - `021-03-paired-component-verification`（中风险；64 方向门后才允许 128）
-- result: `paused_no_strategy_component_passed`
-- audit_evidence: `docs/11_STRATEGY_COMPONENT_AUDIT_021.md`、`.trellis/tasks/delivery-batch-021-strategy-component-ablation/03-paired-component-verification/verification-report.md`、`/tmp/ember021-*-64.json`
+  - `022-01-full-graph-elite-safety`（高风险；本批唯一高风险任务）
+  - `022-02-paired-route-safety-verification`（中风险；64 全过后才允许 128）
+- result: `in_progress`
+- audit_evidence: `docs/12_STRATEGY_ROUTE_SAFETY_AUDIT_022.md`、`docs/11_STRATEGY_COMPONENT_AUDIT_021.md`、`/tmp/ember021-*-64.json`
 - excluded_this_round:
   - `REQ-006/008`: 内容资产、正式音频和演出不与高风险数值批次混合
   - `REQ-012`: 仅回归，不重新设计测试基础设施
@@ -72,7 +71,7 @@ carry_over: 0
 
 | 条目 | 原因 | 需要人工提供什么 | 起始轮次 |
 | --- | --- | --- | --- |
-| `paused_no_strategy_component_passed` | 021-03 的 v2 C0/C1 第一章与精英死亡率硬门失败，禁止运行 128 或修改生产数值 | 复核证据后确认下一轮 meta/elite-safety 重新审计方向 | 2 |
+| `paused_no_strategy_component_passed` | 021-03 的 v2 C0/C1 第一章与精英死亡率硬门失败；已由 022 v3 路线安全任务承接，当前禁止生产调值 | 022-02 完成 64 paired gate；若失败再暂停 | 2 |
 
 ## 人工决策
 
@@ -108,6 +107,7 @@ carry_over: 0
 - 2026-07-19: 021 前置 delta audit 证明 `competent-player-v1` 仍使用旧战斗出牌 AI；精英访问 36→514、死亡 1→325，死亡成熟度均值约 0.209。提出组件消融、胜任战斗与精英生存预测批次，等待批次确认。
 - 2026-07-20: 用户明确回复“确认执行 021”；确认 `delivery-batch-021-strategy-component-ablation`，允许创建三项串行任务并按严格 TDD、verifier 与双阶段评审自动推进；生产数值、正式 256 rows、真人 cohort 与 `CombatState.gd` 继续冻结。
 - 2026-07-21: 021-03 完成四 profile `3×4×64` paired verification；v2 C0/C1 第一章完成率与 elite deaths/visits=159/256 未过硬门，未生成 128，唯一状态为 `paused_no_strategy_component_passed`；生产数值、正式 256 rows 和真人 cohort 未修改，等待重新审计方向。
+- 2026-07-21: 用户继续授权 022；delta audit 确认 021 safety gate 只看当前层且深度固定 3，创建 `delivery-batch-022-full-graph-elite-safety`。新增 v3 历史兼容 profile 与完整 graph-to-Boss 安全可达性任务；生产 JSON、正式 256 rows、CombatState、地图数据和真人 cohort 继续冻结。
 
 ## 预算快照
 
@@ -119,7 +119,7 @@ carry_over: 0
 
 ## 下一轮建议
 
-- action: `pause-human-needed`
-- reason: `021-03 四 profile 64 paired gate 未全过：v2 C0/C1 第一章完成率下降超过 0.02，elite deaths/visits=159/256 超过 0.35；按规则禁止运行 128 和修改生产数值。`
-- next_batch: `待重新审计 competent meta 与 elite safety 组合后再规划`。
+- action: `implement-022-01-full-graph-elite-safety`
+- reason: `已完成 021 停机后的 delta audit；路线安全缺口有明确代码、测试和新增 profile 契约。`
+- next_batch: `delivery-batch-022-full-graph-elite-safety`
 - next_audit_scope: `delta`

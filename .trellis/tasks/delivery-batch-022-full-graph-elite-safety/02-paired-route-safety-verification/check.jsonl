@@ -1,0 +1,4 @@
+{"file":"docs/12_STRATEGY_ROUTE_SAFETY_AUDIT_022.md","reason":"对照本批次 AC、profile 与 stop state"}
+{"file":"tests/test_numerical_balance_matrix.gd","reason":"核对正式 matrix 未被 v3 diagnostics 覆盖"}
+{"file":"docs/11_STRATEGY_COMPONENT_AUDIT_021.md","reason":"核对 v2 历史 artifact 不被重写"}
+

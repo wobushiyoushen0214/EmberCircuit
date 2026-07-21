@@ -1,0 +1,4 @@
+{"file":"docs/12_STRATEGY_ROUTE_SAFETY_AUDIT_022.md","reason":"固定 v3 candidate、64/128 条件门和停机状态"}
+{"file":".trellis/tasks/delivery-batch-021-strategy-component-ablation/03-paired-component-verification/verification-report.md","reason":"复用 021 paired 报告结构与 fail-closed 证据边界"}
+{"file":"data/config/numerical_tree.json","reason":"保护正式 256 rows/profile/hash"}
+
