@@ -1,0 +1,5 @@
+{"file":".trellis/tasks/delivery-batch-023-layered-pressure-rebaseline/03-production-matrix-verification/prd.md","reason":"核对 AC-023-13 至 AC-023-17、前置、报告来源、rollback 与 File Manifest"}
+{"file":".trellis/tasks/delivery-batch-023-layered-pressure-rebaseline/02-layered-pressure-and-growth-rebaseline/tdd-progress.md","reason":"任何 256 运行前核对 selected 128 candidate 和双阶段评审证据"}
+{"file":"tests/test_numerical_balance_matrix.gd","reason":"核对正式 rows/profile/expected lists 精确符合 PASS 或 rollback 分支"}
+{"file":"tests/test_playtest_evidence_gate.gd","reason":"核对 AI 256 artifact 不进入也不满足 real-human cohort"}
+{"file":"docs/13_LAYERED_PRESSURE_REBASELINE_023.md","reason":"核对命令、report hashes、gate、生产状态和 package eligibility 均有证据"}

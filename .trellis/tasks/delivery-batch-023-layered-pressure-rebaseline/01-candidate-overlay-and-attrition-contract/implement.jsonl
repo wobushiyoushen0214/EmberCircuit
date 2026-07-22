@@ -1,0 +1,4 @@
+{"file":".trellis/audits/2026-07-22-post-022-production-numerical-candidate-delta-audit.md","reason":"固定根因证据、七条 allowlist、P1-P5 边界和生产冻结规则"}
+{"file":".trellis/tasks/delivery-batch-019-campaign-pressure-rebaseline/02-act2-act3-pressure-and-reward-rebaseline/tdd-progress.md","reason":"固定旧候选直接改生产数据后回滚的失败模式"}
+{"file":"docs/12_STRATEGY_ROUTE_SAFETY_AUDIT_022.md","reason":"固定 v3 profile、paired seed 与历史策略身份"}
+{"file":"docs/09_NUMERICAL_TREE_AND_BALANCE.md","reason":"固定 campaign targets、样本门与 AI/真人隔离规则"}

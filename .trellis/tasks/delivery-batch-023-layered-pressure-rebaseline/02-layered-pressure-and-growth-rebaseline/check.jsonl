@@ -1,0 +1,4 @@
+{"file":".trellis/tasks/delivery-batch-023-layered-pressure-rebaseline/02-layered-pressure-and-growth-rebaseline/prd.md","reason":"核对 AC-023-06 至 AC-023-12、候选顺序、raw gate 与 File Manifest"}
+{"file":".trellis/audits/2026-07-22-post-022-production-numerical-candidate-self-review.md","reason":"保护单高风险任务、生产冻结和失败回滚边界"}
+{"file":"tests/test_act1_rebaseline.gd","reason":"保护 21 个第一章单战压力、开局包与遭遇静态值"}
+{"file":"tests/test_numerical_balance_matrix.gd","reason":"保护 023-03 前的正式 current-greedy 256 rows"}

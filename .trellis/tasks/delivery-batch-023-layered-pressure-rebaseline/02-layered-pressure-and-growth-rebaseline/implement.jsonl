@@ -1,0 +1,5 @@
+{"file":".trellis/audits/2026-07-22-post-022-production-numerical-candidate-delta-audit.md","reason":"固定 P1-P5、64/128 门、根因和禁止 P6 决策"}
+{"file":".trellis/tasks/delivery-batch-023-layered-pressure-rebaseline/01-candidate-overlay-and-attrition-contract/prd.md","reason":"固定 overlay schema、allowlist、candidate identity 和 attrition-v1"}
+{"file":"docs/09_NUMERICAL_TREE_AND_BALANCE.md","reason":"固定 campaign targets、经济范围、单格容差和样本门"}
+{"file":"docs/12_STRATEGY_ROUTE_SAFETY_AUDIT_022.md","reason":"固定 v3 profile、paired seed、完整图路线安全和 022 baseline"}
+{"file":".trellis/tasks/delivery-batch-019-campaign-pressure-rebaseline/02-act2-act3-pressure-and-reward-rebaseline/tdd-progress.md","reason":"固定 R1/R2 奖励数量方向已失败、R2-A 静态门和回滚历史"}

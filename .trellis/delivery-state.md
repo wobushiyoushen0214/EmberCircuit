@@ -1,24 +1,24 @@
 # EmberCircuit Delivery State
 
 stage_state:
-  state: S6_CONFIRM
+  state: S7_CREATE_TASKS
   loop_mode: L3
   audit_scope: delta
   current_round: 4
   max_rounds: 6
   open_gaps: 8
-  tasks_created: 0
+  tasks_created: 3
   tasks_completed: 0
   carry_over: 0
   critical_review_issues: 0
-  next_legal_action: request-confirmation-for-delivery-batch-023-layered-pressure-rebaseline
+  next_legal_action: implement-023-01-candidate-overlay-and-attrition-contract
   stop_conditions:
     - none
 ---
 
 loop_mode: L3
 current_round: 4
-next_loop_recommendation: pause-human-needed
+next_loop_recommendation: continue-next-batch
 carry_over: 0
 
 ## 基线
@@ -29,7 +29,7 @@ carry_over: 0
 - loop_mode: `L3`
 - current_round: `4`
 - max_rounds: `6`
-- current_batch_id: `delivery-batch-023-layered-pressure-rebaseline`（proposed，等待确认）
+- current_batch_id: `delivery-batch-023-layered-pressure-rebaseline`（confirmed，in_progress）
 
 ## 需求状态
 
@@ -50,7 +50,7 @@ carry_over: 0
 
 ## 当前批次
 
-- batch_id: `delivery-batch-023-layered-pressure-rebaseline`（proposed，等待用户确认）
+- batch_id: `delivery-batch-023-layered-pressure-rebaseline`（confirmed，in_progress）
 - priority/risk: `P0/high`
 - scope: `候选 overlay 与累计磨损归因、第一章分层遭遇和路线成长 P1-P5 冻结阶梯、条件式 v3 256 正式验证`
 - selected_reqs:
@@ -58,12 +58,12 @@ carry_over: 0
   - `REQ-004`
   - `REQ-005`
   - `REQ-009`
-- proposed_tasks:
+- tasks:
   - `023-01-candidate-overlay-and-attrition-contract`（中风险）
   - `023-02-layered-pressure-and-growth-rebaseline`（高风险；本批唯一高风险任务）
   - `023-03-production-matrix-verification`（中风险；selected 128 全过后才允许 256）
-- task_results: none
-- result: `awaiting_confirmation`
+- task_results: 3 tasks created，尚未实现
+- result: `in_progress`
 - audit_evidence: `.trellis/audits/2026-07-22-post-022-production-numerical-candidate-delta-audit.md`、`/tmp/ember022-competent-player-v3-128.json`、`/tmp/ember023-act1-single-64.json`
 - excluded_this_round:
   - `REQ-006/008`: 内容资产、正式音频和演出不与高风险数值批次混合
@@ -75,7 +75,7 @@ carry_over: 0
 
 | 条目 | 原因 | 需要人工提供什么 | 起始轮次 |
 | --- | --- | --- | --- |
-| `confirmation_required` | 023 delta audit 和固定 P1-P5 候选阶梯已完成；创建任务前必须确认 | 确认 `delivery-batch-023-layered-pressure-rebaseline` | 4 |
+| none | 023 批次已确认，当前无人工阻塞 | none | 4 |
 
 ## 人工决策
 
@@ -114,6 +114,7 @@ carry_over: 0
 - 2026-07-21: 用户继续授权 022；delta audit 确认 021 safety gate 只看当前层且深度固定 3，创建 `delivery-batch-022-full-graph-elite-safety`。新增 v3 历史兼容 profile 与完整 graph-to-Boss 安全可达性任务；生产 JSON、正式 256 rows、CombatState、地图数据和真人 cohort 继续冻结。
 - 2026-07-22: Batch 022 两任务通过严格 TDD 和双阶段评审；v3 的 64/128 路线安全门均通过，128 四组重复 byte-identical。状态记为 `route_safety_component_gate_passed`，只解锁下一轮生产数值候选审计，不代表正式数值完成，不直接允许打包真人试玩版。
 - 2026-07-22: 用户继续授权 Round 4 delta audit；只读单战证据确认第一章普通战全章共池导致强度不分层，提出 023 的 overlay、P1-P5 分层压力/成长候选和条件式 256 验证。当前仅等待创建任务确认，未改生产数值或正式矩阵。
+- 2026-07-22: 用户回复“继续”，确认 `delivery-batch-023-layered-pressure-rebaseline`；允许创建三个串行任务，按严格 TDD、verifier 和双阶段评审推进。023-02 是本批唯一高风险任务；生产硬门通过前继续禁止打包真人试玩版。
 
 ## 预算快照
 
@@ -125,7 +126,8 @@ carry_over: 0
 
 ## 下一轮建议
 
-- action: `pause-human-needed`
-- reason: `Round 4 delta audit 已把问题定位为全章普通遭遇不分层与累计成长/恢复不足，并冻结 P1-P5 候选；按 S6 门需先确认才能创建 023 tasks。`
-- next_batch: `delivery-batch-023-layered-pressure-rebaseline`（proposed）
-- next_audit_scope: `delta`
+- action: `continue-next-batch`
+- reason: `用户已确认 Round 4 的固定 P1-P5 边界，023 三个串行任务已创建；下一合法动作是从 overlay 与累计磨损契约开始严格 TDD。`
+- next_batch: `delivery-batch-023-layered-pressure-rebaseline`（confirmed，in_progress）
+- next_task: `023-01-candidate-overlay-and-attrition-contract`
+- next_audit_scope: `none`

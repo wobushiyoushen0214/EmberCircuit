@@ -1,0 +1,5 @@
+{"file":".trellis/tasks/delivery-batch-023-layered-pressure-rebaseline/02-layered-pressure-and-growth-rebaseline/prd.md","reason":"固定 selected 128 identity、共用 128/256 hard gate、生产晋级/回滚和冻结边界"}
+{"file":".trellis/tasks/delivery-batch-019-campaign-pressure-rebaseline/03-campaign-matrix-verification/prd.md","reason":"复用已取消任务的 report-driven sync 边界，同时替换其过时 profile 和前置条件"}
+{"file":"data/config/numerical_tree.json","reason":"读取正式 matrix schema、静态 rows、targets、当前 expected exceptions 与 selected 023 verdict"}
+{"file":"tests/test_numerical_balance_matrix.gd","reason":"保护既有 3×4 轴、静态 row 字段、target contract 和 AI/真人隔离"}
+{"file":"docs/09_NUMERICAL_TREE_AND_BALANCE.md","reason":"固定 128/256 样本策略、经济范围、容差和报告证据规则"}
