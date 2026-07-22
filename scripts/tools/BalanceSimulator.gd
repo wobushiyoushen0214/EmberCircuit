@@ -5,6 +5,7 @@ const CombatStateScript = preload("res://scripts/combat/CombatState.gd")
 const DataLoaderScript = preload("res://scripts/core/DataLoader.gd")
 const MapGeneratorScript = preload("res://scripts/map/MapGenerator.gd")
 const NumericalPressureMetricsScript = preload("res://scripts/tools/NumericalPressureMetrics.gd")
+const BalanceCandidateOverlayScript = preload("res://scripts/tools/BalanceCandidateOverlay.gd")
 
 const DEFAULT_MAX_TURNS := 60
 const DEFAULT_ITERATIONS := 8
@@ -143,7 +144,11 @@ func run_campaign_suite(options: Dictionary = {}) -> Dictionary:
 	var strategy_profile: String = str(strategy_config.get("profile", DEFAULT_CAMPAIGN_STRATEGY_PROFILE))
 	var strategy_profile_fallback: bool = bool(strategy_config.get("fallback", false))
 	var component_diagnostics: bool = str(options.get("strategy_diagnostics", "")) == COMPONENT_STRATEGY_DIAGNOSTICS
+	var attrition_diagnostics: bool = str(options.get("candidate_diagnostics", "")) == "attrition-v1"
 	var strategy_components: Dictionary = _campaign_strategy_components(strategy_profile)
+	var overlay_context: Dictionary = _apply_candidate_overlay(options)
+	if not bool(overlay_context.get("ok", true)):
+		return _campaign_overlay_rejection_report(iterations, max_turns, strategy_profile, strategy_profile_fallback, overlay_context.get("errors", []))
 
 	var report := {
 		"version": 1,
@@ -160,15 +165,71 @@ func run_campaign_suite(options: Dictionary = {}) -> Dictionary:
 	}
 	if component_diagnostics:
 		report["strategy_components"] = strategy_components.duplicate(true)
+	if bool(overlay_context.get("applied", false)):
+		report["candidate_overlay"] = (overlay_context.get("metadata", {}) as Dictionary).duplicate(true)
+	if attrition_diagnostics:
+		report["candidate_diagnostics"] = "attrition-v1"
 
 	for character_id_value in character_ids:
 		var character_id: String = str(character_id_value)
 		for challenge_level_value in challenge_levels:
 			var challenge_level: int = int(challenge_level_value)
-			report["cases"].append(_run_campaign_case(character_id, challenge_level, iterations, max_turns, strategy_profile, strategy_profile_fallback, component_diagnostics))
+			report["cases"].append(_run_campaign_case(character_id, challenge_level, iterations, max_turns, strategy_profile, strategy_profile_fallback, component_diagnostics, attrition_diagnostics))
 
 	report["summary"] = _build_campaign_report_summary(report["cases"])
+	_restore_candidate_overlay(overlay_context)
 	return report
+
+func _apply_candidate_overlay(options: Dictionary) -> Dictionary:
+	var path := str(options.get("candidate_overlay_path", ""))
+	if path.is_empty():
+		return {"ok": true, "applied": false}
+	var datasets := {
+		"map_generation": map_generation_data,
+		"level_tree": level_tree_data,
+		"economy": economy_data
+	}
+	var result: Dictionary = BalanceCandidateOverlayScript.new().load_and_apply(path, datasets)
+	if not bool(result.get("ok", false)):
+		return {"ok": false, "applied": false, "errors": result.get("errors", [])}
+	var context := {
+		"ok": true,
+		"applied": true,
+		"original_map_generation": map_generation_data,
+		"original_level_tree": level_tree_data,
+		"original_economy": economy_data,
+		"metadata": result.get("metadata", {})
+	}
+	var copied_datasets: Dictionary = result.get("datasets", {})
+	map_generation_data = copied_datasets.get("map_generation", {})
+	level_tree_data = copied_datasets.get("level_tree", {})
+	economy_data = copied_datasets.get("economy", {})
+	return context
+
+func _restore_candidate_overlay(context: Dictionary) -> void:
+	if not bool(context.get("applied", false)):
+		return
+	map_generation_data = context.get("original_map_generation", map_generation_data)
+	level_tree_data = context.get("original_level_tree", level_tree_data)
+	economy_data = context.get("original_economy", economy_data)
+
+func _campaign_overlay_rejection_report(iterations: int, max_turns: int, strategy_profile: String, strategy_profile_fallback: bool, errors: Array) -> Dictionary:
+	return {
+		"version": 1,
+		"campaign_attribution_schema_version": 1,
+		"campaign_strategy_schema_version": CAMPAIGN_STRATEGY_SCHEMA_VERSION,
+		"simulation_model": "campaign_route_heuristic_ai",
+		"strategy_profile": strategy_profile,
+		"strategy_profile_fallback": strategy_profile_fallback,
+		"seed_model": "paired_by_iteration",
+		"iterations_per_case": iterations,
+		"max_turns_per_combat": max_turns,
+		"case_count": 0,
+		"cases": [],
+		"summary": {"target_pass": false, "target_issues": ["candidate_overlay_rejected"]},
+		"candidate_overlay_rejected": true,
+		"candidate_overlay_errors": errors
+	}
 
 func _run_case(character_id: String, challenge_level: int, encounter_id: String, iterations: int, max_turns: int) -> Dictionary:
 	var character: Dictionary = _character_config(character_id)
@@ -181,14 +242,14 @@ func _run_case(character_id: String, challenge_level: int, encounter_id: String,
 
 	return _aggregate_case(character, challenge, encounter, runs)
 
-func _run_campaign_case(character_id: String, challenge_level: int, iterations: int, max_turns: int, strategy_profile: String = DEFAULT_CAMPAIGN_STRATEGY_PROFILE, strategy_profile_fallback: bool = false, component_diagnostics: bool = false) -> Dictionary:
+func _run_campaign_case(character_id: String, challenge_level: int, iterations: int, max_turns: int, strategy_profile: String = DEFAULT_CAMPAIGN_STRATEGY_PROFILE, strategy_profile_fallback: bool = false, component_diagnostics: bool = false, attrition_diagnostics: bool = false) -> Dictionary:
 	var character: Dictionary = _character_config(character_id)
 	var challenge: Dictionary = _challenge_config(challenge_level)
 	var runs: Array = []
 	for iteration in range(iterations):
 		var seed_text: String = "campaign|%d" % iteration
-		runs.append(_run_campaign_once(character_id, challenge_level, max_turns, _stable_text_seed(seed_text), strategy_profile, strategy_profile_fallback, component_diagnostics))
-	return _aggregate_campaign_case(character, challenge, runs, strategy_profile, strategy_profile_fallback, component_diagnostics)
+		runs.append(_run_campaign_once(character_id, challenge_level, max_turns, _stable_text_seed(seed_text), strategy_profile, strategy_profile_fallback, component_diagnostics, attrition_diagnostics))
+	return _aggregate_campaign_case(character, challenge, runs, strategy_profile, strategy_profile_fallback, component_diagnostics, "attrition-v1" if attrition_diagnostics else "")
 
 func _campaign_strategy_config(requested_profile) -> Dictionary:
 	var profile := str(requested_profile)
@@ -218,7 +279,7 @@ func _campaign_strategy_components(strategy_profile: String) -> Dictionary:
 func _strategy_uses_competent_meta(strategy_profile: String) -> bool:
 	return strategy_profile in [COMPETENT_CAMPAIGN_STRATEGY_PROFILE, COMPETENT_PLAYER_V2_STRATEGY_PROFILE, COMPETENT_PLAYER_V3_STRATEGY_PROFILE]
 
-func _run_campaign_once(character_id: String, challenge_level: int, max_turns: int, seed_value: int, strategy_profile: String = DEFAULT_CAMPAIGN_STRATEGY_PROFILE, strategy_profile_fallback: bool = false, component_diagnostics: bool = false) -> Dictionary:
+func _run_campaign_once(character_id: String, challenge_level: int, max_turns: int, seed_value: int, strategy_profile: String = DEFAULT_CAMPAIGN_STRATEGY_PROFILE, strategy_profile_fallback: bool = false, component_diagnostics: bool = false, attrition_diagnostics: bool = false) -> Dictionary:
 	seed(seed_value)
 	var character: Dictionary = _character_config(character_id)
 	var challenge: Dictionary = _challenge_config(challenge_level)
@@ -230,6 +291,7 @@ func _run_campaign_once(character_id: String, challenge_level: int, max_turns: i
 		"strategy_profile": strategy_profile,
 		"strategy_profile_fallback": strategy_profile_fallback,
 		"strategy_component_diagnostics": component_diagnostics,
+		"candidate_diagnostics": "attrition-v1" if attrition_diagnostics else "",
 		"strategy_components": _campaign_strategy_components(strategy_profile),
 		"max_turns": max_turns,
 		"node_visit_counts": {},
@@ -287,6 +349,7 @@ func _run_campaign_once(character_id: String, challenge_level: int, max_turns: i
 		"potions_used_ids": [],
 		"chapter_snapshots": [],
 		"chapter_transition_snapshots": [],
+		"attrition_events": [],
 		"turns": 0,
 		"cards_played": 0,
 		"path": [],
@@ -313,7 +376,24 @@ func _run_campaign_once(character_id: String, challenge_level: int, max_turns: i
 				var node_visit_counts: Dictionary = state.get("node_visit_counts", {})
 				_increment_count(node_visit_counts, str(node.get("type", "unknown")))
 				state["node_visit_counts"] = node_visit_counts
+			var hp_before: int = int(state.get("hp", 0))
 			var node_result: Dictionary = _resolve_campaign_node(state, node, chapter_id, max_turns, seed_value)
+			if attrition_diagnostics and _is_campaign_combat_node(node):
+				var hp_after: int = int(state.get("hp", 0))
+				var attrition_event := {
+					"chapter_id": chapter_id,
+					"layer": int(node.get("layer", -1)),
+					"node_type": str(node.get("type", "")),
+					"encounter_id": str(node_result.get("encounter_id", node.get("encounter_id", ""))),
+					"hp_before": hp_before,
+					"hp_after": hp_after,
+					"hp_lost": max(0, hp_before - hp_after),
+					"completed": bool(node_result.get("completed", false))
+				}
+				var attrition_events: Array = state.get("attrition_events", [])
+				attrition_events.append(attrition_event)
+				state["attrition_events"] = attrition_events
+				node_result["attrition"] = attrition_event
 			_append_path_entry(state, chapter_id, node, node_result)
 			if not bool(node_result.get("completed", false)):
 				state["failed_at"] = "%s:%s" % [chapter_id, node.get("id", "")]
@@ -360,6 +440,9 @@ func _resolve_campaign_node(state: Dictionary, node: Dictionary, chapter_id: Str
 		_:
 			return {"completed": false, "reason": "unknown_node_type"}
 	return {"completed": true, "reason": "ok"}
+
+func _is_campaign_combat_node(node: Dictionary) -> bool:
+	return str(node.get("type", "")) in ["combat", "elite", "boss"]
 
 func _resolve_campaign_combat(state: Dictionary, node: Dictionary, chapter_id: String, max_turns: int, seed_value: int) -> Dictionary:
 	var encounter_id: String = str(node.get("encounter_id", ""))
@@ -2605,7 +2688,7 @@ func _competent_deck_maturity(state: Dictionary) -> float:
 
 func _append_path_entry(state: Dictionary, chapter_id: String, node: Dictionary, node_result: Dictionary) -> void:
 	var path: Array = state.get("path", [])
-	path.append({
+	var entry := {
 		"chapter_id": chapter_id,
 		"node_id": str(node.get("id", "")),
 		"node_type": str(node.get("type", "")),
@@ -2616,7 +2699,14 @@ func _append_path_entry(state: Dictionary, chapter_id: String, node: Dictionary,
 		"gold": int(state.get("gold", 0)),
 		"deck_size": (state.get("deck_ids", []) as Array).size(),
 		"relic_count": (state.get("relic_ids", []) as Array).size()
-	})
+	}
+	if node_result.has("attrition"):
+		var attrition: Dictionary = node_result.get("attrition", {})
+		entry["layer"] = int(attrition.get("layer", node.get("layer", -1)))
+		entry["hp_before"] = int(attrition.get("hp_before", entry.get("hp", 0)))
+		entry["hp_after"] = int(attrition.get("hp_after", entry.get("hp", 0)))
+		entry["hp_lost"] = int(attrition.get("hp_lost", 0))
+	path.append(entry)
 	state["path"] = path
 	_update_active_campaign_chapter_snapshot(state)
 
@@ -2781,6 +2871,9 @@ func _campaign_result(won: bool, state: Dictionary) -> Dictionary:
 		"failed_encounter_id": str(state.get("failed_encounter_id", "")),
 		"path": state.get("path", [])
 	}
+	if str(state.get("candidate_diagnostics", "")) == "attrition-v1":
+		result["candidate_diagnostics"] = "attrition-v1"
+		result["attrition_events"] = state.get("attrition_events", [])
 	if bool(state.get("strategy_component_diagnostics", false)):
 		result["strategy_components"] = (state.get("strategy_components", {}) as Dictionary).duplicate(true)
 		for diagnostic_field in ["node_visit_counts", "elite_visits", "elite_wins", "elite_deaths", "optional_elite_offer_count", "optional_elite_accept_count", "route_choice_reason_counts"]:
@@ -3410,7 +3503,7 @@ func _build_report_summary(cases: Array) -> Dictionary:
 		"ok_case_count": cases.size() - flagged
 	}
 
-func _aggregate_campaign_case(character: Dictionary, challenge: Dictionary, runs: Array, strategy_profile: String = DEFAULT_CAMPAIGN_STRATEGY_PROFILE, strategy_profile_fallback: bool = false, component_diagnostics: bool = false) -> Dictionary:
+func _aggregate_campaign_case(character: Dictionary, challenge: Dictionary, runs: Array, strategy_profile: String = DEFAULT_CAMPAIGN_STRATEGY_PROFILE, strategy_profile_fallback: bool = false, component_diagnostics: bool = false, candidate_diagnostics: String = "") -> Dictionary:
 	var wins := 0
 	var total_chapters := 0
 	var total_nodes := 0
@@ -3555,6 +3648,11 @@ func _aggregate_campaign_case(character: Dictionary, challenge: Dictionary, runs
 		case["optional_elite_offer_count"] = _aggregate_campaign_integer(runs, "optional_elite_offer_count")
 		case["optional_elite_accept_count"] = _aggregate_campaign_integer(runs, "optional_elite_accept_count")
 		case["route_choice_reason_counts"] = _aggregate_campaign_count_dictionary(runs, "route_choice_reason_counts")
+	if candidate_diagnostics == "attrition-v1":
+		case["candidate_diagnostics"] = "attrition-v1"
+		var attrition: Dictionary = _aggregate_campaign_attrition(runs)
+		case["attrition_by_layer"] = attrition.get("attrition_by_layer", [])
+		case["attrition_by_encounter"] = attrition.get("attrition_by_encounter", [])
 	case["risk_flag"] = _campaign_risk_flag(case)
 	return case
 
@@ -3582,6 +3680,115 @@ func _aggregate_campaign_count_dictionary(runs: Array, field_name: String) -> Di
 		for key_value in counts.keys():
 			_increment_count(total, str(key_value), int(counts.get(key_value, 0)))
 	return total
+
+func _aggregate_campaign_attrition(runs: Array) -> Dictionary:
+	var layer_totals: Dictionary = {}
+	var encounter_totals: Dictionary = {}
+	for run_value in runs:
+		if run_value is not Dictionary:
+			continue
+		var events_value = (run_value as Dictionary).get("attrition_events", [])
+		if events_value is not Array:
+			continue
+		for event_value in events_value:
+			if event_value is not Dictionary:
+				continue
+			var event: Dictionary = event_value
+			var node_type := str(event.get("node_type", ""))
+			if node_type not in ["combat", "elite", "boss"]:
+				continue
+			var chapter_id := str(event.get("chapter_id", ""))
+			var layer := int(event.get("layer", -1))
+			var encounter_id := str(event.get("encounter_id", ""))
+			var hp_before := int(event.get("hp_before", 0))
+			var hp_after := int(event.get("hp_after", 0))
+			var hp_lost: int = max(0, hp_before - hp_after)
+			var completed := bool(event.get("completed", false))
+			var died: bool = hp_after <= 0
+			var layer_key := "%s|%d" % [chapter_id, layer]
+			var layer_row: Dictionary = layer_totals.get(layer_key, {
+				"chapter_id": chapter_id,
+				"layer": layer,
+				"visits": 0,
+				"combat_visits": 0,
+				"combat_wins": 0,
+				"combat_deaths": 0,
+				"hp_lost_total": 0,
+				"hp_before_total": 0,
+				"hp_after_total": 0
+			})
+			layer_row["visits"] = int(layer_row.get("visits", 0)) + 1
+			layer_row["combat_visits"] = int(layer_row.get("combat_visits", 0)) + 1
+			layer_row["combat_wins"] = int(layer_row.get("combat_wins", 0)) + (1 if completed else 0)
+			layer_row["combat_deaths"] = int(layer_row.get("combat_deaths", 0)) + (1 if died else 0)
+			layer_row["hp_lost_total"] = int(layer_row.get("hp_lost_total", 0)) + hp_lost
+			layer_row["hp_before_total"] = int(layer_row.get("hp_before_total", 0)) + hp_before
+			layer_row["hp_after_total"] = int(layer_row.get("hp_after_total", 0)) + hp_after
+			layer_totals[layer_key] = layer_row
+
+			if encounter_id.is_empty():
+				continue
+			var encounter_row: Dictionary = encounter_totals.get(encounter_id, {
+				"encounter_id": encounter_id,
+				"visits": 0,
+				"wins": 0,
+				"deaths": 0,
+				"hp_lost_total": 0,
+				"hp_before_total": 0,
+				"hp_after_total": 0
+			})
+			encounter_row["visits"] = int(encounter_row.get("visits", 0)) + 1
+			encounter_row["wins"] = int(encounter_row.get("wins", 0)) + (1 if completed else 0)
+			encounter_row["deaths"] = int(encounter_row.get("deaths", 0)) + (1 if died else 0)
+			encounter_row["hp_lost_total"] = int(encounter_row.get("hp_lost_total", 0)) + hp_lost
+			encounter_row["hp_before_total"] = int(encounter_row.get("hp_before_total", 0)) + hp_before
+			encounter_row["hp_after_total"] = int(encounter_row.get("hp_after_total", 0)) + hp_after
+			encounter_totals[encounter_id] = encounter_row
+
+	var by_layer: Array = []
+	for layer_key_value in layer_totals.keys():
+		var source: Dictionary = layer_totals.get(layer_key_value, {})
+		var visits: int = max(1, int(source.get("combat_visits", 0)))
+		by_layer.append({
+			"chapter_id": str(source.get("chapter_id", "")),
+			"layer": int(source.get("layer", -1)),
+			"visits": int(source.get("visits", 0)),
+			"combat_visits": int(source.get("combat_visits", 0)),
+			"combat_wins": int(source.get("combat_wins", 0)),
+			"combat_deaths": int(source.get("combat_deaths", 0)),
+			"hp_lost_total": int(source.get("hp_lost_total", 0)),
+			"avg_hp_lost": _rounded_rate(float(source.get("hp_lost_total", 0)) / float(visits)),
+			"avg_hp_before": _rounded_rate(float(source.get("hp_before_total", 0)) / float(visits)),
+			"avg_hp_after": _rounded_rate(float(source.get("hp_after_total", 0)) / float(visits))
+		})
+	by_layer.sort_custom(_compare_attrition_layer_rows)
+
+	var by_encounter: Array = []
+	for encounter_id_value in encounter_totals.keys():
+		var source: Dictionary = encounter_totals.get(encounter_id_value, {})
+		var visits: int = max(1, int(source.get("visits", 0)))
+		by_encounter.append({
+			"encounter_id": str(source.get("encounter_id", "")),
+			"visits": visits,
+			"wins": int(source.get("wins", 0)),
+			"deaths": int(source.get("deaths", 0)),
+			"hp_lost_total": int(source.get("hp_lost_total", 0)),
+			"avg_hp_lost": _rounded_rate(float(source.get("hp_lost_total", 0)) / float(visits)),
+			"avg_hp_before": _rounded_rate(float(source.get("hp_before_total", 0)) / float(visits)),
+			"avg_hp_after": _rounded_rate(float(source.get("hp_after_total", 0)) / float(visits))
+		})
+	by_encounter.sort_custom(_compare_attrition_encounter_rows)
+	return {"attrition_by_layer": by_layer, "attrition_by_encounter": by_encounter}
+
+func _compare_attrition_layer_rows(a: Dictionary, b: Dictionary) -> bool:
+	var chapter_a := str(a.get("chapter_id", ""))
+	var chapter_b := str(b.get("chapter_id", ""))
+	if chapter_a != chapter_b:
+		return chapter_a < chapter_b
+	return int(a.get("layer", -1)) < int(b.get("layer", -1))
+
+func _compare_attrition_encounter_rows(a: Dictionary, b: Dictionary) -> bool:
+	return str(a.get("encounter_id", "")) < str(b.get("encounter_id", ""))
 
 func _campaign_attribution_minimum_iterations() -> int:
 	return max(1, int(numerical_tree_data.get("campaign_targets", {}).get("minimum_iterations_for_hard_gate", 128)))

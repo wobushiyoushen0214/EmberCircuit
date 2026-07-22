@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "candidate_id": "valid-minimal",
+  "changes": [
+    {
+      "dataset": "economy",
+      "path": ["campfire", "heal_percent_of_max_hp"],
+      "value": 30
+    }
+  ]
+}
