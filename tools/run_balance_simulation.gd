@@ -16,6 +16,10 @@ func _run() -> void:
 
 	var simulator = BalanceSimulatorScript.new()
 	var report: Dictionary = simulator.run_campaign_suite(options) if mode == "campaign" else simulator.run_suite(options)
+	if bool(report.get("candidate_overlay_rejected", false)):
+		push_error("Candidate overlay rejected: %s" % str(report.get("candidate_overlay_errors", [])))
+		quit(1)
+		return
 	var error: Error = simulator.save_report(report, output_path)
 	if error != OK:
 		push_error("Failed to save balance report: %s" % output_path)
@@ -56,6 +60,10 @@ static func parse_options_for_args(arguments: Array) -> Dictionary:
 			options["strategy_profile"] = arg.get_slice("=", 1)
 		elif arg.begins_with("--strategy-diagnostics="):
 			options["strategy_diagnostics"] = arg.get_slice("=", 1)
+		elif arg.begins_with("--candidate-overlay="):
+			options["candidate_overlay_path"] = arg.get_slice("=", 1)
+		elif arg.begins_with("--candidate-diagnostics="):
+			options["candidate_diagnostics"] = arg.get_slice("=", 1)
 		elif arg.begins_with("--iterations="):
 			options["iterations"] = max(1, int(arg.get_slice("=", 1)))
 		elif arg.begins_with("--max-turns="):

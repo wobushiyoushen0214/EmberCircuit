@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "candidate_id": "invalid-forbidden",
+  "changes": [
+    {
+      "dataset": "player",
+      "path": ["max_hp"],
+      "value": 999
+    }
+  ]
+}

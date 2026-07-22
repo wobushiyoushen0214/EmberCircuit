@@ -1,3 +1,4 @@
 {"file":".trellis/tasks/delivery-batch-023-layered-pressure-rebaseline/01-candidate-overlay-and-attrition-contract/prd.md","reason":"逐条核对 AC-023-01 至 AC-023-05、错误码、文件清单与自检命令"}
 {"file":".trellis/audits/2026-07-22-post-022-production-numerical-candidate-self-review.md","reason":"保护默认兼容、生产冻结和独立 helper 的审计结论"}
 {"file":"tests/test_numerical_balance_matrix.gd","reason":"保护正式 current-greedy 256 matrix 和生产数值树起点"}
+{"file":"tests/test_balance_candidate_overlay.gd","reason":"保护未知字段和近整数 fail-closed、正 HP timeout 不计 death、默认报告 byte identity"}

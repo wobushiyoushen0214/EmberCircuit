@@ -58,7 +58,7 @@
 
 固定错误码：`overlay_file_missing`、`overlay_json_invalid`、`schema_version_unsupported`、`candidate_id_invalid`、`changes_empty`、`dataset_forbidden`、`path_forbidden`、`path_duplicate`、`value_invalid`。
 
-`encounter_layer_bands` 为数组，每项必须是 `{layers:[start,end], encounter_ids:[non-empty strings]}`，start/end 为非负整数、start<=end、区间不得重叠；pressure 为 `1-4` 整数；campfire budget 是两个非负整数且 min<=max；heal 是 `1-100` 整数；rarity 必须只含 common/uncommon/rare 非负整数且合计 100。
+`encounter_layer_bands` 必须是只含 `combat` key 的字典，`combat` 为非空数组；每项必须是 `{layers:[start,end], encounter_ids:[non-empty strings]}`，start/end 为非负整数、start<=end、区间不得重叠。该结构与 023-02 冻结的 MapGenerator runtime schema 一致。pressure 为 `1-4` 整数；campfire budget 是两个非负整数且 min<=max；heal 是 `1-100` 整数；rarity 必须只含 common/uncommon/rare 非负整数且合计 100。
 
 ## attrition-v1 字段
 
