@@ -15,7 +15,7 @@ const COMPONENT_DIAGNOSTIC_FIELDS := [
 	"optional_elite_accept_count",
 	"route_choice_reason_counts",
 ]
-const COMPONENT_GATE_PROFILES := ["current-greedy", "competent-player-v1", "competent-combat-v1", "competent-player-v2"]
+const COMPONENT_GATE_PROFILES := ["current-greedy", "competent-combat-v1", "competent-player-v2", "competent-player-v3"]
 const COMPONENT_GATE_CHARACTERS := ["ember_exile", "arc_tinker", "pyre_ascetic"]
 const COMPONENT_GATE_CHALLENGES := [0, 1, 2, 3]
 
@@ -25,7 +25,8 @@ func _init() -> void:
 	call_deferred("_run")
 
 func _run() -> void:
-	var require_component_gate_artifacts := OS.get_cmdline_user_args().has("--require-component-gate-artifacts")
+	var require_route_safety_gate_artifacts := OS.get_cmdline_user_args().has("--require-route-safety-gate-artifacts")
+	_check(COMPONENT_GATE_PROFILES == ["current-greedy", "competent-combat-v1", "competent-player-v2", "competent-player-v3"], "route safety gate uses the exact current/combat-v1/v2/v3 profile axis")
 	var competent_cli_options: Dictionary = BalanceCliScript.parse_options_for_args([
 		"--mode=campaign",
 		"--strategy-profile=competent-player-v1",
@@ -1648,31 +1649,48 @@ func _run() -> void:
 	var paired_component_gate: Dictionary = _evaluate_strategy_component_gate(paired_component_fixture)
 	_check(bool(paired_component_gate.get("passed", false)), "component gate accepts a complete paired fixture")
 	_check(bool(paired_component_gate.get("paired_options_passed", false)), "component gate verifies identical paired options")
+	var misnamed_128_gate: Dictionary = _evaluate_strategy_component_gate(paired_component_fixture, 128)
+	_check(
+		not bool(misnamed_128_gate.get("paired_options_passed", true))
+		and (misnamed_128_gate.get("failures", []) as Array).has("reference:required_iterations"),
+		"128 route safety gate rejects 64-run contents even when artifact filenames imply 128"
+	)
 	_check((paired_component_gate.get("challenge_gates", []) as Array).size() == 4, "component gate emits one comparison row per challenge")
 	_check(bool((paired_component_gate.get("challenge_gates", []) as Array)[0].get("win_rate_passed", false)), "component gate compares three-role average win rate at C0")
 	_check(bool((paired_component_gate.get("challenge_gates", []) as Array)[0].get("chapter_one_passed", false)), "component gate compares first-chapter completion at C0")
-	_check(bool(paired_component_gate.get("elite_gate_passed", false)), "component gate enforces v2 elite death-rate ceiling")
+	_check(bool(paired_component_gate.get("elite_gate_passed", false)), "route safety gate enforces the v3 elite death-rate ceiling")
+	var v3_candidate_fixture: Dictionary = paired_component_fixture.duplicate(true)
+	var v2_diagnostic_case: Dictionary = (v3_candidate_fixture["competent-player-v2"]["cases"] as Array)[0]
+	v2_diagnostic_case["elite_visits"] = 10
+	v2_diagnostic_case["elite_wins"] = 6
+	v2_diagnostic_case["elite_deaths"] = 4
+	var v3_candidate_case: Dictionary = (v3_candidate_fixture["competent-player-v3"]["cases"] as Array)[0]
+	v3_candidate_case["elite_visits"] = 10
+	v3_candidate_case["elite_wins"] = 7
+	v3_candidate_case["elite_deaths"] = 3
+	var v3_candidate_gate: Dictionary = _evaluate_strategy_component_gate(v3_candidate_fixture)
+	_check(bool(v3_candidate_gate.get("passed", false)) and bool(v3_candidate_gate.get("elite_gate_passed", false)), "route safety gate fixes v3 as candidate and keeps v2 diagnostic-only")
 	var failed_component_fixture: Dictionary = paired_component_fixture.duplicate(true)
-	var failed_v2: Dictionary = failed_component_fixture["competent-player-v2"]
-	(failed_v2["cases"] as Array)[0]["elite_deaths"] = 4
-	(failed_v2["cases"] as Array)[0]["elite_wins"] = 6
+	var failed_v3: Dictionary = failed_component_fixture["competent-player-v3"]
+	(failed_v3["cases"] as Array)[0]["elite_deaths"] = 4
+	(failed_v3["cases"] as Array)[0]["elite_wins"] = 6
 	var failed_component_gate: Dictionary = _evaluate_strategy_component_gate(failed_component_fixture)
-	_check(not bool(failed_component_gate.get("passed", true)) and not bool(failed_component_gate.get("elite_gate_passed", true)), "component gate rejects an over-limit v2 elite death rate")
+	_check(not bool(failed_component_gate.get("passed", true)) and not bool(failed_component_gate.get("elite_gate_passed", true)), "route safety gate rejects an over-limit v3 elite death rate")
 	var invalid_count_fixture: Dictionary = paired_component_fixture.duplicate(true)
-	var invalid_count_case: Dictionary = (invalid_count_fixture["competent-player-v2"]["cases"] as Array)[0]
+	var invalid_count_case: Dictionary = (invalid_count_fixture["competent-player-v3"]["cases"] as Array)[0]
 	invalid_count_case["wins"] = 65
 	(invalid_count_case["chapter_attribution"] as Array)[0]["completed_runs"] = 65
 	invalid_count_case["elite_deaths"] = -1
 	var invalid_count_gate: Dictionary = _evaluate_strategy_component_gate(invalid_count_fixture)
 	_check(not bool(invalid_count_gate.get("paired_options_passed", true)) and not bool(invalid_count_gate.get("passed", true)), "component gate fails closed on impossible raw counts")
 	var elite_boundary_fixture: Dictionary = paired_component_fixture.duplicate(true)
-	var elite_boundary_case: Dictionary = (elite_boundary_fixture["competent-player-v2"]["cases"] as Array)[0]
+	var elite_boundary_case: Dictionary = (elite_boundary_fixture["competent-player-v3"]["cases"] as Array)[0]
 	elite_boundary_case["elite_visits"] = 20
 	elite_boundary_case["elite_wins"] = 13
 	elite_boundary_case["elite_deaths"] = 7
 	_check(bool(_evaluate_strategy_component_gate(elite_boundary_fixture).get("elite_gate_passed", false)), "component gate includes the exact seven-in-twenty elite boundary")
 	var no_rounding_fixture: Dictionary = paired_component_fixture.duplicate(true)
-	for case_value in (no_rounding_fixture["competent-player-v2"]["cases"] as Array):
+	for case_value in (no_rounding_fixture["competent-player-v3"]["cases"] as Array):
 		var no_rounding_case: Dictionary = case_value
 		if int(no_rounding_case.get("challenge_level", -1)) != 2:
 			continue
@@ -1683,25 +1701,36 @@ func _run() -> void:
 	var no_rounding_challenge: Dictionary = (no_rounding_gate.get("challenge_gates", []) as Array)[2]
 	_check(not bool(no_rounding_challenge.get("chapter_one_passed", true)) and float(no_rounding_challenge.get("chapter_one_delta", 0.0)) < -0.02, "component gate uses raw completion counts instead of hand-rounded chapter rates")
 	var actual_component_reports := _load_component_gate_reports()
-	if require_component_gate_artifacts:
-		_check(actual_component_reports.size() == COMPONENT_GATE_PROFILES.size(), "required component gate verifier loads all four 64 reports")
+	if require_route_safety_gate_artifacts:
+		_check(actual_component_reports.size() == COMPONENT_GATE_PROFILES.size(), "required route safety verifier loads all four 64 reports")
+	var actual_component_gate: Dictionary = {}
 	if actual_component_reports.size() == COMPONENT_GATE_PROFILES.size():
-		var actual_component_gate: Dictionary = _evaluate_strategy_component_gate(actual_component_reports)
-		_check(bool(actual_component_gate.get("paired_options_passed", false)), "real 64 component reports share the paired options")
-		_check(not bool(actual_component_gate.get("passed", true)), "real 64 component reports stop when the strategy component gate fails")
-		_check(not bool((actual_component_gate.get("challenge_gates", []) as Array)[0].get("chapter_one_passed", true)) and not bool((actual_component_gate.get("challenge_gates", []) as Array)[1].get("chapter_one_passed", true)), "real v2 report fails the C0/C1 first-chapter completion gates")
-		_check(not bool(actual_component_gate.get("elite_gate_passed", true)), "real v2 report fails the elite death-rate gate")
+		actual_component_gate = _evaluate_strategy_component_gate(actual_component_reports, 64)
+		_check(bool(actual_component_gate.get("paired_options_passed", false)), "real 64 route safety reports share the paired options")
 	var default_current_path := "/tmp/ember021-default-current-64.json"
 	var explicit_current_path := "/tmp/ember021-current-greedy-64.json"
 	if FileAccess.file_exists(default_current_path) and FileAccess.file_exists(explicit_current_path):
 		_check(FileAccess.get_file_as_bytes(default_current_path) == FileAccess.get_file_as_bytes(explicit_current_path), "real default and explicit current reports are byte-identical")
-	if require_component_gate_artifacts:
-		_check(FileAccess.file_exists(default_current_path) and FileAccess.file_exists(explicit_current_path), "required component gate verifier loads both current compatibility reports")
+	if require_route_safety_gate_artifacts:
+		_check(not actual_component_gate.is_empty(), "required route safety verifier evaluates the complete 64 gate")
+		var actual_128_reports: Dictionary = {}
+		var actual_128_gate: Dictionary = {}
+		if bool(actual_component_gate.get("passed", false)):
+			actual_128_reports = _load_component_gate_reports(128)
+			_check(actual_128_reports.size() == COMPONENT_GATE_PROFILES.size(), "passed 64 gate loads all four 128-report contents")
+			if actual_128_reports.size() == COMPONENT_GATE_PROFILES.size():
+				actual_128_gate = _evaluate_strategy_component_gate(actual_128_reports, 128)
+			_check(bool(actual_128_gate.get("passed", false)), "128-report contents preserve the paired options and route safety hard gates")
 		for profile_value in COMPONENT_GATE_PROFILES:
 			var profile := str(profile_value)
-			for repeat_suffix in ["", "-repeat"]:
-				var forbidden_128_path := "/tmp/ember021-%s-128%s.json" % [profile, repeat_suffix]
-				_check(not FileAccess.file_exists(forbidden_128_path), "failed 64 gate does not leave 128 report %s" % forbidden_128_path)
+			var report_128_path := "/tmp/ember022-%s-128.json" % profile
+			var repeat_128_path := "/tmp/ember022-%s-128-repeat.json" % profile
+			if bool(actual_component_gate.get("passed", false)):
+				_check(FileAccess.file_exists(report_128_path) and FileAccess.file_exists(repeat_128_path), "passed 64 gate requires both 128 reports for %s" % profile)
+				if FileAccess.file_exists(report_128_path) and FileAccess.file_exists(repeat_128_path):
+					_check(FileAccess.get_file_as_bytes(report_128_path) == FileAccess.get_file_as_bytes(repeat_128_path), "repeated 128 reports are byte-identical for %s" % profile)
+			else:
+				_check(not FileAccess.file_exists(report_128_path) and not FileAccess.file_exists(repeat_128_path), "failed 64 gate does not leave 128 reports for %s" % profile)
 	_check(int(campaign_report.get("campaign_strategy_schema_version", 0)) == 1, "campaign report declares strategy schema version one")
 	_check(int(campaign_case.get("campaign_strategy_schema_version", 0)) == 1, "campaign case declares strategy schema version one")
 	_check(not bool(campaign_case.get("strategy_profile_fallback", true)), "known current-greedy profile does not fall back")
@@ -1871,7 +1900,7 @@ func _component_gate_fixture() -> Dictionary:
 				var current_completed_runs := 45 - challenge * 5
 				var profile_wins := current_wins
 				var profile_completed_runs := current_completed_runs
-				if profile == "competent-player-v2":
+				if profile == "competent-player-v3":
 					profile_wins += 1
 					profile_completed_runs -= 1
 				cases.append({
@@ -1881,9 +1910,9 @@ func _component_gate_fixture() -> Dictionary:
 					"wins": profile_wins,
 					"win_rate": float(profile_wins) / 64.0,
 					"chapter_attribution": [{"chapter_id": "chapter_one", "completed_runs": profile_completed_runs, "completion_rate": float(profile_completed_runs) / 64.0}],
-					"elite_visits": 10 if profile == "competent-player-v2" and cases.is_empty() else 0,
-					"elite_wins": 7 if profile == "competent-player-v2" and cases.is_empty() else 0,
-					"elite_deaths": 3 if profile == "competent-player-v2" and cases.is_empty() else 0,
+					"elite_visits": 10 if profile == "competent-player-v3" and cases.is_empty() else 0,
+					"elite_wins": 7 if profile == "competent-player-v3" and cases.is_empty() else 0,
+					"elite_deaths": 3 if profile == "competent-player-v3" and cases.is_empty() else 0,
 				})
 		reports[profile] = {
 			"strategy_profile": profile,
@@ -1895,7 +1924,7 @@ func _component_gate_fixture() -> Dictionary:
 		}
 	return reports
 
-func _evaluate_strategy_component_gate(reports: Dictionary) -> Dictionary:
+func _evaluate_strategy_component_gate(reports: Dictionary, required_iterations: int = 0) -> Dictionary:
 	var failures: Array = []
 	var paired_options_passed := true
 	var current_report: Dictionary = reports.get("current-greedy", {})
@@ -1942,9 +1971,12 @@ func _evaluate_strategy_component_gate(reports: Dictionary) -> Dictionary:
 	if not expected_iterations in [64, 128] or expected_max_turns != 80:
 		paired_options_passed = false
 		failures.append("reference:paired_options")
+	if required_iterations > 0 and expected_iterations != required_iterations:
+		paired_options_passed = false
+		failures.append("reference:required_iterations")
 
 	var current_cases := _component_cases_by_axis(current_report.get("cases", []))
-	var candidate_report: Dictionary = reports.get("competent-player-v2", {})
+	var candidate_report: Dictionary = reports.get("competent-player-v3", {})
 	var candidate_cases := _component_cases_by_axis(candidate_report.get("cases", []))
 	var challenge_gates: Array = []
 	var challenge_gates_passed := true
@@ -2028,7 +2060,7 @@ func _evaluate_strategy_component_gate(reports: Dictionary) -> Dictionary:
 	var elite_death_rate := float(elite_deaths) / float(elite_visits) if elite_visits > 0 else 0.0
 	var elite_gate_passed := elite_visits > 0 and 20 * elite_deaths <= 7 * elite_visits
 	if not elite_gate_passed:
-		failures.append("competent-player-v2:elite_safety")
+		failures.append("competent-player-v3:elite_safety")
 	return {
 		"passed": paired_options_passed and challenge_gates_passed and elite_gate_passed,
 		"paired_options_passed": paired_options_passed,
@@ -2068,11 +2100,13 @@ func _component_case_win_counts(case_dict: Dictionary) -> Array:
 		return [int(case_dict.get("wins", 0)), runs]
 	return []
 
-func _load_component_gate_reports() -> Dictionary:
+func _load_component_gate_reports(iterations: int = 64) -> Dictionary:
+	if not iterations in [64, 128]:
+		return {}
 	var reports: Dictionary = {}
 	for profile_value in COMPONENT_GATE_PROFILES:
 		var profile := str(profile_value)
-		var path := "/tmp/ember021-%s-64.json" % profile
+		var path := "/tmp/ember022-%s-%d.json" % [profile, iterations]
 		if not FileAccess.file_exists(path):
 			return {}
 		var parsed = JSON.parse_string(FileAccess.get_file_as_string(path))

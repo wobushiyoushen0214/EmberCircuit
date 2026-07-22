@@ -27,7 +27,7 @@ func _run() -> void:
 	_check_inventory(tree.get("audit_inventory", {}), cards, enemies, encounters, progression, challenges, economy, audit_report)
 	_check_matrix(tree, players, cards, progression, challenges, audit_report)
 	_check_matrix_candidate_isolation(tree)
-	_check_021_formal_matrix_freeze(tree)
+	_check_strategy_diagnostic_formal_matrix_freeze(tree)
 	if failed:
 		quit(1)
 		return
@@ -93,16 +93,18 @@ func _check_matrix_candidate_isolation(tree: Dictionary) -> void:
 		_check(str(report.get("strategy_profile", "")) == str(candidate_reports[path_value]), "020 candidate report keeps its strategy identity: %s" % path)
 		_check(JSON.stringify(report.get("cases", [])) != JSON.stringify(matrix.get("rows", [])), "020 candidate cases do not replace formal matrix rows: %s" % path)
 
-func _check_021_formal_matrix_freeze(tree: Dictionary) -> void:
+func _check_strategy_diagnostic_formal_matrix_freeze(tree: Dictionary) -> void:
 	var matrix: Dictionary = tree.get("campaign_matrix", {})
-	_check(int(matrix.get("iterations_per_cell", 0)) == 256, "021 diagnostics cannot lower the formal matrix sample count")
-	_check(int(matrix.get("max_turns", 0)) == 80, "021 diagnostics preserve the formal matrix turn horizon")
-	_check(str(matrix.get("strategy_profile", "")) == "current-greedy", "021 diagnostics cannot replace the formal matrix strategy profile")
-	_check(str(matrix.get("seed_model", "")) == "paired_by_iteration", "021 diagnostics preserve the formal matrix seed model")
-	_check((matrix.get("rows", []) as Array).size() == 12, "021 diagnostics cannot change the formal 3x4 matrix row count")
+	_check(int(matrix.get("iterations_per_cell", 0)) == 256, "strategy diagnostics cannot lower the formal matrix sample count")
+	_check(int(matrix.get("max_turns", 0)) == 80, "strategy diagnostics preserve the formal matrix turn horizon")
+	_check(str(matrix.get("strategy_profile", "")) == "current-greedy", "strategy diagnostics cannot replace the formal matrix strategy profile")
+	_check(str(matrix.get("seed_model", "")) == "paired_by_iteration", "strategy diagnostics preserve the formal matrix seed model")
+	_check((matrix.get("rows", []) as Array).size() == 12, "strategy diagnostics cannot change the formal 3x4 matrix row count")
 	var serialized_tree := JSON.stringify(tree)
-	for candidate_profile in ["competent-player-v1", "competent-combat-v1", "competent-player-v2"]:
-		_check(not serialized_tree.contains(candidate_profile), "formal matrix does not embed 021 strategy profile %s" % candidate_profile)
+	var diagnostic_profiles := ["competent-player-v1", "competent-combat-v1", "competent-player-v2", "competent-player-v3"]
+	_check(diagnostic_profiles.has("competent-player-v3"), "formal matrix freeze explicitly covers the 022 v3 diagnostic profile")
+	for candidate_profile in diagnostic_profiles:
+		_check(not serialized_tree.contains(candidate_profile), "formal matrix does not embed diagnostic strategy profile %s" % candidate_profile)
 	var bytes := FileAccess.get_file_as_bytes("res://data/config/numerical_tree.json")
 	var hashing_context := HashingContext.new()
 	var hash_error: Error = hashing_context.start(HashingContext.HASH_SHA256)

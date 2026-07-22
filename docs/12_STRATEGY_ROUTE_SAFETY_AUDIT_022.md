@@ -69,3 +69,13 @@ stage_state:
 - 生产 `data/config/numerical_tree.json` SHA-256 仍为 `1f0cc2cbf45739c8b82abb92380c91138673a716d0031be0b57c5c0eacd5845e`；未修改生产 JSON、CombatState、MapGenerator、Main、正式 256 rows 或真人 cohort。
 
 022-01 只关闭完整图路线安全实现缺口，不代表数值树已通过。Stage 1 通过，独立强模型 Stage 2 为 `C0/M0/m1`；唯一 minor 是 `BalanceSimulator.gd` 的长期结构债务，本冻结批次不扩大重构。下一步允许进入 022-02 的四 profile `3x4x64` paired gate。
+
+## 022-02 配对验证证据
+
+- 四 profile 64 报告均为 3 角色 x C0-C3 x 64、80 turns、`paired_by_iteration`、`component-v1`。v3 相对 current 的胜局为 C0 `16>=9`、C1 `8>=4`、C2 `5>=1`、C3 `3>=1`；第一章仅 C0 下降 `1/192=0.00521`，其余均提升；elite deaths/visits=`17/133=0.12782`，全部通过。
+- 64 全门 PASS 后按契约运行四 profile 128 与 repeat。v3 相对 current 的胜局为 `34>=24`、`21>=11`、`12>=7`、`11>=6`；第一章四档均提升；elite=`49/260=0.18846`。四组 repeat byte-identical。
+- 021 与 022 的 current 64 SHA 均为 `05d28aab84cd28d2b789bafcbb55f358828c838f9ba70165022e40481c9f38d0`；v2 64 SHA 均为 `b375c1fb73a5fa13ad7e0e700ab01e3f265f9220a6d633188ae80b3947bf0220`，历史行为未改写。
+- 正式 matrix 仍为 256/current/paired/12 rows；生产数值树 SHA-256 仍为 `1f0cc2cbf45739c8b82abb92380c91138673a716d0031be0b57c5c0eacd5845e`。
+- 业务裁决：`route_safety_component_gate_passed`。这只解锁下一轮生产数值候选审计，不代表正式数值已经重标定，也不直接解锁真人试玩包。
+
+完整命令、逐门原始计数与 12 份 artifact SHA 见 `02-paired-route-safety-verification/verification-report.md`。
