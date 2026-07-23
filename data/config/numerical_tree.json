@@ -301,6 +301,79 @@
     ],
     "balance_note": "019-02 按冻结阶梯完成 R1/R2 方向报告；R2-A 在静态预算门新增 null_workshop 硬 warning，R2-B 继承同一二章 HP 阶梯，因此无候选通过，保持 019 起点数值并暂停。"
   },
+  "campaign_rebaseline_023": {
+    "status": "paused_no_layered_candidate_passed",
+    "selected_step": "",
+    "candidate_order": ["P1", "P2", "P3", "P4", "P5"],
+    "verdict_path": "/tmp/ember023-layered-ladder-verdict.json",
+    "verdict_sha256": "8b3ef30c44e1151f066447580f558a1af438edca0d845896840fbcc3c2266ff1",
+    "production_applied": false,
+    "matrix_updated": false,
+    "playtest_package_eligible": false,
+    "candidate_results": [
+      {
+        "step_id": "P1",
+        "status": "rejected_hard_gate",
+        "report_64_path": "/tmp/ember023-P1-64.json",
+        "report_64_sha256": "0c393d93dbdde5f571e760bc926f38ba72a7ce63c648163980b5aa07b4aa3f12",
+        "report_128_path": "/tmp/ember023-P1-128.json",
+        "report_128_sha256": "0c7387a6aaa85cf8ac3d239188f0eccebc3452d40f5785f70a564481ac37b52b",
+        "repeat_128_path": "/tmp/ember023-P1-128-repeat.json",
+        "repeat_128_sha256": "0c7387a6aaa85cf8ac3d239188f0eccebc3452d40f5785f70a564481ac37b52b",
+        "challenge_average_win_rates": [0.182291667, 0.106770833, 0.057291667, 0.049479167],
+        "failure_codes": ["average_win_rate_outside_target", "cell_win_rate_outside_tolerance", "character_gap_high", "failure_concentration_high", "final_gold_outside_target", "final_deck_outside_target"]
+      },
+      {
+        "step_id": "P2",
+        "status": "rejected_hard_gate",
+        "report_64_path": "/tmp/ember023-P2-64.json",
+        "report_64_sha256": "50226352059beb3a56776458c79d2385d4a03cab98e5a16e956f4844c84bb8a2",
+        "report_128_path": "/tmp/ember023-P2-128.json",
+        "report_128_sha256": "875ee6ea8429d7a09cf80c009dbfef773485656125161285edeb9f6ab5c549b0",
+        "repeat_128_path": "/tmp/ember023-P2-128-repeat.json",
+        "repeat_128_sha256": "875ee6ea8429d7a09cf80c009dbfef773485656125161285edeb9f6ab5c549b0",
+        "challenge_average_win_rates": [0.192708333, 0.140625, 0.057291667, 0.036458333],
+        "failure_codes": ["average_win_rate_outside_target", "cell_win_rate_outside_tolerance", "character_gap_high", "failure_concentration_high", "final_gold_outside_target", "final_deck_outside_target"]
+      },
+      {
+        "step_id": "P3",
+        "status": "rejected_hard_gate",
+        "report_64_path": "/tmp/ember023-P3-64.json",
+        "report_64_sha256": "18f6e4ebfd485f66ab5122ec44b41f9cdaacea423c0268f283beb80b589315bd",
+        "report_128_path": "/tmp/ember023-P3-128.json",
+        "report_128_sha256": "f4c59ae3a0ab8172c6493555301963e370ab412a71763233e4ebf40872340aa1",
+        "repeat_128_path": "/tmp/ember023-P3-128-repeat.json",
+        "repeat_128_sha256": "f4c59ae3a0ab8172c6493555301963e370ab412a71763233e4ebf40872340aa1",
+        "challenge_average_win_rates": [0.192708333, 0.140625, 0.057291667, 0.036458333],
+        "failure_codes": ["average_win_rate_outside_target", "cell_win_rate_outside_tolerance", "character_gap_high", "failure_concentration_high", "final_gold_outside_target", "final_deck_outside_target"]
+      },
+      {
+        "step_id": "P4",
+        "status": "rejected_hard_gate",
+        "report_64_path": "/tmp/ember023-P4-64.json",
+        "report_64_sha256": "1da241b12b3c67feea6073467eca00c41b017a85f2810fcc9b6db6f703166565",
+        "report_128_path": "/tmp/ember023-P4-128.json",
+        "report_128_sha256": "7c334e0559a37fd9380302882078120a486a2331e6d78534cf095d7fc75e9eae",
+        "repeat_128_path": "/tmp/ember023-P4-128-repeat.json",
+        "repeat_128_sha256": "7c334e0559a37fd9380302882078120a486a2331e6d78534cf095d7fc75e9eae",
+        "challenge_average_win_rates": [0.234375, 0.1640625, 0.083333333, 0.046875],
+        "failure_codes": ["average_win_rate_outside_target", "cell_win_rate_outside_tolerance", "character_gap_high", "failure_concentration_high", "final_gold_outside_target", "final_deck_outside_target"]
+      },
+      {
+        "step_id": "P5",
+        "status": "rejected_hard_gate",
+        "report_64_path": "/tmp/ember023-P5-64.json",
+        "report_64_sha256": "e4d26e4b02baf788b2351b602054d71ac36169adb8b0fc77c05a0bbbcf2fff17",
+        "report_128_path": "/tmp/ember023-P5-128.json",
+        "report_128_sha256": "d9138cd3a2793fe599d18461334c11e2dbc6541813a3e167a79346fd252641d4",
+        "repeat_128_path": "/tmp/ember023-P5-128-repeat.json",
+        "repeat_128_sha256": "d9138cd3a2793fe599d18461334c11e2dbc6541813a3e167a79346fd252641d4",
+        "challenge_average_win_rates": [0.213541667, 0.138020833, 0.080729167, 0.049479167],
+        "failure_codes": ["average_win_rate_outside_target", "cell_win_rate_outside_tolerance", "character_gap_high", "final_gold_outside_target", "final_deck_outside_target"]
+      }
+    ],
+    "balance_note": "023-02 的 P1-P5 五步均通过 64 方向门并在 128 主/复跑中保持 byte-identical，但均未通过共享 hard gate；生产数值、正式 256 matrix 与试玩包资格保持冻结。"
+  },
   "campaign_matrix": {
     "_comment": "三角色乘四挑战的配对种子基线。observed_win_rate 来自 256 次/格完整跑团；契约测试会校验矩阵完备性、普通敌人与 Boss 挑战修正、角色起始资源、卡池覆盖、成长成本、目标区间和聚合门槛。",
     "schema_version": 2,

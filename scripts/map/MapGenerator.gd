@@ -367,6 +367,34 @@ static func _introduce_optional_budget_choices(node_type_layers: Array, schedule
 			alternate_schedule[layer_index] = alternate_type
 			if max_pressure_without_campfire > 0 and not _schedule_respects_pressure_cadence(alternate_schedule, max_pressure_without_campfire):
 				continue
+			# trellis-minimal: pressure-3 is the new candidate contract; legacy max4 graphs retain their exact route search.
+			if max_pressure_without_campfire <= 3 and max_pressure_without_campfire > 0:
+				var original_type = layer_types[1]
+				layer_types[1] = alternate_type
+				var pressure_states: Dictionary = {0: true}
+				var all_combinations_safe := true
+				for candidate_layer_value in node_type_layers:
+					var next_pressure_states: Dictionary = {}
+					for pressure_value in pressure_states.keys():
+						for candidate_type_value in candidate_layer_value:
+							var next_pressure: int = int(pressure_value)
+							var candidate_type := str(candidate_type_value)
+							if candidate_type == "campfire":
+								next_pressure = 0
+							elif candidate_type in ["combat", "elite", "boss"]:
+								next_pressure += 1
+							if next_pressure > max_pressure_without_campfire:
+								all_combinations_safe = false
+								break
+							next_pressure_states[next_pressure] = true
+						if not all_combinations_safe:
+							break
+					if not all_combinations_safe:
+						break
+					pressure_states = next_pressure_states
+				layer_types[1] = original_type
+				if not all_combinations_safe:
+					continue
 			if require_recovery and not _schedule_has_safe_recovery(alternate_schedule, first_safe_layer):
 				continue
 			if prevent_forced_elite and not _schedule_avoids_forced_elite_after_treasure(alternate_schedule):
@@ -470,6 +498,39 @@ static func _weighted_node_type(weights: Dictionary, rng: RandomNumberGenerator)
 			return str(key)
 	return "combat"
 
+static func _encounter_pool_for_layer(config: Dictionary, node_type: String, layer_index: int) -> Array:
+	var legacy_pool: Array = config.get("encounter_by_type", {}).get(node_type, [])
+	var layer_bands_value = config.get("encounter_layer_bands", {})
+	if layer_bands_value is not Dictionary:
+		return legacy_pool
+	var bands_value = (layer_bands_value as Dictionary).get(node_type)
+	if bands_value is not Array or (bands_value as Array).is_empty():
+		return legacy_pool
+
+	var matching_pools: Array = []
+	for band_value in bands_value:
+		if band_value is not Dictionary:
+			return legacy_pool
+		var band: Dictionary = band_value
+		var layers_value = band.get("layers")
+		var encounter_ids_value = band.get("encounter_ids")
+		if layers_value is not Array or (layers_value as Array).size() != 2:
+			return legacy_pool
+		var layers: Array = layers_value
+		var start_is_integer: bool = typeof(layers[0]) == TYPE_INT or (typeof(layers[0]) == TYPE_FLOAT and float(layers[0]) == floor(float(layers[0])))
+		var end_is_integer: bool = typeof(layers[1]) == TYPE_INT or (typeof(layers[1]) == TYPE_FLOAT and float(layers[1]) == floor(float(layers[1])))
+		if not start_is_integer or not end_is_integer or int(layers[0]) < 0 or int(layers[1]) < int(layers[0]):
+			return legacy_pool
+		if encounter_ids_value is not Array or (encounter_ids_value as Array).is_empty():
+			return legacy_pool
+		var encounter_ids: Array = encounter_ids_value
+		for encounter_id_value in encounter_ids:
+			if typeof(encounter_id_value) != TYPE_STRING or str(encounter_id_value).strip_edges().is_empty():
+				return legacy_pool
+		if layer_index >= int(layers[0]) and layer_index <= int(layers[1]):
+			matching_pools.append(encounter_ids)
+	return matching_pools[0] if matching_pools.size() == 1 else legacy_pool
+
 static func _make_node(config: Dictionary, layer_index: int, node_index: int, node_type: String, rng: RandomNumberGenerator, used_event_ids: Dictionary, guaranteed_event_ids: Array) -> Dictionary:
 	var node := {
 		"id": "L%d_N%d" % [layer_index, node_index],
@@ -480,7 +541,7 @@ static func _make_node(config: Dictionary, layer_index: int, node_index: int, no
 	}
 
 	if node_type == "combat" or node_type == "elite" or node_type == "boss":
-		var encounter_pool: Array = config.get("encounter_by_type", {}).get(node_type, [])
+		var encounter_pool: Array = _encounter_pool_for_layer(config, node_type, layer_index)
 		if not encounter_pool.is_empty():
 			node["encounter_id"] = encounter_pool[rng.randi_range(0, encounter_pool.size() - 1)]
 	elif node_type == "event":
