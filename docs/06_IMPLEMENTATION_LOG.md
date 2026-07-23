@@ -962,7 +962,9 @@ jq empty data/cards/cards.json data/enemies/enemies.json data/relics/relics.json
 
 - 用户明确要求停止继续串行运行数值测试，先交付当前可完整游玩的 Windows 试玩快照；本次不运行新的平衡模拟或完整回归矩阵。
 - 游戏内构建标签和试玩说明升级为 `0.1.0-alpha.9-preview`，Godot/Windows 数字版本使用合法的 `0.1.0.9`；构建号为 9。
-- 试玩包从源码提交 `771cd19` 导出，包含单文件 embedded-PCK 的 `EmberCircuit.exe`、中文试玩说明和包内 `SHA256SUMS.txt`。
-- 必要发布检查通过：导出进程退出码为 0，EXE 为 PE32+ x86-64，Godot 4.7 可从嵌入包进入主场景并正常退出，包内 SHA 校验通过，ZIP `unzip -t` 无错误。
+- Windows 试玩包从源码提交 `771cd19` 导出，包含单文件 embedded-PCK 的 `EmberCircuit.exe`、中文试玩说明和包内 `SHA256SUMS.txt`。
+- Windows 必要发布检查通过：导出进程退出码为 0，EXE 为 PE32+ x86-64，Godot 4.7 可从嵌入包进入主场景并正常退出，包内 SHA 校验通过，ZIP `unzip -t` 无错误。
 - Windows 压缩包为 `EmberCircuit-0.1.0-alpha.9-preview-Windows-x86_64-771cd19.zip`，SHA-256 为 `3dc641f776f9ec463159a4b8714c8ad986447cd33a9ed4416392325ebe4e62f2`。
+- macOS 试玩包从源码提交 `f95de1b` 导出；`EmberCircuit.app` 为 arm64/x86_64 通用二进制，bundle build 为 9，解压后原生 headless 启动、临时签名、包内 SHA 和压缩完整性均通过。
+- macOS 压缩包为 `EmberCircuit-0.1.0-alpha.9-preview-macOS-universal-f95de1b.zip`，SHA-256 为 `0d752a5d7f2cfb4bac5bd7bf1652db0219d48d45480c0bf1318892be5f95d2a6`。
 - 该构建代表当前生产配置的完整流程试玩快照，不代表 Batch 023/024 数值硬门通过，也不代表角色平衡或商业发布已最终验收。
