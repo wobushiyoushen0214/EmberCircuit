@@ -187,7 +187,9 @@ func _apply_candidate_overlay(options: Dictionary) -> Dictionary:
 	var datasets := {
 		"map_generation": map_generation_data,
 		"level_tree": level_tree_data,
-		"economy": economy_data
+		"economy": economy_data,
+		"player": player_data,
+		"relics": relic_data
 	}
 	var result: Dictionary = BalanceCandidateOverlayScript.new().load_and_apply(path, datasets)
 	if not bool(result.get("ok", false)):
@@ -198,12 +200,16 @@ func _apply_candidate_overlay(options: Dictionary) -> Dictionary:
 		"original_map_generation": map_generation_data,
 		"original_level_tree": level_tree_data,
 		"original_economy": economy_data,
+		"original_player": player_data,
+		"original_relics": relic_data,
 		"metadata": result.get("metadata", {})
 	}
 	var copied_datasets: Dictionary = result.get("datasets", {})
 	map_generation_data = copied_datasets.get("map_generation", {})
 	level_tree_data = copied_datasets.get("level_tree", {})
 	economy_data = copied_datasets.get("economy", {})
+	player_data = copied_datasets.get("player", {})
+	relic_data = copied_datasets.get("relics", {})
 	return context
 
 func _restore_candidate_overlay(context: Dictionary) -> void:
@@ -212,6 +218,8 @@ func _restore_candidate_overlay(context: Dictionary) -> void:
 	map_generation_data = context.get("original_map_generation", map_generation_data)
 	level_tree_data = context.get("original_level_tree", level_tree_data)
 	economy_data = context.get("original_economy", economy_data)
+	player_data = context.get("original_player", player_data)
+	relic_data = context.get("original_relics", relic_data)
 
 func _campaign_overlay_rejection_report(iterations: int, max_turns: int, strategy_profile: String, strategy_profile_fallback: bool, errors: Array) -> Dictionary:
 	return {

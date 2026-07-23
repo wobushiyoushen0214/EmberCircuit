@@ -1,8 +1,9 @@
 class_name BalanceCandidateOverlay
 extends RefCounted
 
+const CandidateSelector = preload("res://scripts/tools/BalanceCandidateSelector.gd")
 const SCHEMA_VERSION := 1
-const DATASET_NAMES := ["map_generation", "level_tree", "economy"]
+const DATASET_NAMES := ["map_generation", "level_tree", "economy", "player", "relics"]
 const ERROR_ORDER := [
 	"overlay_file_missing",
 	"overlay_json_invalid",
@@ -21,7 +22,13 @@ const ALLOWED_PATHS := {
 	"level_tree.chapters.chapter_two.node_budget.campfire": "campfire_budget",
 	"level_tree.chapters.chapter_three.node_budget.campfire": "campfire_budget",
 	"economy.campfire.heal_percent_of_max_hp": "heal_percent",
-	"economy.reward_generation.card_rarity_weights": "card_rarity_weights"
+	"economy.reward_generation.card_rarity_weights": "card_rarity_weights",
+	"player.characters.arc_tinker.starting_momentum": "starting_momentum",
+	"player.characters.arc_tinker.starter_deck_ids": "starter_deck_ids",
+	"player.characters.ember_exile.starter_deck_ids": "starter_deck_ids",
+	"player.characters.pyre_ascetic.starter_deck_ids": "starter_deck_ids",
+	"relics.relics.ember_bottle.effects.0.amount": "starter_relic_amount",
+	"relics.relics.ash_rosary.effects.0.amount": "starter_relic_amount"
 }
 
 func load_and_apply(path: String, datasets: Dictionary) -> Dictionary:
@@ -32,7 +39,7 @@ func load_and_apply(path: String, datasets: Dictionary) -> Dictionary:
 	if parser.parse(source_text) != OK or parser.data is not Dictionary:
 		return _rejected(["overlay_json_invalid"])
 	var payload: Dictionary = parser.data
-	var validation_errors := _validate_payload(payload)
+	var validation_errors := _validate_payload(payload, datasets)
 	if not validation_errors.is_empty():
 		return _rejected(validation_errors)
 	var candidate_id: String = payload["candidate_id"]
@@ -40,15 +47,23 @@ func load_and_apply(path: String, datasets: Dictionary) -> Dictionary:
 
 	var copied_datasets: Dictionary = {}
 	for dataset_name in DATASET_NAMES:
+		if not datasets.has(dataset_name):
+			continue
 		var source_dataset = datasets.get(dataset_name, {})
 		copied_datasets[dataset_name] = (source_dataset as Dictionary).duplicate(true) if source_dataset is Dictionary else {}
 
 	var applied_fields: Array = []
+	var selector = CandidateSelector.new()
 	for change_value in changes:
 		var change: Dictionary = change_value
 		var dataset_name := str(change.get("dataset", ""))
 		var path_parts: Array = change["path"]
-		_apply_path(copied_datasets[dataset_name], path_parts, change.get("value"))
+		if dataset_name in ["player", "relics"]:
+			var selector_result: Dictionary = selector.apply(dataset_name, copied_datasets[dataset_name], path_parts, change.get("value"))
+			if not bool(selector_result.get("ok", false)):
+				return _rejected(selector_result.get("errors", ["path_forbidden"]))
+		else:
+			_apply_path(copied_datasets[dataset_name], path_parts, change.get("value"))
 		applied_fields.append(_qualified_path(dataset_name, path_parts))
 	applied_fields.sort()
 
@@ -64,7 +79,7 @@ func load_and_apply(path: String, datasets: Dictionary) -> Dictionary:
 		"errors": []
 	}
 
-func _validate_payload(payload: Dictionary) -> Array:
+func _validate_payload(payload: Dictionary, available_datasets = null) -> Array:
 	if not _is_integer_number(payload.get("schema_version")) or int(payload.get("schema_version", 0)) != SCHEMA_VERSION:
 		return ["schema_version_unsupported"]
 	var candidate_id_value = payload.get("candidate_id")
@@ -87,7 +102,7 @@ func _validate_payload(payload: Dictionary) -> Array:
 			_append_error(errors, "value_invalid")
 			continue
 		var dataset_value = change.get("dataset")
-		if typeof(dataset_value) != TYPE_STRING or not DATASET_NAMES.has(dataset_value):
+		if typeof(dataset_value) != TYPE_STRING or not DATASET_NAMES.has(dataset_value) or (available_datasets is Dictionary and not (available_datasets as Dictionary).has(dataset_value)):
 			_append_error(errors, "dataset_forbidden")
 			continue
 		var path_value = change.get("path")
@@ -143,7 +158,21 @@ func _valid_value(validator: String, value) -> bool:
 			return _is_integer_number(value) and int(value) >= 1 and int(value) <= 100
 		"card_rarity_weights":
 			return _valid_card_rarity_weights(value)
+		"starting_momentum":
+			return _is_integer_number(value) and int(value) >= 0 and int(value) <= 5
+		"starter_deck_ids":
+			return _valid_starter_deck_ids(value)
+		"starter_relic_amount":
+			return _is_integer_number(value) and int(value) >= 1 and int(value) <= 10
 	return false
+
+func _valid_starter_deck_ids(value) -> bool:
+	if value is not Array or (value as Array).size() != 10:
+		return false
+	for card_id_value in value:
+		if typeof(card_id_value) != TYPE_STRING or str(card_id_value).strip_edges().is_empty():
+			return false
+	return true
 
 func _valid_encounter_layer_bands(value) -> bool:
 	if value is not Dictionary:
