@@ -957,3 +957,12 @@ jq empty data/cards/cards.json data/enemies/enemies.json data/relics/relics.json
 - 1280x720 与 1600x900 五页人工构图复核通过；11/11 区域金标全绿，阈值仍为 mean RGB <=1%、changed pixels <=2%，未改的六页保持像素稳定。
 - 真实 Main 五页按 map->event->shop->campfire->reward 切换 20 轮，节点增量 `0`、循环 Tween `2`；Apple M4 600 帧 p95 `14.42ms`、1% low `66.35 FPS`、最大输入延迟 `51.509ms`、普通/Boss burst `10/20`。
 - editor import、28/28 `tests/test_*.gd`、视觉 verifier 和性能预算全绿；预期 warning 仅覆盖未知/过期页面请求与测试存储原子替换边界。
+
+## 2026-07-23：alpha.9-preview 真人试玩快照
+
+- 用户明确要求停止继续串行运行数值测试，先交付当前可完整游玩的 Windows 试玩快照；本次不运行新的平衡模拟或完整回归矩阵。
+- 游戏内构建标签和试玩说明升级为 `0.1.0-alpha.9-preview`，Godot/Windows 数字版本使用合法的 `0.1.0.9`；构建号为 9。
+- 试玩包从源码提交 `771cd19` 导出，包含单文件 embedded-PCK 的 `EmberCircuit.exe`、中文试玩说明和包内 `SHA256SUMS.txt`。
+- 必要发布检查通过：导出进程退出码为 0，EXE 为 PE32+ x86-64，Godot 4.7 可从嵌入包进入主场景并正常退出，包内 SHA 校验通过，ZIP `unzip -t` 无错误。
+- Windows 压缩包为 `EmberCircuit-0.1.0-alpha.9-preview-Windows-x86_64-771cd19.zip`，SHA-256 为 `3dc641f776f9ec463159a4b8714c8ad986447cd33a9ed4416392325ebe4e62f2`。
+- 该构建代表当前生产配置的完整流程试玩快照，不代表 Batch 023/024 数值硬门通过，也不代表角色平衡或商业发布已最终验收。

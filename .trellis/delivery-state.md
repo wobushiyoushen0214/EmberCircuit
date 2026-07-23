@@ -11,14 +11,14 @@ stage_state:
   tasks_completed: 0
   carry_over: 0
   critical_review_issues: 0
-  next_legal_action: request-confirmation-for-delivery-batch-025-role-strategy-credibility
+  next_legal_action: collect-human-playtest-feedback
   stop_conditions:
     - none
 ---
 
 loop_mode: L3
 current_round: 6
-next_loop_recommendation: continue-next-batch
+next_loop_recommendation: pause-for-human-playtest-preview
 carry_over: 0
 
 ## 基线
@@ -26,6 +26,7 @@ carry_over: 0
 - source_requirements: `docs/00_MASTER_PLAN.md`（由 `docs/01-08` 细化）
 - mvp_baseline_commit: `2e3e857`
 - last_audited_commit: `d64262e7b9cfc3039fdd33b479ecab1aa9f2ecab`（Batch 024 已提交、合并并推送；Post-024 delta audit 以此为代码基线）
+- last_packaged_commit: `771cd19`（用户授权的 `0.1.0-alpha.9-preview` 当前生产配置试玩快照；不改变数值门结论）
 - loop_mode: `L3`
 - current_round: `6`
 - max_rounds: `6`
@@ -45,7 +46,7 @@ carry_over: 0
 | REQ-008 | PARTIAL | `scripts/ui/AppShell.gd`, `scripts/ui/ForgeTheme.gd`, `scripts/ui/ForgeMotion.gd`, `scripts/ui/components/`, `scripts/ui/pages/`, `scripts/main/Main.gd`, `assets/art/generated/`, `assets/fonts/NotoSansSC-Variable.ttf` | `tests/test_forge_ui_foundation.gd`, `tests/test_welcome_character_pages.gd`, `tests/test_ember_forge_route_rooms.gd`, `tests/test_ui_outcome_settings_compendium.gd`, `tests/test_visual_bounds.gd`, `tools/render_pc_gallery.gd`, `/tmp/ember018d-visual.json`, `/tmp/ember018d-performance.json` | 018D 已将 Map/Event/Shop/Campfire/Reward 真实挂入 Main→AppShell，并删除五页旧 PC 视觉树；仍保留生产内容美术与更深玩法扩展缺口 | L3-5 | 0 |
 | REQ-009 | PARTIAL | `scripts/core/PlaytestTelemetry.gd`, `scripts/core/PlaytestEvidenceGate.gd`, `tools/merge_playtest_reports.gd`, `scripts/tools/BalanceCandidateOverlay.gd`, `scripts/tools/BalanceSimulator.gd`, `scripts/tools/BalanceEvidenceDigest.gd`, `scripts/tools/LayeredPressureCandidateGate.gd`, `tools/run_character_parity_ladder.gd`, `data/config/numerical_tree.json`, `docs/14_CHARACTER_PARITY_REBASELINE_024.md` | `tests/test_balance_evidence_digest.gd`, `tests/test_character_parity_candidate_gate.gd`, `tests/test_character_parity_rebaseline.gd`, `tests/test_numerical_balance_matrix.gd` | 024 full SHA/compact/verdict 已绑定；仍缺版本化 v4 role semantics、reason counters、primary/repeat compact evidence 与唯一可信度 verdict；真人 cohort 继续冻结 | 6 | 0 |
 | REQ-010 | MISSING | none | none | proposed: build-grid-tactics-mode | 1 | 2 |
-| REQ-011 | PARTIAL | `export_presets.cfg`, `project.godot`, `packaging/PLAYTEST_README_ZH.txt` | alpha.8 Windows PE32+ x86_64 embedded-PCK、精确 PCK 启动、版本和压缩完整性通过 | next: native Windows matrix, commercial signing, installer and Steam integration | L3-post | 0 |
+| REQ-011 | PARTIAL | `export_presets.cfg`, `project.godot`, `packaging/PLAYTEST_README_ZH.txt` | alpha.9-preview Windows PE32+ x86_64 embedded-PCK、主场景启动、包内 SHA、版本和压缩完整性通过；属于用户授权 preview，不代表数值门晋级 | next: native Windows matrix, commercial signing, installer and Steam integration | L3-post | 0 |
 | REQ-012 | DONE | `tests/`, `tools/render_pc_gallery.gd`, `tools/verify_ui_visual_regression.gd`, `tools/profile_ui_performance.gd`, `tests/fixtures/ui_visual_contracts.json`, `tests/golden/ui_720p/` | 28/28 strict-log regression；11/11 1280x720 区域金标；真实 Main 600 帧 profiler；focus/motion/44px/节点增量门 | none；Windows release 目标机采样归入 REQ-011 发布门 | L3-5 | 0 |
 
 ## 当前批次
@@ -66,13 +67,17 @@ carry_over: 0
 - task_results: none
 - result: `planned_awaiting_confirmation`
 - playtest_package_eligible: false
+- preview_snapshot_override: `user_authorized`
+- preview_snapshot: `EmberCircuit-0.1.0-alpha.9-preview-Windows-x86_64-771cd19.zip`
+- preview_snapshot_sha256: `3dc641f776f9ec463159a4b8714c8ad986447cd33a9ed4416392325ebe4e62f2`
+- preview_snapshot_scope: `当前生产配置的完整流程可玩快照；不写入候选数值，不把失败的 128/256 门标为通过`
 - audit_evidence: `.trellis/audits/2026-07-23-post-024-role-balance-delta-audit.md`、`.trellis/audits/2026-07-23-post-024-role-balance-self-review.md`、`.trellis/evidence/batch-024/024-B0-64.json`、`.trellis/evidence/batch-024/character-parity-verdict.json`
 - excluded_this_round:
   - `REQ-005`: B0 路线/恢复只作固定 overlay，不修改生产 map/level/economy
   - `REQ-006/008`: 内容资产、正式音频和 UI 不与高风险策略批次混合
   - `REQ-010/011`: 网格战术模式、商业签名/Steam/安装器继续后续批次
   - `REQ-012`: 只复用回归，不重新设计测试基础设施
-  - `CombatState/生产角色卡牌遗物/敌人/挑战/经济/正式 matrix/真人 cohort/包体`: 全部冻结
+  - `CombatState/生产角色卡牌遗物/敌人/挑战/经济/正式 matrix/真人 cohort`: 全部冻结；仅按用户明确授权导出当前生产配置 preview 快照
 
 ## 阻塞项
 
@@ -124,6 +129,7 @@ carry_over: 0
 - 2026-07-23: 用户明确回复“确认执行”，确认 `delivery-batch-024-character-parity-rebaseline`；允许创建三个串行任务、隔离 worktree，并按严格 TDD、verifier 和双阶段评审推进。024-02 为本批唯一高风险任务；128/256 未全过不得改生产或打包。
 - 2026-07-23: 024-02 正式运行 B0 与 A1-A3 共 1,536 局；三个 Arc 候选均未同时通过四档原始胜局门，状态 `paused_no_arc_candidate_passed`。Round 4 独立复审 C0/M0/m0；024-03 取消，未运行 Ember/Pyre/组合 64/128/256，生产、正式 matrix、真人 cohort 与 alpha.8 包体保持冻结。按用户要求完成提交/合并/推送后暂停。
 - 2026-07-23: 用户继续后启动 Post-024 delta audit。代码与 B0 原始报告证明 v3 对 Pyre 的混合 burn、自伤生存、创口清理和苦修香炉评分存在系统性偏差；Round 6 只建议版本隔离的 Batch 025 策略可信度批次，确认前不创建任务或运行新模拟。
+- 2026-07-23: 用户明确要求停止继续串行测试并打包当前可完整游玩的版本；据此从 `771cd19` 导出 `0.1.0-alpha.9-preview` Windows x86_64 快照。该人工授权只允许分发当前生产配置，不覆盖 023/024 数值失败结论，Batch 025 保持未创建。
 
 ## 预算快照
 
@@ -135,8 +141,8 @@ carry_over: 0
 
 ## 下一轮建议
 
-- action: `continue-next-batch`
-- reason: `v3 的 Pyre 角色语义存在可机械复核的决策 bug；先通过 v4 role-aware 策略可信度门，才能重新设计生产角色数值候选。`
+- action: `pause-for-human-playtest-preview`
+- reason: `用户要求停止继续自动测试，先体验当前完整流程；alpha.9-preview 已生成，但 v3 Pyre 角色语义与正式数值硬门仍待后续处理。`
 - next_batch: `delivery-batch-025-role-strategy-credibility`（planned，awaiting confirmation）
-- next_task: `request-user-confirmation`
+- next_task: `collect-human-playtest-feedback`
 - next_audit_scope: `delta`
