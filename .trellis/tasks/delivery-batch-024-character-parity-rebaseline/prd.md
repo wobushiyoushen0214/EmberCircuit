@@ -14,13 +14,16 @@
 
 ## 批次状态
 
-- Loop：L3，Round 5/6。
+- Loop：L3，Round 5/6，`completed_with_pause`。
 - 用户确认：2026-07-23 明确回复“确认执行”。
 - worktree：`/Users/lizhiwei/localProj/EmberCircuit-batch024`。
 - branch：`codex/batch-024-character-parity-rebaseline`。
 - verifier：必须；Stage 1 与独立强模型 Stage 2 均必须无阻断。
 - 唯一高风险任务：`024-02-bounded-character-parity-calibration`。
 - 样本上限：024-02 最多 6,912 局；024-03 条件式最多 6,144 局；合计最多 13,056 局。
+- 最终裁决：024-02 正式运行 `1,536` 局后为 `paused_no_arc_candidate_passed`；A1/A2/A3 均未同时通过四档原始胜局门，未选择“最接近”候选。
+- 任务结果：024-01 completed；024-02 completed（Review Round 4 C0/M0/m0）；024-03 `canceled_no_selected_128_candidate`。
+- 生产结果：未运行 Ember/Pyre/组合 64/128/256，未修改生产数值或正式 matrix，未构建 alpha.9 试玩包。
 
 ## 串行任务
 

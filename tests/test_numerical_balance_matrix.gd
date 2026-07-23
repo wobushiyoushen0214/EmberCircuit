@@ -25,6 +25,7 @@ func _run() -> void:
 	_check_human_playtest_targets(tree.get("human_playtest_targets", {}))
 	_check_campaign_rebaseline(tree.get("campaign_rebaseline", {}))
 	_check_campaign_rebaseline_023(tree.get("campaign_rebaseline_023", {}))
+	_check_campaign_rebaseline_024(tree.get("campaign_rebaseline_024", {}))
 	_check_inventory(tree.get("audit_inventory", {}), cards, enemies, encounters, progression, challenges, economy, audit_report)
 	_check_matrix(tree, players, cards, progression, challenges, audit_report)
 	_check_matrix_candidate_isolation(tree)
@@ -85,6 +86,68 @@ func _check_campaign_rebaseline_023(rebaseline: Dictionary) -> void:
 		_check(str(result.get("report_128_sha256", "")).length() == 64 and result.get("report_128_sha256") == result.get("repeat_128_sha256"), "023 primary and repeat SHA are frozen and identical: %s" % str(result.get("step_id", "")))
 		_check(not (result.get("failure_codes", []) as Array).is_empty(), "023 result records explicit hard-gate failure codes: %s" % str(result.get("step_id", "")))
 
+func _check_campaign_rebaseline_024(rebaseline: Dictionary) -> void:
+	var legal_statuses := ["selected_128_candidate", "paused_no_arc_candidate_passed", "paused_no_ember_candidate_passed", "paused_no_pyre_candidate_passed", "paused_no_character_parity_candidate_passed"]
+	_check(int(rebaseline.get("schema_version", 0)) == 1 and legal_statuses.has(str(rebaseline.get("status", ""))), "024 records one legal bounded-ladder verdict")
+	_check(rebaseline.get("candidate_order", []) == ["B0", "A1", "A2", "A3", "E1", "E2", "E3", "Y1", "Y2", "Y3"], "024 preserves the exact candidate order")
+	_check(int(rebaseline.get("total_formal_runs", 0)) > 0 and int(rebaseline.get("total_formal_runs", 0)) <= 6912, "024 formal runs stay inside the frozen budget")
+	_check(rebaseline.get("production_applied", true) == false and rebaseline.get("matrix_updated", true) == false and rebaseline.get("playtest_package_eligible", true) == false, "024-02 cannot write production, matrix rows, or unlock a package")
+	var verdict_path := "res://%s" % str(rebaseline.get("verdict_path", ""))
+	var verdict = JSON.parse_string(FileAccess.get_file_as_string(verdict_path)) if FileAccess.file_exists(verdict_path) else null
+	_check(verdict is Dictionary and _rebaseline_024_binding_errors(rebaseline, verdict, _sha256_file(verdict_path)).is_empty(), "024 tree fields and compact evidence bind the real verdict content and SHA")
+	if verdict is Dictionary:
+		var tampered_verdict: Dictionary = verdict.duplicate(true)
+		tampered_verdict["total_formal_runs"] = int(tampered_verdict.get("total_formal_runs", 0)) + 1
+		_check(not _rebaseline_024_binding_errors(rebaseline, tampered_verdict, _sha256_file(verdict_path)).is_empty(), "024 binding rejects verdict content drift")
+	var evidence_paths: Array = rebaseline.get("compact_evidence_paths", [])
+	_check(not evidence_paths.is_empty(), "024 records every generated compact evidence path")
+	for path_value in evidence_paths:
+		var path := "res://%s" % str(path_value)
+		var digest = JSON.parse_string(FileAccess.get_file_as_string(path)) if FileAccess.file_exists(path) else null
+		_check(digest is Dictionary and int((digest as Dictionary).get("schema_version", 0)) == 1, "024 compact evidence is versioned and parseable: %s" % str(path_value))
+	var documentation := FileAccess.get_file_as_string("res://docs/14_CHARACTER_PARITY_REBASELINE_024.md") if FileAccess.file_exists("res://docs/14_CHARACTER_PARITY_REBASELINE_024.md") else ""
+	_check(documentation.contains(str(rebaseline.get("status", ""))) and documentation.contains(str(rebaseline.get("verdict_sha256", ""))), "024 documentation records the same real verdict and SHA")
+	_check(_sha256_file("res://data/config/player.json") == "f803ba56a07823a4ef6d15c932a666cdb0a0a762f4851e96e01e4546cb6c1d09", "024 keeps production player data frozen")
+	_check(_sha256_file("res://data/relics/relics.json") == "32dacd91caa59d32637ccec0610f7c2b94344c46a5be61f11cac85bf24969ca0", "024 keeps production relic data frozen")
+	_check(_sha256_file("res://data/config/map_generation.json") == "9688ff522b29a3c3dbc5bb1d54fe0255445a1643921034b9d17636f34f8a6090", "024 keeps production map data frozen")
+	_check(_sha256_file("res://data/config/level_tree.json") == "3a53497ab7d4014a838d55acb927a3296b9e2037c4e4a67b7eb7861e80aec0dc", "024 keeps production route data frozen")
+	_check(_sha256_file("res://data/config/economy.json") == "0d2c917e51fcc57d612e34fe71de5690b9b66f4ccfcf36da38a7710db3603ff6", "024 keeps production economy data frozen")
+
+func _rebaseline_024_binding_errors(rebaseline: Dictionary, verdict: Dictionary, actual_verdict_sha: String) -> Array:
+	var errors: Array = []
+	for field in ["schema_version", "status", "candidate_order", "selected_steps", "selected_candidate", "total_formal_runs", "production_applied", "matrix_updated", "playtest_package_eligible"]:
+		if rebaseline.get(field) != verdict.get(field):
+			errors.append("verdict_%s" % field)
+	if actual_verdict_sha != str(rebaseline.get("verdict_sha256", "")):
+		errors.append("verdict_sha256")
+	var declared_results: Dictionary = {}
+	for result_value in rebaseline.get("candidate_results", []):
+		if result_value is Dictionary:
+			declared_results[str((result_value as Dictionary).get("step_id", ""))] = result_value
+	var bound_paths: Array = []
+	for step_value in verdict.get("steps", []):
+		if step_value is not Dictionary:
+			errors.append("step_invalid")
+			continue
+		var step: Dictionary = step_value
+		var artifact_value = step.get("artifact", step)
+		if artifact_value is not Dictionary:
+			continue
+		var artifact: Dictionary = artifact_value
+		var digest_path := str(artifact.get("digest_path", "")).trim_prefix("res://")
+		if digest_path.is_empty():
+			continue
+		bound_paths.append(digest_path)
+		var digest_res_path := "res://%s" % digest_path
+		if not FileAccess.file_exists(digest_res_path) or _sha256_file(digest_res_path) != str(artifact.get("digest_sha256", "")):
+			errors.append("digest_sha256")
+		var declared: Dictionary = declared_results.get(str(step.get("step_id", "")), {})
+		if declared.is_empty() or str(declared.get("status", "")) != str(step.get("status", "")) or str(declared.get("digest_path", "")) != digest_path or str(declared.get("digest_sha256", "")) != str(artifact.get("digest_sha256", "")) or str(declared.get("report_sha256", "")) != str(artifact.get("report_sha256", "")) or declared.get("failure_codes", []) != step.get("failure_codes", []):
+			errors.append("candidate_result_mismatch")
+	if bound_paths != rebaseline.get("compact_evidence_paths", []):
+		errors.append("compact_evidence_paths")
+	return errors
+
 func _check_matrix_candidate_isolation(tree: Dictionary) -> void:
 	var matrix: Dictionary = tree.get("campaign_matrix", {})
 	_check(int(matrix.get("iterations_per_cell", 0)) == 256, "formal campaign matrix remains the 256-run baseline")
@@ -127,7 +190,7 @@ func _check_strategy_diagnostic_formal_matrix_freeze(tree: Dictionary) -> void:
 	if hash_error == OK:
 		hashing_context.update(bytes)
 		var digest := hashing_context.finish().hex_encode()
-		_check(digest == "646607fdb6e2abcdafef90a02d591d70d8069213d81c5f244e073b86cde12119", "formal numerical tree SHA-256 remains frozen with the 023 paused verdict")
+		_check(digest == "2ebafbe919e80433ee12b59a73a3d08eb7881a83a0b42d3b1c10572a081beeb1", "formal numerical tree SHA-256 remains frozen with the 024 paused verdict")
 
 func _check_inventory(inventory: Dictionary, cards: Dictionary, enemies: Dictionary, encounters: Dictionary, progression: Dictionary, challenges: Dictionary, economy: Dictionary, audit_report: Dictionary) -> void:
 	var card_inventory: Dictionary = inventory.get("cards", {})
@@ -419,6 +482,13 @@ func _maximum(values: Array) -> float:
 	for value in values:
 		result = max(result, float(value))
 	return result
+
+func _sha256_file(path: String) -> String:
+	var context := HashingContext.new()
+	if context.start(HashingContext.HASH_SHA256) != OK:
+		return ""
+	context.update(FileAccess.get_file_as_bytes(path))
+	return context.finish().hex_encode()
 
 func _check(condition: bool, message: String) -> void:
 	if not condition:

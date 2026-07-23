@@ -374,6 +374,70 @@
     ],
     "balance_note": "023-02 的 P1-P5 五步均通过 64 方向门并在 128 主/复跑中保持 byte-identical，但均未通过共享 hard gate；生产数值、正式 256 matrix 与试玩包资格保持冻结。"
   },
+  "campaign_rebaseline_024": {
+    "schema_version": 1,
+    "status": "paused_no_arc_candidate_passed",
+    "candidate_order": ["B0", "A1", "A2", "A3", "E1", "E2", "E3", "Y1", "Y2", "Y3"],
+    "selected_steps": {},
+    "selected_candidate": {},
+    "verdict_path": ".trellis/evidence/batch-024/character-parity-verdict.json",
+    "verdict_sha256": "f70b155537c31573ef53c7e6afcfb49bc998497626fc5343760663624a10a413",
+    "compact_evidence_paths": [
+      ".trellis/evidence/batch-024/024-B0-64.json",
+      ".trellis/evidence/batch-024/024-A1-64.json",
+      ".trellis/evidence/batch-024/024-A2-64.json",
+      ".trellis/evidence/batch-024/024-A3-64.json"
+    ],
+    "total_formal_runs": 1536,
+    "production_applied": false,
+    "matrix_updated": false,
+    "playtest_package_eligible": false,
+    "preflight": {
+      "graph_seed_count": 32,
+      "graphs_validated": 960
+    },
+    "candidate_results": [
+      {
+        "step_id": "B0",
+        "status": "baseline_64_complete",
+        "report_path": "/tmp/ember024-B0-64.json",
+        "report_sha256": "af199c189e4208dce26776f9e95e749950655279cedd90f071ff2f7f6463ba4d",
+        "digest_path": ".trellis/evidence/batch-024/024-B0-64.json",
+        "digest_sha256": "28d3f74627e324fa92c0233fb968bdf2c344fe4efc284e23bfb137c416aa5482"
+      },
+      {
+        "step_id": "A1",
+        "status": "rejected_role_64",
+        "wins_by_challenge": [24, 13, 6, 6],
+        "failure_codes": ["role_win_band_c0", "role_win_band_c2"],
+        "report_path": "/tmp/ember024-A1-64.json",
+        "report_sha256": "d54e72561b35fbba300f9af6675e56d856885351f5c8fcef219bdba4a7c8b13f",
+        "digest_path": ".trellis/evidence/batch-024/024-A1-64.json",
+        "digest_sha256": "db77f3403922ec62c6d84d50562070f5b71cd57f343448bc364d0a3006a4a3f1"
+      },
+      {
+        "step_id": "A2",
+        "status": "rejected_role_64",
+        "wins_by_challenge": [22, 16, 7, 6],
+        "failure_codes": ["role_win_band_c0", "role_win_band_c2"],
+        "report_path": "/tmp/ember024-A2-64.json",
+        "report_sha256": "6cba1ca0596fdb89394a90a35cb51f92da24599d6a21bce6cc63943fdfe152bc",
+        "digest_path": ".trellis/evidence/batch-024/024-A2-64.json",
+        "digest_sha256": "0da4f7ebb01ead442ca24dd34a9d0a3b83a25d66880e153c8e4b9f3a8d06f813"
+      },
+      {
+        "step_id": "A3",
+        "status": "rejected_role_64",
+        "wins_by_challenge": [25, 23, 9, 8],
+        "failure_codes": ["role_win_band_c0", "role_win_band_c1"],
+        "report_path": "/tmp/ember024-A3-64.json",
+        "report_sha256": "3e7c876d0e2d9ed3bd9163e0bceb04baf318619a8f75f558577f9ac6f93a7261",
+        "digest_path": ".trellis/evidence/batch-024/024-A3-64.json",
+        "digest_sha256": "a6820edd5137bb3c8b4546461e82052b45c9a13337e5622e95edefcd61c4e3a6"
+      }
+    ],
+    "balance_note": "024-02 完成 B0 与 A1-A3 的有界 64 局角色内带；三个 Arc 候选均未同时进入四档原始胜局范围，按契约停止于 paused_no_arc_candidate_passed。未运行 Ember、Pyre、组合 64、128 或 256，生产数值、正式矩阵与试玩包资格保持冻结。"
+  },
   "campaign_matrix": {
     "_comment": "三角色乘四挑战的配对种子基线。observed_win_rate 来自 256 次/格完整跑团；契约测试会校验矩阵完备性、普通敌人与 Boss 挑战修正、角色起始资源、卡池覆盖、成长成本、目标区间和聚合门槛。",
     "schema_version": 2,

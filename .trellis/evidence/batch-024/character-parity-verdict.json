@@ -1,0 +1,301 @@
+{
+  "candidate_order": [
+    "B0",
+    "A1",
+    "A2",
+    "A3",
+    "E1",
+    "E2",
+    "E3",
+    "Y1",
+    "Y2",
+    "Y3"
+  ],
+  "errors": [],
+  "matrix_updated": false,
+  "ok": true,
+  "playtest_package_eligible": false,
+  "preflight": {
+    "candidate_order": [
+      "B0",
+      "A1",
+      "A2",
+      "A3",
+      "E1",
+      "E2",
+      "E3",
+      "Y1",
+      "Y2",
+      "Y3"
+    ],
+    "errors": [],
+    "graph_seed_count": 32,
+    "graphs_validated": 960,
+    "ok": true
+  },
+  "production_applied": false,
+  "schema_version": 1,
+  "selected_candidate": {},
+  "selected_steps": {},
+  "status": "paused_no_arc_candidate_passed",
+  "steps": [
+    {
+      "artifact": {
+        "digest_path": "res://.trellis/evidence/batch-024/024-B0-64.json",
+        "digest_sha256": "28d3f74627e324fa92c0233fb968bdf2c344fe4efc284e23bfb137c416aa5482",
+        "ok": true,
+        "report_path": "/tmp/ember024-B0-64.json",
+        "report_sha256": "af199c189e4208dce26776f9e95e749950655279cedd90f071ff2f7f6463ba4d"
+      },
+      "failure_codes": [],
+      "gate": {
+        "eligible": true,
+        "failure_codes": [],
+        "pass": true
+      },
+      "status": "baseline_64_complete",
+      "step_id": "B0"
+    },
+    {
+      "artifact": {
+        "digest_path": "res://.trellis/evidence/batch-024/024-A1-64.json",
+        "digest_sha256": "db77f3403922ec62c6d84d50562070f5b71cd57f343448bc364d0a3006a4a3f1",
+        "ok": true,
+        "report_path": "/tmp/ember024-A1-64.json",
+        "report_sha256": "d54e72561b35fbba300f9af6675e56d856885351f5c8fcef219bdba4a7c8b13f"
+      },
+      "character_id": "arc_tinker",
+      "failure_codes": [
+        "role_win_band_c0",
+        "role_win_band_c2"
+      ],
+      "gate": {
+        "eligible": true,
+        "failure_codes": [
+          "role_win_band_c0",
+          "role_win_band_c2"
+        ],
+        "pass": false,
+        "raw_totals": {
+          "case_totals": [
+            {
+              "avg_final_deck_size": 19.219,
+              "avg_final_gold": 100.328,
+              "challenge_level": 0,
+              "character_id": "arc_tinker",
+              "first_act_completed": 53,
+              "first_act_entry_runs": 64,
+              "losses": 40,
+              "runs": 64,
+              "top_encounter_failures": 11,
+              "top_encounter_id": "chapter_one_boss",
+              "wins": 24
+            },
+            {
+              "avg_final_deck_size": 18.063,
+              "avg_final_gold": 92.094,
+              "challenge_level": 1,
+              "character_id": "arc_tinker",
+              "first_act_completed": 48,
+              "first_act_entry_runs": 64,
+              "losses": 51,
+              "runs": 64,
+              "top_encounter_failures": 16,
+              "top_encounter_id": "chapter_one_boss",
+              "wins": 13
+            },
+            {
+              "avg_final_deck_size": 16.797,
+              "avg_final_gold": 73.375,
+              "challenge_level": 2,
+              "character_id": "arc_tinker",
+              "first_act_completed": 35,
+              "first_act_entry_runs": 64,
+              "losses": 58,
+              "runs": 64,
+              "top_encounter_failures": 27,
+              "top_encounter_id": "chapter_one_boss",
+              "wins": 6
+            },
+            {
+              "avg_final_deck_size": 15.969,
+              "avg_final_gold": 66.234,
+              "challenge_level": 3,
+              "character_id": "arc_tinker",
+              "first_act_completed": 30,
+              "first_act_entry_runs": 64,
+              "losses": 58,
+              "runs": 64,
+              "top_encounter_failures": 30,
+              "top_encounter_id": "chapter_one_boss",
+              "wins": 6
+            }
+          ]
+        }
+      },
+      "status": "rejected_role_64",
+      "step_id": "A1"
+    },
+    {
+      "artifact": {
+        "digest_path": "res://.trellis/evidence/batch-024/024-A2-64.json",
+        "digest_sha256": "0da4f7ebb01ead442ca24dd34a9d0a3b83a25d66880e153c8e4b9f3a8d06f813",
+        "ok": true,
+        "report_path": "/tmp/ember024-A2-64.json",
+        "report_sha256": "6cba1ca0596fdb89394a90a35cb51f92da24599d6a21bce6cc63943fdfe152bc"
+      },
+      "character_id": "arc_tinker",
+      "failure_codes": [
+        "role_win_band_c0",
+        "role_win_band_c2"
+      ],
+      "gate": {
+        "eligible": true,
+        "failure_codes": [
+          "role_win_band_c0",
+          "role_win_band_c2"
+        ],
+        "pass": false,
+        "raw_totals": {
+          "case_totals": [
+            {
+              "avg_final_deck_size": 18.781,
+              "avg_final_gold": 100.969,
+              "challenge_level": 0,
+              "character_id": "arc_tinker",
+              "first_act_completed": 54,
+              "first_act_entry_runs": 64,
+              "losses": 42,
+              "runs": 64,
+              "top_encounter_failures": 10,
+              "top_encounter_id": "chapter_one_boss",
+              "wins": 22
+            },
+            {
+              "avg_final_deck_size": 18.25,
+              "avg_final_gold": 92.359,
+              "challenge_level": 1,
+              "character_id": "arc_tinker",
+              "first_act_completed": 51,
+              "first_act_entry_runs": 64,
+              "losses": 48,
+              "runs": 64,
+              "top_encounter_failures": 12,
+              "top_encounter_id": "chapter_one_boss",
+              "wins": 16
+            },
+            {
+              "avg_final_deck_size": 16.266,
+              "avg_final_gold": 75.125,
+              "challenge_level": 2,
+              "character_id": "arc_tinker",
+              "first_act_completed": 34,
+              "first_act_entry_runs": 64,
+              "losses": 57,
+              "runs": 64,
+              "top_encounter_failures": 25,
+              "top_encounter_id": "chapter_one_boss",
+              "wins": 7
+            },
+            {
+              "avg_final_deck_size": 15.359,
+              "avg_final_gold": 70.063,
+              "challenge_level": 3,
+              "character_id": "arc_tinker",
+              "first_act_completed": 27,
+              "first_act_entry_runs": 64,
+              "losses": 58,
+              "runs": 64,
+              "top_encounter_failures": 27,
+              "top_encounter_id": "chapter_one_boss",
+              "wins": 6
+            }
+          ]
+        }
+      },
+      "status": "rejected_role_64",
+      "step_id": "A2"
+    },
+    {
+      "artifact": {
+        "digest_path": "res://.trellis/evidence/batch-024/024-A3-64.json",
+        "digest_sha256": "a6820edd5137bb3c8b4546461e82052b45c9a13337e5622e95edefcd61c4e3a6",
+        "ok": true,
+        "report_path": "/tmp/ember024-A3-64.json",
+        "report_sha256": "3e7c876d0e2d9ed3bd9163e0bceb04baf318619a8f75f558577f9ac6f93a7261"
+      },
+      "character_id": "arc_tinker",
+      "failure_codes": [
+        "role_win_band_c0",
+        "role_win_band_c1"
+      ],
+      "gate": {
+        "eligible": true,
+        "failure_codes": [
+          "role_win_band_c0",
+          "role_win_band_c1"
+        ],
+        "pass": false,
+        "raw_totals": {
+          "case_totals": [
+            {
+              "avg_final_deck_size": 20.063,
+              "avg_final_gold": 108.703,
+              "challenge_level": 0,
+              "character_id": "arc_tinker",
+              "first_act_completed": 58,
+              "first_act_entry_runs": 64,
+              "losses": 39,
+              "runs": 64,
+              "top_encounter_failures": 9,
+              "top_encounter_id": "chapter_three_boss",
+              "wins": 25
+            },
+            {
+              "avg_final_deck_size": 19.359,
+              "avg_final_gold": 100.984,
+              "challenge_level": 1,
+              "character_id": "arc_tinker",
+              "first_act_completed": 51,
+              "first_act_entry_runs": 64,
+              "losses": 41,
+              "runs": 64,
+              "top_encounter_failures": 13,
+              "top_encounter_id": "chapter_one_boss",
+              "wins": 23
+            },
+            {
+              "avg_final_deck_size": 17.656,
+              "avg_final_gold": 84.188,
+              "challenge_level": 2,
+              "character_id": "arc_tinker",
+              "first_act_completed": 42,
+              "first_act_entry_runs": 64,
+              "losses": 55,
+              "runs": 64,
+              "top_encounter_failures": 22,
+              "top_encounter_id": "chapter_one_boss",
+              "wins": 9
+            },
+            {
+              "avg_final_deck_size": 16.609,
+              "avg_final_gold": 74.688,
+              "challenge_level": 3,
+              "character_id": "arc_tinker",
+              "first_act_completed": 34,
+              "first_act_entry_runs": 64,
+              "losses": 56,
+              "runs": 64,
+              "top_encounter_failures": 29,
+              "top_encounter_id": "chapter_one_boss",
+              "wins": 8
+            }
+          ]
+        }
+      },
+      "status": "rejected_role_64",
+      "step_id": "A3"
+    }
+  ],
+  "total_formal_runs": 1536
+}

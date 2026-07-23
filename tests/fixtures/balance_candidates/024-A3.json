@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "candidate_id": "024-A3",
+  "changes": [
+    {
+      "dataset": "economy",
+      "path": [
+        "campfire",
+        "heal_percent_of_max_hp"
+      ],
+      "value": 30
+    },
+    {
+      "dataset": "level_tree",
+      "path": [
+        "chapters",
+        "chapter_one",
+        "node_budget",
+        "campfire"
+      ],
+      "value": [
+        2,
+        2
+      ]
+    },
+    {
+      "dataset": "level_tree",
+      "path": [
+        "chapters",
+        "chapter_three",
+        "node_budget",
+        "campfire"
+      ],
+      "value": [
+        2,
+        2
+      ]
+    },
+    {
+      "dataset": "level_tree",
+      "path": [
+        "chapters",
+        "chapter_two",
+        "node_budget",
+        "campfire"
+      ],
+      "value": [
+        2,
+        2
+      ]
+    },
+    {
+      "dataset": "level_tree",
+      "path": [
+        "route_constraints",
+        "max_pressure_nodes_between_campfires"
+      ],
+      "value": 3
+    },
+    {
+      "dataset": "map_generation",
+      "path": [
+        "chapter_one",
+        "encounter_layer_bands"
+      ],
+      "value": {
+        "combat": [
+          {
+            "layers": [
+              0,
+              0
+            ],
+            "encounter_ids": [
+              "intro_patrol"
+            ]
+          },
+          {
+            "layers": [
+              1,
+              2
+            ],
+            "encounter_ids": [
+              "intro_patrol",
+              "polluted_lab",
+              "cinder_kennels"
+            ]
+          },
+          {
+            "layers": [
+              3,
+              6
+            ],
+            "encounter_ids": [
+              "polluted_lab",
+              "iron_checkpoint",
+              "cinder_kennels"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "dataset": "player",
+      "path": [
+        "characters",
+        "arc_tinker",
+        "starter_deck_ids"
+      ],
+      "value": [
+        "spark_throw",
+        "spark_throw",
+        "relay_strike",
+        "pressure_probe",
+        "induction_coil",
+        "soot_step",
+        "soot_step",
+        "ash_guard",
+        "ash_guard",
+        "static_primer"
+      ]
+    },
+    {
+      "dataset": "player",
+      "path": [
+        "characters",
+        "arc_tinker",
+        "starting_momentum"
+      ],
+      "value": 0
+    }
+  ]
+}
