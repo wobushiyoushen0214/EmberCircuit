@@ -1,35 +1,35 @@
 # EmberCircuit Delivery State
 
 stage_state:
-  state: S8_RUN_LOG
+  state: S6_CONFIRM
   loop_mode: L3
   audit_scope: delta
-  current_round: 5
+  current_round: 6
   max_rounds: 6
   open_gaps: 8
-  tasks_created: 3
-  tasks_completed: 2
+  tasks_created: 0
+  tasks_completed: 0
   carry_over: 0
   critical_review_issues: 0
-  next_legal_action: await-user-direction-after-batch024-pause
+  next_legal_action: request-confirmation-for-delivery-batch-025-role-strategy-credibility
   stop_conditions:
     - none
 ---
 
 loop_mode: L3
-current_round: 5
-next_loop_recommendation: rebaseline-required
+current_round: 6
+next_loop_recommendation: continue-next-batch
 carry_over: 0
 
 ## 基线
 
 - source_requirements: `docs/00_MASTER_PLAN.md`（由 `docs/01-08` 细化）
 - mvp_baseline_commit: `2e3e857`
-- last_audited_commit: `6e0f5f9`（024-02 起点；当前 working tree 已完成自检与双阶段评审，待本次交付提交）
+- last_audited_commit: `d64262e7b9cfc3039fdd33b479ecab1aa9f2ecab`（Batch 024 已提交、合并并推送；Post-024 delta audit 以此为代码基线）
 - loop_mode: `L3`
-- current_round: `5`
+- current_round: `6`
 - max_rounds: `6`
-- current_batch_id: `delivery-batch-024-character-parity-rebaseline`（024-01/024-02 completed，024-03 canceled）
+- current_batch_id: `delivery-batch-025-role-strategy-credibility`（planned，awaiting confirmation）
 
 ## 需求状态
 
@@ -37,46 +37,48 @@ carry_over: 0
 | --- | --- | --- | --- | --- | --- | --- |
 | REQ-001 | DONE | `scripts/combat/CombatState.gd` | `tests/test_combat_core.gd` | none | 3 | 0 |
 | REQ-002 | DONE | `scripts/main/Main.gd`, `scripts/map/MapGenerator.gd`, `data/config/level_tree.json` | `tests/test_run_flow.gd`, `tests/test_map_generator.gd`, `tests/test_map_view.gd` | none | 3 | 0 |
-| REQ-003 | PARTIAL | `data/cards/cards.json`, `data/enemies/enemies.json`, `data/config/monster_scaling.json`, `scripts/tools/NumericalTreeAuditor.gd`, `scripts/tools/NumericalPressureMetrics.gd`, `scripts/tools/BalanceCandidateOverlay.gd`, `scripts/tools/BalanceSimulator.gd`, `scripts/tools/BalanceEvidenceDigest.gd`, `scripts/tools/LayeredPressureCandidateGate.gd`, `scripts/tools/CharacterParityCandidateCatalog.gd`, `scripts/tools/CharacterParityCandidateGate.gd`, `tools/run_character_parity_ladder.gd`, `data/config/numerical_tree.json`, `docs/14_CHARACTER_PARITY_REBASELINE_024.md` | `tests/test_character_parity_candidate_gate.gd`, `tests/test_character_parity_rebaseline.gd`, `tests/test_numerical_tree_auditor.gd`, `tests/test_numerical_balance_matrix.gd` | 024 有限漏斗正式运行 1,536 局；A1-A3 均未同时进入四档角色胜局带，状态 `paused_no_arc_candidate_passed`，下一批需基于分档错位重新设计候选 | 5 | 0 |
-| REQ-004 | PARTIAL | `data/config/player.json`, `data/config/progression_systems.json`, `data/cards/cards.json`, `data/relics/relics.json`, `scripts/main/Main.gd`, `scripts/tools/BalanceSimulator.gd`, `scripts/tools/BalanceEvidenceDigest.gd`, `scripts/tools/CharacterParityCandidateCatalog.gd`, `scripts/tools/CharacterParityCandidateGate.gd`, `docs/14_CHARACTER_PARITY_REBASELINE_024.md` | `tests/test_character_balance_candidate_overlay.gd`, `tests/test_character_parity_candidate_gate.gd`, `tests/test_character_parity_rebaseline.gd`, `tests/test_balance_simulator.gd` | Arc 原始胜局 A1=`24/13/6/6`、A2=`22/16/7/6`、A3=`25/23/9/8`；禁止选择最接近 A2，角色生产起点保持冻结 | 5 | 0 |
-| REQ-005 | PARTIAL | `data/enemies/enemies.json`, `data/encounters/encounters.json`, `data/config/map_generation.json`, `data/config/level_tree.json`, `data/config/monster_scaling.json`, `scripts/map/MapGenerator.gd`, `scripts/combat/CombatState.gd`, `scripts/tools/NumericalTreeAuditor.gd`, `scripts/tools/BalanceSimulator.gd`, `docs/14_CHARACTER_PARITY_REBASELINE_024.md` | `tests/test_character_parity_rebaseline.gd`, `tests/test_map_generator.gd`, `tests/test_numerical_tree_auditor.gd` | B0 与十份 fixture 的 960 张地图图结构通过；因无 128 selected，生产 map/level/economy 未应用 B0 并保持任务起点 | 5 | 0 |
+| REQ-003 | PARTIAL | `data/cards/cards.json`, `data/enemies/enemies.json`, `data/config/monster_scaling.json`, `scripts/tools/NumericalTreeAuditor.gd`, `scripts/tools/NumericalPressureMetrics.gd`, `scripts/tools/BalanceCandidateOverlay.gd`, `scripts/tools/BalanceSimulator.gd`, `scripts/tools/BalanceEvidenceDigest.gd`, `scripts/tools/LayeredPressureCandidateGate.gd`, `scripts/tools/CharacterParityCandidateCatalog.gd`, `scripts/tools/CharacterParityCandidateGate.gd`, `tools/run_character_parity_ladder.gd`, `data/config/numerical_tree.json`, `docs/14_CHARACTER_PARITY_REBASELINE_024.md` | `tests/test_character_parity_candidate_gate.gd`, `tests/test_character_parity_rebaseline.gd`, `tests/test_numerical_tree_auditor.gd`, `tests/test_numerical_balance_matrix.gd` | 024 A1-A3 受控失败；Post-024 代码审计证明 v3 的 Pyre 角色语义不可信，必须先建立版本隔离的 v4 决策契约，不能继续生产数值候选 | 6 | 0 |
+| REQ-004 | PARTIAL | `data/config/player.json`, `data/config/progression_systems.json`, `data/cards/cards.json`, `data/relics/relics.json`, `scripts/main/Main.gd`, `scripts/tools/BalanceSimulator.gd`, `scripts/tools/BalanceEvidenceDigest.gd`, `scripts/tools/CharacterParityCandidateCatalog.gd`, `scripts/tools/CharacterParityCandidateGate.gd`, `docs/14_CHARACTER_PARITY_REBASELINE_024.md`, `.trellis/audits/2026-07-23-post-024-role-balance-delta-audit.md` | `tests/test_character_balance_candidate_overlay.gd`, `tests/test_character_parity_candidate_gate.gd`, `tests/test_character_parity_rebaseline.gd`, `tests/test_balance_simulator.gd` | v3 把混合 burn 攻击误作 40000 分启动器，只防立即自杀、几乎不清理创口且低估苦修香炉非致死收益；Arc/Ember 的真实强度差仍需与策略偏差分离 | 6 | 0 |
+| REQ-005 | PARTIAL | `data/enemies/enemies.json`, `data/encounters/encounters.json`, `data/config/map_generation.json`, `data/config/level_tree.json`, `data/config/monster_scaling.json`, `scripts/map/MapGenerator.gd`, `scripts/combat/CombatState.gd`, `scripts/tools/NumericalTreeAuditor.gd`, `scripts/tools/BalanceSimulator.gd`, `docs/14_CHARACTER_PARITY_REBASELINE_024.md` | `tests/test_character_parity_rebaseline.gd`, `tests/test_map_generator.gd`, `tests/test_numerical_tree_auditor.gd` | B0 与十份 fixture 的 960 张地图图结构通过；因无 selected 128，生产 map/level/economy 未应用 B0；025 继续冻结路线数值 | 6 | 0 |
 | REQ-006 | PARTIAL | `data/cards/cards.json`, `data/relics/relics.json`, `data/events/events.json`, `data/config/art_assets.json`, `assets/art/generated/` | `tests/test_data_integrity.gd`, `tests/test_art_asset_auditor.gd` | batch-014 delivered 8 relic PNGs; next: replace remaining legacy event/enemy art | L3-5 | 0 |
 | REQ-007 | DONE | `scripts/core/SaveManager.gd`, `scripts/main/Main.gd`, `data/config/achievements.json` | v5 奖励事务、原子恢复、错节点/坏 ID/金币回滚和旧战斗 HP 隔离测试 | none | L3-post | 0 |
 | REQ-008 | PARTIAL | `scripts/ui/AppShell.gd`, `scripts/ui/ForgeTheme.gd`, `scripts/ui/ForgeMotion.gd`, `scripts/ui/components/`, `scripts/ui/pages/`, `scripts/main/Main.gd`, `assets/art/generated/`, `assets/fonts/NotoSansSC-Variable.ttf` | `tests/test_forge_ui_foundation.gd`, `tests/test_welcome_character_pages.gd`, `tests/test_ember_forge_route_rooms.gd`, `tests/test_ui_outcome_settings_compendium.gd`, `tests/test_visual_bounds.gd`, `tools/render_pc_gallery.gd`, `/tmp/ember018d-visual.json`, `/tmp/ember018d-performance.json` | 018D 已将 Map/Event/Shop/Campfire/Reward 真实挂入 Main→AppShell，并删除五页旧 PC 视觉树；仍保留生产内容美术与更深玩法扩展缺口 | L3-5 | 0 |
-| REQ-009 | PARTIAL | `scripts/core/PlaytestTelemetry.gd`, `scripts/core/PlaytestEvidenceGate.gd`, `tools/merge_playtest_reports.gd`, `scripts/tools/BalanceCandidateOverlay.gd`, `scripts/tools/BalanceSimulator.gd`, `scripts/tools/BalanceEvidenceDigest.gd`, `scripts/tools/LayeredPressureCandidateGate.gd`, `tools/run_character_parity_ladder.gd`, `data/config/numerical_tree.json`, `docs/14_CHARACTER_PARITY_REBASELINE_024.md` | `tests/test_balance_evidence_digest.gd`, `tests/test_character_parity_candidate_gate.gd`, `tests/test_character_parity_rebaseline.gd`, `tests/test_numerical_balance_matrix.gd` | B0/A1/A2/A3 的 full SHA、compact digest、唯一 verdict、tree/docs 已绑定；无 selected 导致 024-03 取消，正式 256 与真人 cohort 继续冻结 | 5 | 0 |
+| REQ-009 | PARTIAL | `scripts/core/PlaytestTelemetry.gd`, `scripts/core/PlaytestEvidenceGate.gd`, `tools/merge_playtest_reports.gd`, `scripts/tools/BalanceCandidateOverlay.gd`, `scripts/tools/BalanceSimulator.gd`, `scripts/tools/BalanceEvidenceDigest.gd`, `scripts/tools/LayeredPressureCandidateGate.gd`, `tools/run_character_parity_ladder.gd`, `data/config/numerical_tree.json`, `docs/14_CHARACTER_PARITY_REBASELINE_024.md` | `tests/test_balance_evidence_digest.gd`, `tests/test_character_parity_candidate_gate.gd`, `tests/test_character_parity_rebaseline.gd`, `tests/test_numerical_balance_matrix.gd` | 024 full SHA/compact/verdict 已绑定；仍缺版本化 v4 role semantics、reason counters、primary/repeat compact evidence 与唯一可信度 verdict；真人 cohort 继续冻结 | 6 | 0 |
 | REQ-010 | MISSING | none | none | proposed: build-grid-tactics-mode | 1 | 2 |
 | REQ-011 | PARTIAL | `export_presets.cfg`, `project.godot`, `packaging/PLAYTEST_README_ZH.txt` | alpha.8 Windows PE32+ x86_64 embedded-PCK、精确 PCK 启动、版本和压缩完整性通过 | next: native Windows matrix, commercial signing, installer and Steam integration | L3-post | 0 |
 | REQ-012 | DONE | `tests/`, `tools/render_pc_gallery.gd`, `tools/verify_ui_visual_regression.gd`, `tools/profile_ui_performance.gd`, `tests/fixtures/ui_visual_contracts.json`, `tests/golden/ui_720p/` | 28/28 strict-log regression；11/11 1280x720 区域金标；真实 Main 600 帧 profiler；focus/motion/44px/节点增量门 | none；Windows release 目标机采样归入 REQ-011 发布门 | L3-5 | 0 |
 
 ## 当前批次
 
-- batch_id: `delivery-batch-024-character-parity-rebaseline`（completed_with_pause）
+- previous_batch: `delivery-batch-024-character-parity-rebaseline`（024-01/024-02 completed，024-03 canceled，result=`paused_no_arc_candidate_passed`）
+- batch_id: `delivery-batch-025-role-strategy-credibility`（planned，awaiting confirmation）
+- round: `6`
 - priority/risk: `P0/high`
-- scope: `角色 id-selector 与版本化候选证据、A/E/Y 有限单角色 64 校准、唯一组合 128→256 与条件式 PC 试玩包`
+- scope: `版本隔离的 competent-player-v4 角色语义、严格 TDD 决策接线、B0 上的 64 primary/repeat 策略可信度验证`
 - selected_reqs:
   - `REQ-003`
   - `REQ-004`
-  - `REQ-005`
   - `REQ-009`
 - tasks:
-  - `024-01-character-overlay-and-evidence-contract`（中风险，completed，Stage 2 C0/M0/m0）
-  - `024-02-bounded-character-parity-calibration`（高风险，completed，Stage 2 Round 4 C0/M0/m0）
-  - `024-03-production-256-and-playtest-package`（canceled_no_selected_128_candidate）
-- task_results: 024-01 completed；024-02 completed；024-03 canceled
-- result: `paused_no_arc_candidate_passed`
+  - `025-01-v4-role-semantics-contract`（中风险，待确认后创建）
+  - `025-02-v4-simulator-integration`（本批唯一高风险，待确认后创建）
+  - `025-03-paired-role-strategy-credibility`（中风险，待确认后创建）
+- task_results: none
+- result: `planned_awaiting_confirmation`
 - playtest_package_eligible: false
-- audit_evidence: `.trellis/audits/2026-07-23-post-023-character-parity-candidate-delta-audit.md`、`.trellis/tasks/delivery-batch-024-character-parity-rebaseline/02-bounded-character-parity-calibration/review-report.md`、`.trellis/evidence/batch-024/character-parity-verdict.json`（SHA-256 `f70b155537c31573ef53c7e6afcfb49bc998497626fc5343760663624a10a413`，正式样本 `1,536`）
+- audit_evidence: `.trellis/audits/2026-07-23-post-024-role-balance-delta-audit.md`、`.trellis/audits/2026-07-23-post-024-role-balance-self-review.md`、`.trellis/evidence/batch-024/024-B0-64.json`、`.trellis/evidence/batch-024/character-parity-verdict.json`
 - excluded_this_round:
-  - `REQ-006/008`: 内容资产、正式音频和 UI 不与高风险数值批次混合
-  - `REQ-012`: 只复用回归，不重新设计测试基础设施
+  - `REQ-005`: B0 路线/恢复只作固定 overlay，不修改生产 map/level/economy
+  - `REQ-006/008`: 内容资产、正式音频和 UI 不与高风险策略批次混合
   - `REQ-010/011`: 网格战术模式、商业签名/Steam/安装器继续后续批次
-  - `CombatState/卡牌定义/敌人行动/challenge targets/全局稀有度/真人 cohort`: 全部冻结
+  - `REQ-012`: 只复用回归，不重新设计测试基础设施
+  - `CombatState/生产角色卡牌遗物/敌人/挑战/经济/正式 matrix/真人 cohort/包体`: 全部冻结
 
 ## 阻塞项
 
 | 条目 | 原因 | 需要人工提供什么 | 起始轮次 |
 | --- | --- | --- | --- |
-| none | Batch 024 已按门禁受控结束，等待用户决定是否开启新一批候选设计 | 无 | 5 |
+| none | Post-024 审计与 Batch 025 已形成明确建议，当前仅处于正常确认门 | 无 | 6 |
 
 ## 人工决策
 
@@ -121,6 +123,7 @@ carry_over: 0
 - 2026-07-23: 用户要求继续完成数值迭代；Round 5 delta audit 将方向收窄为角色平衡，规划 B0 与 A1-A3/E1-E3/Y1-Y3 的有限校准漏斗。Batch 024 尚待创建任务确认，确认前不运行新模拟或改生产数值。
 - 2026-07-23: 用户明确回复“确认执行”，确认 `delivery-batch-024-character-parity-rebaseline`；允许创建三个串行任务、隔离 worktree，并按严格 TDD、verifier 和双阶段评审推进。024-02 为本批唯一高风险任务；128/256 未全过不得改生产或打包。
 - 2026-07-23: 024-02 正式运行 B0 与 A1-A3 共 1,536 局；三个 Arc 候选均未同时通过四档原始胜局门，状态 `paused_no_arc_candidate_passed`。Round 4 独立复审 C0/M0/m0；024-03 取消，未运行 Ember/Pyre/组合 64/128/256，生产、正式 matrix、真人 cohort 与 alpha.8 包体保持冻结。按用户要求完成提交/合并/推送后暂停。
+- 2026-07-23: 用户继续后启动 Post-024 delta audit。代码与 B0 原始报告证明 v3 对 Pyre 的混合 burn、自伤生存、创口清理和苦修香炉评分存在系统性偏差；Round 6 只建议版本隔离的 Batch 025 策略可信度批次，确认前不创建任务或运行新模拟。
 
 ## 预算快照
 
@@ -132,8 +135,8 @@ carry_over: 0
 
 ## 下一轮建议
 
-- action: `rebaseline-required`
-- reason: `A1-A3 均未通过角色四档原始胜局门，selected 为空；不得进入 256 或打包。若继续数值迭代，必须基于 Arc 分档错位规划新批次，不能在 024 内追加 A4 或选择最接近 A2。`
-- next_batch: `none`（当前阶段完成后暂停，等待用户方向）
-- next_task: `await-user-direction`
+- action: `continue-next-batch`
+- reason: `v3 的 Pyre 角色语义存在可机械复核的决策 bug；先通过 v4 role-aware 策略可信度门，才能重新设计生产角色数值候选。`
+- next_batch: `delivery-batch-025-role-strategy-credibility`（planned，awaiting confirmation）
+- next_task: `request-user-confirmation`
 - next_audit_scope: `delta`
