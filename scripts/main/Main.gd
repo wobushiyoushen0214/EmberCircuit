@@ -88,7 +88,7 @@ const UI_TUTORIAL_ICON_PATH := "res://assets/art/generated/ui/icons/control_tuto
 const UI_SKIP_REWARD_ICON_PATH := "res://assets/art/generated/ui/icons/control_skip_reward.svg"
 const UI_CONTINUE_ROUTE_ICON_PATH := "res://assets/art/generated/ui/icons/control_continue_route.svg"
 const UI_FONT_PATH := "res://assets/fonts/NotoSansSC-Variable.ttf"
-const PLAYTEST_BUILD_LABEL := "0.1.0-alpha.8"
+const PLAYTEST_BUILD_LABEL := "0.1.0-alpha.9-preview"
 const PLAYER_ART_PATHS := {
 	"ember_exile": "res://assets/art/generated/player_ember_exile_pc.png",
 	"arc_tinker": "res://assets/art/generated/player_arc_tinker_pc.png",
