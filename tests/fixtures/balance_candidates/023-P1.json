@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "candidate_id": "023-P1",
+  "changes": [
+    {
+      "dataset": "map_generation",
+      "path": ["chapter_one", "encounter_layer_bands"],
+      "value": {
+        "combat": [
+          {"layers": [0, 0], "encounter_ids": ["intro_patrol"]},
+          {"layers": [1, 2], "encounter_ids": ["intro_patrol", "polluted_lab", "cinder_kennels"]},
+          {"layers": [3, 6], "encounter_ids": ["polluted_lab", "iron_checkpoint", "cinder_kennels"]}
+        ]
+      }
+    }
+  ]
+}

@@ -24,6 +24,7 @@ func _run() -> void:
 	_check_pressure_contract(tree.get("pressure_contract", {}))
 	_check_human_playtest_targets(tree.get("human_playtest_targets", {}))
 	_check_campaign_rebaseline(tree.get("campaign_rebaseline", {}))
+	_check_campaign_rebaseline_023(tree.get("campaign_rebaseline_023", {}))
 	_check_inventory(tree.get("audit_inventory", {}), cards, enemies, encounters, progression, challenges, economy, audit_report)
 	_check_matrix(tree, players, cards, progression, challenges, audit_report)
 	_check_matrix_candidate_isolation(tree)
@@ -70,6 +71,20 @@ func _check_campaign_rebaseline(rebaseline: Dictionary) -> void:
 		_check(str((results[2] as Dictionary).get("hard_warning", "")) == "null_workshop:encounter_hp_low", "R2-A records its static hard gate")
 		_check(str((results[3] as Dictionary).get("inherited_from", "")) == "R2-A", "R2-B records the inherited static failure")
 
+func _check_campaign_rebaseline_023(rebaseline: Dictionary) -> void:
+	_check(str(rebaseline.get("status", "")) == "paused_no_layered_candidate_passed", "023 layered pressure ladder records the exhausted hard gate")
+	_check(str(rebaseline.get("selected_step", "")).is_empty(), "023 cannot select a candidate that failed the hard gate")
+	_check(rebaseline.get("candidate_order", []) == ["P1", "P2", "P3", "P4", "P5"], "023 preserves the frozen P1-P5 candidate order")
+	_check(str(rebaseline.get("verdict_path", "")) == "/tmp/ember023-layered-ladder-verdict.json" and str(rebaseline.get("verdict_sha256", "")).length() == 64, "023 records its complete ladder verdict identity")
+	_check(rebaseline.get("production_applied", true) == false and rebaseline.get("matrix_updated", true) == false and rebaseline.get("playtest_package_eligible", true) == false, "023 paused branch freezes production, matrix, and package eligibility")
+	var results: Array = rebaseline.get("candidate_results", [])
+	_check(results.size() == 5, "023 records all five hard-gate outcomes")
+	for result_value in results:
+		var result: Dictionary = result_value
+		_check(str(result.get("status", "")) == "rejected_hard_gate", "023 result remains rejected by the hard gate: %s" % str(result.get("step_id", "")))
+		_check(str(result.get("report_128_sha256", "")).length() == 64 and result.get("report_128_sha256") == result.get("repeat_128_sha256"), "023 primary and repeat SHA are frozen and identical: %s" % str(result.get("step_id", "")))
+		_check(not (result.get("failure_codes", []) as Array).is_empty(), "023 result records explicit hard-gate failure codes: %s" % str(result.get("step_id", "")))
+
 func _check_matrix_candidate_isolation(tree: Dictionary) -> void:
 	var matrix: Dictionary = tree.get("campaign_matrix", {})
 	_check(int(matrix.get("iterations_per_cell", 0)) == 256, "formal campaign matrix remains the 256-run baseline")
@@ -112,7 +127,7 @@ func _check_strategy_diagnostic_formal_matrix_freeze(tree: Dictionary) -> void:
 	if hash_error == OK:
 		hashing_context.update(bytes)
 		var digest := hashing_context.finish().hex_encode()
-		_check(digest == "1f0cc2cbf45739c8b82abb92380c91138673a716d0031be0b57c5c0eacd5845e", "formal numerical tree SHA-256 remains frozen")
+		_check(digest == "646607fdb6e2abcdafef90a02d591d70d8069213d81c5f244e073b86cde12119", "formal numerical tree SHA-256 remains frozen with the 023 paused verdict")
 
 func _check_inventory(inventory: Dictionary, cards: Dictionary, enemies: Dictionary, encounters: Dictionary, progression: Dictionary, challenges: Dictionary, economy: Dictionary, audit_report: Dictionary) -> void:
 	var card_inventory: Dictionary = inventory.get("cards", {})

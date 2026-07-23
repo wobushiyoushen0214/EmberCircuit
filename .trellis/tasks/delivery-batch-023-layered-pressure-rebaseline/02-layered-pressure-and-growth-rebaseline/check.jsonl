@@ -2,3 +2,6 @@
 {"file":".trellis/audits/2026-07-22-post-022-production-numerical-candidate-self-review.md","reason":"保护单高风险任务、生产冻结和失败回滚边界"}
 {"file":"tests/test_act1_rebaseline.gd","reason":"保护 21 个第一章单战压力、开局包与遭遇静态值"}
 {"file":"tests/test_numerical_balance_matrix.gd","reason":"保护 023-03 前的正式 current-greedy 256 rows"}
+{"file":"tests/test_layered_pressure_rebaseline.gd","reason":"保护 pressure 3 下多层 optional choice 组合不突破 cadence，并冻结无 overlay 的三章 32-seed graph digest"}
+{"file":"tests/test_layered_pressure_candidate_gate.gd","reason":"保护 malformed attribution、first-act raw count 范围、严格 schema/boolean/SHA/applied_fields 身份和 128/256 fail-closed"}
+{"file":"tools/run_layered_pressure_ladder.gd","reason":"保护 runner 自身执行 exact P1-P5/full-path preflight，并把 report/save 故障与正常候选 rejection 分离"}

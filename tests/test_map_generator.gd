@@ -7,6 +7,7 @@ const MAP_SEED_SAMPLE_COUNT := 24
 var _failure_count: int = 0
 
 func _init() -> void:
+	_test_layer_encounter_bands()
 	var map_config: Dictionary = DataLoaderScript.load_json("res://data/config/map_generation.json")
 	var level_tree: Dictionary = DataLoaderScript.load_json("res://data/config/level_tree.json")
 	for chapter_id in map_config.get("chapter_sequence", ["chapter_one"]):
@@ -32,6 +33,71 @@ func _init() -> void:
 		return
 	print("Map generator smoke test passed.")
 	quit(0)
+
+func _test_layer_encounter_bands() -> void:
+	var legacy_config := _layer_band_fixture()
+	var band_config: Dictionary = legacy_config.duplicate(true)
+	band_config["encounter_layer_bands"] = {
+		"combat": [
+			{"layers": [0, 0], "encounter_ids": ["intro_patrol"]},
+			{"layers": [1, 2], "encounter_ids": ["polluted_lab", "cinder_kennels"]},
+			{"layers": [3, 6], "encounter_ids": ["iron_checkpoint", "cinder_kennels"]}
+		]
+	}
+	var generated: Dictionary = MapGeneratorScript.generate(band_config)
+	var layers: Array = generated.get("layers", [])
+	_check(str(layers[0][0].get("encounter_id", "")) == "intro_patrol", "AC-023-06 L0 combat uses intro_patrol only")
+	var json_like_band_config: Dictionary = band_config.duplicate(true)
+	var json_like_bands: Array = json_like_band_config["encounter_layer_bands"]["combat"]
+	for band_value in json_like_bands:
+		var band: Dictionary = band_value
+		var integer_layers: Array = band.get("layers", [])
+		band["layers"] = [float(integer_layers[0]), float(integer_layers[1])]
+	var json_like_generated: Dictionary = MapGeneratorScript.generate(json_like_band_config)
+	_check(str((json_like_generated.get("layers", [])[0][0] as Dictionary).get("encounter_id", "")) == "intro_patrol", "AC-023-06 JSON-like integer floats still use layer bands")
+	for layer_index in [1, 2]:
+		var encounter_id := str(layers[layer_index][0].get("encounter_id", ""))
+		_check(encounter_id in ["polluted_lab", "cinder_kennels"], "AC-023-06 L%d combat uses the L1-L2 pool" % layer_index)
+	for layer_index in [3, 4, 5, 6]:
+		var encounter_id := str(layers[layer_index][0].get("encounter_id", ""))
+		_check(encounter_id in ["iron_checkpoint", "cinder_kennels"], "AC-023-06 L%d combat uses the L3-L6 pool" % layer_index)
+	_check(str(layers[7][0].get("encounter_id", "")) == "legacy_boss", "AC-023-06 boss ignores combat layer bands")
+
+	var elite_config: Dictionary = band_config.duplicate(true)
+	# The fixture's final layer remains a boss; add an elite node without changing the layer layout.
+	elite_config["fixed_layers"] = {
+		"0": ["combat"], "1": ["combat"], "2": ["combat"], "3": ["combat"],
+		"4": ["elite"], "5": ["combat"], "6": ["combat"], "7": ["boss"]
+	}
+	var elite_generated: Dictionary = MapGeneratorScript.generate(elite_config)
+	_check(str((elite_generated.get("layers", [])[4][0] as Dictionary).get("encounter_id", "")) == "legacy_elite", "AC-023-06 elite ignores combat layer bands")
+
+	for malformed_value in [
+		{"combat": "malformed"},
+		{"combat": []},
+		{"combat": [{"layers": [9, 10], "encounter_ids": ["unused"]}]}]:
+		var fallback_config: Dictionary = legacy_config.duplicate(true)
+		fallback_config["encounter_layer_bands"] = malformed_value
+		var fallback_generated: Dictionary = MapGeneratorScript.generate(fallback_config)
+		var expected_generated: Dictionary = MapGeneratorScript.generate(legacy_config)
+		_check(fallback_generated == expected_generated, "AC-023-06 malformed or non-matching band falls back without graph drift")
+
+func _layer_band_fixture() -> Dictionary:
+	return {
+		"seed": 2306,
+		"layers": 8,
+		"min_nodes_per_layer": 1,
+		"max_nodes_per_layer": 1,
+		"fixed_layers": {
+			"0": ["combat"], "1": ["combat"], "2": ["combat"], "3": ["combat"],
+			"4": ["combat"], "5": ["combat"], "6": ["combat"], "7": ["boss"]
+		},
+		"encounter_by_type": {
+			"combat": ["legacy_a", "legacy_b"],
+			"elite": ["legacy_elite"],
+			"boss": ["legacy_boss"]
+		}
+	}
 
 func _validate_generated_chapter_seeds(chapter_config: Dictionary, chapter_id: String) -> void:
 	var base_seed: int = int(chapter_config.get("seed", 1))

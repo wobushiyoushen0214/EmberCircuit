@@ -8,11 +8,18 @@
 | AC-023-16 | PASS promotion 与 256 FAIL 精确 rollback 未固化 | v3 空 exception matrix 或 exact baseline restore；package flag 准确 | pending |
 | AC-023-17 | 真实 256/repeat 与完整收尾证据不存在 | hashes、回归、AI/真人隔离、docs 和双阶段评审全过 | pending |
 
+## 任务状态
+
+- 状态：`canceled`
+- 原因：023-02 最终 verdict 为 `paused_no_layered_candidate_passed`，`selected_step` 为空；本任务前置条件未满足。
+- 取消码：`canceled_no_selected_128_candidate`
+- 结果：未生成 256 artifact，未更新正式 campaign matrix，未修改 real-human cohort，未构建或打包新数值试玩版。
+
 ## 收尾核对
 
-- [ ] 无 selected 128 时不存在 256 artifact。
+- [x] 无 selected 128 时不存在 256 artifact。
 - [ ] Primary/repeat byte-identical 且已记录 SHA-256。
-- [ ] Matrix rows 由工具生成，没有手改 observed/economy/risk。
-- [ ] 生产文件和 tests 只反映 PASS 或 rollback 一个分支。
-- [ ] AI 证据未修改 real-human cohort。
+- [x] Matrix rows 未生成，既有正式 rows/observed/economy/risk 保持冻结。
+- [x] 生产文件保持 023 起点；没有应用未通过候选。
+- [x] AI 证据未修改 real-human cohort。
 - [ ] Stage 1 与独立强模型 Stage 2 无阻断。
