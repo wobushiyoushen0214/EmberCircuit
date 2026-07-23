@@ -968,3 +968,10 @@ jq empty data/cards/cards.json data/enemies/enemies.json data/relics/relics.json
 - macOS 试玩包从源码提交 `f95de1b` 导出；`EmberCircuit.app` 为 arm64/x86_64 通用二进制，bundle build 为 9，解压后原生 headless 启动、临时签名、包内 SHA 和压缩完整性均通过。
 - macOS 压缩包为 `EmberCircuit-0.1.0-alpha.9-preview-macOS-universal-f95de1b.zip`，SHA-256 为 `0d752a5d7f2cfb4bac5bd7bf1652db0219d48d45480c0bf1318892be5f95d2a6`。
 - 该构建代表当前生产配置的完整流程试玩快照，不代表 Batch 023/024 数值硬门通过，也不代表角色平衡或商业发布已最终验收。
+
+## 2026-07-23：奖励卡长文本与能耗显示修复
+
+- 修复 PC 奖励页适配模型丢失卡牌 `cost/type/rarity` 的问题；奖励卡现在固定显示类型、稀有度和“能耗 N”徽章。
+- 描述区改为独立的两行裁切区域，超长规则文本使用省略号且完整内容保留在 tooltip，不再挤占或遮挡能耗信息。
+- 新增页面契约和真实 Main 奖励适配回归；`test_ember_forge_route_rooms.gd`、`test_run_flow.gd`、`test_visual_bounds.gd`、`test_playtest_run_integration.gd` 均通过。
+- 1280×720 与 1600×900 奖励页实图复核通过，并只更新 `03_reward_720p` 的预期视觉金标。

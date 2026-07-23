@@ -216,10 +216,11 @@ func _add_items(items: Array, prefix: String, kind: String, model: Dictionary) -
 		button.custom_minimum_size = Vector2(178, 196)
 		button.text = ""
 		button.clip_contents = true
+		button.tooltip_text = _offer_tooltip(item, kind)
 		_apply_button(button, "secondary")
 		if (kind == "card" and bool(model.get("card_done", false))) or (kind == "relic" and bool(model.get("relic_done", false))) or (kind == "potion" and bool(model.get("potion_done", false))):
 			button.disabled = true
-			button.tooltip_text = "已领取"
+			button.tooltip_text = "已领取\n%s" % button.tooltip_text
 		elif kind == "card":
 			button.pressed.connect(func() -> void: claim_card.emit(id))
 		elif kind == "relic":
@@ -302,41 +303,81 @@ func _add_receipt_line(label_text: String, value_text: String, value_color: Stri
 	_receipt_status.add_child(row)
 
 func _add_offer_layout(button: Button, item: Dictionary, kind: String) -> void:
+	var item_id := str(item.get("id", kind))
 	var margin := MarginContainer.new()
 	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	margin.offset_left = 10
-	margin.offset_right = -10
-	margin.offset_top = 10
-	margin.offset_bottom = -10
+	margin.offset_left = 8
+	margin.offset_right = -8
+	margin.offset_top = 8
+	margin.offset_bottom = -8
 	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	button.add_child(margin)
 	var box := VBoxContainer.new()
-	box.alignment = BoxContainer.ALIGNMENT_CENTER
-	box.add_theme_constant_override("separation", 6)
+	box.alignment = BoxContainer.ALIGNMENT_BEGIN
+	box.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	box.add_theme_constant_override("separation", 5)
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	margin.add_child(box)
 	var art_frame := PanelContainer.new()
-	art_frame.custom_minimum_size = Vector2(0, 112)
+	art_frame.custom_minimum_size = Vector2(0, 78)
 	art_frame.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	art_frame.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	art_frame.clip_contents = true
 	art_frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	art_frame.add_theme_stylebox_override("panel", _theme.panel_style("wood"))
 	box.add_child(art_frame)
 	var art := TextureRect.new()
-	art.name = "RewardOfferArt_%s" % str(item.get("id", kind))
+	art.name = "RewardOfferArt_%s" % item_id
 	art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	art.texture = _load_texture(str(item.get("art_path", "")))
 	art.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	art_frame.add_child(art)
+	var meta_row := HBoxContainer.new()
+	meta_row.name = "RewardOfferMeta_%s" % item_id
+	meta_row.custom_minimum_size = Vector2(0, 24)
+	meta_row.add_theme_constant_override("separation", 5)
+	meta_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_child(meta_row)
 	var kind_label := Label.new()
 	kind_label.text = {"card": "卡牌", "relic": "遗物", "potion": "药水", "mastery": "专精"}.get(kind, "奖励")
 	kind_label.add_theme_font_size_override("font_size", _theme.font_size("caption", 12))
 	kind_label.add_theme_color_override("font_color", _theme.color("brass_bright"))
 	kind_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	box.add_child(kind_label)
+	meta_row.add_child(kind_label)
+	var meta_label := Label.new()
+	meta_label.name = "RewardOfferCardMeta_%s" % item_id
+	meta_label.text = _offer_meta_text(item, kind)
+	meta_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	meta_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	meta_label.clip_text = true
+	meta_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	meta_label.add_theme_font_size_override("font_size", _theme.font_size("caption", 12))
+	meta_label.add_theme_color_override("font_color", _theme.color("text_muted"))
+	meta_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	meta_row.add_child(meta_label)
+	if kind == "card":
+		var cost_panel := PanelContainer.new()
+		cost_panel.name = "RewardOfferCostBadge_%s" % item_id
+		cost_panel.custom_minimum_size = Vector2(58, 22)
+		cost_panel.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		cost_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		cost_panel.add_theme_stylebox_override("panel", _offer_cost_style())
+		meta_row.add_child(cost_panel)
+		var cost := Label.new()
+		cost.name = "RewardOfferCost_%s" % item_id
+		cost.text = "能耗 %d" % int(item.get("cost", 0))
+		cost.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		cost.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		cost.add_theme_font_size_override("font_size", _theme.font_size("caption", 12))
+		cost.add_theme_color_override("font_color", _theme.color("text_primary"))
+		cost.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		cost_panel.add_child(cost)
 	var title := Label.new()
+	title.name = "RewardOfferTitle_%s" % item_id
 	title.text = str(item.get("name", item.get("id", "奖励")))
+	title.custom_minimum_size = Vector2(0, 20)
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.clip_text = true
 	title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
@@ -344,16 +385,80 @@ func _add_offer_layout(button: Button, item: Dictionary, kind: String) -> void:
 	title.add_theme_color_override("font_color", _theme.color("text_primary"))
 	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(title)
+	var description_clip := Control.new()
+	description_clip.name = "RewardOfferDescriptionClip_%s" % item_id
+	description_clip.custom_minimum_size = Vector2(0, 36)
+	description_clip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	description_clip.clip_contents = true
+	description_clip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_child(description_clip)
 	var description := Label.new()
+	description.name = "RewardOfferDescription_%s" % item_id
 	description.text = str(item.get("description", ""))
+	description.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	description.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	description.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	description.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	description.max_lines_visible = 2
+	description.clip_text = true
 	description.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	description.add_theme_font_size_override("font_size", _theme.font_size("caption", 12))
 	description.add_theme_color_override("font_color", _theme.color("text_muted"))
 	description.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	box.add_child(description)
+	description_clip.add_child(description)
+	description_clip.visible = not description.text.is_empty()
+
+func _offer_tooltip(item: Dictionary, kind: String) -> String:
+	var lines: Array[String] = [str(item.get("name", item.get("id", "奖励")))]
+	if kind == "card":
+		lines[0] = "%s · 能耗 %d" % [lines[0], int(item.get("cost", 0))]
+		var meta := _offer_meta_text(item, kind)
+		if not meta.is_empty():
+			lines.append(meta)
+	var description := str(item.get("description", ""))
+	if not description.is_empty():
+		lines.append(description)
+	return "\n".join(lines)
+
+func _offer_meta_text(item: Dictionary, kind: String) -> String:
+	if kind != "card":
+		return ""
+	var type_text: String = str({
+		"attack": "攻击",
+		"skill": "技能",
+		"power": "能力",
+		"status": "状态",
+		"curse": "诅咒"
+	}.get(str(item.get("type", "")), ""))
+	var rarity_text: String = str({
+		"starter": "初始",
+		"common": "普通",
+		"uncommon": "罕见",
+		"rare": "稀有",
+		"special": "特殊"
+	}.get(str(item.get("rarity", "")), ""))
+	if type_text.is_empty():
+		return rarity_text
+	if rarity_text.is_empty():
+		return type_text
+	return "%s · %s" % [type_text, rarity_text]
+
+func _offer_cost_style() -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(_theme.color("bg_furnace"), 0.96)
+	style.border_color = _theme.color("brass_bright")
+	style.set_border_width_all(1)
+	style.corner_radius_top_left = 3
+	style.corner_radius_top_right = 3
+	style.corner_radius_bottom_left = 3
+	style.corner_radius_bottom_right = 3
+	style.content_margin_left = 4.0
+	style.content_margin_right = 4.0
+	style.content_margin_top = 1.0
+	style.content_margin_bottom = 1.0
+	return style
 
 func _pending_offer_count(model: Dictionary, mode: String) -> int:
 	var count := 0

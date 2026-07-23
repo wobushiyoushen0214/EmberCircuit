@@ -11484,12 +11484,17 @@ func _reward_item_models(items: Array, kind: String) -> Array:
 			art_path = _potion_icon_path(item)
 		elif kind == "mastery":
 			art_path = _mastery_icon_path(str(item.get("id", "")))
-		models.append({
+		var model := {
 			"id": str(item.get("id", "")),
 			"name": str(item.get("name", item.get("id", "奖励"))),
 			"description": str(item.get("description", "")),
 			"art_path": art_path
-		})
+		}
+		if kind == "card":
+			model["cost"] = int(item.get("cost", 0))
+			model["type"] = str(item.get("type", ""))
+			model["rarity"] = str(item.get("rarity", "common"))
+		models.append(model)
 	return models
 
 func _combat_reward_page_model() -> Dictionary:

@@ -1014,6 +1014,16 @@ func _run() -> void:
 			return
 		if not _check(not main.page_scroll.visible and not main.reward_scroll.visible and reward_page.find_child("RewardActionColumn", true, false) != null, "PC combat reward hides legacy reward chrome"):
 			return
+		var first_reward_card: Dictionary = main.reward_options[0]
+		var first_reward_id := str(first_reward_card.get("id", ""))
+		var first_reward_cost := reward_page.find_child("RewardOfferCost_%s" % first_reward_id, true, false) as Label
+		var first_reward_description := reward_page.find_child("RewardOfferDescription_%s" % first_reward_id, true, false) as Label
+		if not _check(
+			first_reward_cost != null and first_reward_cost.text == "能耗 %d" % int(first_reward_card.get("cost", 0))
+			and first_reward_description != null and first_reward_description.max_lines_visible == 2,
+			"PC combat reward adapter preserves card cost and bounded rules text"
+		):
+			return
 		var reward_save_button := reward_page.find_child("RewardSaveButton", true, false) as Button
 		if not _check(reward_save_button != null and reward_save_button.custom_minimum_size.y >= 44.0, "PC combat reward exposes an in-page save command"):
 			return

@@ -269,7 +269,14 @@ func _run() -> void:
 	reward_page.configure({
 		"mode": "combat",
 		"gold": 55,
-		"cards": [{"id": "banked_pressure", "name": "蓄压", "description": "保留势能。"}],
+		"cards": [{
+			"id": "banked_pressure",
+			"name": "蓄压",
+			"cost": 2,
+			"type": "skill",
+			"rarity": "uncommon",
+			"description": "保留势能，并在下一回合继续获得额外资源；这是一段故意超过两行显示区域的奖励卡牌说明，用来验证文字不会挤掉能耗信息。"
+		}],
 		"relics": [{"id": "cold_vial", "name": "冷却余烬瓶", "description": "降低热量。"}],
 		"potions": [{"id": "ash_tonic", "name": "灰烬药剂", "description": "恢复生命。"}],
 		"card_done": false,
@@ -283,6 +290,24 @@ func _run() -> void:
 	if not _check(reward_page.find_child("RewardGoldReceipt", true, false) != null and reward_page.find_child("RewardActionColumn", true, false) != null, "reward page uses receipt then action-column hierarchy"):
 		return
 	if not _check(reward_page.find_child("RewardCard_banked_pressure", true, false) != null and reward_page.find_child("RewardRelic_cold_vial", true, false) != null and reward_page.find_child("RewardPotion_ash_tonic", true, false) != null, "reward page exposes card, relic and potion stages"):
+		return
+	var reward_card := reward_page.find_child("RewardCard_banked_pressure", true, false) as Button
+	var reward_cost := reward_page.find_child("RewardOfferCost_banked_pressure", true, false) as Label
+	var reward_description := reward_page.find_child("RewardOfferDescription_banked_pressure", true, false) as Label
+	if not _check(
+		reward_cost != null and reward_cost.visible and reward_cost.text == "能耗 2"
+		and reward_card.get_global_rect().encloses(reward_cost.get_global_rect()),
+		"reward card keeps its energy cost visible inside the bounded offer surface"
+	):
+		return
+	if not _check(
+		reward_description != null
+		and reward_description.max_lines_visible == 2
+		and reward_description.clip_text
+		and reward_description.text_overrun_behavior == TextServer.OVERRUN_TRIM_ELLIPSIS
+		and reward_card.tooltip_text.contains("故意超过两行显示区域"),
+		"reward card clamps long rules text while preserving the full description in its tooltip"
+	):
 		return
 	var skipped_cards := [0]
 	var skipped_potions := [0]
