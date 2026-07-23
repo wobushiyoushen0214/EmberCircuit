@@ -1,35 +1,35 @@
 # EmberCircuit Delivery State
 
 stage_state:
-  state: S8_RUN_LOG
+  state: S6_CONFIRM
   loop_mode: L3
   audit_scope: delta
-  current_round: 4
+  current_round: 5
   max_rounds: 6
   open_gaps: 8
-  tasks_created: 3
-  tasks_completed: 2
+  tasks_created: 0
+  tasks_completed: 0
   carry_over: 0
   critical_review_issues: 0
-  next_legal_action: delta-audit-layered-pressure-candidate-redesign
+  next_legal_action: request-confirmation-for-delivery-batch-024-character-parity-rebaseline
   stop_conditions:
     - none
 ---
 
 loop_mode: L3
-current_round: 4
-next_loop_recommendation: rebaseline-required
+current_round: 5
+next_loop_recommendation: continue-next-batch
 carry_over: 0
 
 ## 基线
 
 - source_requirements: `docs/00_MASTER_PLAN.md`（由 `docs/01-08` 细化）
 - mvp_baseline_commit: `2e3e857`
-- last_audited_commit: `d265b1d`（023-02 起点；当前 working tree 已完成 delta review，待本次交付提交）
+- last_audited_commit: `4978d120a33a0eae7b004342f11c95665d4308e7`（023 合并提交；Round 5 delta audit 产物待提交）
 - loop_mode: `L3`
-- current_round: `4`
+- current_round: `5`
 - max_rounds: `6`
-- current_batch_id: `delivery-batch-023-layered-pressure-rebaseline`（023-01/023-02 completed，023-03 canceled）
+- current_batch_id: `delivery-batch-024-character-parity-rebaseline`（proposed，pending confirmation）
 
 ## 需求状态
 
@@ -37,46 +37,46 @@ carry_over: 0
 | --- | --- | --- | --- | --- | --- | --- |
 | REQ-001 | DONE | `scripts/combat/CombatState.gd` | `tests/test_combat_core.gd` | none | 3 | 0 |
 | REQ-002 | DONE | `scripts/main/Main.gd`, `scripts/map/MapGenerator.gd`, `data/config/level_tree.json` | `tests/test_run_flow.gd`, `tests/test_map_generator.gd`, `tests/test_map_view.gd` | none | 3 | 0 |
-| REQ-003 | PARTIAL | `data/cards/cards.json`, `data/enemies/enemies.json`, `data/config/monster_scaling.json`, `scripts/tools/NumericalTreeAuditor.gd`, `scripts/tools/NumericalPressureMetrics.gd`, `scripts/tools/BalanceCandidateOverlay.gd`, `scripts/tools/BalanceSimulator.gd`, `scripts/tools/LayeredPressureCandidateGate.gd`, `data/config/numerical_tree.json`, `docs/13_LAYERED_PRESSURE_REBASELINE_023.md` | `tests/test_act1_rebaseline.gd`, `tests/test_layered_pressure_candidate_gate.gd`, `tests/test_layered_pressure_rebaseline.gd`, `tests/test_numerical_tree_auditor.gd`, `tests/test_numerical_balance_matrix.gd`, `/tmp/ember023-layered-ladder-verdict.json` | P1-P5 均通过 64 direction 但未通过 128 hard gate；状态 `paused_no_layered_candidate_passed`，下一轮需重新设计候选 | 4 | 0 |
-| REQ-004 | PARTIAL | `data/config/player.json`, `data/config/progression_systems.json`, `data/cards/cards.json`, `scripts/main/Main.gd`, `scripts/tools/BalanceSimulator.gd`, `scripts/tools/LayeredPressureCandidateGate.gd`, `docs/13_LAYERED_PRESSURE_REBASELINE_023.md` | `tests/test_act1_rebaseline.gd`, `tests/test_layered_pressure_candidate_gate.gd`, `tests/test_layered_pressure_rebaseline.gd`, `tests/test_balance_simulator.gd` | P1-P5 均仍命中角色差 hard gate；开局包保持冻结，下一候选设计必须关闭每挑战 9% 角色差门 | 4 | 0 |
-| REQ-005 | PARTIAL | `data/enemies/enemies.json`, `data/encounters/encounters.json`, `data/config/map_generation.json`, `data/config/level_tree.json`, `data/config/monster_scaling.json`, `scripts/map/MapGenerator.gd`, `scripts/combat/CombatState.gd`, `scripts/tools/NumericalTreeAuditor.gd`, `scripts/tools/BalanceSimulator.gd`, `docs/13_LAYERED_PRESSURE_REBASELINE_023.md` | `tests/test_act1_rebaseline.gd`, `tests/test_layered_pressure_rebaseline.gd`, `tests/test_map_generator.gd`, `/tmp/ember023-layered-ladder-verdict.json` | layer-band 与完整路径压力契约已实现并验证；因无 128 selected，生产 map/level/economy 仍保持起点，需重设候选边界 | 4 | 0 |
+| REQ-003 | PARTIAL | `data/cards/cards.json`, `data/enemies/enemies.json`, `data/config/monster_scaling.json`, `scripts/tools/NumericalTreeAuditor.gd`, `scripts/tools/NumericalPressureMetrics.gd`, `scripts/tools/BalanceCandidateOverlay.gd`, `scripts/tools/BalanceSimulator.gd`, `scripts/tools/LayeredPressureCandidateGate.gd`, `data/config/numerical_tree.json`, `docs/13_LAYERED_PRESSURE_REBASELINE_023.md` | `tests/test_act1_rebaseline.gd`, `tests/test_layered_pressure_candidate_gate.gd`, `tests/test_layered_pressure_rebaseline.gd`, `tests/test_numerical_tree_auditor.gd`, `tests/test_numerical_balance_matrix.gd` | P1-P5 均通过 64 direction 但未通过 128 hard；P5 全局稀有度退步。024 提议固定角色 selector、单角色 64 内带与组合 128/256 门 | 5 | 0 |
+| REQ-004 | PARTIAL | `data/config/player.json`, `data/config/progression_systems.json`, `data/cards/cards.json`, `data/relics/relics.json`, `scripts/main/Main.gd`, `scripts/tools/BalanceSimulator.gd`, `scripts/tools/LayeredPressureCandidateGate.gd`, `docs/13_LAYERED_PRESSURE_REBASELINE_023.md` | `tests/test_act1_rebaseline.gd`, `tests/test_layered_pressure_candidate_gate.gd`, `tests/test_layered_pressure_rebaseline.gd`, `tests/test_balance_simulator.gd` | 023 角色差 hard gate 未关闭；024 已冻结 A1-A3/E1-E3/Y1-Y3，目标是压低 Arc 免费行动密度并补足 Ember/Pyre 行动替换与累计生存 | 5 | 0 |
+| REQ-005 | PARTIAL | `data/enemies/enemies.json`, `data/encounters/encounters.json`, `data/config/map_generation.json`, `data/config/level_tree.json`, `data/config/monster_scaling.json`, `scripts/map/MapGenerator.gd`, `scripts/combat/CombatState.gd`, `scripts/tools/NumericalTreeAuditor.gd`, `scripts/tools/BalanceSimulator.gd`, `docs/13_LAYERED_PRESSURE_REBASELINE_023.md` | `tests/test_act1_rebaseline.gd`, `tests/test_layered_pressure_rebaseline.gd`, `tests/test_map_generator.gd` | 024 只复用 P4 的 layer/pressure/campfire/heal 作为共享 B0，不再增加全局路线/敌人候选；无 128 selected 时生产保持起点 | 5 | 0 |
 | REQ-006 | PARTIAL | `data/cards/cards.json`, `data/relics/relics.json`, `data/events/events.json`, `data/config/art_assets.json`, `assets/art/generated/` | `tests/test_data_integrity.gd`, `tests/test_art_asset_auditor.gd` | batch-014 delivered 8 relic PNGs; next: replace remaining legacy event/enemy art | L3-5 | 0 |
 | REQ-007 | DONE | `scripts/core/SaveManager.gd`, `scripts/main/Main.gd`, `data/config/achievements.json` | v5 奖励事务、原子恢复、错节点/坏 ID/金币回滚和旧战斗 HP 隔离测试 | none | L3-post | 0 |
 | REQ-008 | PARTIAL | `scripts/ui/AppShell.gd`, `scripts/ui/ForgeTheme.gd`, `scripts/ui/ForgeMotion.gd`, `scripts/ui/components/`, `scripts/ui/pages/`, `scripts/main/Main.gd`, `assets/art/generated/`, `assets/fonts/NotoSansSC-Variable.ttf` | `tests/test_forge_ui_foundation.gd`, `tests/test_welcome_character_pages.gd`, `tests/test_ember_forge_route_rooms.gd`, `tests/test_ui_outcome_settings_compendium.gd`, `tests/test_visual_bounds.gd`, `tools/render_pc_gallery.gd`, `/tmp/ember018d-visual.json`, `/tmp/ember018d-performance.json` | 018D 已将 Map/Event/Shop/Campfire/Reward 真实挂入 Main→AppShell，并删除五页旧 PC 视觉树；仍保留生产内容美术与更深玩法扩展缺口 | L3-5 | 0 |
-| REQ-009 | PARTIAL | `scripts/core/PlaytestTelemetry.gd`, `scripts/core/PlaytestEvidenceGate.gd`, `tools/merge_playtest_reports.gd`, `scripts/tools/BalanceCandidateOverlay.gd`, `scripts/tools/BalanceSimulator.gd`, `scripts/tools/LayeredPressureCandidateGate.gd`, `data/config/numerical_tree.json`, `docs/13_LAYERED_PRESSURE_REBASELINE_023.md` | `tests/test_layered_pressure_candidate_gate.gd`, `tests/test_layered_pressure_rebaseline.gd`, `tests/test_numerical_balance_matrix.gd`, `/tmp/ember023-layered-ladder-verdict.json` | P1-P5 的 64/128 原始证据与重复一致性已完成；无 selected 导致 023-03 取消，正式 256 与真人 cohort 继续冻结 | 4 | 0 |
+| REQ-009 | PARTIAL | `scripts/core/PlaytestTelemetry.gd`, `scripts/core/PlaytestEvidenceGate.gd`, `tools/merge_playtest_reports.gd`, `scripts/tools/BalanceCandidateOverlay.gd`, `scripts/tools/BalanceSimulator.gd`, `scripts/tools/LayeredPressureCandidateGate.gd`, `data/config/numerical_tree.json`, `docs/13_LAYERED_PRESSURE_REBASELINE_023.md` | `tests/test_layered_pressure_candidate_gate.gd`, `tests/test_layered_pressure_rebaseline.gd`, `tests/test_numerical_balance_matrix.gd` | 023 `/tmp` 原始报告在会话重启后丢失；024-01 提议把 12 行 gate 输入、SHA、identity 与 failure codes 固化为版本化 compact evidence，真人 cohort 继续隔离 | 5 | 0 |
 | REQ-010 | MISSING | none | none | proposed: build-grid-tactics-mode | 1 | 2 |
 | REQ-011 | PARTIAL | `export_presets.cfg`, `project.godot`, `packaging/PLAYTEST_README_ZH.txt` | alpha.8 Windows PE32+ x86_64 embedded-PCK、精确 PCK 启动、版本和压缩完整性通过 | next: native Windows matrix, commercial signing, installer and Steam integration | L3-post | 0 |
 | REQ-012 | DONE | `tests/`, `tools/render_pc_gallery.gd`, `tools/verify_ui_visual_regression.gd`, `tools/profile_ui_performance.gd`, `tests/fixtures/ui_visual_contracts.json`, `tests/golden/ui_720p/` | 28/28 strict-log regression；11/11 1280x720 区域金标；真实 Main 600 帧 profiler；focus/motion/44px/节点增量门 | none；Windows release 目标机采样归入 REQ-011 发布门 | L3-5 | 0 |
 
 ## 当前批次
 
-- batch_id: `delivery-batch-023-layered-pressure-rebaseline`（completed_with_pause）
+- batch_id: `delivery-batch-024-character-parity-rebaseline`（proposed，pending confirmation）
 - priority/risk: `P0/high`
-- scope: `候选 overlay 与累计磨损归因、第一章分层遭遇和路线成长 P1-P5 冻结阶梯、条件式 v3 256 正式验证`
+- scope: `角色 id-selector 与版本化候选证据、A/E/Y 有限单角色 64 校准、唯一组合 128→256 与条件式 PC 试玩包`
 - selected_reqs:
   - `REQ-003`
   - `REQ-004`
   - `REQ-005`
   - `REQ-009`
-- tasks:
-  - `023-01-candidate-overlay-and-attrition-contract`（中风险，completed，Stage 2 C0/M0）
-  - `023-02-layered-pressure-and-growth-rebaseline`（高风险，completed，Stage 2 C0/M0/m1）
-  - `023-03-production-matrix-verification`（canceled_no_selected_128_candidate）
-- task_results: 023-01 completed；023-02 completed；023-03 canceled
-- result: `paused_no_layered_candidate_passed`
+- proposed_tasks:
+  - `024-01-character-overlay-and-evidence-contract`（中风险）
+  - `024-02-bounded-character-parity-calibration`（高风险；本批唯一高风险任务）
+  - `024-03-production-256-and-playtest-package`（中风险；仅 selected 128 解锁）
+- task_results: none；确认前未创建任务
+- result: `batch_planned_pending_confirmation`
 - playtest_package_eligible: false
-- audit_evidence: `.trellis/audits/2026-07-22-post-022-production-numerical-candidate-delta-audit.md`、`.trellis/tasks/delivery-batch-023-layered-pressure-rebaseline/02-layered-pressure-and-growth-rebaseline/review-report.md`、`/tmp/ember023-layered-ladder-verdict.json`（SHA-256 `8b3ef30c44e1151f066447580f558a1af438edca0d845896840fbcc3c2266ff1`，正式样本 `19,968`）
+- audit_evidence: `.trellis/audits/2026-07-23-post-023-character-parity-candidate-delta-audit.md`、`.trellis/audits/2026-07-23-post-023-character-parity-candidate-self-review.md`、`docs/13_LAYERED_PRESSURE_REBASELINE_023.md`
 - excluded_this_round:
-  - `REQ-006/008`: 内容资产、正式音频和演出不与高风险数值批次混合
+  - `REQ-006/008`: 内容资产、正式音频和 UI 不与高风险数值批次混合
   - `REQ-012`: 只复用回归，不重新设计测试基础设施
   - `REQ-010/011`: 网格战术模式、商业签名/Steam/安装器继续后续批次
-  - `CombatState/玩家开局/敌人行动/challenge targets/真人 cohort`: 全部冻结
+  - `CombatState/卡牌定义/敌人行动/challenge targets/全局稀有度/真人 cohort`: 全部冻结
 
 ## 阻塞项
 
 | 条目 | 原因 | 需要人工提供什么 | 起始轮次 |
 | --- | --- | --- | --- |
-| none | 023 批次已确认，当前无人工阻塞 | none | 4 |
+| Batch 024 confirmation gate | Round 5 delta audit 与候选阶梯已完成，Trellis 规则要求创建任务前确认本批范围 | 确认 `delivery-batch-024-character-parity-rebaseline` | 5 |
 
 ## 人工决策
 
@@ -118,6 +118,7 @@ carry_over: 0
 - 2026-07-22: 用户回复“继续”，确认 `delivery-batch-023-layered-pressure-rebaseline`；允许创建三个串行任务，按严格 TDD、verifier 和双阶段评审推进。023-02 是本批唯一高风险任务；生产硬门通过前继续禁止打包真人试玩版。
 - 2026-07-22: 023-01 完成 overlay fail-closed、实例隔离、CLI 拒绝退出和 attrition-v1；独立 Stage 2 首轮发现三项边界后均经 RED→GREEN 修复，复审 `C0/M0`，默认报告 byte-identical，解锁 023-02。
 - 2026-07-23: 023-02 严格修复后完整重跑 P1-P5；五候选均通过 64 direction、均未通过 128 hard gate，Stage 2 Round 2 为 C0/M0/m1。状态 `paused_no_layered_candidate_passed`；023-03 取消，未生成 256 artifact，正式 matrix、生产值、真人 cohort 与试玩包继续冻结。
+- 2026-07-23: 用户要求继续完成数值迭代；Round 5 delta audit 将方向收窄为角色平衡，规划 B0 与 A1-A3/E1-E3/Y1-Y3 的有限校准漏斗。Batch 024 尚待创建任务确认，确认前不运行新模拟或改生产数值。
 
 ## 预算快照
 
@@ -129,8 +130,8 @@ carry_over: 0
 
 ## 下一轮建议
 
-- action: `rebaseline-required`
-- reason: `P1-P5 均未通过 128 hard gate，selected_step 为空；不得进入 256 或打包试玩版，下一步必须基于原始 failure codes 做 delta audit 和候选重设计。`
-- next_batch: `none`（等待 delta audit 规划新的候选批次）
-- next_task: `delta-audit-layered-pressure-candidate-redesign`
+- action: `continue-next-batch`
+- reason: `Round 5 delta audit 已把 023 的聚合、角色差与证据保存失败转成有限角色校准方案；创建任务前必须确认 Batch 024。`
+- next_batch: `delivery-batch-024-character-parity-rebaseline`（proposed，pending confirmation）
+- next_task: `confirm-delivery-batch-024-character-parity-rebaseline`
 - next_audit_scope: `delta`
