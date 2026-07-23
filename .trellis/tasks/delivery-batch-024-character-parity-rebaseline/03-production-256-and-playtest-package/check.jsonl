@@ -1,0 +1,7 @@
+{"file":".trellis/tasks/delivery-batch-024-character-parity-rebaseline/03-production-256-and-playtest-package/prd.md","reason":"核对 AC-024-16 至 AC-024-22、PASS/rollback、File Manifest 与发布门"}
+{"file":".trellis/evidence/batch-024/character-parity-verdict.json","reason":"核对唯一 selected 128 identity；若文件不存在本任务必须 canceled"}
+{"file":"tests/test_numerical_tree_auditor.gd","reason":"核对 selected starter deck/opening score 与静态 target 映射"}
+{"file":"tests/test_numerical_balance_matrix.gd","reason":"核对正式 256 rows、provenance、PASS/rollback 与 expected arrays"}
+{"file":"tests/test_playtest_evidence_gate.gd","reason":"核对 alpha.9 新 cohort 与 AI artifact 不进入真人样本"}
+{"file":"docs/14_CHARACTER_PARITY_REBASELINE_024.md","reason":"核对 256 SHA、raw gate、production/matrix/package 结论"}
+

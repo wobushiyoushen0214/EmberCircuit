@@ -1,0 +1,6 @@
+{"file":".trellis/tasks/delivery-batch-024-character-parity-rebaseline/02-bounded-character-parity-calibration/prd.md","reason":"核对 AC-024-07 至 AC-024-15、File Manifest、样本预算和停止码"}
+{"file":".trellis/audits/2026-07-23-post-023-character-parity-candidate-self-review.md","reason":"保护有界候选、不降低 gate、版本化证据和生产冻结结论"}
+{"file":"tests/test_layered_pressure_candidate_gate.gd","reason":"保护 128/256 hard gate 的 identity、raw boundaries 和 failure codes"}
+{"file":"tests/test_numerical_balance_matrix.gd","reason":"保护正式 256 matrix 与 candidate evidence 隔离"}
+{"file":"docs/14_CHARACTER_PARITY_REBASELINE_024.md","reason":"核对真实候选、raw results、SHA、selected/paused 与生产 flag"}
+

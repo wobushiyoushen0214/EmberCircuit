@@ -1,17 +1,17 @@
 # EmberCircuit Delivery State
 
 stage_state:
-  state: S6_CONFIRM
+  state: S8_RUN_LOG
   loop_mode: L3
   audit_scope: delta
   current_round: 5
   max_rounds: 6
   open_gaps: 8
-  tasks_created: 0
+  tasks_created: 3
   tasks_completed: 0
   carry_over: 0
   critical_review_issues: 0
-  next_legal_action: request-confirmation-for-delivery-batch-024-character-parity-rebaseline
+  next_legal_action: create-batch-024-worktree-and-implement-024-01
   stop_conditions:
     - none
 ---
@@ -25,11 +25,11 @@ carry_over: 0
 
 - source_requirements: `docs/00_MASTER_PLAN.md`（由 `docs/01-08` 细化）
 - mvp_baseline_commit: `2e3e857`
-- last_audited_commit: `4978d120a33a0eae7b004342f11c95665d4308e7`（023 合并提交；Round 5 delta audit 产物待提交）
+- last_audited_commit: `347b7dcbd82bcece2f2cf3572466060df9edb862`（Round 5 delta audit 与 Batch 024 规划提交）
 - loop_mode: `L3`
 - current_round: `5`
 - max_rounds: `6`
-- current_batch_id: `delivery-batch-024-character-parity-rebaseline`（proposed，pending confirmation）
+- current_batch_id: `delivery-batch-024-character-parity-rebaseline`（confirmed，tasks created）
 
 ## 需求状态
 
@@ -50,7 +50,7 @@ carry_over: 0
 
 ## 当前批次
 
-- batch_id: `delivery-batch-024-character-parity-rebaseline`（proposed，pending confirmation）
+- batch_id: `delivery-batch-024-character-parity-rebaseline`（confirmed，tasks created）
 - priority/risk: `P0/high`
 - scope: `角色 id-selector 与版本化候选证据、A/E/Y 有限单角色 64 校准、唯一组合 128→256 与条件式 PC 试玩包`
 - selected_reqs:
@@ -62,8 +62,8 @@ carry_over: 0
   - `024-01-character-overlay-and-evidence-contract`（中风险）
   - `024-02-bounded-character-parity-calibration`（高风险；本批唯一高风险任务）
   - `024-03-production-256-and-playtest-package`（中风险；仅 selected 128 解锁）
-- task_results: none；确认前未创建任务
-- result: `batch_planned_pending_confirmation`
+- task_results: 三项任务的 `prd/design/implement/implement.jsonl/check.jsonl/tdd-progress` 已创建；尚未实现业务代码
+- result: `tasks_created`
 - playtest_package_eligible: false
 - audit_evidence: `.trellis/audits/2026-07-23-post-023-character-parity-candidate-delta-audit.md`、`.trellis/audits/2026-07-23-post-023-character-parity-candidate-self-review.md`、`docs/13_LAYERED_PRESSURE_REBASELINE_023.md`
 - excluded_this_round:
@@ -76,7 +76,7 @@ carry_over: 0
 
 | 条目 | 原因 | 需要人工提供什么 | 起始轮次 |
 | --- | --- | --- | --- |
-| Batch 024 confirmation gate | Round 5 delta audit 与候选阶梯已完成，Trellis 规则要求创建任务前确认本批范围 | 确认 `delivery-batch-024-character-parity-rebaseline` | 5 |
+| none | 用户已确认 Batch 024；当前无人工 blocker | 无 | 5 |
 
 ## 人工决策
 
@@ -119,6 +119,7 @@ carry_over: 0
 - 2026-07-22: 023-01 完成 overlay fail-closed、实例隔离、CLI 拒绝退出和 attrition-v1；独立 Stage 2 首轮发现三项边界后均经 RED→GREEN 修复，复审 `C0/M0`，默认报告 byte-identical，解锁 023-02。
 - 2026-07-23: 023-02 严格修复后完整重跑 P1-P5；五候选均通过 64 direction、均未通过 128 hard gate，Stage 2 Round 2 为 C0/M0/m1。状态 `paused_no_layered_candidate_passed`；023-03 取消，未生成 256 artifact，正式 matrix、生产值、真人 cohort 与试玩包继续冻结。
 - 2026-07-23: 用户要求继续完成数值迭代；Round 5 delta audit 将方向收窄为角色平衡，规划 B0 与 A1-A3/E1-E3/Y1-Y3 的有限校准漏斗。Batch 024 尚待创建任务确认，确认前不运行新模拟或改生产数值。
+- 2026-07-23: 用户明确回复“确认执行”，确认 `delivery-batch-024-character-parity-rebaseline`；允许创建三个串行任务、隔离 worktree，并按严格 TDD、verifier 和双阶段评审推进。024-02 为本批唯一高风险任务；128/256 未全过不得改生产或打包。
 
 ## 预算快照
 
@@ -131,7 +132,7 @@ carry_over: 0
 ## 下一轮建议
 
 - action: `continue-next-batch`
-- reason: `Round 5 delta audit 已把 023 的聚合、角色差与证据保存失败转成有限角色校准方案；创建任务前必须确认 Batch 024。`
-- next_batch: `delivery-batch-024-character-parity-rebaseline`（proposed，pending confirmation）
-- next_task: `confirm-delivery-batch-024-character-parity-rebaseline`
+- reason: `Batch 024 三项串行任务契约已创建并通过 S7 自评；下一步在隔离 worktree 对 024-01 执行严格 TDD。`
+- next_batch: `delivery-batch-024-character-parity-rebaseline`（confirmed，in progress）
+- next_task: `implement-024-01-character-overlay-and-evidence-contract`
 - next_audit_scope: `delta`

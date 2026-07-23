@@ -1,0 +1,3 @@
+{"file":".trellis/audits/2026-07-23-post-023-character-parity-candidate-delta-audit.md","reason":"固定 Batch 024 allowlist、角色候选边界、证据保存和生产冻结"}
+{"file":"docs/13_LAYERED_PRESSURE_REBASELINE_023.md","reason":"固定 023 失败裁决、P4/P5 方向与不得复用失败候选的边界"}
+{"file":".trellis/tasks/delivery-batch-023-layered-pressure-rebaseline/01-candidate-overlay-and-attrition-contract/review-report.md","reason":"保留 023 overlay 已修复的 fail-closed、实例隔离和 I/O 评审边界"}

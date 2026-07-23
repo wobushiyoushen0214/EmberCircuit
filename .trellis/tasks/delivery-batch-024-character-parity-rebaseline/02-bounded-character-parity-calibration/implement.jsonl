@@ -1,0 +1,6 @@
+{"file":".trellis/audits/2026-07-23-post-023-character-parity-candidate-delta-audit.md","reason":"固定 B0、A/E/Y 候选、原始整数门、6,912 样本上限和停止条件"}
+{"file":".trellis/tasks/delivery-batch-024-character-parity-rebaseline/01-character-overlay-and-evidence-contract/prd.md","reason":"固定角色 selector、五数据集恢复和 compact evidence v1 API"}
+{"file":"docs/13_LAYERED_PRESSURE_REBASELINE_023.md","reason":"固定 P1-P5 失败裁决、P4 底座方向与 P5 稀有度退步"}
+{"file":"docs/09_NUMERICAL_TREE_AND_BALANCE.md","reason":"固定 campaign targets、128 hard sample、经济和角色差规则"}
+{"file":".trellis/tasks/delivery-batch-023-layered-pressure-rebaseline/02-layered-pressure-and-growth-rebaseline/review-report.md","reason":"保护 023 hard gate 和 runner 已修复边界"}
+

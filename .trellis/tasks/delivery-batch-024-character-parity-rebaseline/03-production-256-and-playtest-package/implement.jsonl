@@ -1,0 +1,6 @@
+{"file":".trellis/tasks/delivery-batch-024-character-parity-rebaseline/02-bounded-character-parity-calibration/prd.md","reason":"固定唯一 selected 128、C1 identity、compact evidence 和生产冻结前置"}
+{"file":".trellis/audits/2026-07-23-post-023-character-parity-candidate-delta-audit.md","reason":"固定 256 门、生产 snapshot、文档同步和 alpha.9 条件"}
+{"file":"docs/09_NUMERICAL_TREE_AND_BALANCE.md","reason":"固定 campaign targets、matrix schema、经济与 AI/真人证据分层"}
+{"file":".trellis/tasks/delivery-batch-023-layered-pressure-rebaseline/03-production-matrix-verification/prd.md","reason":"复用未执行的 report-driven sync 与 atomic rollback 边界，替换为 024 selected 前置"}
+{"file":"packaging/PLAYTEST_README_ZH.txt","reason":"固定 alpha.8 分发格式、Windows 运行说明和真人报告流程"}
+
