@@ -56,10 +56,12 @@ func _build_shell() -> void:
 	margin.add_theme_constant_override("margin_right", 24)
 	margin.add_theme_constant_override("margin_top", 18)
 	margin.add_theme_constant_override("margin_bottom", 18)
+	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(margin)
 	var column := VBoxContainer.new()
 	column.name = "MapRoomColumn"
 	column.add_theme_constant_override("separation", 10)
+	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	margin.add_child(column)
 	var title := Label.new()
 	title.name = "MapRoomTitle"

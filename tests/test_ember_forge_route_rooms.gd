@@ -13,6 +13,7 @@ func _init() -> void:
 	_run.call_deferred()
 
 func _run() -> void:
+	root.size = Vector2i(1280, 720)
 	var choice_row = ChoiceRowScript.new()
 	var item_shelf = ItemShelfScript.new()
 	var card_compare = CardCompareScript.new()
@@ -49,6 +50,13 @@ func _run() -> void:
 		and map_preview.find_child("PreviewSuccessors", true, false).text == "后续节点\n- 核心 [首领]",
 		"map page forwards exact preview title, risk, reward, description and successors"
 	):
+		return
+	var selected_map_nodes: Array[String] = []
+	map_page.node_selected.connect(func(node_id: String) -> void: selected_map_nodes.append(node_id))
+	var available_shop_button := map_page.map_view.node_buttons.get("shop", null) as Button
+	_click_control(available_shop_button)
+	await process_frame
+	if not _check(selected_map_nodes == ["shop"], "map page routes a real mouse click through its decorative chrome to an available node"):
 		return
 
 	var event_page = EventPageScript.new()
@@ -392,3 +400,15 @@ func _check(condition: bool, message: String) -> bool:
 	printerr("FAIL: %s" % message)
 	quit(1)
 	return false
+
+func _click_control(control: Control) -> void:
+	if control == null:
+		return
+	var click_position := control.get_global_rect().get_center()
+	for is_pressed in [true, false]:
+		var event := InputEventMouseButton.new()
+		event.button_index = MOUSE_BUTTON_LEFT
+		event.position = click_position
+		event.global_position = click_position
+		event.pressed = is_pressed
+		root.push_input(event)
