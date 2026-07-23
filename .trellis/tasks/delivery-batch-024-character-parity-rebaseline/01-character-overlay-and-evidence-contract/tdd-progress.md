@@ -15,7 +15,7 @@
 - [x] Review Round 1 修复后自检全集再次全绿。
 - [x] 最小实现收敛完成。
 - [x] design 挂载点全部接线：overlay→selector、simulator 五数据集 apply/assign/restore、digest build/write API。
-- [x] 未 commit；等待 Review Round 2。
+- [x] Review Round 2 为 C0/M0/m0，已提交为 `78b9c27`。
 
 ## 最小实现收敛
 
